@@ -271,16 +271,18 @@ def test_policy_aggregation_rejects_sink():
         )
 
 
-def test_policy_aggregation_requires_source():
-    """Test that aggregations require a source table."""
-    # First test: unqualified column should be rejected
+def test_policy_aggregation_with_unqualified_column_rejected():
+    """Test that aggregations with unqualified columns are rejected."""
     with pytest.raises(ValueError, match="All columns in constraints must be qualified"):
         DFCPolicy(
             sink="reports",
             constraint="max(value) > 10",
             on_fail=Resolution.REMOVE,
         )
-    # Second test: aggregation over sink should be rejected (after qualification check)
+
+
+def test_policy_aggregation_requires_source():
+    """Test that aggregations require a source table."""
     with pytest.raises(ValueError, match="Aggregations in constraints can only reference the source table"):
         DFCPolicy(
             sink="reports",
@@ -325,20 +327,97 @@ def test_policy_aggregation_source_with_sink_column():
     assert "reports.bar" in policy.constraint
 
 
-def test_policy_rejects_unqualified_columns():
-    """Test that unqualified columns in constraints are rejected."""
+def test_policy_rejects_unqualified_columns_with_source_only():
+    """Test that unqualified columns in constraints are rejected when only source is provided."""
     with pytest.raises(ValueError, match="All columns in constraints must be qualified"):
         DFCPolicy(
             source="users",
             constraint="age >= 18",
             on_fail=Resolution.REMOVE,
         )
-    
+
+
+def test_policy_rejects_unqualified_columns_with_source_and_sink():
+    """Test that unqualified columns in constraints are rejected when both source and sink are provided."""
     with pytest.raises(ValueError, match="All columns in constraints must be qualified"):
         DFCPolicy(
             source="users",
             sink="reports",
             constraint="users.age >= 18 AND status = 'active'",
+            on_fail=Resolution.REMOVE,
+        )
+
+
+def test_policy_table_name_extraction_with_source_only():
+    """Test that table name extraction works correctly with source table only.
+    
+    This validates that column.table is correctly extracted when it's a string
+    or an Identifier object for source-only policies.
+    """
+    policy = DFCPolicy(
+        source="users",
+        constraint="max(users.age) > 18",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy.source == "users"
+
+
+def test_policy_table_name_extraction_with_source_and_sink():
+    """Test that table name extraction works correctly with both source and sink.
+    
+    This validates that column.table is correctly extracted for policies with
+    both source and sink tables.
+    """
+    policy = DFCPolicy(
+        source="users",
+        sink="reports",
+        constraint="max(users.age) > 18 AND reports.status = 'active'",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy.source == "users"
+    assert policy.sink == "reports"
+
+
+def test_policy_table_name_extraction_rejects_aggregation_over_sink():
+    """Test that table name extraction correctly identifies sink table in aggregations.
+    
+    This validates that column.table is correctly extracted in aggregation checks,
+    ensuring aggregations over sink tables are rejected.
+    """
+    with pytest.raises(ValueError, match="Aggregation.*references sink table"):
+        DFCPolicy(
+            source="users",
+            sink="reports",
+            constraint="max(reports.value) > 10",
+            on_fail=Resolution.REMOVE,
+        )
+
+
+def test_policy_table_name_extraction_rejects_unaggregated_source_with_sink():
+    """Test that table name extraction correctly identifies unaggregated source columns.
+    
+    This validates that column.table is correctly extracted in source column checks,
+    ensuring unaggregated source columns are rejected when sink is also present.
+    """
+    with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+        DFCPolicy(
+            source="users",
+            sink="reports",
+            constraint="users.age > 18 AND reports.status = 'active'",
+            on_fail=Resolution.REMOVE,
+        )
+
+
+def test_policy_table_name_extraction_rejects_multiple_unaggregated_source_columns():
+    """Test that table name extraction correctly identifies multiple unaggregated source columns.
+    
+    This validates that column.table is correctly extracted for all source columns,
+    ensuring all unaggregated source columns are identified.
+    """
+    with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+        DFCPolicy(
+            source="users",
+            constraint="users.age > 18 AND users.status = 'active'",
             on_fail=Resolution.REMOVE,
         )
 

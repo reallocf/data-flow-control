@@ -51,7 +51,12 @@ class DFCPolicy:
         self._validate()
 
     def _validate(self) -> None:
-        """Validate that source, sink, and constraint are valid SQL and reference real tables/columns."""
+        """Validate that source, sink, and constraint are valid SQL syntax.
+        
+        This performs syntax validation only. Database binding validation (checking that
+        tables and columns actually exist) should be performed when the policy is
+        registered with a SQLRewriter instance.
+        """
         # Validate source table name if provided (must be a valid identifier)
         if self.source:
             try:
@@ -143,6 +148,28 @@ class DFCPolicy:
                 f"source={self.source}, sink={self.sink}: {e}"
             )
 
+    def _get_table_name(self, column: exp.Column) -> str:
+        """Extract table name from a column, handling both string and Identifier types.
+        
+        Args:
+            column: The column expression to extract the table name from.
+            
+        Returns:
+            The table name as a lowercase string.
+        """
+        if not column.table:
+            return ""
+        
+        # Handle both string and Identifier types for table
+        # column.table can be a string or an Identifier object
+        if isinstance(column.table, exp.Identifier):
+            return column.table.name.lower()
+        elif isinstance(column.table, str):
+            return column.table.lower()
+        else:
+            # Fallback: convert to string
+            return str(column.table).lower()
+
     def _validate_column_qualification(self) -> None:
         """Validate that all columns in the constraint are qualified with table names."""
         # Parse the constraint to find all column references
@@ -197,7 +224,8 @@ class DFCPolicy:
                         # but check just in case
                         continue
                     
-                    table_name = column.table.lower()
+                    # Extract table name, handling both string and Identifier types
+                    table_name = self._get_table_name(column)
                     
                     # Check if it references the sink table (not allowed for aggregations)
                     if self.sink and table_name == self.sink.lower():
@@ -221,7 +249,10 @@ class DFCPolicy:
                     # This shouldn't happen due to _validate_column_qualification
                     continue
                 
-                if column.table.lower() == self.source.lower():
+                # Extract table name, handling both string and Identifier types
+                table_name = self._get_table_name(column)
+                
+                if table_name == self.source.lower():
                     source_columns.append(column)
             
             if source_columns:
