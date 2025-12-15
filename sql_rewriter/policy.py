@@ -6,6 +6,8 @@ from sqlglot import exp
 from enum import Enum
 from typing import Optional
 
+from .sqlglot_utils import get_column_name, get_table_name_from_column
+
 
 class Resolution(Enum):
     """Action to take when a policy fails."""
@@ -47,6 +49,9 @@ class DFCPolicy:
         self.constraint = constraint
         self.on_fail = on_fail
 
+        # Parse the constraint expression and cache it
+        self._constraint_parsed = self._parse_constraint()
+
         # Validate the policy
         self._validate()
 
@@ -57,76 +62,17 @@ class DFCPolicy:
         tables and columns actually exist) should be performed when the policy is
         registered with a SQLRewriter instance.
         """
-        # Validate source table name if provided (must be a valid identifier)
+        # Validate source and sink table names if provided
         if self.source:
-            try:
-                # Try to parse as a table reference in a FROM clause
-                # This validates it's a valid SQL identifier
-                test_query = f"SELECT * FROM {self.source}"
-                parsed = sqlglot.parse_one(test_query, read="duckdb")
-                if not isinstance(parsed, sqlglot.exp.Select):
-                    raise ValueError(f"Source '{self.source}' is not a valid table identifier")
-                # Extract table name to ensure it parsed correctly
-                tables = list(parsed.find_all(sqlglot.exp.Table))
-                if not tables:
-                    raise ValueError(f"Source '{self.source}' does not reference a valid table")
-            except sqlglot.errors.ParseError as e:
-                raise ValueError(f"Invalid source table name '{self.source}': {e}")
-            except Exception as e:
-                if "Invalid" not in str(e):
-                    raise ValueError(f"Invalid source table '{self.source}': {e}")
-                raise
-
-        # Validate sink table name if provided (must be a valid identifier)
+            self._validate_table_name(self.source, "Source")
         if self.sink:
-            try:
-                # Try to parse as a table reference in a FROM clause
-                test_query = f"SELECT * FROM {self.sink}"
-                parsed = sqlglot.parse_one(test_query, read="duckdb")
-                if not isinstance(parsed, sqlglot.exp.Select):
-                    raise ValueError(f"Sink '{self.sink}' is not a valid table identifier")
-                tables = list(parsed.find_all(sqlglot.exp.Table))
-                if not tables:
-                    raise ValueError(f"Sink '{self.sink}' does not reference a valid table")
-            except sqlglot.errors.ParseError as e:
-                raise ValueError(f"Invalid sink table name '{self.sink}': {e}")
-            except Exception as e:
-                if "Invalid" not in str(e):
-                    raise ValueError(f"Invalid sink table '{self.sink}': {e}")
-                raise
+            self._validate_table_name(self.sink, "Sink")
 
-        # Validate constraint SQL expression
-        try:
-            # First, check if the constraint itself is a SELECT statement
-            constraint_parsed = sqlglot.parse_one(self.constraint, read="duckdb")
-            if isinstance(constraint_parsed, exp.Select):
-                raise ValueError("Constraint must be an expression, not a SELECT statement")
-            
-            # Try to parse the constraint as an expression
-            # Wrap it in a SELECT to validate it's a valid expression
-            test_query = f"SELECT {self.constraint} AS test"
-            parsed = sqlglot.parse_one(test_query, read="duckdb")
-            if not isinstance(parsed, exp.Select):
-                raise ValueError("Constraint must be a valid SQL expression")
-        except sqlglot.errors.ParseError as e:
-            # If parsing fails, check if it's because the constraint is a SELECT statement
-            constraint_upper = self.constraint.strip().upper()
-            if constraint_upper.startswith("SELECT"):
-                raise ValueError("Constraint must be an expression, not a SELECT statement")
-            raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
-        except Exception as e:
-            if "Constraint" in str(e) or "must be an expression" in str(e):
-                raise
-            if "Invalid" not in str(e):
-                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
-            raise
-
-        # Validate that all columns are qualified (have table names)
-        self._validate_column_qualification()
-
-        # Validate aggregations and source column aggregation requirements
-        self._validate_aggregation_rules()
-
+        # Validate constraint SQL expression (already parsed in __init__)
+        # Check if it's a SELECT statement
+        if isinstance(self._constraint_parsed, exp.Select):
+            raise ValueError("Constraint must be an expression, not a SELECT statement")
+        
         # Validate that the constraint can be used with the specified tables
         # by creating a test query that references both tables
         try:
@@ -148,44 +94,93 @@ class DFCPolicy:
                 f"source={self.source}, sink={self.sink}: {e}"
             )
 
-    def _get_table_name(self, column: exp.Column) -> str:
-        """Extract table name from a column, handling both string and Identifier types.
+        # Validate that all columns are qualified (have table names)
+        self._validate_column_qualification()
+
+        # Validate aggregations and source column aggregation requirements
+        self._validate_aggregation_rules()
+
+    def _validate_table_name(self, table_name: str, table_type: str) -> None:
+        """Validate that a table name is a valid SQL identifier.
         
         Args:
-            column: The column expression to extract the table name from.
+            table_name: The table name to validate.
+            table_type: The type of table ("Source" or "Sink") for error messages.
             
-        Returns:
-            The table name as a lowercase string.
+        Raises:
+            ValueError: If the table name is invalid.
         """
-        if not column.table:
-            return ""
+        try:
+            test_query = f"SELECT * FROM {table_name}"
+            parsed = sqlglot.parse_one(test_query, read="duckdb")
+            if not isinstance(parsed, sqlglot.exp.Select):
+                raise ValueError(f"{table_type} '{table_name}' is not a valid table identifier")
+            tables = list(parsed.find_all(sqlglot.exp.Table))
+            if not tables:
+                raise ValueError(f"{table_type} '{table_name}' does not reference a valid table")
+        except sqlglot.errors.ParseError as e:
+            raise ValueError(f"Invalid {table_type.lower()} table name '{table_name}': {e}")
+        except Exception as e:
+            if "Invalid" not in str(e):
+                raise ValueError(f"Invalid {table_type.lower()} table '{table_name}': {e}")
+            raise
+
+
+    def _parse_constraint(self) -> exp.Expression:
+        """Parse the constraint SQL expression.
         
-        # Handle both string and Identifier types for table
-        # column.table can be a string or an Identifier object
-        if isinstance(column.table, exp.Identifier):
-            return column.table.name.lower()
-        elif isinstance(column.table, str):
-            return column.table.lower()
-        else:
-            # Fallback: convert to string
-            return str(column.table).lower()
+        Returns:
+            The parsed constraint expression.
+            
+        Raises:
+            ValueError: If the constraint is invalid or is a SELECT statement.
+        """
+        try:
+            # First, check if the constraint itself is a SELECT statement
+            constraint_parsed = sqlglot.parse_one(self.constraint, read="duckdb")
+            if isinstance(constraint_parsed, exp.Select):
+                raise ValueError("Constraint must be an expression, not a SELECT statement")
+            
+            # If it parsed directly as an expression, use it
+            # Otherwise, try wrapping it in a SELECT to validate it's a valid expression
+            try:
+                test_query = f"SELECT {self.constraint} AS test"
+                parsed = sqlglot.parse_one(test_query, read="duckdb")
+                if not isinstance(parsed, exp.Select):
+                    raise ValueError("Constraint must be a valid SQL expression")
+                
+                # Extract the expression from the SELECT statement
+                # The first expression is an Alias, and we want the 'this' attribute
+                if parsed.expressions and hasattr(parsed.expressions[0], 'this'):
+                    return parsed.expressions[0].this
+                else:
+                    # Fallback: use the directly parsed constraint
+                    return constraint_parsed
+            except sqlglot.errors.ParseError:
+                # If wrapping in SELECT fails, but direct parse worked, use direct parse
+                return constraint_parsed
+        except sqlglot.errors.ParseError as e:
+            # If parsing fails, check if it's because the constraint is a SELECT statement
+            constraint_upper = self.constraint.strip().upper()
+            if constraint_upper.startswith("SELECT"):
+                raise ValueError("Constraint must be an expression, not a SELECT statement")
+            raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
+        except Exception as e:
+            if "Constraint" in str(e) or "must be an expression" in str(e):
+                raise
+            if "Invalid" not in str(e):
+                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
+            raise
+
 
     def _validate_column_qualification(self) -> None:
         """Validate that all columns in the constraint are qualified with table names."""
-        # Parse the constraint to find all column references
-        constraint_parsed = sqlglot.parse_one(self.constraint, read="duckdb")
-        
-        # Find all column references in the constraint
-        columns = list(constraint_parsed.find_all(exp.Column))
-        
-        unqualified_columns = []
-        for column in columns:
-            # Check if the column is qualified with a table name
-            # A qualified column has a table attribute
-            if not column.table:
-                # Get the column name for the error message
-                col_name = column.alias_or_name if hasattr(column, "alias_or_name") else (column.name if hasattr(column, "name") else str(column))
-                unqualified_columns.append(col_name)
+        columns = list(self._constraint_parsed.find_all(exp.Column))
+        unqualified_columns = [
+            get_column_name(column)
+            for column in columns
+            if not column.table
+        ]
         
         if unqualified_columns:
             raise ValueError(
@@ -195,12 +190,9 @@ class DFCPolicy:
 
     def _validate_aggregation_rules(self) -> None:
         """Validate aggregation rules: aggregations only reference source, and all source columns are aggregated."""
-        # Parse the constraint once for both validations
-        constraint_parsed = sqlglot.parse_one(self.constraint, read="duckdb")
-        
         # Find all aggregate functions and all columns
-        aggregate_funcs = list(constraint_parsed.find_all(exp.AggFunc))
-        all_columns = list(constraint_parsed.find_all(exp.Column))
+        aggregate_funcs = list(self._constraint_parsed.find_all(exp.AggFunc))
+        all_columns = list(self._constraint_parsed.find_all(exp.Column))
         
         # Validation 1: If there are aggregations, they must only reference the source table
         if aggregate_funcs:
@@ -213,27 +205,20 @@ class DFCPolicy:
             
             # Check each aggregate function
             for agg_func in aggregate_funcs:
-                # Find all column references within this aggregate function
                 columns = list(agg_func.find_all(exp.Column))
                 
                 for column in columns:
-                    # Since we've already validated all columns are qualified, we can safely
-                    # get the table name
-                    if not column.table:
-                        # This shouldn't happen due to _validate_column_qualification,
-                        # but check just in case
+                    table_name = get_table_name_from_column(column)
+                    if table_name is None:
+                        # This shouldn't happen due to _validate_column_qualification
                         continue
                     
-                    # Extract table name, handling both string and Identifier types
-                    table_name = self._get_table_name(column)
-                    
-                    # Check if it references the sink table (not allowed for aggregations)
+                    # Aggregations can only reference the source table
                     if self.sink and table_name == self.sink.lower():
                         raise ValueError(
                             f"Aggregation '{agg_func.sql()}' references sink table '{self.sink}', "
                             "but aggregations can only reference the source table"
                         )
-                    # Check if it references a table that's not the source
                     if table_name != self.source.lower():
                         raise ValueError(
                             f"Aggregation '{agg_func.sql()}' references table '{table_name}', "
@@ -242,30 +227,18 @@ class DFCPolicy:
         
         # Validation 2: If there's a source table, all source columns must be aggregated
         if self.source:
-            # Find all columns that reference the source table
-            source_columns = []
-            for column in all_columns:
-                if not column.table:
-                    # This shouldn't happen due to _validate_column_qualification
-                    continue
-                
-                # Extract table name, handling both string and Identifier types
-                table_name = self._get_table_name(column)
-                
-                if table_name == self.source.lower():
-                    source_columns.append(column)
+            source_columns = [
+                column
+                for column in all_columns
+                if get_table_name_from_column(column) == self.source.lower()
+            ]
             
             if source_columns:
-                # Check if each source column is within an aggregate function
-                unaggregated_source_columns = []
-                for column in source_columns:
-                    # Check if this column is within an aggregate function
-                    # Use find_ancestor to check if the column is inside an AggFunc
-                    parent_agg = column.find_ancestor(exp.AggFunc)
-                    if not parent_agg:
-                        # Column is not inside any aggregate function
-                        col_name = column.alias_or_name if hasattr(column, "alias_or_name") else (column.name if hasattr(column, "name") else str(column))
-                        unaggregated_source_columns.append(f"{self.source}.{col_name}")
+                unaggregated_source_columns = [
+                    f"{self.source}.{get_column_name(column)}"
+                    for column in source_columns
+                    if column.find_ancestor(exp.AggFunc) is None
+                ]
                 
                 if unaggregated_source_columns:
                     raise ValueError(

@@ -421,3 +421,239 @@ def test_policy_table_name_extraction_rejects_multiple_unaggregated_source_colum
             on_fail=Resolution.REMOVE,
         )
 
+
+def test_policy_aggregation_count_star():
+    """Test that COUNT(*) aggregation is allowed (no column reference)."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="COUNT(*) > 0",
+        on_fail=Resolution.REMOVE,
+    )
+    assert "COUNT(*)" in policy.constraint
+
+
+def test_policy_aggregation_sum():
+    """Test that SUM aggregation over source is allowed."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="SUM(users.age) > 100",
+        on_fail=Resolution.REMOVE,
+    )
+    assert "SUM(users.age)" in policy.constraint
+
+
+def test_policy_aggregation_avg():
+    """Test that AVG aggregation over source is allowed."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="AVG(users.age) > 25",
+        on_fail=Resolution.REMOVE,
+    )
+    assert "AVG(users.age)" in policy.constraint
+
+
+def test_policy_aggregation_count():
+    """Test that COUNT aggregation over source is allowed."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="COUNT(users.id) > 10",
+        on_fail=Resolution.REMOVE,
+    )
+    assert "COUNT(users.id)" in policy.constraint
+
+
+def test_policy_constraint_references_unknown_table():
+    """Test that constraint referencing a table not in source or sink is allowed during policy creation.
+    
+    Note: Policy validation only checks SQL syntax, not table existence.
+    Table existence validation happens in register_policy().
+    """
+    # This should succeed - syntax validation only
+    policy = DFCPolicy(
+        source="users",
+        sink="orders",
+        constraint="unknown_table.column > 10",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy.constraint == "unknown_table.column > 10"
+
+
+def test_policy_constraint_references_unknown_table_source_only():
+    """Test that constraint referencing unknown table with source only is allowed during policy creation."""
+    # This should succeed - syntax validation only
+    policy = DFCPolicy(
+        source="users",
+        constraint="unknown_table.column > 10",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy.constraint == "unknown_table.column > 10"
+
+
+def test_policy_constraint_references_unknown_table_sink_only():
+    """Test that constraint referencing unknown table with sink only is allowed during policy creation."""
+    # This should succeed - syntax validation only
+    policy = DFCPolicy(
+        sink="orders",
+        constraint="unknown_table.column > 10",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy.constraint == "unknown_table.column > 10"
+
+
+def test_policy_equality_with_none_source():
+    """Test equality when one policy has source and other doesn't."""
+    policy1 = DFCPolicy(
+        source="users",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    policy2 = DFCPolicy(
+        sink="reports",
+        constraint="reports.status = 'active'",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy1 != policy2
+
+
+def test_policy_equality_with_none_sink():
+    """Test equality when one policy has sink and other doesn't."""
+    policy1 = DFCPolicy(
+        sink="reports",
+        constraint="reports.status = 'active'",
+        on_fail=Resolution.REMOVE,
+    )
+    policy2 = DFCPolicy(
+        source="users",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy1 != policy2
+
+
+def test_policy_equality_same_source_different_sink():
+    """Test that policies with same source but different sink are not equal."""
+    policy1 = DFCPolicy(
+        source="users",
+        sink="analytics",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    policy2 = DFCPolicy(
+        source="users",
+        sink="reports",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy1 != policy2
+
+
+def test_policy_equality_same_sink_different_source():
+    """Test that policies with same sink but different source are not equal."""
+    policy1 = DFCPolicy(
+        source="users",
+        sink="analytics",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    policy2 = DFCPolicy(
+        source="orders",
+        sink="analytics",
+        constraint="max(orders.id) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy1 != policy2
+
+
+def test_policy_aggregation_rejects_third_table():
+    """Test that aggregation over a table that's neither source nor sink is rejected."""
+    with pytest.raises(ValueError, match="Aggregation.*references table"):
+        DFCPolicy(
+            source="users",
+            sink="orders",
+            constraint="max(third_table.value) > 10",
+            on_fail=Resolution.REMOVE,
+        )
+
+
+def test_policy_complex_nested_aggregations():
+    """Test policy with nested or complex aggregation expressions."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="max(users.age) + min(users.age) > 50 AND COUNT(users.id) > 100",
+        on_fail=Resolution.REMOVE,
+    )
+    assert "max(users.age)" in policy.constraint
+    assert "min(users.age)" in policy.constraint
+    assert "COUNT(users.id)" in policy.constraint
+
+
+def test_policy_constraint_with_literals():
+    """Test that constraints can include literals and constants."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="max(users.age) > 18 AND 1 = 1",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy.constraint == "max(users.age) > 18 AND 1 = 1"
+
+
+def test_policy_constraint_with_string_literals():
+    """Test that constraints can include string literals."""
+    policy = DFCPolicy(
+        sink="reports",
+        constraint="reports.status = 'approved' AND reports.type = 'monthly'",
+        on_fail=Resolution.KILL,
+    )
+    assert "'approved'" in policy.constraint
+    assert "'monthly'" in policy.constraint
+
+
+def test_policy_aggregation_with_arithmetic():
+    """Test aggregation with arithmetic operations."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="max(users.age) * 2 > 40",
+        on_fail=Resolution.REMOVE,
+    )
+    assert "max(users.age) * 2" in policy.constraint
+
+
+def test_policy_inequality_different_source():
+    """Test that policies with different source are not equal."""
+    policy1 = DFCPolicy(
+        source="users",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    policy2 = DFCPolicy(
+        source="orders",
+        constraint="max(orders.id) >= 18",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy1 != policy2
+
+
+def test_policy_inequality_different_sink():
+    """Test that policies with different sink are not equal."""
+    policy1 = DFCPolicy(
+        sink="analytics",
+        constraint="analytics.status = 'active'",
+        on_fail=Resolution.REMOVE,
+    )
+    policy2 = DFCPolicy(
+        sink="reports",
+        constraint="reports.status = 'active'",
+        on_fail=Resolution.REMOVE,
+    )
+    assert policy1 != policy2
+
+
+def test_policy_equality_with_both_none():
+    """Test that two policies with both source and sink None cannot be created."""
+    # This should fail during creation, not during equality check
+    with pytest.raises(ValueError, match="Either source or sink must be provided"):
+        DFCPolicy(
+            constraint="1 = 1",
+            on_fail=Resolution.REMOVE,
+        )
+
