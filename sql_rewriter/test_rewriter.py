@@ -555,3 +555,353 @@ def test_register_policy_with_quoted_identifiers(rewriter):
     # Should work with valid SQL identifiers
     rewriter.register_policy(policy)
 
+
+def test_policy_applied_to_aggregation_query(rewriter):
+    """Test that policies are applied to aggregation queries over source tables."""
+    # Register a policy
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) >= 1",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    # Execute an aggregation query over the source table
+    query = "SELECT max(foo.id) FROM foo"
+    result = rewriter.fetchall(query)
+    
+    # The query should have been transformed to include HAVING clause
+    # Since max(foo.id) = 3 (from test data), and constraint is >= 1, it should pass
+    assert len(result) == 1
+    assert result[0][0] == 3  # max(id) = 3
+
+
+def test_policy_filters_aggregation_query(rewriter):
+    """Test that policies filter aggregation queries when constraint fails."""
+    # Register a policy with a constraint that will fail
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) > 10",  # max(id) = 3, so this will fail
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    # Execute an aggregation query
+    query = "SELECT max(foo.id) FROM foo"
+    transformed = rewriter.transform_query(query)
+    # Check that HAVING clause was added
+    assert "HAVING" in transformed.upper()
+    assert "max(foo.id) > 10" in transformed or "MAX(foo.id) > 10" in transformed
+    
+    result = rewriter.fetchall(query)
+    
+    # The constraint max(foo.id) > 10 should filter out the result
+    # Since max(id) = 3, which is not > 10, the result should be empty
+    assert len(result) == 0
+
+
+def test_policy_applied_to_multiple_aggregations(rewriter):
+    """Test that policies work with queries that have multiple aggregations."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) >= 1 AND min(foo.id) <= 10",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT max(foo.id), min(foo.id) FROM foo"
+    result = rewriter.fetchall(query)
+    
+    # Should return results since both constraints pass (max=3, min=1)
+    assert len(result) == 1
+    assert result[0][0] == 3  # max
+    assert result[0][1] == 1  # min
+
+
+def test_policy_applied_to_non_aggregation_via_where(rewriter):
+    """Test that policies are applied to non-aggregation queries via WHERE clause."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) >= 1",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    # Non-aggregation query should have WHERE clause added (not HAVING)
+    query = "SELECT id, name FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # Should have WHERE clause, not HAVING
+    assert "WHERE" in transformed.upper()
+    assert "HAVING" not in transformed.upper()
+    
+    # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
+    result = rewriter.fetchall(query)
+    assert len(result) == 3
+
+
+def test_policy_not_applied_to_different_source(rewriter):
+    """Test that policies are not applied to queries over different source tables."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) >= 1",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    # Query over different table should not have policy applied
+    query = "SELECT max(baz.x) FROM baz"
+    result = rewriter.fetchall(query)
+    
+    # Should return result without HAVING clause
+    assert len(result) == 1
+    assert result[0][0] == 10
+
+
+def test_policy_applied_to_scan_query(rewriter):
+    """Test that policies are applied to non-aggregation queries (table scans)."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) >= 1",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    # Non-aggregation query should have WHERE clause added
+    query = "SELECT id, name FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # Should have WHERE clause with transformed constraint (max(id) -> id)
+    assert "WHERE" in transformed.upper()
+    assert "id >= 1" in transformed or "id >= 1" in transformed.lower()
+    
+    # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
+    result = rewriter.fetchall(query)
+    assert len(result) == 3
+
+
+def test_policy_filters_scan_query(rewriter):
+    """Test that policies filter scan queries when constraint fails."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) > 10",  # max(id) = 3, so id > 10 will filter all rows
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    # Non-aggregation query
+    query = "SELECT id, name FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # Should have WHERE clause
+    assert "WHERE" in transformed.upper()
+    assert "id > 10" in transformed or "id > 10" in transformed.lower()
+    
+    # Should filter out all rows since id > 10 is false for all (max id is 3)
+    result = rewriter.fetchall(query)
+    assert len(result) == 0
+
+
+def test_policy_scan_with_count(rewriter):
+    """Test that COUNT aggregations in constraints are transformed to 1."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="COUNT(*) > 0",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # COUNT(*) > 0 should become 1 > 0 (always true)
+    # The WHERE clause should be added even if it's always true
+    assert "WHERE" in transformed.upper() or "1 > 0" in transformed
+    
+    # Should return all rows (constraint is always true)
+    result = rewriter.fetchall(query)
+    assert len(result) == 3
+
+
+def test_policy_scan_with_count_distinct(rewriter):
+    """Test that COUNT(DISTINCT ...) aggregations in constraints are transformed to 1."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="COUNT(DISTINCT foo.id) > 0",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # COUNT(DISTINCT id) > 0 should become 1 > 0 (always true)
+    assert "WHERE" in transformed.upper()
+    assert "1 > 0" in transformed
+    
+    # Should return all rows
+    result = rewriter.fetchall(query)
+    assert len(result) == 3
+
+
+def test_policy_scan_with_approx_count_distinct(rewriter):
+    """Test that APPROX_COUNT_DISTINCT aggregations in constraints are transformed to 1."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="APPROX_COUNT_DISTINCT(foo.id) > 0",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # APPROX_COUNT_DISTINCT(id) > 0 should become 1 > 0 (always true)
+    assert "WHERE" in transformed.upper()
+    assert "1 > 0" in transformed
+    
+    # Should return all rows
+    result = rewriter.fetchall(query)
+    assert len(result) == 3
+
+
+def test_policy_scan_with_count_if(rewriter):
+    """Test that COUNT_IF aggregations in constraints are transformed to CASE WHEN."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="COUNT_IF(foo.id > 2) > 0",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # COUNT_IF(id > 2) > 0 should become CASE WHEN id > 2 THEN 1 ELSE 0 END > 0
+    assert "WHERE" in transformed.upper()
+    assert "CASE" in transformed.upper()
+    assert "WHEN" in transformed.upper()
+    assert "id > 2" in transformed or "id > 2" in transformed.lower()
+    assert "THEN 1" in transformed.upper() or "THEN 1" in transformed
+    assert "ELSE 0" in transformed.upper() or "ELSE 0" in transformed
+    
+    # Should return rows where id > 2 (id values 3)
+    result = rewriter.fetchall(query)
+    assert len(result) == 1
+    assert result[0][0] == 3
+
+
+def test_policy_scan_with_count_if_false(rewriter):
+    """Test that COUNT_IF with false condition filters out rows."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="COUNT_IF(foo.id > 10) > 0",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # COUNT_IF(id > 10) > 0 should become CASE WHEN id > 10 THEN 1 ELSE 0 END > 0
+    # Since max id is 3, this should filter out all rows
+    assert "WHERE" in transformed.upper()
+    assert "CASE" in transformed.upper()
+    
+    # Should return no rows (no id > 10)
+    result = rewriter.fetchall(query)
+    assert len(result) == 0
+
+
+def test_policy_scan_with_array_agg(rewriter):
+    """Test that ARRAY_AGG aggregations in constraints are transformed to single-element arrays."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="array_agg(foo.id) = ARRAY[2]",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # array_agg(id) = ARRAY[2] should become [id] = [2] (DuckDB uses square brackets)
+    assert "WHERE" in transformed.upper()
+    # DuckDB uses square brackets for arrays, so check for [id] or [foo.id]
+    assert ("[id]" in transformed or "[foo.id]" in transformed or 
+            "[ID]" in transformed or "[FOO.ID]" in transformed)
+    
+    # Should return rows where id = 2
+    result = rewriter.fetchall(query)
+    assert len(result) == 1
+    assert result[0][0] == 2
+
+
+def test_policy_scan_with_array_agg_comparison(rewriter):
+    """Test that ARRAY_AGG in constraints works with array comparisons."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="array_agg(foo.id) != ARRAY[999]",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # array_agg(id) != ARRAY[999] should become [id] != [999]
+    # This should be true for all rows (no id = 999)
+    assert "WHERE" in transformed.upper()
+    # DuckDB uses square brackets for arrays
+    assert ("[" in transformed and "]" in transformed)
+    
+    # Should return all rows
+    result = rewriter.fetchall(query)
+    assert len(result) == 3
+
+
+def test_policy_scan_with_min(rewriter):
+    """Test that MIN aggregations in constraints are transformed to columns."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="min(foo.id) <= 2",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id, name FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # min(id) <= 2 should become id <= 2
+    assert "WHERE" in transformed.upper()
+    assert "id <= 2" in transformed or "id <= 2" in transformed.lower()
+    
+    # Should return rows where id <= 2 (id values 1 and 2)
+    result = rewriter.fetchall(query)
+    assert len(result) == 2
+    assert all(row[0] <= 2 for row in result)
+
+
+def test_policy_scan_with_complex_constraint(rewriter):
+    """Test that complex constraints with multiple aggregations work."""
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) > 1 AND min(foo.id) < 10",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT id FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # Should have WHERE with both conditions transformed
+    assert "WHERE" in transformed.upper()
+    assert "AND" in transformed.upper()
+    assert "id > 1" in transformed or "id > 1" in transformed.lower()
+    assert "id < 10" in transformed or "id < 10" in transformed.lower()
+    
+    # Should return rows where id > 1 AND id < 10 (id values 2 and 3)
+    result = rewriter.fetchall(query)
+    assert len(result) == 2
+    assert all(1 < row[0] < 10 for row in result)
+
