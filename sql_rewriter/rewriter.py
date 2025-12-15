@@ -27,6 +27,7 @@ class SQLRewriter:
         else:
             self.conn = duckdb.connect()
         self._policies: list[DFCPolicy] = []
+        self._register_kill_udf()
 
     def transform_query(self, query: str) -> str:
         """Transform a SQL query according to the rewriter's rules.
@@ -42,31 +43,22 @@ class SQLRewriter:
             The transformed SQL query string.
         """
         try:
-            # Parse the SQL query
             parsed = sqlglot.parse_one(query, read="duckdb")
 
-            # Check if this is a SELECT statement
             if isinstance(parsed, exp.Select):
-                # Get source tables from the query
                 from_tables = self._get_source_tables(parsed)
                 
                 if from_tables:
-                    # Find matching policies for source tables
                     matching_policies = self._find_matching_policies(from_tables)
                     
                     if matching_policies:
-                        # Check if this is an aggregation query
                         if self._has_aggregations(parsed):
-                            # Apply policy constraints as HAVING clauses
                             apply_policy_constraints_to_aggregation(parsed, matching_policies, from_tables)
                         else:
-                            # Apply policy constraints as WHERE clauses (transform aggregations to columns)
                             apply_policy_constraints_to_scan(parsed, matching_policies, from_tables)
 
-            # Return the transformed SQL
             return parsed.sql(pretty=True, dialect="duckdb")
         except Exception as e:
-            # If transformation fails, return original query
             # In production, you might want to log this error
             return query
 
@@ -241,13 +233,11 @@ class SQLRewriter:
         Raises:
             ValueError: If validation fails (table doesn't exist, column doesn't exist, etc.).
         """
-        # Validate source and sink tables exist
         if policy.source:
             self._validate_table_exists(policy.source, "Source")
         if policy.sink:
             self._validate_table_exists(policy.sink, "Sink")
 
-        # Get column names for each table
         source_columns: Optional[Set[str]] = None
         sink_columns: Optional[Set[str]] = None
 
@@ -256,7 +246,6 @@ class SQLRewriter:
         if policy.sink:
             sink_columns = self._get_table_columns(policy.sink)
 
-        # Validate each column exists in the appropriate table
         columns = list(policy._constraint_parsed.find_all(exp.Column))
         for column in columns:
             table_name = get_table_name_from_column(column)
@@ -285,7 +274,6 @@ class SQLRewriter:
                     f"('{policy.source}') or sink ('{policy.sink}')"
                 )
 
-        # All validations passed, register the policy
         self._policies.append(policy)
 
     def _get_source_tables(self, parsed: exp.Select) -> Set[str]:
@@ -333,6 +321,25 @@ class SQLRewriter:
             if policy.source and policy.source.lower() in source_tables:
                 matching.append(policy)
         return matching
+
+    def _register_kill_udf(self) -> None:
+        """Register the kill UDF that raises a ValueError when called.
+        
+        This UDF is used by KILL resolution policies to abort queries
+        when policy constraints fail.
+        """
+        def kill() -> bool:
+            """Kill function that raises ValueError to abort the query.
+            
+            Returns:
+                bool: Never returns, always raises ValueError.
+                
+            Raises:
+                ValueError: Always raised with message "KILLing due to dfc policy violation"
+            """
+            raise ValueError("KILLing due to dfc policy violation")
+        
+        self.conn.create_function('kill', kill, return_type='BOOLEAN')
 
     def close(self) -> None:
         """Close the DuckDB connection."""

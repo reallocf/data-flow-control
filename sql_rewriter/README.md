@@ -1,13 +1,14 @@
 # SQL Rewriter
 
-A SQL rewriter that intercepts queries, transforms them according to configurable rules, and executes them against a DuckDB database.
+A SQL query rewriter that intercepts queries, applies Data Flow Control (DFC) policies, and executes them against a DuckDB database. Policies can filter or abort queries based on constraints over source and sink tables.
 
 ## Features
 
-- Intercepts SQL queries before execution
-- Transforms queries based on configurable rules
-- Executes transformed queries against DuckDB
-- Currently adds column "bar" to SELECT statements querying table "foo"
+- **Query Interception**: Automatically transforms SQL queries before execution
+- **Data Flow Control Policies**: Define constraints on data movement between source and sink tables
+- **Policy Resolution**: Two modes - `REMOVE` (filter rows) or `KILL` (abort query)
+- **Aggregation Support**: Handles both aggregation queries (HAVING clauses) and table scans (WHERE clauses)
+- **DuckDB Integration**: Executes transformed queries against DuckDB with full SQL support
 
 ## Installation
 
@@ -23,21 +24,148 @@ To install with development dependencies (including pytest):
 uv sync --extra dev
 ```
 
-## Usage
+## Quick Start
 
 ```python
-from sql_rewriter import SQLRewriter
+from sql_rewriter import SQLRewriter, DFCPolicy, Resolution
 
 # Create a rewriter with an in-memory database
 with SQLRewriter() as rewriter:
     # Create a table
-    rewriter.execute("CREATE TABLE foo (id INTEGER, name VARCHAR)")
+    rewriter.execute("CREATE TABLE users (id INTEGER, age INTEGER, name VARCHAR)")
+    rewriter.execute("INSERT INTO users VALUES (1, 25, 'Alice'), (2, 17, 'Bob'), (3, 30, 'Charlie')")
     
-    # Insert data
-    rewriter.execute("INSERT INTO foo VALUES (1, 'Alice')")
+    # Create a policy: only allow queries where max age >= 18
+    policy = DFCPolicy(
+        source="users",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.REMOVE,  # Filter out rows that don't meet constraint
+    )
     
-    # Query - will automatically add "bar" column if it exists
-    results = rewriter.fetchall("SELECT id, name FROM foo")
+    # Register the policy
+    rewriter.register_policy(policy)
+    
+    # Query - automatically filtered by policy
+    results = rewriter.fetchall("SELECT id, name FROM users")
+    # Only returns rows where the aggregation constraint passes
+```
+
+## Usage
+
+### Creating Policies
+
+Policies define constraints on data flow. They require either a `source` or `sink` table (or both):
+
+```python
+from sql_rewriter import DFCPolicy, Resolution
+
+# Policy with source only
+policy1 = DFCPolicy(
+    source="users",
+    constraint="max(users.age) >= 18",
+    on_fail=Resolution.REMOVE,
+)
+
+# Policy with source and sink
+policy2 = DFCPolicy(
+    source="orders",
+    sink="analytics",
+    constraint="max(orders.total) > 100 AND analytics.status = 'active'",
+    on_fail=Resolution.KILL,  # Abort query if constraint fails
+)
+
+# Policy with sink only
+policy3 = DFCPolicy(
+    sink="reports",
+    constraint="reports.status = 'approved'",
+    on_fail=Resolution.REMOVE,
+)
+```
+
+### Policy Constraints
+
+- **All columns must be qualified** with table names (e.g., `users.age`, not just `age`)
+- **Source columns must be aggregated** when a source table is specified
+- **Constraints are SQL expressions** that evaluate to boolean
+
+### Policy Resolution
+
+- **`Resolution.REMOVE`**: Filters out rows/results that don't meet the constraint
+- **`Resolution.KILL`**: Aborts the entire query if any row fails the constraint
+
+### Registering Policies
+
+Policies must be registered with a `SQLRewriter` instance. Registration validates that:
+- Tables exist in the database
+- Columns referenced in constraints exist in their respective tables
+
+```python
+rewriter = SQLRewriter()
+rewriter.execute("CREATE TABLE users (id INTEGER, age INTEGER)")
+
+policy = DFCPolicy(
+    source="users",
+    constraint="max(users.age) >= 18",
+    on_fail=Resolution.REMOVE,
+)
+
+rewriter.register_policy(policy)  # Validates tables and columns exist
+```
+
+### Query Execution
+
+The rewriter automatically applies policies to queries:
+
+```python
+# Aggregation query - policy applied as HAVING clause
+results = rewriter.fetchall("SELECT max(age) FROM users")
+
+# Table scan - policy applied as WHERE clause (aggregations transformed)
+results = rewriter.fetchall("SELECT id, name FROM users")
+```
+
+## Examples
+
+### Filtering Aggregation Results
+
+```python
+with SQLRewriter() as rewriter:
+    rewriter.execute("CREATE TABLE sales (amount INTEGER, region VARCHAR)")
+    rewriter.execute("INSERT INTO sales VALUES (100, 'US'), (50, 'EU'), (200, 'US')")
+    
+    # Only allow queries where total sales > 150
+    policy = DFCPolicy(
+        source="sales",
+        constraint="sum(sales.amount) > 150",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+    
+    # This query will be filtered by the policy
+    results = rewriter.fetchall("SELECT sum(amount) FROM sales")
+    # Only returns results if sum(amount) > 150
+```
+
+### Aborting Queries with KILL
+
+```python
+with SQLRewriter() as rewriter:
+    rewriter.execute("CREATE TABLE sensitive (id INTEGER, level INTEGER)")
+    rewriter.execute("INSERT INTO sensitive VALUES (1, 5), (2, 3)")
+    
+    # Abort query if max level is too high
+    policy = DFCPolicy(
+        source="sensitive",
+        constraint="max(sensitive.level) < 4",
+        on_fail=Resolution.KILL,  # Abort if constraint fails
+    )
+    rewriter.register_policy(policy)
+    
+    # This will raise an exception because max(level) = 5 >= 4
+    try:
+        results = rewriter.fetchall("SELECT * FROM sensitive")
+    except Exception as e:
+        print("Query aborted:", e)
 ```
 
 ## Testing
@@ -54,9 +182,33 @@ Or with verbose output:
 uv run pytest -v
 ```
 
-The tests in `test_rewriter.py` also serve as usage examples.
+The test files serve as comprehensive usage examples:
+- `test_rewriter.py`: Integration tests (212 tests)
+- `test_policy.py`: Policy validation tests (100+ tests)
+- `test_rewrite_rule.py`: Rewrite rule tests (36 tests)
+
+## Architecture
+
+- **`rewriter.py`**: Main `SQLRewriter` class - query interception, policy registration, execution
+- **`policy.py`**: `DFCPolicy` class - policy definition and validation
+- **`rewrite_rule.py`**: Policy application logic - HAVING/WHERE clause injection
+- **`sqlglot_utils.py`**: Shared utility functions for sqlglot expressions
+
+## Documentation
+
+For detailed information about:
+- Common pitfalls and solutions
+- sqlglot-specific gotchas
+- Testing patterns
+- Code style preferences
+- Future enhancements
+
+See [AGENTS.md](AGENTS.md) for a comprehensive guide.
 
 ## Development
 
-The rewriter can be extended to add more transformation rules. The `transform_query` method in `rewriter.py` is where transformations are applied.
+The rewriter uses `sqlglot` for SQL parsing and transformation. Key areas for extension:
+- Additional aggregation transformations in `transform_aggregations_to_columns()`
+- New policy validation rules in `DFCPolicy._validate()`
+- Support for more SQL features (window functions, recursive CTEs, etc.)
 

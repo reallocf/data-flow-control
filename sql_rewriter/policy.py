@@ -49,10 +49,7 @@ class DFCPolicy:
         self.constraint = constraint
         self.on_fail = on_fail
 
-        # Parse the constraint expression and cache it
         self._constraint_parsed = self._parse_constraint()
-
-        # Validate the policy
         self._validate()
 
     def _validate(self) -> None:
@@ -62,31 +59,22 @@ class DFCPolicy:
         tables and columns actually exist) should be performed when the policy is
         registered with a SQLRewriter instance.
         """
-        # Validate source and sink table names if provided
         if self.source:
             self._validate_table_name(self.source, "Source")
         if self.sink:
             self._validate_table_name(self.sink, "Sink")
 
-        # Validate constraint SQL expression (already parsed in __init__)
-        # Check if it's a SELECT statement
         if isinstance(self._constraint_parsed, exp.Select):
             raise ValueError("Constraint must be an expression, not a SELECT statement")
         
-        # Validate that the constraint can be used with the specified tables
-        # by creating a test query that references both tables
         try:
             if self.source and self.sink:
-                # Both tables: constraint can reference columns from both
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source} s, {self.sink} t"
             elif self.source:
-                # Only source: constraint can reference source columns
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source}"
-            else:  # sink only
-                # Only sink: constraint can reference sink columns
+            else:
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.sink}"
 
-            # Parse the test query to validate the constraint works with the tables
             sqlglot.parse_one(test_query, read="duckdb")
         except sqlglot.errors.ParseError as e:
             raise ValueError(
@@ -94,10 +82,7 @@ class DFCPolicy:
                 f"source={self.source}, sink={self.sink}: {e}"
             )
 
-        # Validate that all columns are qualified (have table names)
         self._validate_column_qualification()
-
-        # Validate aggregations and source column aggregation requirements
         self._validate_aggregation_rules()
 
     def _validate_table_name(self, table_name: str, table_type: str) -> None:
@@ -136,31 +121,24 @@ class DFCPolicy:
             ValueError: If the constraint is invalid or is a SELECT statement.
         """
         try:
-            # First, check if the constraint itself is a SELECT statement
             constraint_parsed = sqlglot.parse_one(self.constraint, read="duckdb")
             if isinstance(constraint_parsed, exp.Select):
                 raise ValueError("Constraint must be an expression, not a SELECT statement")
             
-            # If it parsed directly as an expression, use it
-            # Otherwise, try wrapping it in a SELECT to validate it's a valid expression
             try:
                 test_query = f"SELECT {self.constraint} AS test"
                 parsed = sqlglot.parse_one(test_query, read="duckdb")
                 if not isinstance(parsed, exp.Select):
                     raise ValueError("Constraint must be a valid SQL expression")
                 
-                # Extract the expression from the SELECT statement
                 # The first expression is an Alias, and we want the 'this' attribute
                 if parsed.expressions and hasattr(parsed.expressions[0], 'this'):
                     return parsed.expressions[0].this
                 else:
-                    # Fallback: use the directly parsed constraint
                     return constraint_parsed
             except sqlglot.errors.ParseError:
-                # If wrapping in SELECT fails, but direct parse worked, use direct parse
                 return constraint_parsed
         except sqlglot.errors.ParseError as e:
-            # If parsing fails, check if it's because the constraint is a SELECT statement
             constraint_upper = self.constraint.strip().upper()
             if constraint_upper.startswith("SELECT"):
                 raise ValueError("Constraint must be an expression, not a SELECT statement")
@@ -190,30 +168,24 @@ class DFCPolicy:
 
     def _validate_aggregation_rules(self) -> None:
         """Validate aggregation rules: aggregations only reference source, and all source columns are aggregated."""
-        # Find all aggregate functions and all columns
         aggregate_funcs = list(self._constraint_parsed.find_all(exp.AggFunc))
         all_columns = list(self._constraint_parsed.find_all(exp.Column))
         
-        # Validation 1: If there are aggregations, they must only reference the source table
         if aggregate_funcs:
-            # If there are aggregations but no source table, that's an error
             if not self.source:
                 raise ValueError(
                     "Aggregations in constraints can only reference the source table, "
                     "but no source table is provided"
                 )
             
-            # Check each aggregate function
             for agg_func in aggregate_funcs:
                 columns = list(agg_func.find_all(exp.Column))
                 
                 for column in columns:
                     table_name = get_table_name_from_column(column)
                     if table_name is None:
-                        # This shouldn't happen due to _validate_column_qualification
                         continue
                     
-                    # Aggregations can only reference the source table
                     if self.sink and table_name == self.sink.lower():
                         raise ValueError(
                             f"Aggregation '{agg_func.sql()}' references sink table '{self.sink}', "
@@ -225,7 +197,6 @@ class DFCPolicy:
                             f"but aggregations can only reference the source table '{self.source}'"
                         )
         
-        # Validation 2: If there's a source table, all source columns must be aggregated
         if self.source:
             source_columns = [
                 column

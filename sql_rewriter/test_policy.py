@@ -468,7 +468,6 @@ def test_policy_constraint_references_unknown_table():
     Note: Policy validation only checks SQL syntax, not table existence.
     Table existence validation happens in register_policy().
     """
-    # This should succeed - syntax validation only
     policy = DFCPolicy(
         source="users",
         sink="orders",
@@ -480,7 +479,6 @@ def test_policy_constraint_references_unknown_table():
 
 def test_policy_constraint_references_unknown_table_source_only():
     """Test that constraint referencing unknown table with source only is allowed during policy creation."""
-    # This should succeed - syntax validation only
     policy = DFCPolicy(
         source="users",
         constraint="unknown_table.column > 10",
@@ -491,7 +489,6 @@ def test_policy_constraint_references_unknown_table_source_only():
 
 def test_policy_constraint_references_unknown_table_sink_only():
     """Test that constraint referencing unknown table with sink only is allowed during policy creation."""
-    # This should succeed - syntax validation only
     policy = DFCPolicy(
         sink="orders",
         constraint="unknown_table.column > 10",
@@ -650,7 +647,6 @@ def test_policy_inequality_different_sink():
 
 def test_policy_equality_with_both_none():
     """Test that two policies with both source and sink None cannot be created."""
-    # This should fail during creation, not during equality check
     with pytest.raises(ValueError, match="Either source or sink must be provided"):
         DFCPolicy(
             constraint="1 = 1",
@@ -668,14 +664,11 @@ def test_get_table_name_from_column_handles_all_types():
     from sql_rewriter.sqlglot_utils import get_table_name_from_column
     from sqlglot import exp, parse_one
     
-    # Test with string table name (common case)
     query1 = parse_one("SELECT users.age FROM users", read="duckdb")
     col1 = query1.expressions[0]
     table_name1 = get_table_name_from_column(col1)
     assert table_name1 == "users"
     
-    # Test with Identifier table name
-    # Create a column with an Identifier table
     col2 = exp.Column(
         this=exp.Identifier(this="age"),
         table=exp.Identifier(this="users")
@@ -683,13 +676,11 @@ def test_get_table_name_from_column_handles_all_types():
     table_name2 = get_table_name_from_column(col2)
     assert table_name2 == "users"
     
-    # Test with unqualified column (no table)
     col3 = exp.Column(this=exp.Identifier(this="age"))
     table_name3 = get_table_name_from_column(col3)
     assert table_name3 is None
     
-    # Verify the function doesn't return None for qualified columns
-    # (This would cause silent validation skips)
+    # This would cause silent validation skips
     assert table_name1 is not None
     assert table_name2 is not None
 

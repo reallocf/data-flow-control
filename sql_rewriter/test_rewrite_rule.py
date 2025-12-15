@@ -358,6 +358,73 @@ class TestTransformAggregationsToColumns:
         # Should contain the literal 1
         assert "1" in transformed_sql
 
+    def test_transforms_max_with_case_expression(self):
+        """Test that max(CASE WHEN ...) preserves the full CASE expression."""
+        constraint = "max(CASE WHEN foo.id > 0 THEN foo.status ELSE NULL END) > 'active'"
+        parsed = sqlglot.parse_one(constraint, read="duckdb")
+        
+        transformed = transform_aggregations_to_columns(parsed, {"foo"})
+        
+        transformed_sql = transformed.sql()
+        # The CASE expression should be preserved, not just the first column
+        assert "CASE" in transformed_sql.upper()
+        assert "WHEN" in transformed_sql.upper()
+        assert "THEN" in transformed_sql.upper()
+        assert "ELSE" in transformed_sql.upper()
+        # Should contain both columns from the CASE expression
+        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
+        assert "foo.status" in transformed_sql.lower() or "FOO.STATUS" in transformed_sql.upper()
+        # Should not contain the aggregation function
+        assert "max" not in transformed_sql.lower() or "MAX" not in transformed_sql
+
+    def test_transforms_min_with_function_call(self):
+        """Test that min(function_call(...)) preserves the full function call."""
+        constraint = "min(COALESCE(foo.id, 0)) > 5"
+        parsed = sqlglot.parse_one(constraint, read="duckdb")
+        
+        transformed = transform_aggregations_to_columns(parsed, {"foo"})
+        
+        transformed_sql = transformed.sql()
+        # The COALESCE function should be preserved
+        assert "COALESCE" in transformed_sql.upper() or "coalesce" in transformed_sql.lower()
+        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
+        # Should not contain the aggregation function
+        assert "min" not in transformed_sql.lower() or "MIN" not in transformed_sql
+
+    def test_transforms_sum_with_arithmetic_expression(self):
+        """Test that sum(expr1 + expr2) preserves the full arithmetic expression."""
+        constraint = "sum(foo.id + foo.value) > 100"
+        parsed = sqlglot.parse_one(constraint, read="duckdb")
+        
+        transformed = transform_aggregations_to_columns(parsed, {"foo"})
+        
+        transformed_sql = transformed.sql()
+        # The arithmetic expression should be preserved
+        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
+        assert "foo.value" in transformed_sql.lower() or "FOO.VALUE" in transformed_sql.upper()
+        assert "+" in transformed_sql
+        # Should not contain the aggregation function
+        assert "sum" not in transformed_sql.lower() or "SUM" not in transformed_sql
+
+    def test_transforms_avg_with_nested_case(self):
+        """Test that avg(CASE WHEN ... THEN ... ELSE ... END) preserves the full CASE expression."""
+        constraint = "avg(CASE WHEN foo.status = 'active' THEN foo.value ELSE 0 END) > 50"
+        parsed = sqlglot.parse_one(constraint, read="duckdb")
+        
+        transformed = transform_aggregations_to_columns(parsed, {"foo"})
+        
+        transformed_sql = transformed.sql()
+        # The CASE expression should be preserved
+        assert "CASE" in transformed_sql.upper()
+        assert "WHEN" in transformed_sql.upper()
+        assert "THEN" in transformed_sql.upper()
+        assert "ELSE" in transformed_sql.upper()
+        # Should contain the columns and values from the CASE expression
+        assert "foo.status" in transformed_sql.lower() or "FOO.STATUS" in transformed_sql.upper()
+        assert "foo.value" in transformed_sql.lower() or "FOO.VALUE" in transformed_sql.upper()
+        # Should not contain the aggregation function
+        assert "avg" not in transformed_sql.lower() or "AVG" not in transformed_sql
+
     def test_transforms_nested_aggregations(self):
         """Test that nested aggregations are transformed correctly."""
         constraint = "max(foo.id) + min(foo.id) > 5"

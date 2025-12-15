@@ -26,6 +26,14 @@ def rewriter():
     rewriter.close()
 
 
+def test_kill_udf_registered(rewriter):
+    """Test that the kill UDF is registered and raises ValueError when called."""
+    # DuckDB wraps Python exceptions in InvalidInputException
+    import duckdb
+    with pytest.raises(duckdb.InvalidInputException) as exc_info:
+        rewriter.conn.execute("SELECT kill()").fetchone()
+    assert "KILLing due to dfc policy violation" in str(exc_info.value)
+
 def test_execute_method_works(rewriter):
     """Test that the execute method works correctly."""
     # Should not raise an exception for non-aggregate queries
@@ -529,6 +537,61 @@ def test_policy_filters_aggregation_query(rewriter):
     # The constraint max(foo.id) > 10 should filter out the result
     # Since max(id) = 3, which is not > 10, the result should be empty
     assert len(result) == 0
+
+
+def test_policy_kill_resolution_aborts_aggregation_query_when_constraint_fails(rewriter):
+    """Test that KILL resolution aborts aggregation queries when constraint fails."""
+    # Policy with KILL resolution: max(id) > 10
+    # Since max id is 3, this will fail and abort the query
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) > 10",
+        on_fail=Resolution.KILL,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT max(foo.id) FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # Should have HAVING with CASE WHEN and kill() in ELSE clause
+    assert "HAVING" in transformed.upper()
+    assert "CASE" in transformed.upper()
+    assert "WHEN" in transformed.upper()
+    assert "kill()" in transformed.lower() or "KILL()" in transformed.upper()
+    assert "ELSE" in transformed.upper()
+    
+    # Query should abort when executed because constraint fails
+    import duckdb
+    with pytest.raises(duckdb.InvalidInputException) as exc_info:
+        rewriter.conn.execute(transformed).fetchall()
+    # The exception should contain the KILL message
+    assert "KILLing due to dfc policy violation" in str(exc_info.value)
+
+
+def test_policy_kill_resolution_allows_aggregation_when_constraint_passes(rewriter):
+    """Test that KILL resolution allows aggregation results when constraint passes."""
+    # Policy with KILL resolution: max(id) >= 1
+    # Since max id is 3, this will pass and result should be returned
+    policy = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) >= 1",
+        on_fail=Resolution.KILL,
+    )
+    rewriter.register_policy(policy)
+    
+    query = "SELECT max(foo.id) FROM foo"
+    transformed = rewriter.transform_query(query)
+    
+    # Should have HAVING with CASE WHEN and kill() in ELSE clause
+    assert "HAVING" in transformed.upper()
+    assert "CASE" in transformed.upper()
+    assert "WHEN" in transformed.upper()
+    assert "kill()" in transformed.lower() or "KILL()" in transformed.upper()
+    
+    # Query should succeed because constraint passes
+    result = rewriter.conn.execute(transformed).fetchall()
+    assert len(result) == 1
+    assert result[0][0] == 3  # max(id) = 3
 
 
 def test_policy_applied_to_multiple_aggregations(rewriter):
@@ -1061,27 +1124,58 @@ class TestPolicyRowDropping:
         assert len(result) == 0
         assert result == []
 
-    def test_policy_drops_rows_with_kill_resolution(self, rewriter):
-        """Test that KILL resolution also drops rows (currently same as REMOVE)."""
-        # Policy with KILL resolution: max(id) > 1 means id > 1
+    def test_policy_kill_resolution_aborts_query_when_constraint_fails(self, rewriter):
+        """Test that KILL resolution aborts the query when constraint fails."""
+        # Policy with KILL resolution: max(id) > 10 means id > 10
+        # Since max id is 3, this will fail and abort the query
         policy = DFCPolicy(
             source="foo",
-            constraint="max(foo.id) > 1",
+            constraint="max(foo.id) > 10",
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
         
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
-        result = rewriter.conn.execute(transformed).fetchall()
         
-        # Should drop id=1 (Alice), keep id=2 (Bob) and id=3 (Charlie)
-        # Currently KILL behaves the same as REMOVE
-        assert len(result) == 2
-        assert result[0] == (2, 'Bob')
-        assert result[1] == (3, 'Charlie')
-        ids = [row[0] for row in result]
-        assert 1 not in ids
+        # Should have CASE WHEN with kill() in ELSE clause
+        assert "CASE" in transformed.upper()
+        assert "WHEN" in transformed.upper()
+        assert "kill()" in transformed.lower() or "KILL()" in transformed.upper()
+        assert "ELSE" in transformed.upper()
+        
+        # Query should abort when executed because constraint fails for all rows
+        import duckdb
+        with pytest.raises(duckdb.InvalidInputException) as exc_info:
+            rewriter.conn.execute(transformed).fetchall()
+        # The exception should contain the KILL message
+        assert "KILLing due to dfc policy violation" in str(exc_info.value)
+
+    def test_policy_kill_resolution_allows_rows_when_constraint_passes(self, rewriter):
+        """Test that KILL resolution allows rows when constraint passes."""
+        # Policy with KILL resolution: max(id) >= 1 means id >= 1
+        # Since all ids are >= 1, this will pass and rows should be returned
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) >= 1",
+            on_fail=Resolution.KILL,
+        )
+        rewriter.register_policy(policy)
+        
+        query = "SELECT id, name FROM foo ORDER BY id"
+        transformed = rewriter.transform_query(query)
+        
+        # Should have CASE WHEN with kill() in ELSE clause
+        assert "CASE" in transformed.upper()
+        assert "WHEN" in transformed.upper()
+        assert "kill()" in transformed.lower() or "KILL()" in transformed.upper()
+        
+        # Query should succeed because constraint passes for all rows
+        result = rewriter.conn.execute(transformed).fetchall()
+        assert len(result) == 3
+        assert result[0] == (1, 'Alice')
+        assert result[1] == (2, 'Bob')
+        assert result[2] == (3, 'Charlie')
 
     def test_policy_drops_rows_with_string_comparison(self, rewriter):
         """Test that a policy drops rows based on string column values."""
