@@ -657,3 +657,39 @@ def test_policy_equality_with_both_none():
             on_fail=Resolution.REMOVE,
         )
 
+
+def test_get_table_name_from_column_handles_all_types():
+    """Test that get_table_name_from_column handles all expected types correctly.
+    
+    This verifies that the function correctly extracts table names from columns
+    with different table types (Identifier, str) and returns None for unqualified columns.
+    The function also has a fallback for unexpected types to prevent silent validation skips.
+    """
+    from sql_rewriter.sqlglot_utils import get_table_name_from_column
+    from sqlglot import exp, parse_one
+    
+    # Test with string table name (common case)
+    query1 = parse_one("SELECT users.age FROM users", read="duckdb")
+    col1 = query1.expressions[0]
+    table_name1 = get_table_name_from_column(col1)
+    assert table_name1 == "users"
+    
+    # Test with Identifier table name
+    # Create a column with an Identifier table
+    col2 = exp.Column(
+        this=exp.Identifier(this="age"),
+        table=exp.Identifier(this="users")
+    )
+    table_name2 = get_table_name_from_column(col2)
+    assert table_name2 == "users"
+    
+    # Test with unqualified column (no table)
+    col3 = exp.Column(this=exp.Identifier(this="age"))
+    table_name3 = get_table_name_from_column(col3)
+    assert table_name3 is None
+    
+    # Verify the function doesn't return None for qualified columns
+    # (This would cause silent validation skips)
+    assert table_name1 is not None
+    assert table_name2 is not None
+
