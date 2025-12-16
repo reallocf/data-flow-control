@@ -4,7 +4,7 @@ import duckdb
 import sqlglot
 from sqlglot import exp
 from enum import Enum
-from typing import Optional
+from typing import Optional, Set
 
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 
@@ -51,6 +51,7 @@ class DFCPolicy:
 
         self._constraint_parsed = self._parse_constraint()
         self._validate()
+        self._source_columns_needed = self._calculate_source_columns_needed()
 
     def _validate(self) -> None:
         """Validate that source, sink, and constraint are valid SQL syntax.
@@ -165,6 +166,43 @@ class DFCPolicy:
                 f"All columns in constraints must be qualified with table names. "
                 f"Unqualified columns found: {', '.join(unqualified_columns)}"
             )
+
+    def _calculate_source_columns_needed(self) -> Set[str]:
+        """Calculate the set of source columns needed after transforming aggregations to columns.
+        
+        For scan queries, aggregations in constraints are transformed to their underlying columns.
+        This method extracts which columns from the source table will be needed after that
+        transformation. For example, max(foo.id) > 1 becomes id > 1, so 'id' is needed.
+        
+        Returns:
+            Set of column names (lowercase) needed from the source table.
+        """
+        if not self.source:
+            return set()
+        
+        needed_columns = set()
+        
+        # Extract columns from aggregations (these will become the columns after transformation)
+        for agg_func in self._constraint_parsed.find_all(exp.AggFunc):
+            columns = list(agg_func.find_all(exp.Column))
+            for column in columns:
+                table_name = get_table_name_from_column(column)
+                if table_name == self.source.lower():
+                    col_name = get_column_name(column).lower()
+                    needed_columns.add(col_name)
+        
+        # Also extract any non-aggregated source columns
+        for column in self._constraint_parsed.find_all(exp.Column):
+            # Skip columns that are inside aggregations (already handled above)
+            if column.find_ancestor(exp.AggFunc) is not None:
+                continue
+            
+            table_name = get_table_name_from_column(column)
+            if table_name == self.source.lower():
+                col_name = get_column_name(column).lower()
+                needed_columns.add(col_name)
+        
+        return needed_columns
 
     def _validate_aggregation_rules(self) -> None:
         """Validate aggregation rules: aggregations only reference source, and all source columns are aggregated."""

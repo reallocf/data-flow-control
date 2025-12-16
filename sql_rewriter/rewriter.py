@@ -10,6 +10,7 @@ from .sqlglot_utils import get_column_name, get_table_name_from_column
 from .rewrite_rule import (
     apply_policy_constraints_to_aggregation,
     apply_policy_constraints_to_scan,
+    ensure_subqueries_have_constraint_columns,
 )
 
 
@@ -52,6 +53,9 @@ class SQLRewriter:
                     matching_policies = self._find_matching_policies(from_tables)
                     
                     if matching_policies:
+                        # Ensure subqueries and CTEs have columns needed for constraints
+                        ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
+                        
                         if self._has_aggregations(parsed):
                             apply_policy_constraints_to_aggregation(parsed, matching_policies, from_tables)
                         else:
