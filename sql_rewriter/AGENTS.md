@@ -41,6 +41,7 @@ sql_rewriter/
 - Two resolution types: `REMOVE` (filter rows) or `KILL` (abort query)
 - All columns in constraints must be qualified with table names
 - Source columns must be aggregated when source is present
+- Pre-calculates `_source_columns_needed` at creation time for efficiency (columns needed after aggregation transformation)
 
 **Policy Registration** (`rewriter.py`):
 - `register_policy()` validates against DuckDB catalog (tables/columns must exist)
@@ -52,10 +53,13 @@ sql_rewriter/
 1. `transform_query()` parses SQL with `sqlglot.parse_one(query, read="duckdb")`
 2. Extracts source tables from FROM/JOIN clauses
 3. Finds matching policies for source tables
-4. Determines if query is aggregation or scan:
-   - Aggregation: Uses `apply_policy_constraints_to_aggregation()` → adds HAVING clauses
-   - Scan: Uses `apply_policy_constraints_to_scan()` → transforms aggregations to columns, adds WHERE clauses
-5. Returns transformed SQL string
+4. If policies match:
+   - `ensure_subqueries_have_constraint_columns()`: Adds missing columns to subquery/CTE SELECT lists
+   - Builds table mapping from source tables to subquery/CTE aliases
+5. Determines if query is aggregation or scan:
+   - Aggregation: Uses `apply_policy_constraints_to_aggregation()` → replaces table references, adds HAVING clauses
+   - Scan: Uses `apply_policy_constraints_to_scan()` → transforms aggregations to columns, replaces table references, adds WHERE clauses
+6. Returns transformed SQL string
 
 ### 3. Rewrite Rules (`rewrite_rule.py`)
 
@@ -164,6 +168,79 @@ result = self.conn.execute(
 ```python
 kill_call = exp.Anonymous(this="kill", expressions=[])
 ```
+
+### 8. Finding Subqueries in FROM Clauses
+
+**Problem**: Subqueries in FROM clauses have a complex structure in sqlglot. The alias is stored on the Subquery node itself, not on a parent Table.
+
+**Solution**: Find Subquery nodes directly and check their ancestors:
+```python
+def _get_subqueries_in_from(parsed: exp.Select) -> List[tuple[exp.Subquery, str]]:
+    subqueries = []
+    all_subqueries = list(parsed.find_all(exp.Subquery))
+    for subquery in all_subqueries:
+        from_ancestor = subquery.find_ancestor(exp.From)
+        if from_ancestor and hasattr(from_ancestor, 'this'):
+            from_table = from_ancestor.this
+            if isinstance(from_table, exp.Subquery):
+                # The alias is on the Subquery itself
+                if hasattr(from_table, 'alias') and from_table.alias:
+                    alias = from_table.alias.name.lower() if isinstance(from_table.alias, exp.Identifier) else str(from_table.alias).lower()
+                    subqueries.append((subquery, alias))
+    return subqueries
+```
+
+**Key Points**:
+- `From.this` can be directly a `Subquery` (not wrapped in a `Table`)
+- The alias is stored on the `Subquery` node's `alias` attribute
+- The alias can be an `Identifier` or a string
+
+### 9. Accessing CTEs (Common Table Expressions)
+
+**Problem**: `parsed.with_` is a method, not a property. Accessing it directly doesn't work.
+
+**Solution**: Access via `parsed.args.get('with_')`:
+```python
+def _get_ctes(parsed: exp.Select) -> List[tuple[exp.CTE, str]]:
+    ctes = []
+    with_clause = parsed.args.get('with_') if hasattr(parsed, 'args') else None
+    if with_clause and hasattr(with_clause, 'expressions'):
+        for cte in with_clause.expressions:
+            if isinstance(cte, exp.CTE):
+                # CTE.this is the SELECT expression
+                # CTE.alias is a TableAlias, and alias.this is the Identifier
+                if hasattr(cte, 'alias') and cte.alias:
+                    if hasattr(cte.alias, 'this'):
+                        alias_obj = cte.alias.this
+                        alias = alias_obj.name.lower() if isinstance(alias_obj, exp.Identifier) else str(alias_obj).lower()
+                        ctes.append((cte, alias))
+    return ctes
+```
+
+**Key Points**:
+- Use `parsed.args.get('with_')` to access the WITH clause
+- `CTE.this` is the SELECT expression (not `CTE.expression`)
+- `CTE.alias` is a `TableAlias`, and `alias.this` is the `Identifier` with the alias name
+
+### 10. Handling Subqueries and CTEs with Missing Policy Columns
+
+**Problem**: When a source table is referenced in a subquery or CTE that doesn't select all columns needed for policy evaluation, the constraint can't be applied in the outer query.
+
+**Solution**: The `ensure_subqueries_have_constraint_columns()` function automatically adds missing columns to subquery/CTE SELECT lists, and `_replace_table_references_in_constraint()` updates constraint expressions to use subquery/CTE aliases instead of original table names.
+
+**Process**:
+1. Find all subqueries and CTEs that reference source tables
+2. For each policy, check which columns are needed (pre-calculated in `policy._source_columns_needed`)
+3. Add missing columns to the subquery/CTE SELECT list
+4. Build a mapping from source table names to subquery/CTE aliases
+5. Replace table references in constraints (e.g., `foo.id` → `sub.id` or `cte.id`)
+
+**Key Functions**:
+- `ensure_subqueries_have_constraint_columns()`: Adds missing columns to SELECT lists
+- `_get_source_table_to_alias_mapping()`: Maps source tables to their subquery/CTE aliases
+- `_replace_table_references_in_constraint()`: Replaces table references in constraint expressions
+
+**Important**: This happens before policy constraints are applied, so the outer query can correctly reference columns via the subquery/CTE alias.
 
 ## Testing Patterns
 
@@ -293,6 +370,7 @@ Areas identified for future work (documented in code comments):
 - `ensure_columns_accessible()`: Currently a no-op, should check non-aggregated columns are in SELECT/GROUP BY
 - Sink table policy application: Currently only source tables are matched
 - More complex SQL features: Window functions, recursive CTEs, etc.
+- Nested subqueries: Currently handles one level of subqueries/CTEs, but deeply nested structures may need additional work
 
 ## When in Doubt
 

@@ -8,6 +8,7 @@ A SQL query rewriter that intercepts queries, applies Data Flow Control (DFC) po
 - **Data Flow Control Policies**: Define constraints on data movement between source and sink tables
 - **Policy Resolution**: Two modes - `REMOVE` (filter rows) or `KILL` (abort query)
 - **Aggregation Support**: Handles both aggregation queries (HAVING clauses) and table scans (WHERE clauses)
+- **Subquery and CTE Support**: Automatically handles subqueries and Common Table Expressions (CTEs), adding missing columns needed for policy evaluation
 - **DuckDB Integration**: Executes transformed queries against DuckDB with full SQL support
 
 ## Installation
@@ -122,6 +123,11 @@ results = rewriter.fetchall("SELECT max(age) FROM users")
 
 # Table scan - policy applied as WHERE clause (aggregations transformed)
 results = rewriter.fetchall("SELECT id, name FROM users")
+
+# Subqueries and CTEs - missing columns automatically added
+# If a subquery/CTE references a source table but doesn't select all columns
+# needed for policy evaluation, they are automatically added to the SELECT list
+results = rewriter.fetchall("SELECT sub.name FROM (SELECT name FROM users) AS sub")
 ```
 
 ## Examples
