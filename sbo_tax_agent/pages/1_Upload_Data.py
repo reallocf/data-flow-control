@@ -42,19 +42,24 @@ with col1:
     if tax_return_file is not None:
         try:
             df = pd.read_csv(tax_return_file)
-            is_valid, error_msg = validate_csv_schema(df, 'tax_return')
             
-            if is_valid:
-                try:
-                    rewriter = db.get_db_connection()
-                    db.load_dataframe_to_table(rewriter, df, 'tax_return')
-                    st.session_state.tax_return = df
-                    st.success(f"✅ Uploaded {len(df)} rows to database")
-                    st.info(f"Columns: {', '.join(df.columns)}")
-                except Exception as e:
-                    st.error(f"❌ Failed to load data into database: {str(e)}")
+            # Validate row count: must be at most 1 row (2 lines total: header + 1 data row)
+            if len(df) > 1:
+                st.error(f"❌ Tax return dataset must contain at most 1 row. Found {len(df)} rows.")
             else:
-                st.error(f"❌ Schema validation failed: {error_msg}")
+                is_valid, error_msg = validate_csv_schema(df, 'tax_return')
+                
+                if is_valid:
+                    try:
+                        rewriter = db.get_db_connection()
+                        db.load_dataframe_to_table(rewriter, df, 'tax_return')
+                        st.session_state.tax_return = df
+                        st.success(f"✅ Uploaded {len(df)} rows to database")
+                        st.info(f"Columns: {', '.join(df.columns)}")
+                    except Exception as e:
+                        st.error(f"❌ Failed to load data into database: {str(e)}")
+                else:
+                    st.error(f"❌ Schema validation failed: {error_msg}")
         except Exception as e:
             st.error(f"❌ Error reading CSV: {str(e)}")
     else:

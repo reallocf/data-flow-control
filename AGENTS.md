@@ -82,6 +82,10 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 
 **Use public API methods, not private attributes** - Always use public methods like `get_dfc_policies()` instead of accessing `_policies` directly. This maintains encapsulation and allows for future implementation changes.
 
+### AWS IAM Explicit Deny Policies
+
+**Explicit deny policies override allow policies** - If you see an error like "with an explicit deny in an identity-based policy", it means there's an IAM policy that explicitly denies the action. Even if you have an allow policy, the explicit deny will block access. You must remove or modify the deny policy to fix this. This is a common issue in enterprise AWS environments with restrictive security policies.
+
 ## Code Style Principles
 
 ### Comments
@@ -110,6 +114,20 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 4. **Column qualification required**: Simplifies source/sink identification
 5. **Source columns must be aggregated**: Ensures constraints work correctly in aggregation context
 
+## Agentic Systems (SBO Tax Agent)
+
+### Streamlit Agentic Loops
+
+**Process one item per rerun for real-time updates** - When building agentic loops in Streamlit, process one transaction/item per `st.rerun()` call. Store the list of items and current index in session state rather than trying to store generators (which aren't serializable). This allows the UI to update in real-time as the agent processes each item.
+
+### AWS Bedrock Tool Use
+
+**Handle multiple conversation rounds** - When using Bedrock with tools, the agent may need multiple API calls: one to request tool use, another after tool execution. Implement a conversation loop that continues until the agent stops requesting tools. Limit iterations to prevent infinite loops.
+
+### Database Tool Design
+
+**Execute through SQLRewriter to respect DFC policies** - When giving an agent access to a database tool, route all SQL queries through the SQLRewriter so that Data Flow Control policies are enforced. This ensures the agent can't bypass policy restrictions.
+
 ## When in Doubt
 
 1. Check existing tests for similar patterns
@@ -117,3 +135,4 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 3. Test with simple cases first, then complex ones
 4. Remember: sqlglot expressions are mutable - parse fresh when needed
 5. Access clauses via `parsed.args`, not via methods that return SQL strings
+6. For AWS issues: Check for explicit deny policies if you get access denied errors

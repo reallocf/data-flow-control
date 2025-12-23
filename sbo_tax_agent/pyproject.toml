@@ -10,6 +10,8 @@ dependencies = [
     "numpy>=1.24.4",
     "streamlit>=1.28.0",
     "pandas>=2.0.0",
+    "boto3>=1.34.0",
+    "botocore>=1.34.0",
 ]
 
 [tool.uv.sources]

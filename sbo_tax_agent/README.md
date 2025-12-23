@@ -103,7 +103,122 @@ The app has three main tabs:
    - Fields can be separated by any whitespace (spaces, tabs, newlines)
    - View all registered policies in a list
 
-3. **Propose Taxes**: Generate tax proposals based on uploaded data (TODO)
+3. **Propose Taxes**: Generate tax proposals using an AI agent that analyzes bank transactions and identifies business expenses
+
+## AWS Bedrock Setup
+
+The Propose Taxes page uses AWS Bedrock to access Claude 3 Haiku for analyzing transactions. You need to set up AWS credentials and enable Bedrock access.
+
+### 1. Enable Claude Models in AWS Bedrock
+
+1. Go to the [AWS Bedrock Console](https://console.aws.amazon.com/bedrock/)
+2. Navigate to **Model access** in the left sidebar
+3. Click **Request model access**
+4. Select **Claude Haiku 4.5** (or the model you want to use)
+5. Submit the request (approval is usually instant for Claude models)
+6. Wait for the model to show as "Access granted"
+
+**Note**: The default model used is `anthropic.claude-haiku-4-5-20251001-v1:0`. You can change this in `agent.py` if needed.
+
+### 2. Set Up AWS Credentials
+
+You have three options for providing AWS credentials:
+
+#### Option A: AWS Credentials File (Recommended for Local Development)
+
+Create or edit `~/.aws/credentials`:
+
+```ini
+[default]
+aws_access_key_id = YOUR_ACCESS_KEY_ID
+aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+region = us-east-1
+```
+
+#### Option B: Environment Variables
+
+You can use either standard AWS credentials or a Bedrock bearer token:
+
+**Standard AWS Credentials:**
+```bash
+export AWS_ACCESS_KEY_ID=your_access_key_id
+export AWS_SECRET_ACCESS_KEY=your_secret_access_key
+export AWS_REGION=us-east-1
+```
+
+**Bedrock Bearer Token (Alternative):**
+```bash
+export AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key
+export AWS_REGION=us-east-2
+```
+
+**Note**: If `AWS_BEARER_TOKEN_BEDROCK` is set, it will be used for authentication. Otherwise, boto3 will fall back to standard AWS credentials (access key/secret key, IAM role, etc.).
+
+#### Option C: IAM Role (For EC2/ECS)
+
+If running on AWS infrastructure, attach an IAM role with Bedrock permissions.
+
+#### Option D: Bedrock API Key (Bearer Token)
+
+You can use a Bedrock API key by setting the `AWS_BEARER_TOKEN_BEDROCK` environment variable. This is useful for simplified authentication without managing IAM credentials. Get your API key from the [AWS Bedrock Console](https://console.aws.amazon.com/bedrock/).
+
+### 3. IAM Permissions Required
+
+Your AWS user/role needs the following permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+    }
+  ]
+}
+```
+
+Or use the AWS managed policy `AmazonBedrockFullAccess` (less secure, but simpler for testing).
+
+**Important**: Check for explicit deny policies. If you see an error like "with an explicit deny in an identity-based policy", it means there's an IAM policy that explicitly denies Bedrock access. Explicit deny policies override allow policies, so you'll need to:
+1. Check IAM policies attached to your user or groups
+2. Remove or modify any policies with `"Effect": "Deny"` for Bedrock actions
+3. Contact your AWS administrator if you don't have permission to modify policies
+
+### 4. Verify Setup
+
+You can test your Bedrock setup using the provided test script:
+
+```bash
+uv run python test_aws_bedrock.py
+```
+
+Or with the local DuckDB wrapper:
+
+```bash
+./uv_with_local_duckdb.sh run python test_aws_bedrock.py
+```
+
+The test script will:
+- Check your AWS credentials configuration
+- Verify Bedrock client creation
+- Make a test API call to Claude Haiku 4.5
+- Display detailed error messages if something fails
+
+This helps identify issues like missing model access, IAM permission problems, or explicit deny policies before running the full application.
+
+### 5. Region Configuration
+
+The default region is `us-east-1`. To use a different region:
+
+1. Set the `AWS_REGION` environment variable, or
+2. Modify the region in `agent.py` in the `create_bedrock_client()` function
+
+**Note**: Not all Claude models are available in all regions. Check the [AWS Bedrock documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html) for regional availability.
 
 ## Development
 
