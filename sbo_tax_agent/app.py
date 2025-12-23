@@ -19,7 +19,7 @@ try:
     db.get_db_connection()
 except Exception as e:
     st.error(f"Failed to initialize database: {str(e)}")
-    st.info("Make sure you've built the DuckDB library by running 'make' in the resolution_ui directory.")
+    st.info("Make sure you've built the DuckDB library by running 'make' in the extended_duckdb directory.")
 
 # Initialize session state for storing uploaded data
 if 'tax_return' not in st.session_state:

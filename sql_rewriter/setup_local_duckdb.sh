@@ -1,15 +1,15 @@
 #!/bin/bash
 # Script to set up environment for using locally built DuckDB with sql_rewriter
 
-# Get the absolute path to the resolution_ui build directory
+# Get the absolute path to the extended_duckdb build directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-DUCKDB_LIB_PATH="$PROJECT_ROOT/resolution_ui/build/release/src"
+DUCKDB_LIB_PATH="$PROJECT_ROOT/extended_duckdb/build/release/src"
 
 # Check if the library exists
 if [ ! -f "$DUCKDB_LIB_PATH/libduckdb.dylib" ] && [ ! -f "$DUCKDB_LIB_PATH/libduckdb.so" ]; then
     echo "Warning: DuckDB library not found at $DUCKDB_LIB_PATH"
-    echo "Please run 'make' in the resolution_ui directory first."
+    echo "Please run 'make' in the extended_duckdb directory first."
     exit 1
 fi
 

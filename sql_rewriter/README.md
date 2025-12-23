@@ -27,7 +27,7 @@ uv sync --extra dev
 
 ### Using Local DuckDB Build
 
-If you want to use a locally built DuckDB from the `resolution_ui` submodule (which includes custom extensions), you have several options:
+If you want to use a locally built DuckDB from the `extended_duckdb` submodule (which includes custom extensions), you have several options:
 
 #### Option 1: Use the wrapper script (Recommended)
 
@@ -61,7 +61,7 @@ from sql_rewriter import SQLRewriter
 rewriter = SQLRewriter()
 ```
 
-**Note**: Make sure you've built the DuckDB library first by running `make` in the `resolution_ui` directory.
+**Note**: Make sure you've built the DuckDB library first by running `make` in the `extended_duckdb` directory.
 
 ## Quick Start
 

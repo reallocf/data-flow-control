@@ -1,5 +1,5 @@
 """
-Helper module to configure DuckDB to use the locally built library from resolution_ui.
+Helper module to configure DuckDB to use the locally built library from extended_duckdb.
 
 Usage:
     import use_local_duckdb
@@ -12,10 +12,10 @@ Usage:
 import os
 from pathlib import Path
 
-# Get the path to the resolution_ui build directory
+# Get the path to the extended_duckdb build directory
 _SCRIPT_DIR = Path(__file__).parent
 _PROJECT_ROOT = _SCRIPT_DIR.parent
-_DUCKDB_LIB_PATH = _PROJECT_ROOT / "resolution_ui" / "build" / "release" / "src"
+_DUCKDB_LIB_PATH = _PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "src"
 
 def setup_local_duckdb():
     """Configure environment to use locally built DuckDB library."""
@@ -33,7 +33,7 @@ def setup_local_duckdb():
     if not lib_file:
         raise FileNotFoundError(
             f"DuckDB library not found at {_DUCKDB_LIB_PATH}. "
-            "Please run 'make' in the resolution_ui directory first."
+            "Please run 'make' in the extended_duckdb directory first."
         )
     
     # Set environment variables

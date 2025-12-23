@@ -2,7 +2,7 @@
 Database module for SBO Tax Agent.
 
 Handles DuckDB connection initialization and table creation.
-Uses the local DuckDB build from resolution_ui.
+Uses the local DuckDB build from extended_duckdb.
 Wraps the connection with SQLRewriter for policy enforcement.
 """
 

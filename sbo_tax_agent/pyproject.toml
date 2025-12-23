@@ -1,7 +1,7 @@
 [project]
 name = "sbo-tax-agent"
 version = "0.1.0"
-description = "Small business owner tax agent using sql_rewriter and resolution_ui"
+description = "Small business owner tax agent using sql_rewriter and extended_duckdb"
 requires-python = ">=3.8"
 dependencies = [
     "sql-rewriter",

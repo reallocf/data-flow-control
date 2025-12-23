@@ -1,6 +1,6 @@
 # SBO Tax Agent
 
-A small business owner tax agent that uses `sql_rewriter` and `resolution_ui` for data flow control and query processing.
+A small business owner tax agent that uses `sql_rewriter` and `extended_duckdb` for data flow control and query processing.
 
 ## Installation
 
@@ -18,7 +18,7 @@ uv sync --extra dev
 
 ## Using Local DuckDB Build
 
-If you want to use a locally built DuckDB from the `resolution_ui` submodule (which includes custom extensions), you have several options:
+If you want to use a locally built DuckDB from the `extended_duckdb` submodule (which includes custom extensions), you have several options:
 
 ### Option 1: Use the wrapper script (Recommended)
 
@@ -52,7 +52,7 @@ from sql_rewriter import SQLRewriter
 rewriter = SQLRewriter()
 ```
 
-**Note**: Make sure you've built the DuckDB library first by running `make` in the `resolution_ui` directory.
+**Note**: Make sure you've built the DuckDB library first by running `make` in the `extended_duckdb` directory.
 
 ## Accessing sql_rewriter
 
@@ -62,11 +62,11 @@ The `sql_rewriter` package is included as a local editable dependency. You can i
 from sql_rewriter import SQLRewriter, DFCPolicy, Resolution
 ```
 
-## Accessing resolution_ui
+## Accessing extended_duckdb
 
-The `resolution_ui` directory contains the DuckDB extension build. To use it:
+The `extended_duckdb` directory contains the DuckDB extension build. To use it:
 
-1. Build the extension: `cd resolution_ui && make`
+1. Build the extension: `cd extended_duckdb && make`
 2. Use the helper scripts or Python module to configure the environment (see above)
 3. The local DuckDB build will be automatically used when you import `duckdb`
 
