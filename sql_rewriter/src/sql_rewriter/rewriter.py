@@ -3,7 +3,7 @@
 import duckdb
 import sqlglot
 from sqlglot import exp
-from typing import Any, Optional, Set
+from typing import Any, Optional, Set, Union
 
 from .policy import DFCPolicy
 from .sqlglot_utils import get_column_name, get_table_name_from_column
@@ -17,14 +17,14 @@ from .rewrite_rule import (
 class SQLRewriter:
     """SQL rewriter that intercepts queries, transforms them, and executes against DuckDB."""
 
-    def __init__(self, database: Optional[str] = None) -> None:
+    def __init__(self, conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
         """Initialize the SQL rewriter with a DuckDB connection.
 
         Args:
-            database: Optional path to DuckDB database file. If None, uses in-memory database.
+            conn: Optional DuckDB connection. If None, creates a new in-memory database connection.
         """
-        if database:
-            self.conn = duckdb.connect(database)
+        if conn is not None:
+            self.conn = conn
         else:
             self.conn = duckdb.connect()
         self._policies: list[DFCPolicy] = []

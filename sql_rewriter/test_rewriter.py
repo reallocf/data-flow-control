@@ -444,7 +444,8 @@ def test_execute_with_database_file():
     
     try:
         # First connection - create table and insert data
-        rewriter1 = SQLRewriter(database=db_path)
+        conn1 = duckdb.connect(db_path)
+        rewriter1 = SQLRewriter(conn=conn1)
         rewriter1.execute("CREATE TABLE test (x INTEGER)")
         rewriter1.execute("INSERT INTO test VALUES (1)")
         result = rewriter1.fetchall("SELECT * FROM test")
@@ -452,7 +453,8 @@ def test_execute_with_database_file():
         rewriter1.close()  # Explicitly close to flush to disk
         
         # Reopen and verify data persists
-        rewriter2 = SQLRewriter(database=db_path)
+        conn2 = duckdb.connect(db_path)
+        rewriter2 = SQLRewriter(conn=conn2)
         result = rewriter2.fetchall("SELECT * FROM test")
         assert result == [(1,)]
         rewriter2.close()
@@ -1543,12 +1545,14 @@ class TestDatabaseFileAdditional:
                 os.unlink(db_path)
             
             # Create rewriter with file
-            with SQLRewriter(database=db_path) as rw:
+            conn = duckdb.connect(db_path)
+            with SQLRewriter(conn=conn) as rw:
                 rw.execute("CREATE TABLE test (x INTEGER)")
                 rw.execute("INSERT INTO test VALUES (1), (2), (3)")
             
             # Reopen and verify data persists
-            with SQLRewriter(database=db_path) as rw2:
+            conn2 = duckdb.connect(db_path)
+            with SQLRewriter(conn=conn2) as rw2:
                 result = rw2.fetchall("SELECT * FROM test")
                 assert len(result) == 3
         finally:
