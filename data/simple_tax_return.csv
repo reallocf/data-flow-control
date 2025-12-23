@@ -1,0 +1,2 @@
+return_id,tax_year,full_name,ssn,address,business_name,business_desc
+1,2023,John Doe,123-45-6789,"123 Main St, Anytown, ST 12345",Doe Consulting,Independent consulting services

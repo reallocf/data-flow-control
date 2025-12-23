@@ -1,0 +1,2 @@
+policy
+SOURCE bank_txn SINK schedule_c_review CONSTRAINT sum(bank_txn.amount) > -1000 ON FAIL REMOVE

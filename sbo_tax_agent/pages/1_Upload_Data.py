@@ -14,13 +14,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize session state for storing uploaded data
-if 'tax_return' not in st.session_state:
-    st.session_state.tax_return = None
-if 'bank_txn' not in st.session_state:
-    st.session_state.bank_txn = None
-if 'form_1099_k' not in st.session_state:
-    st.session_state.form_1099_k = None
+# Get database connection (once at page load)
+try:
+    rewriter = db.get_db_connection()
+except Exception as e:
+    st.error(f"Failed to connect to database: {str(e)}")
+    st.stop()
 
 st.header("Upload Data")
 st.markdown("Upload CSV files for tax return data, bank transactions, and 1099-K forms.")
@@ -51,11 +50,10 @@ with col1:
                 
                 if is_valid:
                     try:
-                        rewriter = db.get_db_connection()
                         db.load_dataframe_to_table(rewriter, df, 'tax_return')
-                        st.session_state.tax_return = df
                         st.success(f"✅ Uploaded {len(df)} rows to database")
                         st.info(f"Columns: {', '.join(df.columns)}")
+                        st.rerun()
                     except Exception as e:
                         st.error(f"❌ Failed to load data into database: {str(e)}")
                 else:
@@ -63,9 +61,14 @@ with col1:
         except Exception as e:
             st.error(f"❌ Error reading CSV: {str(e)}")
     else:
-        if st.session_state.tax_return is not None:
-            st.info(f"📄 Current data: {len(st.session_state.tax_return)} rows")
-        else:
+        # Query database to show current data
+        try:
+            count = db.get_table_row_count(rewriter, 'tax_return')
+            if count > 0:
+                st.info(f"📄 Current data: {count} row(s)")
+            else:
+                st.info("No file uploaded")
+        except Exception as e:
             st.info("No file uploaded")
 
 # Bank Transaction Upload
@@ -86,11 +89,10 @@ with col2:
             
             if is_valid:
                 try:
-                    rewriter = db.get_db_connection()
                     db.load_dataframe_to_table(rewriter, df, 'bank_txn')
-                    st.session_state.bank_txn = df
                     st.success(f"✅ Uploaded {len(df)} rows to database")
                     st.info(f"Columns: {', '.join(df.columns)}")
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Failed to load data into database: {str(e)}")
             else:
@@ -98,9 +100,14 @@ with col2:
         except Exception as e:
             st.error(f"❌ Error reading CSV: {str(e)}")
     else:
-        if st.session_state.bank_txn is not None:
-            st.info(f"📄 Current data: {len(st.session_state.bank_txn)} rows")
-        else:
+        # Query database to show current data
+        try:
+            count = db.get_table_row_count(rewriter, 'bank_txn')
+            if count > 0:
+                st.info(f"📄 Current data: {count} row(s)")
+            else:
+                st.info("No file uploaded")
+        except Exception as e:
             st.info("No file uploaded")
 
 # Form 1099-K Upload
@@ -121,11 +128,10 @@ with col3:
             
             if is_valid:
                 try:
-                    rewriter = db.get_db_connection()
                     db.load_dataframe_to_table(rewriter, df, 'form_1099_k')
-                    st.session_state.form_1099_k = df
                     st.success(f"✅ Uploaded {len(df)} rows to database")
                     st.info(f"Columns: {', '.join(df.columns)}")
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Failed to load data into database: {str(e)}")
             else:
@@ -133,9 +139,14 @@ with col3:
         except Exception as e:
             st.error(f"❌ Error reading CSV: {str(e)}")
     else:
-        if st.session_state.form_1099_k is not None:
-            st.info(f"📄 Current data: {len(st.session_state.form_1099_k)} rows")
-        else:
+        # Query database to show current data
+        try:
+            count = db.get_table_row_count(rewriter, 'form_1099_k')
+            if count > 0:
+                st.info(f"📄 Current data: {count} row(s)")
+            else:
+                st.info("No file uploaded")
+        except Exception as e:
             st.info("No file uploaded")
 
 # Display database statistics
@@ -143,7 +154,6 @@ st.divider()
 st.subheader("Database Statistics")
 
 try:
-    rewriter = db.get_db_connection()
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -168,23 +178,35 @@ st.subheader("Uploaded Data Preview")
 preview_tabs = st.tabs(["Tax Return", "Bank Transactions", "Form 1099-K"])
 
 with preview_tabs[0]:
-    if st.session_state.tax_return is not None:
-        st.dataframe(st.session_state.tax_return, use_container_width=True)
-        st.caption(f"Total rows: {len(st.session_state.tax_return)}")
-    else:
+    try:
+        result = rewriter.conn.execute("SELECT * FROM tax_return").df()
+        if len(result) > 0:
+            st.dataframe(result, use_container_width=True)
+            st.caption(f"Total rows: {len(result)}")
+        else:
+            st.info("No tax return data uploaded yet.")
+    except Exception as e:
         st.info("No tax return data uploaded yet.")
 
 with preview_tabs[1]:
-    if st.session_state.bank_txn is not None:
-        st.dataframe(st.session_state.bank_txn, use_container_width=True)
-        st.caption(f"Total rows: {len(st.session_state.bank_txn)}")
-    else:
+    try:
+        result = rewriter.conn.execute("SELECT * FROM bank_txn").df()
+        if len(result) > 0:
+            st.dataframe(result, use_container_width=True)
+            st.caption(f"Total rows: {len(result)}")
+        else:
+            st.info("No bank transaction data uploaded yet.")
+    except Exception as e:
         st.info("No bank transaction data uploaded yet.")
 
 with preview_tabs[2]:
-    if st.session_state.form_1099_k is not None:
-        st.dataframe(st.session_state.form_1099_k, use_container_width=True)
-        st.caption(f"Total rows: {len(st.session_state.form_1099_k)}")
-    else:
+    try:
+        result = rewriter.conn.execute("SELECT * FROM form_1099_k").df()
+        if len(result) > 0:
+            st.dataframe(result, use_container_width=True)
+            st.caption(f"Total rows: {len(result)}")
+        else:
+            st.info("No form 1099-K data uploaded yet.")
+    except Exception as e:
         st.info("No form 1099-K data uploaded yet.")
 
