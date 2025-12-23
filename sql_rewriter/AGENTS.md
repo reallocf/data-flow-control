@@ -12,8 +12,12 @@ This is a SQL query rewriter that intercepts queries, applies Data Flow Control 
 - **uv**: Package manager (use `uv run pytest`, `uv sync`, etc.)
 - **sqlglot**: SQL parsing, transformation, and AST manipulation
 - **duckdb**: In-process SQL OLAP database
+  - Uses locally built DuckDB v1.4.1 from `resolution_ui` submodule
+  - Includes custom `external` extension with `EXTERNAL_OPERATOR`
+  - See "Using the Local DuckDB Build with Custom Extensions" section for setup
 - **pytest**: Testing framework
 - **numpy**: Required dependency for DuckDB Python UDFs
+- **pandas**: Required for some DuckDB operations (e.g., `.df()` method)
 
 ## Project Structure
 
@@ -338,9 +342,14 @@ assert "KILLing due to dfc policy violation" in str(exc_info.value)
 
 ## Running Tests
 
+### Standard Tests (sql_rewriter)
+
 ```bash
 # Run all tests
 uv run pytest
+
+# Or with the local DuckDB wrapper (recommended)
+./uv_with_local_duckdb.sh run pytest
 
 # Run specific test file
 uv run pytest test_rewriter.py
@@ -355,14 +364,196 @@ uv run pytest --tb=short
 uv run pytest -q
 ```
 
+### Extension Tests (resolution_ui)
+
+To run tests that use the DuckDB extension:
+
+```bash
+cd resolution_ui
+source ../sql_rewriter/setup_local_duckdb.sh
+../sql_rewriter/.venv/bin/python scripts/test_simple.py
+```
+
+Or using the wrapper:
+```bash
+cd resolution_ui
+../sql_rewriter/uv_with_local_duckdb.sh run python scripts/test_simple.py
+```
+
+## Using the Local DuckDB Build with Custom Extensions
+
+This project uses a locally built DuckDB from the `resolution_ui` submodule, which includes custom extensions (specifically the `external` extension with the `EXTERNAL_OPERATOR`). This setup allows the SQL rewriter to use modified DuckDB functionality.
+
+### Setup Overview
+
+The `resolution_ui` submodule contains:
+- A modified DuckDB build (v1.4.1) with custom extensions
+- The `external` extension that provides `EXTERNAL_OPERATOR` functionality
+- Build artifacts in `resolution_ui/build/release/`
+
+### Initial Setup
+
+1. **Build the DuckDB library** (if not already built):
+   ```bash
+   cd resolution_ui
+   make
+   ```
+   This creates:
+   - `build/release/duckdb`: DuckDB CLI binary
+   - `build/release/src/libduckdb.dylib`: Shared library (macOS) or `.so` (Linux)
+   - `build/release/repository/v1.4.1/osx_arm64/external.duckdb_extension`: Extension binary
+
+2. **Install matching DuckDB Python version**:
+   ```bash
+   cd sql_rewriter
+   ./uv_with_local_duckdb.sh pip install "duckdb==1.4.1"
+   ```
+   **Critical**: The Python package version must match the local build version (1.4.1), otherwise extensions won't load.
+
+### Using the Setup Scripts
+
+Three helper scripts are provided:
+
+#### 1. `setup_local_duckdb.sh`
+Sets environment variables to point to the local DuckDB library:
+- `DYLD_LIBRARY_PATH` (macOS) or `LD_LIBRARY_PATH` (Linux): Points to the library directory
+- `DUCKDB_LIBRARY`: Points to the specific library file
+
+**Usage**:
+```bash
+source setup_local_duckdb.sh
+# Now Python/uv commands will use the local DuckDB
+```
+
+#### 2. `uv_with_local_duckdb.sh`
+Wrapper script that automatically configures the environment and runs uv commands.
+
+**Usage**:
+```bash
+./uv_with_local_duckdb.sh sync          # Install dependencies
+./uv_with_local_duckdb.sh run pytest     # Run tests
+./uv_with_local_duckdb.sh run python    # Run Python scripts
+```
+
+#### 3. `use_local_duckdb.py`
+Python module that configures DuckDB at runtime. Import it before importing `duckdb`:
+
+```python
+import use_local_duckdb  # Must be before duckdb import
+import duckdb
+from sql_rewriter import SQLRewriter
+
+# Now SQLRewriter uses the local DuckDB build
+rewriter = SQLRewriter()
+```
+
+### Running Tests with the Extension
+
+To run tests in `resolution_ui/scripts/` that use the extension:
+
+```bash
+cd resolution_ui
+source ../sql_rewriter/setup_local_duckdb.sh
+../sql_rewriter/.venv/bin/python scripts/test_simple.py
+```
+
+Or using the wrapper:
+```bash
+cd resolution_ui
+../sql_rewriter/uv_with_local_duckdb.sh run python scripts/test_simple.py
+```
+
+### The External Operator Extension
+
+The `external` extension provides the `EXTERNAL_OPERATOR` which enables:
+- Union operations with external data sources
+- Streaming data integration
+- Custom operator logic for data flow control
+
+**Loading the extension**:
+```python
+import duckdb
+
+con = duckdb.connect(
+    database=":memory:",
+    config={"allow_unsigned_extensions": "true"},
+)
+
+# Load the extension
+EXT_PATH = "resolution_ui/build/release/repository/v1.4.1/osx_arm64/external.duckdb_extension"
+con.execute(f"LOAD '{EXT_PATH}'")
+```
+
+**Key Points**:
+- Extension path is platform-specific (e.g., `osx_arm64` for macOS ARM)
+- Must enable `allow_unsigned_extensions` to load local extensions
+- Extension version (v1.4.1) must match DuckDB version exactly
+
+### Version Matching Requirements
+
+**Critical**: The following must all match:
+1. Local DuckDB build version (from `resolution_ui/build/release/duckdb --version`)
+2. DuckDB Python package version (from `pip list | grep duckdb`)
+3. Extension version (embedded in extension binary)
+
+If versions don't match, you'll see errors like:
+```
+The file was built specifically for DuckDB version 'v1.4.1' and can only be loaded with that version of DuckDB. (this version of DuckDB is 'v1.4.3')
+```
+
+**Solution**: Install the matching Python package version:
+```bash
+./uv_with_local_duckdb.sh pip install "duckdb==1.4.1"
+```
+
+### Troubleshooting
+
+**Problem**: Extension not found
+- **Solution**: Run `make` in `resolution_ui` to build the extension
+
+**Problem**: Version mismatch error
+- **Solution**: Install matching DuckDB Python version (see above)
+
+**Problem**: Library not found errors
+- **Solution**: Ensure `setup_local_duckdb.sh` is sourced or use `uv_with_local_duckdb.sh` wrapper
+
+**Problem**: `numpy` or `pandas` not installed
+- **Solution**: Install required dependencies:
+  ```bash
+  ./uv_with_local_duckdb.sh pip install numpy pandas
+  ```
+
+### Integration with SQL Rewriter
+
+When using `SQLRewriter` with the local DuckDB build:
+- The rewriter automatically uses the configured DuckDB instance
+- Custom extensions are available if loaded before creating the rewriter
+- All standard SQL rewriter functionality works with the custom build
+
+**Example**:
+```python
+import use_local_duckdb  # Configure environment
+import duckdb
+from sql_rewriter import SQLRewriter
+
+# Load extension if needed
+con = duckdb.connect(config={"allow_unsigned_extensions": "true"})
+con.execute(f"LOAD '{EXT_PATH}'")
+
+# Create rewriter (uses the same DuckDB instance)
+rewriter = SQLRewriter()
+# ... use rewriter as normal
+```
+
 ## Dependencies
 
 Always run `uv sync` after modifying `pyproject.toml` to update the lock file.
 
 Key dependencies:
 - `sqlglot>=24.0.0`: SQL parsing and transformation
-- `duckdb>=1.0.0`: Database engine
+- `duckdb>=1.0.0`: Database engine (use 1.4.1 for local build compatibility)
 - `numpy>=1.24.4`: Required for DuckDB Python UDFs
+- `pandas`: Required for some DuckDB operations (e.g., `.df()` method)
 
 ## Future Enhancements
 

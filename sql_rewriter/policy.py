@@ -21,6 +21,10 @@ class DFCPolicy:
 
     A policy defines constraints on data flow between source and sink tables.
     Either source or sink (or both) must be specified.
+
+    Disaggregation
+    State changes while processing.
+    Agent that runs a query, reads the data, uses the data to do another step.
     """
 
     def __init__(

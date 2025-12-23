@@ -1,0 +1,3 @@
+[submodule "resolution_ui"]
+	path = resolution_ui
+	url = https://github.com/easyesplat/daplab-external/

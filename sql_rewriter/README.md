@@ -25,6 +25,44 @@ To install with development dependencies (including pytest):
 uv sync --extra dev
 ```
 
+### Using Local DuckDB Build
+
+If you want to use a locally built DuckDB from the `resolution_ui` submodule (which includes custom extensions), you have several options:
+
+#### Option 1: Use the wrapper script (Recommended)
+
+Use the provided wrapper script that automatically configures the environment:
+
+```bash
+./uv_with_local_duckdb.sh sync
+./uv_with_local_duckdb.sh run pytest
+```
+
+#### Option 2: Source the setup script
+
+Before running uv commands, source the setup script:
+
+```bash
+source setup_local_duckdb.sh
+uv sync
+uv run pytest
+```
+
+#### Option 3: Import the Python helper
+
+In your Python code, import the helper module before importing duckdb:
+
+```python
+import use_local_duckdb  # Must be imported before duckdb
+import duckdb
+from sql_rewriter import SQLRewriter
+
+# Now SQLRewriter will use the local DuckDB build
+rewriter = SQLRewriter()
+```
+
+**Note**: Make sure you've built the DuckDB library first by running `make` in the `resolution_ui` directory.
+
 ## Quick Start
 
 ```python
