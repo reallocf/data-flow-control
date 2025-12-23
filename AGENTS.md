@@ -1,10 +1,10 @@
-# Agent Guide for SQL Rewriter Project
+# Agent Guide for Data Flow Control Project
 
-This document contains key principles, best practices, and critical gotchas for working on this SQL rewriter project.
+This document contains key principles, best practices, and critical gotchas for working on the Data Flow Control project.
 
 ## Project Overview
 
-This is a SQL query rewriter that intercepts queries, applies Data Flow Control (DFC) policies, and executes them against DuckDB. Policies can filter or abort queries based on constraints over source/sink tables.
+This project implements Data Flow Control (DFC) policies that can filter or abort queries based on constraints over source/sink tables. The core component is a SQL query rewriter that intercepts queries, applies DFC policies, and executes them against DuckDB. The project also includes applications like the SBO Tax Agent that demonstrate DFC usage.
 
 ## Key Architecture Principles
 
@@ -77,6 +77,10 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 - Subqueries in FROM: alias is on the `Subquery` node itself, not a parent `Table`
 - CTEs: access via `parsed.args.get('with_')`, not `parsed.with_` (which is a method)
 - `CTE.this` is the SELECT expression, `CTE.alias.this` is the Identifier
+
+### Accessing Internal State
+
+**Use public API methods, not private attributes** - Always use public methods like `get_dfc_policies()` instead of accessing `_policies` directly. This maintains encapsulation and allows for future implementation changes.
 
 ## Code Style Principles
 

@@ -280,6 +280,14 @@ class SQLRewriter:
 
         self._policies.append(policy)
 
+    def get_dfc_policies(self) -> list[DFCPolicy]:
+        """Get all registered DFC policies.
+        
+        Returns:
+            List of all registered DFCPolicy objects.
+        """
+        return self._policies.copy()
+
     def _get_source_tables(self, parsed: exp.Select) -> Set[str]:
         """Extract source table names from a SELECT query.
         

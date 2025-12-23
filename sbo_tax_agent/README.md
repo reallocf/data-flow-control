@@ -97,7 +97,11 @@ The app has three main tabs:
    - `bank_txn`: Bank and credit card transactions
    - `form_1099_k`: 1099-K form data
 
-2. **Create Policies**: Define data flow control policies (TODO)
+2. **Create Policies**: Define data flow control policies using a text-based format:
+   - View database schema to see available tables and columns
+   - Enter policies in the format: `SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>`
+   - Fields can be separated by any whitespace (spaces, tabs, newlines)
+   - View all registered policies in a list
 
 3. **Propose Taxes**: Generate tax proposals based on uploaded data (TODO)
 

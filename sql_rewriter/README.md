@@ -151,6 +151,16 @@ policy = DFCPolicy(
 rewriter.register_policy(policy)  # Validates tables and columns exist
 ```
 
+### Retrieving Registered Policies
+
+Get all registered policies using the public API:
+
+```python
+policies = rewriter.get_dfc_policies()  # Returns list of DFCPolicy objects
+for policy in policies:
+    print(f"Source: {policy.source}, Constraint: {policy.constraint}")
+```
+
 ### Query Execution
 
 The rewriter automatically applies policies to queries:
