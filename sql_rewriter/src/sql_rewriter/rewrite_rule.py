@@ -2,7 +2,7 @@
 
 import sqlglot
 from sqlglot import exp
-from typing import Set, List
+from typing import Set, List, Optional
 
 from .policy import DFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
@@ -25,6 +25,93 @@ def _wrap_kill_constraint(constraint_expr: exp.Expression) -> exp.Expression:
             true=exp.Literal(this="true", is_string=False)
         )],
         default=kill_call
+    )
+
+
+def _extract_columns_from_constraint(
+    constraint_expr: exp.Expression,
+    source_tables: Set[str]
+) -> List[exp.Column]:
+    """Extract all columns from a constraint expression that belong to source tables.
+    
+    Args:
+        constraint_expr: The constraint expression to extract columns from.
+        source_tables: Set of source table names.
+        
+    Returns:
+        List of column expressions from source tables, in order of appearance.
+    """
+    columns = []
+    seen = set()
+    
+    for column in constraint_expr.find_all(exp.Column):
+        table_name = get_table_name_from_column(column)
+        if table_name and table_name in source_tables:
+            # Create a unique key for the column
+            col_key = (table_name, get_column_name(column))
+            if col_key not in seen:
+                seen.add(col_key)
+                # Copy the column expression to avoid mutability issues
+                # Serialize and deserialize to create a fresh copy
+                col_sql = column.sql()
+                # Parse as a column expression by wrapping in a SELECT
+                select_sql = f"SELECT {col_sql} AS col"
+                parsed = sqlglot.parse_one(select_sql, read="duckdb")
+                if isinstance(parsed, exp.Select) and parsed.expressions:
+                    expr = parsed.expressions[0]
+                    if isinstance(expr, exp.Alias) and isinstance(expr.this, exp.Column):
+                        columns.append(expr.this)
+                    elif isinstance(expr, exp.Column):
+                        columns.append(expr)
+    
+    return columns
+
+
+def _wrap_human_constraint(
+    constraint_expr: exp.Expression,
+    policy: DFCPolicy,
+    source_tables: Set[str],
+    stream_file_path: Optional[str] = None
+) -> exp.Expression:
+    """Wrap a constraint expression in CASE WHEN for HUMAN resolution policies.
+    
+    When the constraint fails, calls address_violating_rows with columns from the
+    constraint. The function returns False to filter out the row, allowing it to
+    be handled by the external operator.
+    
+    Args:
+        constraint_expr: The constraint expression to wrap.
+        policy: The policy being applied.
+        source_tables: Set of source table names in the query.
+        stream_file_path: Optional path to stream file for approved rows.
+        
+    Returns:
+        A CASE WHEN expression that returns true if constraint passes,
+        or calls address_violating_rows() if constraint fails.
+    """
+    # Extract columns from the constraint that belong to source tables
+    columns = _extract_columns_from_constraint(constraint_expr, source_tables)
+    
+    # Build the address_violating_rows function call
+    # Pass stream_file_path as the last argument
+    if stream_file_path:
+        # Escape single quotes in the path
+        escaped_path = stream_file_path.replace("'", "''")
+        stream_endpoint = exp.Literal(this=f"'{escaped_path}'", is_string=True)
+    else:
+        stream_endpoint = exp.Literal(this="''", is_string=True)
+    
+    # Create function call with columns and stream_endpoint
+    # address_violating_rows(col1, col2, ..., stream_endpoint)
+    expressions = columns + [stream_endpoint]
+    address_call = exp.Anonymous(this="address_violating_rows", expressions=expressions)
+    
+    return exp.Case(
+        ifs=[exp.If(
+            this=constraint_expr,
+            true=exp.Literal(this="true", is_string=False)
+        )],
+        default=address_call
     )
 
 
@@ -57,7 +144,8 @@ def _add_clause_to_select(
 def apply_policy_constraints_to_aggregation(
     parsed: exp.Select,
     policies: list[DFCPolicy],
-    source_tables: Set[str]
+    source_tables: Set[str],
+    stream_file_path: Optional[str] = None
 ) -> None:
     """Apply policy constraints to an aggregation query.
     
@@ -84,6 +172,8 @@ def apply_policy_constraints_to_aggregation(
         
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
+        elif policy.on_fail == Resolution.HUMAN:
+            constraint_expr = _wrap_human_constraint(constraint_expr, policy, source_tables, stream_file_path)
         
         _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
 
@@ -598,7 +688,8 @@ def ensure_subqueries_have_constraint_columns(
 def apply_policy_constraints_to_scan(
     parsed: exp.Select,
     policies: list[DFCPolicy],
-    source_tables: Set[str]
+    source_tables: Set[str],
+    stream_file_path: Optional[str] = None
 ) -> None:
     """Apply policy constraints to a non-aggregation query (table scan).
     
@@ -627,6 +718,8 @@ def apply_policy_constraints_to_scan(
         
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
+        elif policy.on_fail == Resolution.HUMAN:
+            constraint_expr = _wrap_human_constraint(constraint_expr, policy, source_tables, stream_file_path)
         
         _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
 

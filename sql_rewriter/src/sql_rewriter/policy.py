@@ -15,6 +15,7 @@ class Resolution(Enum):
 
     REMOVE = "REMOVE"
     KILL = "KILL"
+    HUMAN = "HUMAN"
 
 
 class DFCPolicy:
@@ -39,7 +40,7 @@ class DFCPolicy:
 
         Args:
             constraint: A SQL expression that must evaluate to true for the policy to pass.
-            on_fail: Action to take when the policy fails (REMOVE or KILL).
+            on_fail: Action to take when the policy fails (REMOVE, KILL, or HUMAN).
             source: Optional source table name.
             sink: Optional sink table name.
 
@@ -144,7 +145,7 @@ class DFCPolicy:
                     on_fail = Resolution(value.upper())
                 except ValueError:
                     raise ValueError(
-                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE' or 'KILL'"
+                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', or 'HUMAN'"
                     )
         
         # Validate required fields

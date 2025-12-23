@@ -4,6 +4,9 @@ import duckdb
 import sqlglot
 from sqlglot import exp
 from typing import Any, Optional, Set, Union
+import tempfile
+import os
+import threading
 
 from .policy import DFCPolicy
 from .sqlglot_utils import get_column_name, get_table_name_from_column
@@ -17,18 +20,53 @@ from .rewrite_rule import (
 class SQLRewriter:
     """SQL rewriter that intercepts queries, transforms them, and executes against DuckDB."""
 
-    def __init__(self, conn: Optional[duckdb.DuckDBPyConnection] = None) -> None:
+    def __init__(
+        self, 
+        conn: Optional[duckdb.DuckDBPyConnection] = None,
+        human_review_enabled: bool = True,
+        pending_file_path: Optional[str] = None,
+        stream_file_path: Optional[str] = None
+    ) -> None:
         """Initialize the SQL rewriter with a DuckDB connection.
 
         Args:
             conn: Optional DuckDB connection. If None, creates a new in-memory database connection.
+            human_review_enabled: If True, enables human review mode for HUMAN resolution policies.
+                                 Violating rows will be written to a pending file for review.
+            pending_file_path: Optional path for pending file (violating rows). If None, creates a temp file.
+            stream_file_path: Optional path for stream file (approved rows). If None, creates a temp file.
         """
         if conn is not None:
             self.conn = conn
         else:
             self.conn = duckdb.connect()
         self._policies: list[DFCPolicy] = []
+        
+        # Human review configuration
+        self._human_review_enabled = human_review_enabled
+        if human_review_enabled:
+            if pending_file_path is None:
+                pending_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+                self._pending_file_path = pending_file.name
+                pending_file.close()
+            else:
+                self._pending_file_path = pending_file_path
+            
+            if stream_file_path is None:
+                stream_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+                self._stream_file_path = stream_file.name
+                stream_file.close()
+            else:
+                self._stream_file_path = stream_file_path
+            
+            self._violating_rows_count = 0
+            self._pending_file_lock = threading.Lock()
+        else:
+            self._pending_file_path = None
+            self._stream_file_path = None
+        
         self._register_kill_udf()
+        self._register_address_violating_rows_udf()
 
     def transform_query(self, query: str) -> str:
         """Transform a SQL query according to the rewriter's rules.
@@ -57,9 +95,15 @@ class SQLRewriter:
                         ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
                         
                         if self._has_aggregations(parsed):
-                            apply_policy_constraints_to_aggregation(parsed, matching_policies, from_tables)
+                            apply_policy_constraints_to_aggregation(
+                                parsed, matching_policies, from_tables, 
+                                stream_file_path=self._stream_file_path if self._human_review_enabled else None
+                            )
                         else:
-                            apply_policy_constraints_to_scan(parsed, matching_policies, from_tables)
+                            apply_policy_constraints_to_scan(
+                                parsed, matching_policies, from_tables,
+                                stream_file_path=self._stream_file_path if self._human_review_enabled else None
+                            )
 
             return parsed.sql(pretty=True, dialect="duckdb")
         except Exception as e:
@@ -353,6 +397,134 @@ class SQLRewriter:
         
         self.conn.create_function('kill', kill, return_type='BOOLEAN')
 
+    def _register_address_violating_rows_udf(self) -> None:
+        """Register the address_violating_rows UDF for HUMAN resolution policies.
+        
+        This UDF is used by HUMAN resolution policies to handle violating rows
+        through a human-in-the-loop mechanism. When human_review_enabled is True,
+        violating rows are written to a pending file for review.
+        
+        Users can override this by registering their own address_violating_rows
+        function after creating the SQLRewriter instance.
+        """
+        if self._human_review_enabled:
+            def address_violating_rows(*args) -> bool:
+                """address_violating_rows function that writes violating rows to pending file.
+                
+                Writes violating row data to the pending file in tab-separated format.
+                The last argument is the stream_endpoint (path to stream file).
+                
+                Args:
+                    *args: Variable arguments - columns from the constraint plus stream_endpoint.
+                          The last argument is the stream_endpoint string.
+                
+                Returns:
+                    bool: False to filter out the violating row.
+                """
+                if not args:
+                    return False
+                
+                # Last argument is stream_endpoint, rest are column values
+                column_values = args[:-1] if len(args) > 1 else args
+                stream_endpoint = args[-1] if len(args) > 1 else ''
+                
+                # Write violating row to pending file
+                # Format: tab-separated values
+                with self._pending_file_lock:
+                    with open(self._pending_file_path, 'a') as f:
+                        row_data = '\t'.join(str(val).lower() if isinstance(val, bool) else str(val) for val in column_values)
+                        f.write(f"{row_data}\n")
+                        f.flush()
+                    
+                    self._violating_rows_count += 1
+                    print(f"[UDF] Violating row #{self._violating_rows_count} written to pending file: {row_data}")
+                
+                # Return False to filter out from original query (it will come from stream if user passes it)
+                return False
+        else:
+            def address_violating_rows(*args) -> bool:
+                """Default address_violating_rows function for HUMAN resolution.
+                
+                This default implementation returns False to filter out violating rows.
+                Enable human_review_enabled to write rows to a file for review.
+                
+                Args:
+                    *args: Variable arguments - columns from the constraint plus stream_endpoint.
+                
+                Returns:
+                    bool: False to filter out the violating row.
+                """
+                return False
+        
+        # Register with a flexible signature - DuckDB will handle the variable arguments
+        # We use a generic signature that accepts any number of arguments
+        self.conn.create_function('address_violating_rows', address_violating_rows, return_type='BOOLEAN')
+
+    def get_pending_file_path(self) -> Optional[str]:
+        """Get the path to the pending file containing violating rows.
+        
+        Returns:
+            Path to pending file if human review is enabled, None otherwise.
+        """
+        return self._pending_file_path if self._human_review_enabled else None
+    
+    def get_stream_file_path(self) -> Optional[str]:
+        """Get the path to the stream file for approved rows.
+        
+        Returns:
+            Path to stream file if human review is enabled, None otherwise.
+        """
+        return self._stream_file_path if self._human_review_enabled else None
+    
+    def get_violating_rows_count(self) -> int:
+        """Get the number of violating rows collected so far.
+        
+        Returns:
+            Number of violating rows written to the pending file.
+        """
+        return self._violating_rows_count if self._human_review_enabled else 0
+    
+    def review_pending_rows(self) -> list[dict]:
+        """Read and return all pending violating rows from the pending file.
+        
+        Returns:
+            List of dictionaries, each containing the row data as key-value pairs.
+            Returns empty list if human review is not enabled or file doesn't exist.
+        """
+        if not self._human_review_enabled or not self._pending_file_path:
+            return []
+        
+        if not os.path.exists(self._pending_file_path):
+            return []
+        
+        rows = []
+        with open(self._pending_file_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    parts = line.split('\t')
+                    # Convert to dict with indexed keys (col0, col1, etc.)
+                    # Users can customize this based on their column names
+                    row_dict = {f'col{i}': part for i, part in enumerate(parts)}
+                    rows.append(row_dict)
+        
+        return rows
+    
+    def approve_row(self, row_data: list) -> None:
+        """Approve a row by writing it to the stream file.
+        
+        Args:
+            row_data: List of column values to write to the stream file.
+                     Should match the format written to pending file (tab-separated).
+        """
+        if not self._human_review_enabled or not self._stream_file_path:
+            return
+        
+        with open(self._stream_file_path, 'a') as f:
+            row_str = '\t'.join(str(val).lower() if isinstance(val, bool) else str(val) for val in row_data)
+            f.write(f"{row_str}\n")
+            f.flush()
+    
     def close(self) -> None:
         """Close the DuckDB connection."""
         self.conn.close()
