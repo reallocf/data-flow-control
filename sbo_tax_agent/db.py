@@ -92,7 +92,7 @@ def initialize_tables(conn):
     1. tax_return - One row per (person, tax year) return
     2. bank_txn - Raw transactions (bank + credit card)
     3. form_1099_k - 1099-Ks (raw), one row per reported amount
-    4. schedule_c_review - Transaction-level Schedule C staging for human review
+    4. irs_form - Transaction-level Schedule C staging for human review
     
     Args:
         conn: DuckDB connection
@@ -100,11 +100,7 @@ def initialize_tables(conn):
     # 1) Tax return table
     conn.execute("""
         CREATE TABLE IF NOT EXISTS tax_return (
-            return_id        UBIGINT,
             tax_year         INTEGER,
-            full_name        VARCHAR,
-            ssn              VARCHAR,
-            address          VARCHAR,
             business_name    VARCHAR,
             business_desc    VARCHAR
         )
@@ -113,43 +109,37 @@ def initialize_tables(conn):
     # 2) Bank transactions table
     conn.execute("""
         CREATE TABLE IF NOT EXISTS bank_txn (
-            return_id        UBIGINT,
             txn_id           UBIGINT,
-            txn_date         DATE,
             amount           DOUBLE,
-            description      VARCHAR,
-            account_name     VARCHAR,
-            source_file      VARCHAR
+            category         VARCHAR,
+            description      VARCHAR
         )
     """)
     
     # 3) Form 1099-K table
     conn.execute("""
         CREATE TABLE IF NOT EXISTS form_1099_k (
-            return_id        UBIGINT,
-            form_id          UBIGINT,
-            payer_name       VARCHAR,
-            payer_tin        VARCHAR,
-            amount_type      VARCHAR,
-            amount           DOUBLE,
-            source_file      VARCHAR
+            form_name        VARCHAR,
+            amount           DOUBLE
         )
     """)
     
     # 4) Schedule C review table (output)
     conn.execute("""
-        CREATE TABLE IF NOT EXISTS schedule_c_review (
-            return_id        UBIGINT,
-            review_id        UBIGINT,
+        CREATE TABLE IF NOT EXISTS irs_form (
             txn_id           UBIGINT,
-            txn_date         DATE,
-            original_amount  DOUBLE,
+            amount           DOUBLE,
             kind             VARCHAR,
-            schedule_c_line  VARCHAR,
-            subcategory      VARCHAR,
-            business_use_pct DOUBLE,
-            deductible_amount DOUBLE,
-            note             VARCHAR
+            business_use_pct       DOUBLE
+        )
+    """)
+    
+    # 5) Agent interaction logs table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS agent_logs (
+            txn_id           UBIGINT,
+            log_line         VARCHAR,
+            log_order        INTEGER
         )
     """)
 
@@ -317,4 +307,58 @@ def load_policies_from_file(rewriter, policies_path):
         if isinstance(e, (FileNotFoundError, ValueError)):
             raise
         raise Exception(f"Failed to load policies from {policies_path}: {str(e)}") from e
+
+
+def save_agent_logs(rewriter, txn_id, logs):
+    """Save agent interaction logs for a transaction to the database.
+    
+    Args:
+        rewriter: SQLRewriter instance
+        txn_id: Transaction ID (will be converted to int)
+        logs: List of log strings
+    """
+    # Normalize txn_id to int for consistency
+    try:
+        txn_id_int = int(txn_id)
+    except (ValueError, TypeError):
+        # If txn_id can't be converted to int, use a hash or default value
+        # For now, we'll try to extract numeric part or use 0
+        txn_id_int = 0
+    
+    # Delete existing logs for this transaction
+    rewriter.conn.execute(
+        "DELETE FROM agent_logs WHERE txn_id = ?",
+        [txn_id_int]
+    )
+    
+    # Insert new logs
+    for order, log_line in enumerate(logs):
+        rewriter.conn.execute(
+            "INSERT INTO agent_logs (txn_id, log_line, log_order) VALUES (?, ?, ?)",
+            [txn_id_int, log_line, order]
+        )
+
+
+def load_agent_logs(rewriter):
+    """Load all agent interaction logs from the database.
+    
+    Args:
+        rewriter: SQLRewriter instance
+        
+    Returns:
+        dict: Dictionary mapping txn_id (as int) to list of log strings
+    """
+    result = rewriter.conn.execute(
+        "SELECT txn_id, log_line, log_order FROM agent_logs ORDER BY txn_id, log_order"
+    ).fetchall()
+    
+    logs_dict = {}
+    for txn_id, log_line, log_order in result:
+        # Ensure txn_id is int for consistency
+        txn_id_int = int(txn_id) if txn_id is not None else 0
+        if txn_id_int not in logs_dict:
+            logs_dict[txn_id_int] = []
+        logs_dict[txn_id_int].append(log_line)
+    
+    return logs_dict
 

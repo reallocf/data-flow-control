@@ -35,7 +35,7 @@ with col1:
         "Select tax_return.csv",
         type=['csv'],
         key='tax_return_uploader',
-        help="Expected columns: return_id, tax_year, full_name, ssn, address, business_name, business_desc"
+        help="Expected columns: tax_year, business_name, business_desc"
     )
     
     if tax_return_file is not None:
@@ -101,7 +101,7 @@ with col2:
         "Select bank_txn.csv",
         type=['csv'],
         key='bank_txn_uploader',
-        help="Expected columns: return_id, txn_id, txn_date, amount, description, account_name, source_file"
+        help="Expected columns: txn_id, amount, description"
     )
     
     if bank_txn_file is not None:
@@ -157,7 +157,7 @@ with col3:
         "Select form_1099_k.csv",
         type=['csv'],
         key='form_1099_k_uploader',
-        help="Expected columns: return_id, form_id, payer_name, payer_tin, amount_type, amount, source_file"
+        help="Expected columns: form_name, amount"
     )
     
     if form_1099_k_file is not None:
@@ -237,7 +237,7 @@ with preview_tabs[0]:
     try:
         result = rewriter.conn.execute("SELECT * FROM tax_return").df()
         if len(result) > 0:
-            st.dataframe(result, use_container_width=True)
+            st.dataframe(result, width='stretch')
             st.caption(f"Total rows: {len(result)}")
         else:
             st.info("No tax return data uploaded yet.")
@@ -248,7 +248,7 @@ with preview_tabs[1]:
     try:
         result = rewriter.conn.execute("SELECT * FROM bank_txn").df()
         if len(result) > 0:
-            st.dataframe(result, use_container_width=True)
+            st.dataframe(result, width='stretch')
             st.caption(f"Total rows: {len(result)}")
         else:
             st.info("No bank transaction data uploaded yet.")
@@ -259,7 +259,7 @@ with preview_tabs[2]:
     try:
         result = rewriter.conn.execute("SELECT * FROM form_1099_k").df()
         if len(result) > 0:
-            st.dataframe(result, use_container_width=True)
+            st.dataframe(result, width='stretch')
             st.caption(f"Total rows: {len(result)}")
         else:
             st.info("No form 1099-K data uploaded yet.")

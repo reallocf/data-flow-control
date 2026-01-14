@@ -2,17 +2,19 @@
 Agent module for SBO Tax Agent.
 
 Handles agentic loop using AWS Bedrock to analyze bank transactions
-and generate Schedule C review entries.
+and generate IRS Form review entries.
 """
 
 import json
 import os
-from typing import Dict, Any, Iterator, Tuple, Optional
+from typing import Dict, Any, Iterator, Tuple
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
+import sqlglot
+from sqlglot import exp
 
 
-BEDROCK_MODEL_ID = "anthropic.claude-haiku-4-5-20251001-v1:0"
+BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def format_value_for_prompt(value):
@@ -48,7 +50,7 @@ def create_bedrock_client():
         Exception: If client creation fails
     """
     try:
-        region = os.environ.get("AWS_REGION", "us-east-1")
+        region = os.environ.get("AWS_REGION", "us-east-2")
         
         # Check if bearer token is provided
         bearer_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
@@ -86,6 +88,33 @@ def create_db_tool(rewriter):
             str: JSON string with query results or error message
         """
         try:
+            # Check for disallowed statements
+            try:
+                parsed = sqlglot.parse_one(sql_query, read="duckdb")
+                
+                # Check if trying to create a table
+                if isinstance(parsed, exp.Create):
+                    # Verify it's a CREATE TABLE by checking the SQL output
+                    create_sql = parsed.sql(dialect="duckdb").upper()
+                    if "CREATE TABLE" in create_sql or create_sql.startswith("CREATE TABLE"):
+                        return json.dumps({
+                            "success": False,
+                            "error": "Creating new tables is not allowed. You can only query existing tables and insert into existing tables."
+                        }, indent=2)
+                
+                # Check if INSERT statement without SELECT
+                if isinstance(parsed, exp.Insert):
+                    # Check if INSERT has a SELECT (not just VALUES)
+                    select_expr = parsed.find(exp.Select)
+                    if not select_expr:
+                        return json.dumps({
+                            "success": False,
+                            "error": "INSERT statements must include a SELECT statement. Use INSERT INTO table (columns...) SELECT ... FROM ... WHERE ... format."
+                        }, indent=2)
+            except Exception:
+                # If parsing fails, continue with execution (let rewriter handle it)
+                print(f"Parsing failed: {e}")
+            
             # Execute query through rewriter (respects DFC policies)
             result = rewriter.execute(sql_query)
             
@@ -142,12 +171,10 @@ def build_agent_prompt(transaction: Dict[str, Any], tax_return_info: Dict[str, A
         str: Formatted prompt string
     """
     # Format values for prompt
-    txn_date_str = format_value_for_prompt(transaction.get('txn_date'))
     amount = transaction.get('amount', 0)
-    return_id = tax_return_info.get('return_id')
     txn_id = transaction.get('txn_id')
     
-    prompt = f"""You are a tax agent analyzing bank transactions to identify business expenses for Schedule C.
+    prompt = f"""You are a tax agent analyzing bank transactions to identify business expenses and income.
 
 TAX RETURN CONTEXT:
 - Business Name: {format_value_for_prompt(tax_return_info.get('business_name'))}
@@ -156,42 +183,38 @@ TAX RETURN CONTEXT:
 
 CURRENT TRANSACTION:
 - Transaction ID: {format_value_for_prompt(txn_id)}
-- Date: {txn_date_str}
 - Amount: {format_value_for_prompt(amount)}
 - Description: {format_value_for_prompt(transaction.get('description'))}
-- Account: {format_value_for_prompt(transaction.get('account_name'))}
 
-SCHEDULE_C_REVIEW TABLE SCHEMA:
-- return_id (UBIGINT): The tax return ID
-- review_id (UBIGINT): Unique ID for this review entry (you can use txn_id or generate a unique number)
+BANK_TXN TABLE SCHEMA:
+- txn_id (UBIGINT): Unique transaction identifier
+- amount (DOUBLE): Transaction amount
+- category (VARCHAR): Transaction category
+- description (VARCHAR): Transaction description text
+
+IRS_FORM TABLE SCHEMA:
 - txn_id (UBIGINT): The transaction ID from bank_txn
-- txn_date (DATE): Transaction date
-- original_amount (DOUBLE): Original transaction amount (use absolute value for expenses)
-- kind (VARCHAR): Type of expense (e.g., "Expense", "Income")
-- schedule_c_line (VARCHAR): Schedule C line number (e.g., "27a", "27b", "8", etc.)
-- subcategory (VARCHAR): More specific category (e.g., "Office Supplies", "Travel", "Meals")
-- business_use_pct (DOUBLE): Percentage of business use (0.0 to 100.0)
-- deductible_amount (DOUBLE): Calculated as original_amount * (business_use_pct / 100.0)
-- note (VARCHAR): Optional note explaining the classification
+- amount (DOUBLE): Transaction amount (use absolute value)
+- kind (VARCHAR): Type of transaction (e.g., "Expense", "Income")
+- business_use_pct (DOUBLE): Percentage of the transaction that is deductible (0.0 to 100.0)
 
 INSTRUCTIONS:
-1. Analyze the transaction to determine if it's a business expense or income related to the business.
-2. If the transaction is a business expense (business_use_pct > 0):
-   - Use the database tool to INSERT a row into schedule_c_review
+1. Analyze the transaction to determine if it's business-related:
+   - POSITIVE amounts (payments received) are typically INCOME
+   - NEGATIVE amounts (payments made) are typically EXPENSES
+2. If the transaction is business-related:
+   - Use the database tool to INSERT a row into irs_form data FROM bank_txn
+   - Set kind = Income|Expense
+   - Set amount = ABS(transaction amount)
    - Set business_use_pct to a value between 0 and 100 based on how much is business-related
-   - Calculate deductible_amount = ABS(original_amount) * (business_use_pct / 100.0)
-   - Classify the expense with appropriate kind, schedule_c_line, and subcategory
-   - Include a helpful note explaining your reasoning
-3. If the transaction is NOT a business expense (business_use_pct = 0), do not insert anything.
+   - Refer directly to the bank_txn columns in the SELECT statement where appropriate
+3. If the transaction is NOT business-related, insert a business_use_pct of 0.
 4. Only insert one row per transaction.
+5. Consider meals as 100% business use unless told otherwise.
 
 You have access to a database tool. Use it to:
 - Query existing data if needed: SELECT * FROM table_name WHERE conditions
-- Insert new schedule_c_review entries: INSERT INTO schedule_c_review (columns...) VALUES (values...)
-
-Example INSERT statement:
-INSERT INTO schedule_c_review (return_id, review_id, txn_id, txn_date, original_amount, kind, schedule_c_line, subcategory, business_use_pct, deductible_amount, note)
-VALUES ({return_id}, {txn_id}, {txn_id}, '{txn_date_str}', {abs(amount)}, 'Expense', '27a', 'Office Supplies', 100.0, {abs(amount)}, 'Office supplies for business operations')
+- Insert new irs_form entries: INSERT INTO irs_form (irs_form columns...) SELECT (bank_txn columns...) FROM bank_txn WHERE conditions
 
 Analyze this transaction and take appropriate action."""
     
@@ -203,7 +226,7 @@ def process_transaction_with_agent(
     rewriter,
     transaction: Dict[str, Any],
     tax_return_info: Dict[str, Any]
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str, list]:
     """Process a single transaction with the agent.
     
     Args:
@@ -213,11 +236,25 @@ def process_transaction_with_agent(
         tax_return_info: Tax return information dictionary
         
     Returns:
-        Tuple[bool, str]: (success, message) - success indicates if entry was created
+        Tuple[bool, str, list]: (success, message, logs) - success indicates if entry was created, logs is list of log strings
     """
+    logs = []
+    
+    def log(msg: str):
+        """Add a log message and also print it."""
+        logs.append(msg)
+        # print(msg)  # Uncomment this to print the logs to the console
+    
     try:
         # Build prompt
         prompt = build_agent_prompt(transaction, tax_return_info)
+        
+        log("=" * 80)
+        log("AGENTIC LOOP: Starting transaction processing")
+        log("=" * 80)
+        log(f"\n[INITIAL USER MESSAGE]")
+        log(f"Role: user")
+        log(f"Content:\n{prompt}\n")
         
         # Create database tool
         db_tool_func = create_db_tool(rewriter)
@@ -235,7 +272,7 @@ def process_transaction_with_agent(
             {
                 "name": "execute_sql",
                 "description": "Execute a SQL query on the database. Supports SELECT, INSERT, UPDATE, DELETE operations. Returns results as JSON.",
-                "inputSchema": {
+                "input_schema": {
                     "type": "object",
                     "properties": {
                         "sql_query": {
@@ -259,12 +296,20 @@ def process_transaction_with_agent(
             }
         }
         
+        log(f"[REQUEST] Sending to Bedrock (iteration 1)")
+        log(json.dumps(request_body, indent=2))
+        log("")
+        
         response = bedrock_client.invoke_model(
             modelId=BEDROCK_MODEL_ID,
             body=json.dumps(request_body)
         )
         
         response_body = json.loads(response['body'].read())
+        
+        log(f"[RESPONSE] Received from Bedrock (iteration 1)")
+        log(json.dumps(response_body, indent=2))
+        log("")
         
         # Process response - handle tool use with conversation loop
         entry_created = False
@@ -275,17 +320,36 @@ def process_transaction_with_agent(
             iteration += 1
             
             if 'content' not in response_body:
+                log(f"[ITERATION {iteration}] No content in response, breaking")
                 break
             
             # Check for tool use
             tool_uses = []
+            text_content = []
             for content_block in response_body['content']:
                 if content_block['type'] == 'tool_use':
                     tool_uses.append(content_block)
+                elif content_block['type'] == 'text':
+                    text_content.append(content_block.get('text', ''))
+            
+            # Print any text content from assistant
+            if text_content:
+                log(f"[ITERATION {iteration}] Assistant text response:")
+                for text in text_content:
+                    log(text)
+                log("")
             
             if not tool_uses:
                 # No more tool uses, agent is done
+                log(f"[ITERATION {iteration}] No tool uses detected, conversation complete")
                 break
+            
+            log(f"[ITERATION {iteration}] Detected {len(tool_uses)} tool use(s):")
+            for tool_use in tool_uses:
+                log(f"  - Tool: {tool_use['name']}")
+                log(f"    ID: {tool_use['id']}")
+                log(f"    Input: {json.dumps(tool_use['input'], indent=4)}")
+            log("")
             
             # Process each tool use
             tool_results = []
@@ -295,29 +359,44 @@ def process_transaction_with_agent(
                 
                 if tool_name == 'execute_sql':
                     sql_query = tool_input.get('sql_query', '')
+                    log(f"[TOOL EXECUTION] Executing SQL query:")
+                    log(f"  {sql_query}")
+                    
                     # Execute the tool
                     tool_result = db_tool_func(sql_query)
+                    log(f"[TOOL RESULT]")
+                    log(f"  {tool_result}")
+                    log("")
+                    
                     tool_results.append({
                         "type": "tool_result",
                         "tool_use_id": tool_use['id'],
                         "content": tool_result
                     })
                     
-                    # Check if it was an INSERT into schedule_c_review
-                    if 'INSERT INTO schedule_c_review' in sql_query.upper():
+                    # Check if it was an INSERT into irs_form
+                    if 'INSERT INTO irs_form' in sql_query.upper():
                         entry_created = True
             
             # Add assistant's tool use to messages
-            messages.append({
+            assistant_message = {
                 "role": "assistant",
                 "content": [tool_use for tool_use in tool_uses]
-            })
+            }
+            messages.append(assistant_message)
+            log(f"[MESSAGE STREAM] Added assistant message with tool uses")
+            log(json.dumps(assistant_message, indent=2))
+            log("")
             
             # Add tool results to messages
-            messages.append({
+            user_message = {
                 "role": "user",
                 "content": tool_results
-            })
+            }
+            messages.append(user_message)
+            log(f"[MESSAGE STREAM] Added user message with tool results")
+            log(json.dumps(user_message, indent=2))
+            log("")
             
             # Get next response from Bedrock
             request_body = {
@@ -330,34 +409,53 @@ def process_transaction_with_agent(
                 }
             }
             
+            log(f"[REQUEST] Sending to Bedrock (iteration {iteration + 1})")
+            log(json.dumps(request_body, indent=2))
+            log("")
+            
             response = bedrock_client.invoke_model(
                 modelId=BEDROCK_MODEL_ID,
                 body=json.dumps(request_body)
             )
             
             response_body = json.loads(response['body'].read())
+            
+            log(f"[RESPONSE] Received from Bedrock (iteration {iteration + 1})")
+            log(json.dumps(response_body, indent=2))
+            log("")
+        
+        log("=" * 80)
+        log("AGENTIC LOOP: Completed")
+        log(f"Entry created: {entry_created}")
+        log("=" * 80)
+        log("")
         
         if entry_created:
-            return True, "Created schedule_c_review entry"
+            return True, "Created irs_form entry", logs
         else:
-            return False, "Transaction analyzed, no business expense identified"
+            return False, "Transaction analyzed, no business expense identified", logs
             
     except ClientError as e:
         error_code = e.response.get('Error', {}).get('Code', 'Unknown')
         error_msg = e.response.get('Error', {}).get('Message', str(e))
-        return False, f"Bedrock API error ({error_code}): {error_msg}"
+        error_msg_full = f"Bedrock API error ({error_code}): {error_msg}"
+        log(f"[ERROR] {error_msg_full}")
+        return False, error_msg_full, logs
     except BotoCoreError as e:
-        return False, f"AWS error: {str(e)}"
+        error_msg = f"AWS error: {str(e)}"
+        log(f"[ERROR] {error_msg}")
+        return False, error_msg, logs
     except Exception as e:
-        return False, f"Error processing transaction: {str(e)}"
+        error_msg = f"Error processing transaction: {str(e)}"
+        log(f"[ERROR] {error_msg}")
+        return False, error_msg, logs
 
 
-def run_agentic_loop(rewriter, return_id: int) -> Iterator[Dict[str, Any]]:
+def run_agentic_loop(rewriter) -> Iterator[Dict[str, Any]]:
     """Run the agentic loop to process all transactions for a tax return.
     
     Args:
         rewriter: SQLRewriter instance
-        return_id: Tax return ID to process
         
     Yields:
         Dict with progress information: {
@@ -373,14 +471,14 @@ def run_agentic_loop(rewriter, return_id: int) -> Iterator[Dict[str, Any]]:
         # Create Bedrock client
         bedrock_client = create_bedrock_client()
         
-        # Get tax return info
-        tax_return_query = f"SELECT * FROM tax_return WHERE return_id = {return_id}"
+        # Get tax return info (assuming single return)
+        tax_return_query = "SELECT * FROM tax_return LIMIT 1"
         tax_return_result = rewriter.execute(tax_return_query)
         tax_return_rows = tax_return_result.fetchall()
         
         if not tax_return_rows:
             yield {
-                'error': f'No tax return found with return_id {return_id}',
+                'error': 'No tax return found',
                 'success': False
             }
             return
@@ -388,11 +486,10 @@ def run_agentic_loop(rewriter, return_id: int) -> Iterator[Dict[str, Any]]:
         tax_return_columns = [desc[0] for desc in tax_return_result.description]
         tax_return_info = dict(zip(tax_return_columns, tax_return_rows[0]))
         
-        # Get all transactions for this return_id
-        transactions_query = f"""
+        # Get all transactions
+        transactions_query = """
             SELECT * FROM bank_txn 
-            WHERE return_id = {return_id}
-            ORDER BY txn_date, txn_id
+            ORDER BY txn_id
         """
         transactions_result = rewriter.execute(transactions_query)
         transactions_rows = transactions_result.fetchall()
@@ -406,14 +503,14 @@ def run_agentic_loop(rewriter, return_id: int) -> Iterator[Dict[str, Any]]:
         
         if total_transactions == 0:
             yield {
-                'error': f'No transactions found for return_id {return_id}',
+                'error': 'No transactions found',
                 'success': False
             }
             return
         
         # Process each transaction
         for idx, transaction in enumerate(transactions, 1):
-            entry_created, message = process_transaction_with_agent(
+            entry_created, message, logs = process_transaction_with_agent(
                 bedrock_client,
                 rewriter,
                 transaction,
@@ -426,7 +523,8 @@ def run_agentic_loop(rewriter, return_id: int) -> Iterator[Dict[str, Any]]:
                 'transaction': transaction,
                 'success': True,
                 'message': message,
-                'entry_created': entry_created
+                'entry_created': entry_created,
+                'logs': logs
             }
             
     except Exception as e:

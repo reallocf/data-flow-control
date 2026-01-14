@@ -5,15 +5,15 @@ Shared utilities for the SBO Tax Agent app.
 # Define expected schemas
 SCHEMAS = {
     'tax_return': {
-        'columns': ['return_id', 'tax_year', 'full_name', 'ssn', 'address', 'business_name', 'business_desc'],
+        'columns': ['tax_year', 'business_name', 'business_desc'],
         'description': 'One row per (person, tax year) return'
     },
     'bank_txn': {
-        'columns': ['return_id', 'txn_id', 'txn_date', 'amount', 'description', 'account_name', 'source_file'],
+        'columns': ['txn_id', 'amount', 'category', 'description'],
         'description': 'Raw transactions (bank + credit card). Positive=inflow, negative=outflow.'
     },
     'form_1099_k': {
-        'columns': ['return_id', 'form_id', 'payer_name', 'payer_tin', 'amount_type', 'amount', 'source_file'],
+        'columns': ['form_name', 'amount'],
         'description': '1099-Ks (raw). One row per reported amount.'
     }
 }

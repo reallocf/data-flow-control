@@ -25,13 +25,18 @@ except Exception as e:
     st.error(f"Failed to connect to database: {str(e)}")
     st.stop()
 
+# Check if there are any existing agent logs
+try:
+    existing_logs = db.load_agent_logs(rewriter)
+    has_existing_logs = len(existing_logs) > 0
+except Exception:
+    has_existing_logs = False
+
 # Initialize session state for agent processing
 if 'agent_processing' not in st.session_state:
     st.session_state.agent_processing = False
 if 'agent_progress' not in st.session_state:
     st.session_state.agent_progress = []
-if 'current_return_id' not in st.session_state:
-    st.session_state.current_return_id = None
 if 'transactions_to_process' not in st.session_state:
     st.session_state.transactions_to_process = []
 if 'current_txn_index' not in st.session_state:
@@ -39,9 +44,9 @@ if 'current_txn_index' not in st.session_state:
 if 'tax_return_info' not in st.session_state:
     st.session_state.tax_return_info = None
 
-# Get first tax return
+# Get tax return (assuming single return)
 try:
-    tax_return_query = "SELECT * FROM tax_return ORDER BY return_id LIMIT 1"
+    tax_return_query = "SELECT * FROM tax_return LIMIT 1"
     tax_return_result = rewriter.execute(tax_return_query)
     tax_return_rows = tax_return_result.fetchall()
     
@@ -51,8 +56,6 @@ try:
     
     tax_return_columns = [desc[0] for desc in tax_return_result.description]
     tax_return_info = dict(zip(tax_return_columns, tax_return_rows[0]))
-    return_id = tax_return_info['return_id']
-    st.session_state.current_return_id = return_id
     
     st.info(f"Processing tax return for: {tax_return_info.get('business_name', 'N/A')} (Tax Year: {tax_return_info.get('tax_year', 'N/A')})")
     
@@ -67,10 +70,9 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("Bank Transactions")
     try:
-        bank_txn_query = f"""
+        bank_txn_query = """
             SELECT * FROM bank_txn 
-            WHERE return_id = {return_id}
-            ORDER BY txn_date, txn_id
+            ORDER BY txn_id
         """
         bank_txn_result = rewriter.execute(bank_txn_query)
         bank_txn_rows = bank_txn_result.fetchall()
@@ -78,21 +80,20 @@ with col1:
         
         if bank_txn_rows:
             bank_txn_df = pd.DataFrame(bank_txn_rows, columns=bank_txn_columns)
-            st.dataframe(bank_txn_df, use_container_width=True, hide_index=True)
+            st.dataframe(bank_txn_df, width='stretch', hide_index=True)
             st.caption(f"Total transactions: {len(bank_txn_df)}")
         else:
             st.info("No bank transactions found for this tax return.")
     except Exception as e:
         st.error(f"Error loading bank transactions: {str(e)}")
 
-# Right column: Schedule C Review
+# Right column: Tax Form
 with col2:
-    st.subheader("Schedule C Review")
+    st.subheader("Tax Form")
     try:
-        schedule_c_query = f"""
-            SELECT * FROM schedule_c_review 
-            WHERE return_id = {return_id}
-            ORDER BY txn_date, review_id
+        schedule_c_query = """
+            SELECT * FROM irs_form 
+            ORDER BY txn_id
         """
         schedule_c_result = rewriter.execute(schedule_c_query)
         schedule_c_rows = schedule_c_result.fetchall()
@@ -100,78 +101,126 @@ with col2:
         
         if schedule_c_rows:
             schedule_c_df = pd.DataFrame(schedule_c_rows, columns=schedule_c_columns)
-            st.dataframe(schedule_c_df, use_container_width=True, hide_index=True)
+            st.dataframe(schedule_c_df, width='stretch', hide_index=True)
             st.caption(f"Total entries: {len(schedule_c_df)}")
         else:
-            st.info("No schedule C review entries yet. Click 'Propose Taxes' to start processing.")
+            st.info("No tax form entries yet. Click 'Propose Taxes' to start processing.")
     except Exception as e:
-        st.error(f"Error loading schedule C review: {str(e)}")
+        st.error(f"Error loading tax form: {str(e)}")
 
-# Progress section
-if st.session_state.agent_processing:
-    st.divider()
-    st.subheader("Processing Status")
-    
-    if st.session_state.agent_progress:
-        latest = st.session_state.agent_progress[-1]
+# Disable button if processing or if logs already exist
+button_disabled = st.session_state.agent_processing or has_existing_logs
+
+if st.button("Propose Taxes", type="primary", disabled=button_disabled):
+    try:
+        # Get tax return info
+        tax_return_query = "SELECT * FROM tax_return LIMIT 1"
+        tax_return_result = rewriter.execute(tax_return_query)
+        tax_return_rows = tax_return_result.fetchall()
         
-        if 'error' in latest:
-            st.error(f"Error: {latest['error']}")
-            st.session_state.agent_processing = False
+        if not tax_return_rows:
+            st.error("No tax return found")
         else:
-            progress_pct = (latest['transaction_index'] / latest['total_transactions']) * 100
-            st.progress(progress_pct / 100)
-            st.write(f"Processing transaction {latest['transaction_index']} of {latest['total_transactions']}")
-            st.write(f"Status: {latest['message']}")
+            tax_return_columns = [desc[0] for desc in tax_return_result.description]
+            tax_return_info = dict(zip(tax_return_columns, tax_return_rows[0]))
             
-            if latest['entry_created']:
-                st.success(f"✓ Created schedule_c_review entry for transaction {latest['transaction']['txn_id']}")
-            else:
-                st.info(f"○ Skipped transaction {latest['transaction']['txn_id']} (not a business expense)")
+            # Get all transactions
+            transactions_query = """
+                SELECT * FROM bank_txn 
+                ORDER BY txn_id
+            """
+            transactions_result = rewriter.execute(transactions_query)
+            transactions_rows = transactions_result.fetchall()
+            transaction_columns = [desc[0] for desc in transactions_result.description]
+            
+            transactions = []
+            for row in transactions_rows:
+                transactions.append(dict(zip(transaction_columns, row)))
+            
+            # Initialize processing state
+            st.session_state.agent_processing = True
+            st.session_state.agent_progress = []
+            st.session_state.tax_return_info = tax_return_info
+            st.session_state.transactions_to_process = transactions
+            st.session_state.current_txn_index = 0
+            st.rerun()
+    except Exception as e:
+        st.error(f"Error initializing processing: {str(e)}")
 
-# Propose Taxes button
+# Agent Interaction Logs Section
+# Always show logs section (even during processing) so tabs appear as transactions complete
 st.divider()
+st.subheader("Agent Interaction Logs")
 
-if st.button("Propose Taxes", type="primary", disabled=st.session_state.agent_processing):
-    if return_id is None:
-        st.error("No tax return selected")
-    else:
-        try:
-            # Get tax return info
-            tax_return_query = f"SELECT * FROM tax_return WHERE return_id = {return_id}"
-            tax_return_result = rewriter.execute(tax_return_query)
-            tax_return_rows = tax_return_result.fetchall()
+# Load logs from database
+try:
+    agent_logs = db.load_agent_logs(rewriter)
+    
+    if agent_logs:
+        # Create tabs for each transaction
+        txn_ids = sorted(agent_logs.keys())  # Sort for consistent ordering
+        
+        if txn_ids:
+            # Create tab labels
+            tab_labels = [f"Txn {txn_id}" for txn_id in txn_ids]
+            tabs = st.tabs(tab_labels)
             
-            if not tax_return_rows:
-                st.error(f"No tax return found with return_id {return_id}")
+            for idx, (tab, txn_id) in enumerate(zip(tabs, txn_ids)):
+                with tab:
+                    logs = agent_logs[txn_id]
+                    
+                    # Find transaction details for display
+                    transaction_info = None
+                    for progress in st.session_state.agent_progress:
+                        # Normalize both txn_ids for comparison
+                        progress_txn_id = progress.get('transaction', {}).get('txn_id')
+                        try:
+                            progress_txn_id_int = int(progress_txn_id) if progress_txn_id is not None else None
+                        except (ValueError, TypeError):
+                            progress_txn_id_int = None
+                        
+                        if progress_txn_id_int == txn_id:
+                            transaction_info = progress.get('transaction', {})
+                            break
+                    
+                    # If not in progress, try to get from database
+                    if not transaction_info:
+                        try:
+                            txn_query = f"SELECT * FROM bank_txn WHERE txn_id = {txn_id} LIMIT 1"
+                            txn_result = rewriter.execute(txn_query)
+                            txn_rows = txn_result.fetchall()
+                            if txn_rows:
+                                txn_columns = [desc[0] for desc in txn_result.description]
+                                transaction_info = dict(zip(txn_columns, txn_rows[0]))
+                        except Exception:
+                            pass
+                    
+                    if transaction_info:
+                        st.caption(f"Transaction ID: {txn_id} | Amount: ${transaction_info.get('amount', 'N/A')} | Description: {transaction_info.get('description', 'N/A')}")
+                    
+                    # Display logs in a fixed-height, scrollable container
+                    log_text = "\n".join(logs)
+                    st.text_area(
+                        "Full Agent Logs",
+                        value=log_text,
+                        height=400,
+                        disabled=True,
+                        key=f"logs_{txn_id}_{idx}"
+                    )
+        else:
+            if st.session_state.agent_processing:
+                st.info("Processing transactions... Logs will appear here as each transaction completes.")
             else:
-                tax_return_columns = [desc[0] for desc in tax_return_result.description]
-                tax_return_info = dict(zip(tax_return_columns, tax_return_rows[0]))
-                
-                # Get all transactions
-                transactions_query = f"""
-                    SELECT * FROM bank_txn 
-                    WHERE return_id = {return_id}
-                    ORDER BY txn_date, txn_id
-                """
-                transactions_result = rewriter.execute(transactions_query)
-                transactions_rows = transactions_result.fetchall()
-                transaction_columns = [desc[0] for desc in transactions_result.description]
-                
-                transactions = []
-                for row in transactions_rows:
-                    transactions.append(dict(zip(transaction_columns, row)))
-                
-                # Initialize processing state
-                st.session_state.agent_processing = True
-                st.session_state.agent_progress = []
-                st.session_state.current_return_id = return_id
-                st.session_state.tax_return_info = tax_return_info
-                st.session_state.transactions_to_process = transactions
-                st.session_state.current_txn_index = 0
-                st.rerun()
-        except Exception as e:
-            st.error(f"Error initializing processing: {str(e)}")
+                st.info("No agent logs yet. Click 'Propose Taxes' to start processing.")
+    else:
+        if st.session_state.agent_processing:
+            st.info("Processing transactions... Logs will appear here as each transaction completes.")
+        else:
+            st.info("No agent logs yet. Click 'Propose Taxes' to start processing.")
+except Exception as e:
+    # Show error if logs can't be loaded
+    st.warning(f"Could not load agent logs: {str(e)}")
+
 
 # Process agentic loop if processing
 if st.session_state.agent_processing and st.session_state.transactions_to_process:
@@ -186,12 +235,25 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
             # Process this transaction
             try:
                 bedrock_client = agent.create_bedrock_client()
-                entry_created, message = agent.process_transaction_with_agent(
+                entry_created, message, logs = agent.process_transaction_with_agent(
                     bedrock_client,
                     rewriter,
                     transaction,
                     st.session_state.tax_return_info
                 )
+                
+                # Save logs to database for persistence
+                txn_id = transaction.get('txn_id', current_index)
+                # Normalize txn_id to int for consistency with database
+                try:
+                    txn_id_int = int(txn_id)
+                except (ValueError, TypeError):
+                    txn_id_int = current_index
+                
+                try:
+                    db.save_agent_logs(rewriter, txn_id_int, logs)
+                except Exception as e:
+                    st.warning(f"Could not save logs to database: {str(e)}")
                 
                 # Record progress
                 progress_update = {
@@ -212,9 +274,25 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
                     st.rerun()
                 else:
                     st.session_state.agent_processing = False
+                    st.rerun()
                     
             except Exception as e:
                 # Error processing this transaction
+                txn_id = transaction.get('txn_id', current_index)
+                # Normalize txn_id to int for consistency with database
+                try:
+                    txn_id_int = int(txn_id)
+                except (ValueError, TypeError):
+                    txn_id_int = current_index
+                
+                error_logs = [f"[ERROR] {str(e)}"]
+                
+                # Save error logs to database for persistence
+                try:
+                    db.save_agent_logs(rewriter, txn_id_int, error_logs)
+                except Exception as e2:
+                    st.warning(f"Could not save error logs to database: {str(e2)}")
+                
                 progress_update = {
                     'transaction_index': current_index,
                     'total_transactions': total_transactions,

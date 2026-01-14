@@ -15,14 +15,14 @@ import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 
 
-BEDROCK_MODEL_ID = "anthropic.claude-haiku-4-5-20251001-v1:0"
+BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 def test_bedrock_connection():
     """Test basic Bedrock client creation."""
     print("Testing Bedrock client creation...")
     try:
-        region = os.environ.get("AWS_REGION", "us-east-1")
+        region = os.environ.get("AWS_REGION", "us-east-2")
         bearer_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
         
         if bearer_token:

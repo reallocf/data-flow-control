@@ -60,7 +60,7 @@ try:
             })
         
         df = pd.DataFrame(df_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)
     else:
         st.info("No tables found in the database.")
 except Exception as e:
@@ -70,11 +70,11 @@ except Exception as e:
 st.subheader("Create New Policy")
 
 st.markdown("**Example policy:**")
-st.code("SOURCE bank_txn SINK schedule_c_review CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE", language=None)
+st.code("SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE", language=None)
 
 policy_text = st.text_area(
     "Policy Definition",
-    placeholder="SOURCE bank_txn SINK schedule_c_review CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE",
+    placeholder="SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE",
     help="Enter policy in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nFields can be separated by any whitespace (spaces, tabs, newlines).",
     height=150
 )
@@ -108,14 +108,13 @@ if not policies:
     st.info("No policies registered yet. Create a policy using the form above.")
 else:
     for idx, policy in enumerate(policies, 1):
-        with st.expander(f"Policy {idx}", expanded=False):
-            # Build policy string on one line, only including SOURCE/SINK if they exist
-            parts = []
-            if policy.source:
-                parts.append(f"SOURCE {policy.source}")
-            if policy.sink:
-                parts.append(f"SINK {policy.sink}")
-            parts.append(f"CONSTRAINT {policy.constraint}")
-            parts.append(f"ON FAIL {policy.on_fail.value}")
-            st.text(" ".join(parts))
+        # Build policy string on one line, only including SOURCE/SINK if they exist
+        parts = []
+        if policy.source:
+            parts.append(f"SOURCE {policy.source}")
+        if policy.sink:
+            parts.append(f"SINK {policy.sink}")
+        parts.append(f"CONSTRAINT {policy.constraint}")
+        parts.append(f"ON FAIL {policy.on_fail.value}")
+        st.text(f"Policy {idx}: {' '.join(parts)}")
 
