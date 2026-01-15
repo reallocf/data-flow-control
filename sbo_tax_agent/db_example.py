@@ -43,9 +43,10 @@ con = duckdb.connect(
 con.execute(f"LOAD '{EXT_PATH}'")
 
 # Load CSV data into DuckDB table
+# Reorder columns to match working pattern: VARCHAR first, then numeric, then VARCHAR
 con.execute(f"""
     CREATE TABLE bank_txn AS
-    SELECT description, amount
+    SELECT description, amount, txn_id, account_name
     FROM read_csv_auto('{CSV_PATH}');
 """)
 
@@ -55,11 +56,11 @@ stream_path = stream_file.name
 stream_file.close()
 
 # Define & register the Python UDF
-def address_violating_rows(description: str, amount: float, stream_endpoint: str) -> bool:
+def address_violating_rows(description: str, amount: float, txn_id: int, account_name: str, stream_endpoint: str) -> bool:
     """Handle violating rows where description=="Internet service". Writes row to stream file with amount=0.0."""
     # Write the violating row to the stream file with amount=0.0
     with open(stream_endpoint, 'a') as f:
-        f.write(f"{description}\t0.0\n")
+        f.write(f"{description}\t0.0\t{txn_id}\t{account_name}\n")
         f.flush()
     return False  # Filter out the violating row
 
@@ -71,7 +72,7 @@ SELECT *
 FROM bank_txn
 WHERE CASE
         WHEN LOWER(description) != 'internet service' THEN TRUE
-        ELSE address_violating_rows(description, amount, '{stream_path}')
+        ELSE address_violating_rows(description, amount, txn_id, account_name, '{stream_path}')
       END;
 """
 
