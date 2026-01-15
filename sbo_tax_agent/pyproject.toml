@@ -2,11 +2,11 @@
 name = "sbo-tax-agent"
 version = "0.1.0"
 description = "Small business owner tax agent using sql_rewriter and extended_duckdb"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "sql-rewriter",
     "sqlglot>=24.0.0",
-    "duckdb>=1.0.0",
+    "duckdb==1.4.1",
     "numpy>=1.24.4",
     "streamlit>=1.28.0",
     "pandas>=2.0.0",
