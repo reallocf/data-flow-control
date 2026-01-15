@@ -24,47 +24,25 @@ except Exception as e:
     st.stop()
 
 
-# Display database schema
-st.subheader("Database Schema")
+# Display registered policies
+st.subheader("Registered Policies")
 
-try:
-    # Query all tables and their columns from information_schema
-    schema_query = """
-        SELECT 
-            table_name,
-            column_name,
-            data_type,
-            ordinal_position
-        FROM information_schema.columns
-        WHERE table_schema = 'main'
-        ORDER BY table_name, ordinal_position
-    """
-    
-    result = rewriter.conn.execute(schema_query).fetchall()
-    
-    if result:
-        # Group columns by table
-        schema_data = {}
-        for table_name, column_name, data_type, ordinal_position in result:
-            if table_name not in schema_data:
-                schema_data[table_name] = []
-            schema_data[table_name].append(f"{column_name} ({data_type})")
-        
-        # Create dataframe with table names and their columns
-        df_data = []
-        for table_name in sorted(schema_data.keys()):
-            columns_str = ", ".join(schema_data[table_name])
-            df_data.append({
-                "Table": table_name,
-                "Columns": columns_str
-            })
-        
-        df = pd.DataFrame(df_data)
-        st.dataframe(df, width='stretch', hide_index=True)
-    else:
-        st.info("No tables found in the database.")
-except Exception as e:
-    st.warning(f"Could not load database schema: {str(e)}")
+# Get the list of registered policies
+policies = rewriter.get_dfc_policies()
+
+if not policies:
+    st.info("No policies registered yet. Create a policy using the form below.")
+else:
+    for policy in policies:
+        # Build policy string on one line, only including SOURCE/SINK if they exist
+        parts = []
+        if policy.source:
+            parts.append(f"SOURCE {policy.source}")
+        if policy.sink:
+            parts.append(f"SINK {policy.sink}")
+        parts.append(f"CONSTRAINT {policy.constraint}")
+        parts.append(f"ON FAIL {policy.on_fail.value}")
+        st.markdown(f"- {' '.join(parts)}")
 
 # Policy creation form
 st.subheader("Create New Policy")
@@ -98,23 +76,46 @@ if st.button("Create Policy"):
         except Exception as e:
             st.error(f"Unexpected error: {str(e)}")
 
-# Display registered policies
-st.subheader("Registered Policies")
+# Display database schema
+st.subheader("Database Schema")
 
-# Get the list of registered policies
-policies = rewriter.get_dfc_policies()
-
-if not policies:
-    st.info("No policies registered yet. Create a policy using the form above.")
-else:
-    for idx, policy in enumerate(policies, 1):
-        # Build policy string on one line, only including SOURCE/SINK if they exist
-        parts = []
-        if policy.source:
-            parts.append(f"SOURCE {policy.source}")
-        if policy.sink:
-            parts.append(f"SINK {policy.sink}")
-        parts.append(f"CONSTRAINT {policy.constraint}")
-        parts.append(f"ON FAIL {policy.on_fail.value}")
-        st.text(f"Policy {idx}: {' '.join(parts)}")
+try:
+    # Query all tables and their columns from information_schema
+    schema_query = """
+        SELECT 
+            table_name,
+            column_name,
+            data_type,
+            ordinal_position
+        FROM information_schema.columns
+        WHERE table_schema = 'main'
+            AND table_name != 'agent_logs'
+        ORDER BY table_name, ordinal_position
+    """
+    
+    result = rewriter.conn.execute(schema_query).fetchall()
+    
+    if result:
+        # Group columns by table
+        schema_data = {}
+        for table_name, column_name, data_type, ordinal_position in result:
+            if table_name not in schema_data:
+                schema_data[table_name] = []
+            schema_data[table_name].append(f"{column_name} ({data_type})")
+        
+        # Create dataframe with table names and their columns
+        df_data = []
+        for table_name in sorted(schema_data.keys()):
+            columns_str = ", ".join(schema_data[table_name])
+            df_data.append({
+                "Table": table_name,
+                "Columns": columns_str
+            })
+        
+        df = pd.DataFrame(df_data)
+        st.dataframe(df, width='stretch', hide_index=True)
+    else:
+        st.info("No tables found in the database.")
+except Exception as e:
+    st.warning(f"Could not load database schema: {str(e)}")
 

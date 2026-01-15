@@ -273,3 +273,17 @@ To change it:
 Run tests:
 
     uv run pytest
+
+## What Charlie is concretely doing (after setup)
+
+Set up AWS access
+```export AWS_BEARER_TOKEN_BEDROCK=...```
+
+Enter project dir
+```cd sbo_tax_agent```
+
+Start app with default data
+```./uv_with_local_duckdb.sh run streamlit run app.py -- --tax-return ../data/simple_tax_return.csv --form-1099-k ../data/simple_form_1099_k.csv --bank-txn ../data/simple_bank_txn.csv --policies ../data/simple_policies.csv```
+
+Start app with different default data for Eric's LLM-based stuff (this will break until I've fully integrated Eric's work)
+```./uv_with_local_duckdb.sh run streamlit run app.py -- --tax-return ../data/simple_tax_return.csv --form-1099-k ../data/simple_form_1099_k.csv --bank-txn ../data/simple_bank_txn.csv --policies ../data/simple_policies2.csv```

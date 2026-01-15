@@ -122,9 +122,6 @@ class SQLRewriter:
                 )
                 
                 if matching_policies:
-                    for policy in matching_policies:
-                        print(f"Matched policy: {policy.get_identifier()}")
-                    
                     # Check if any matching policy is INVALIDATE with sink
                     has_invalidate_with_sink = any(
                         p.on_fail == Resolution.INVALIDATE and p.sink 

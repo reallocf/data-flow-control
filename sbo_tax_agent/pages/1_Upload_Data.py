@@ -24,7 +24,68 @@ except Exception as e:
 st.header("Upload Data")
 st.markdown("Upload CSV files for tax return data, bank transactions, and 1099-K forms.")
 
+# Display uploaded data
+st.subheader("Uploaded Data Preview")
+
+# Create tabs for each table
+preview_tabs = st.tabs(["Tax Return", "Bank Transactions", "Form 1099-K"])
+
+with preview_tabs[0]:
+    try:
+        result = rewriter.conn.execute("SELECT * FROM tax_return").df()
+        if len(result) > 0:
+            st.dataframe(result, width='stretch')
+            st.caption(f"Total rows: {len(result)}")
+        else:
+            st.info("No tax return data uploaded yet.")
+    except Exception as e:
+        st.info("No tax return data uploaded yet.")
+
+with preview_tabs[1]:
+    try:
+        result = rewriter.conn.execute("SELECT * FROM bank_txn").df()
+        if len(result) > 0:
+            st.dataframe(result, width='stretch')
+            st.caption(f"Total rows: {len(result)}")
+        else:
+            st.info("No bank transaction data uploaded yet.")
+    except Exception as e:
+        st.info("No bank transaction data uploaded yet.")
+
+with preview_tabs[2]:
+    try:
+        result = rewriter.conn.execute("SELECT * FROM form_1099_k").df()
+        if len(result) > 0:
+            st.dataframe(result, width='stretch')
+            st.caption(f"Total rows: {len(result)}")
+        else:
+            st.info("No form 1099-K data uploaded yet.")
+    except Exception as e:
+        st.info("No form 1099-K data uploaded yet.")
+
+# Display database statistics
+st.divider()
+st.subheader("Database Statistics")
+
+try:
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        count = db.get_table_row_count(rewriter, 'tax_return')
+        st.metric("Tax Returns", count)
+    
+    with col2:
+        count = db.get_table_row_count(rewriter, 'bank_txn')
+        st.metric("Bank Transactions", count)
+    
+    with col3:
+        count = db.get_table_row_count(rewriter, 'form_1099_k')
+        st.metric("Form 1099-K", count)
+except Exception as e:
+    st.error(f"Failed to get database statistics: {str(e)}")
+
 # Create three columns for the three upload sections
+st.divider()
 col1, col2, col3 = st.columns(3)
 
 # Tax Return Upload
@@ -204,65 +265,4 @@ with col3:
                 st.info("No file uploaded")
         except Exception as e:
             st.info("No file uploaded")
-
-# Display database statistics
-st.divider()
-st.subheader("Database Statistics")
-
-try:
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        count = db.get_table_row_count(rewriter, 'tax_return')
-        st.metric("Tax Returns", count)
-    
-    with col2:
-        count = db.get_table_row_count(rewriter, 'bank_txn')
-        st.metric("Bank Transactions", count)
-    
-    with col3:
-        count = db.get_table_row_count(rewriter, 'form_1099_k')
-        st.metric("Form 1099-K", count)
-except Exception as e:
-    st.error(f"Failed to get database statistics: {str(e)}")
-
-# Display uploaded data
-st.divider()
-st.subheader("Uploaded Data Preview")
-
-# Create tabs for each table
-preview_tabs = st.tabs(["Tax Return", "Bank Transactions", "Form 1099-K"])
-
-with preview_tabs[0]:
-    try:
-        result = rewriter.conn.execute("SELECT * FROM tax_return").df()
-        if len(result) > 0:
-            st.dataframe(result, width='stretch')
-            st.caption(f"Total rows: {len(result)}")
-        else:
-            st.info("No tax return data uploaded yet.")
-    except Exception as e:
-        st.info("No tax return data uploaded yet.")
-
-with preview_tabs[1]:
-    try:
-        result = rewriter.conn.execute("SELECT * FROM bank_txn").df()
-        if len(result) > 0:
-            st.dataframe(result, width='stretch')
-            st.caption(f"Total rows: {len(result)}")
-        else:
-            st.info("No bank transaction data uploaded yet.")
-    except Exception as e:
-        st.info("No bank transaction data uploaded yet.")
-
-with preview_tabs[2]:
-    try:
-        result = rewriter.conn.execute("SELECT * FROM form_1099_k").df()
-        if len(result) > 0:
-            st.dataframe(result, width='stretch')
-            st.caption(f"Total rows: {len(result)}")
-        else:
-            st.info("No form 1099-K data uploaded yet.")
-    except Exception as e:
-        st.info("No form 1099-K data uploaded yet.")
 
