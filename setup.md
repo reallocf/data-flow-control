@@ -6,7 +6,7 @@ This repository relies on a custom DuckDB build, a SQL rewriter, and an AI-power
 
 ## 1. Clone the Repository
 
-    git clone https://github.com/reallocf/data-flow-control
+    git clone --recurse-submodules https://github.com/reallocf/data-flow-control
     cd data-flow-control
 
 ---
