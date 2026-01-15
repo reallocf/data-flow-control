@@ -30,22 +30,31 @@ def _wrap_kill_constraint(constraint_expr: exp.Expression) -> exp.Expression:
 
 def _extract_columns_from_constraint(
     constraint_expr: exp.Expression,
-    source_tables: Set[str]
+    source_tables: Set[str],
+    sink_table: Optional[str] = None,
+    sink_to_output_mapping: Optional[dict[str, str]] = None
 ) -> List[exp.Column]:
-    """Extract all columns from a constraint expression that belong to source tables.
+    """Extract all columns from a constraint expression that belong to source or sink tables.
+    
+    For sink table columns, returns the corresponding SELECT output column references.
     
     Args:
         constraint_expr: The constraint expression to extract columns from.
         source_tables: Set of source table names.
+        sink_table: Optional sink table name.
+        sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
         
     Returns:
-        List of column expressions from source tables, in order of appearance.
+        List of column expressions from source and sink tables, in order of appearance.
+        Sink columns are returned as unqualified references to SELECT output columns.
     """
     columns = []
     seen = set()
     
     for column in constraint_expr.find_all(exp.Column):
         table_name = get_table_name_from_column(column)
+        
+        # Handle source table columns
         if table_name and table_name in source_tables:
             # Create a unique key for the column
             col_key = (table_name, get_column_name(column))
@@ -63,6 +72,20 @@ def _extract_columns_from_constraint(
                         columns.append(expr.this)
                     elif isinstance(expr, exp.Column):
                         columns.append(expr)
+        
+        # Handle sink table columns - map to SELECT output columns
+        elif table_name and sink_table and table_name == sink_table and sink_to_output_mapping:
+            col_name = get_column_name(column).lower()
+            if col_name in sink_to_output_mapping:
+                output_col_name = sink_to_output_mapping[col_name]
+                # Create unqualified column reference to SELECT output
+                col_key = ("sink", output_col_name)
+                if col_key not in seen:
+                    seen.add(col_key)
+                    output_col = exp.Column(
+                        this=exp.Identifier(this=output_col_name, quoted=False)
+                    )
+                    columns.append(output_col)
     
     return columns
 
@@ -71,7 +94,9 @@ def _wrap_human_constraint(
     constraint_expr: exp.Expression,
     policy: DFCPolicy,
     source_tables: Set[str],
-    stream_file_path: Optional[str] = None
+    stream_file_path: Optional[str] = None,
+    sink_table: Optional[str] = None,
+    sink_to_output_mapping: Optional[dict[str, str]] = None
 ) -> exp.Expression:
     """Wrap a constraint expression in CASE WHEN for HUMAN resolution policies.
     
@@ -84,13 +109,17 @@ def _wrap_human_constraint(
         policy: The policy being applied.
         source_tables: Set of source table names in the query.
         stream_file_path: Optional path to stream file for approved rows.
+        sink_table: Optional sink table name (for INSERT statements).
+        sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
         
     Returns:
         A CASE WHEN expression that returns true if constraint passes,
         or calls address_violating_rows() if constraint fails.
     """
-    # Extract columns from the constraint that belong to source tables
-    columns = _extract_columns_from_constraint(constraint_expr, source_tables)
+    # Extract columns from the constraint that belong to source or sink tables
+    columns = _extract_columns_from_constraint(
+        constraint_expr, source_tables, sink_table, sink_to_output_mapping
+    )
     
     # Build the address_violating_rows function call
     # Pass stream_file_path as the last argument
@@ -123,6 +152,9 @@ def _add_clause_to_select(
 ) -> None:
     """Add a clause (HAVING or WHERE) to a SELECT statement, combining with existing if needed.
     
+    Wraps both the existing expression and the new constraint in parentheses when combining
+    them to ensure proper operator precedence, especially when OR clauses are involved.
+    
     Args:
         parsed: The parsed SELECT statement to modify.
         clause_name: The name of the clause ('having' or 'where').
@@ -135,17 +167,96 @@ def _add_clause_to_select(
     
     if existing_clause_expr:
         existing_expr = existing_clause_expr.this if isinstance(existing_clause_expr, clause_class) else existing_clause_expr
-        combined = exp.And(this=existing_expr, expression=clause_expr)
+        # Wrap both expressions in parentheses to ensure proper operator precedence
+        # This is especially important when OR clauses are involved
+        # If existing_expr is already a Paren (from a previous policy), use it as-is
+        wrapped_existing = existing_expr if isinstance(existing_expr, exp.Paren) else exp.Paren(this=existing_expr)
+        wrapped_new = exp.Paren(this=clause_expr)
+        combined = exp.And(this=wrapped_existing, expression=wrapped_new)
         parsed.set(clause_name, clause_class(this=combined))
     else:
-        parsed.set(clause_name, clause_class(this=clause_expr))
+        # Wrap each policy addition in its own parentheses for consistency
+        wrapped_new = exp.Paren(this=clause_expr)
+        parsed.set(clause_name, clause_class(this=wrapped_new))
+
+
+def _add_invalidate_column_to_select(
+    parsed: exp.Select,
+    constraint_expr: exp.Expression,
+    replace_existing: bool = False
+) -> None:
+    """Add a 'valid' column to a SELECT statement, combining with existing if needed.
+    
+    If a 'valid' column already exists, combines the new constraint with the existing
+    one using AND (both must pass for valid=true), unless replace_existing is True.
+    
+    The valid column is true when the constraint passes, false when it fails.
+    
+    Args:
+        parsed: The parsed SELECT statement to modify.
+        constraint_expr: The constraint expression to add as the 'valid' column.
+        replace_existing: If True and 'valid' already exists, replace it instead of combining.
+    """
+    # Create a fresh copy of the constraint expression to avoid mutability issues
+    constraint_sql = constraint_expr.sql()
+    constraint_copy = sqlglot.parse_one(constraint_sql, read="duckdb")
+    
+    # Check if 'valid' column already exists
+    existing_valid_expr = None
+    for expr in parsed.expressions:
+        if isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "valid":
+            existing_valid_expr = expr.this
+            break
+        elif isinstance(expr, exp.Column) and get_column_name(expr).lower() == "valid":
+            # If there's an unaliased 'valid' column, we'll replace it
+            existing_valid_expr = expr
+            break
+    
+    if existing_valid_expr and not replace_existing:
+        # Create a fresh copy of existing expression to avoid mutability issues
+        existing_sql = existing_valid_expr.sql()
+        existing_copy = sqlglot.parse_one(existing_sql, read="duckdb")
+        
+        # Combine existing and new constraint with AND
+        # Both must pass for valid=true
+        wrapped_existing = existing_copy if isinstance(existing_copy, exp.Paren) else exp.Paren(this=existing_copy)
+        wrapped_new = exp.Paren(this=constraint_copy)
+        combined = exp.And(this=wrapped_existing, expression=wrapped_new)
+        valid_expr = combined
+    else:
+        # Wrap the constraint in parentheses for consistency with REMOVE
+        wrapped_new = exp.Paren(this=constraint_copy)
+        valid_expr = wrapped_new
+    
+    # Create the aliased column
+    valid_alias = exp.Alias(
+        this=valid_expr,
+        alias=exp.Identifier(this="valid", quoted=False)
+    )
+    
+    # Remove existing 'valid' column if it exists (modify list in place)
+    expressions_to_remove = []
+    for i, expr in enumerate(parsed.expressions):
+        if (isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "valid") or \
+           (isinstance(expr, exp.Column) and get_column_name(expr).lower() == "valid"):
+            expressions_to_remove.append(i)
+    
+    # Remove in reverse order to maintain indices
+    for i in reversed(expressions_to_remove):
+        parsed.expressions.pop(i)
+    
+    # Add the new 'valid' column to the SELECT list
+    parsed.expressions.append(valid_alias)
 
 
 def apply_policy_constraints_to_aggregation(
     parsed: exp.Select,
     policies: list[DFCPolicy],
     source_tables: Set[str],
-    stream_file_path: Optional[str] = None
+    stream_file_path: Optional[str] = None,
+    sink_table: Optional[str] = None,
+    sink_to_output_mapping: Optional[dict[str, str]] = None,
+    replace_existing_valid: bool = False
 ) -> None:
     """Apply policy constraints to an aggregation query.
     
@@ -156,26 +267,50 @@ def apply_policy_constraints_to_aggregation(
         parsed: The parsed SELECT statement to modify.
         policies: List of policies to apply.
         source_tables: Set of source table names in the query.
+        stream_file_path: Optional path to stream file for HUMAN resolution.
+        sink_table: Optional sink table name (for INSERT statements).
+        sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
     """
     # Build mapping from source tables to subquery/CTE aliases
     table_mapping = _get_source_table_to_alias_mapping(parsed, source_tables)
     
     for policy in policies:
-        constraint_expr = sqlglot.parse_one(policy.constraint, read="duckdb")
-        
-        # Replace table references with subquery/CTE aliases if needed
-        constraint_expr = _replace_table_references_in_constraint(
-            constraint_expr, table_mapping
-        )
-        
-        ensure_columns_accessible(parsed, constraint_expr, source_tables)
+        # Check if policy requires source but source is not present
+        # If policy has both source and sink, source must be present in the query
+        policy_source = policy.source.lower() if policy.source else None
+        if policy_source and sink_table and policy_source not in source_tables:
+            # Policy requires source but source is not present - constraint fails
+            constraint_expr = exp.Literal(this="false", is_string=False)
+        else:
+            constraint_expr = sqlglot.parse_one(policy.constraint, read="duckdb")
+            
+            # Replace sink table references with SELECT output column references if needed
+            if sink_table and sink_to_output_mapping:
+                constraint_expr = _replace_sink_table_references_in_constraint(
+                    constraint_expr, sink_table, sink_to_output_mapping
+                )
+            
+            # Replace table references with subquery/CTE aliases if needed
+            constraint_expr = _replace_table_references_in_constraint(
+                constraint_expr, table_mapping
+            )
+            
+            ensure_columns_accessible(parsed, constraint_expr, source_tables)
         
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
+            _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
         elif policy.on_fail == Resolution.HUMAN:
-            constraint_expr = _wrap_human_constraint(constraint_expr, policy, source_tables, stream_file_path)
-        
-        _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
+            constraint_expr = _wrap_human_constraint(
+                constraint_expr, policy, source_tables, stream_file_path,
+                sink_table, sink_to_output_mapping
+            )
+            _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
+        elif policy.on_fail == Resolution.INVALIDATE:
+            _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+        else:
+            # REMOVE resolution - add HAVING clause
+            _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
 
 
 def ensure_columns_accessible(
@@ -480,6 +615,45 @@ def _add_column_to_cte(cte: exp.CTE, table_name: str, column_name: str) -> None:
     select_expr.expressions.append(col_expr)
 
 
+def _replace_sink_table_references_in_constraint(
+    constraint_expr: exp.Expression,
+    sink_table: str,
+    sink_to_output_mapping: dict[str, str]
+) -> exp.Expression:
+    """Replace sink table column references in a constraint with SELECT output column references.
+    
+    For example, if constraint has `sink.col1` and mapping is `{'col1': 'x'}`,
+    it becomes just `x` (unqualified column reference to the SELECT output).
+    
+    Args:
+        constraint_expr: The constraint expression to modify.
+        sink_table: The sink table name (lowercase).
+        sink_to_output_mapping: Dictionary mapping sink column names to SELECT output column names.
+        
+    Returns:
+        A new constraint expression with sink table references replaced.
+    """
+    if not sink_to_output_mapping:
+        return constraint_expr
+    
+    def replace_sink_column(node):
+        if isinstance(node, exp.Column):
+            table_name = get_table_name_from_column(node)
+            if table_name and table_name == sink_table:
+                col_name = get_column_name(node).lower()
+                if col_name in sink_to_output_mapping:
+                    # Replace with unqualified column reference to SELECT output
+                    output_col_name = sink_to_output_mapping[col_name]
+                    return exp.Column(
+                        this=exp.Identifier(this=output_col_name, quoted=False)
+                    )
+        return node
+    
+    # Transform the expression, replacing all sink column references
+    transformed = constraint_expr.transform(replace_sink_column, copy=True)
+    return transformed
+
+
 def _get_source_table_to_alias_mapping(
     parsed: exp.Select,
     source_tables: Set[str]
@@ -689,7 +863,10 @@ def apply_policy_constraints_to_scan(
     parsed: exp.Select,
     policies: list[DFCPolicy],
     source_tables: Set[str],
-    stream_file_path: Optional[str] = None
+    stream_file_path: Optional[str] = None,
+    sink_table: Optional[str] = None,
+    sink_to_output_mapping: Optional[dict[str, str]] = None,
+    replace_existing_valid: bool = False
 ) -> None:
     """Apply policy constraints to a non-aggregation query (table scan).
     
@@ -702,26 +879,50 @@ def apply_policy_constraints_to_scan(
         parsed: The parsed SELECT statement to modify.
         policies: List of policies to apply.
         source_tables: Set of source table names in the query.
+        stream_file_path: Optional path to stream file for HUMAN resolution.
+        sink_table: Optional sink table name (for INSERT statements).
+        sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
     """
     # Build mapping from source tables to subquery/CTE aliases
     table_mapping = _get_source_table_to_alias_mapping(parsed, source_tables)
     
     for policy in policies:
-        constraint_expr = transform_aggregations_to_columns(
-            policy._constraint_parsed, source_tables
-        )
-        
-        # Replace table references with subquery/CTE aliases if needed
-        constraint_expr = _replace_table_references_in_constraint(
-            constraint_expr, table_mapping
-        )
+        # Check if policy requires source but source is not present
+        # If policy has both source and sink, source must be present in the query
+        policy_source = policy.source.lower() if policy.source else None
+        if policy_source and sink_table and policy_source not in source_tables:
+            # Policy requires source but source is not present - constraint fails
+            constraint_expr = exp.Literal(this="false", is_string=False)
+        else:
+            constraint_expr = transform_aggregations_to_columns(
+                policy._constraint_parsed, source_tables
+            )
+            
+            # Replace sink table references with SELECT output column references if needed
+            if sink_table and sink_to_output_mapping:
+                constraint_expr = _replace_sink_table_references_in_constraint(
+                    constraint_expr, sink_table, sink_to_output_mapping
+                )
+            
+            # Replace table references with subquery/CTE aliases if needed
+            constraint_expr = _replace_table_references_in_constraint(
+                constraint_expr, table_mapping
+            )
         
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
+            _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
         elif policy.on_fail == Resolution.HUMAN:
-            constraint_expr = _wrap_human_constraint(constraint_expr, policy, source_tables, stream_file_path)
-        
-        _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
+            constraint_expr = _wrap_human_constraint(
+                constraint_expr, policy, source_tables, stream_file_path,
+                sink_table, sink_to_output_mapping
+            )
+            _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
+        elif policy.on_fail == Resolution.INVALIDATE:
+            _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+        else:
+            # REMOVE resolution - add WHERE clause
+            _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
 
 
 def transform_aggregations_to_columns(

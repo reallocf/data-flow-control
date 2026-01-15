@@ -1,2 +1,4 @@
 policy
-SOURCE bank_txn SINK schedule_c_review CONSTRAINT sum(bank_txn.amount) > -1000 ON FAIL REMOVE
+SOURCE bank_txn SINK irs_form CONSTRAINT count(distinct bank_txn.txn_id) = 1 ON FAIL REMOVE
+SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.txn_id) = irs_form.txn_id ON FAIL REMOVE
+SOURCE bank_txn SINK irs_form CONSTRAINT not lower(min(bank_txn.category)) = 'meal' or irs_form.business_use_pct <= 50.0 ON FAIL INVALIDATE

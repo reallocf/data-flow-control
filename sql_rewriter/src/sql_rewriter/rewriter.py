@@ -8,7 +8,7 @@ import tempfile
 import os
 import threading
 
-from .policy import DFCPolicy
+from .policy import DFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 from .rewrite_rule import (
     apply_policy_constraints_to_aggregation,
@@ -74,6 +74,9 @@ class SQLRewriter:
         Applies DFC policies to queries over source tables. For aggregation queries,
         policies are applied as HAVING clauses. For non-aggregation queries, policies
         are applied as WHERE clauses with aggregations transformed to columns.
+        
+        For INSERT statements, policies are matched based on sink table and source tables
+        from the SELECT part (if present).
 
         Args:
             query: The original SQL query string.
@@ -88,9 +91,14 @@ class SQLRewriter:
                 from_tables = self._get_source_tables(parsed)
                 
                 if from_tables:
-                    matching_policies = self._find_matching_policies(from_tables)
+                    matching_policies = self._find_matching_policies(
+                        source_tables=from_tables, sink_table=None
+                    )
                     
                     if matching_policies:
+                        for policy in matching_policies:
+                            print(f"Matched policy: {policy.get_identifier()}")
+                        
                         # Ensure subqueries and CTEs have columns needed for constraints
                         ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
                         
@@ -104,10 +112,85 @@ class SQLRewriter:
                                 parsed, matching_policies, from_tables,
                                 stream_file_path=self._stream_file_path if self._human_review_enabled else None
                             )
+            
+            elif isinstance(parsed, exp.Insert):
+                sink_table = self._get_sink_table(parsed)
+                source_tables = self._get_insert_source_tables(parsed)
+                
+                matching_policies = self._find_matching_policies(
+                    source_tables=source_tables, sink_table=sink_table
+                )
+                
+                if matching_policies:
+                    for policy in matching_policies:
+                        print(f"Matched policy: {policy.get_identifier()}")
+                    
+                    # Check if any matching policy is INVALIDATE with sink
+                    has_invalidate_with_sink = any(
+                        p.on_fail == Resolution.INVALIDATE and p.sink 
+                        for p in matching_policies
+                    )
+                    
+                    # Find the SELECT statement within the INSERT
+                    select_expr = parsed.find(exp.Select)
+                    if select_expr:
+                        # If INVALIDATE policy with sink, add 'valid' column to INSERT column list
+                        # This must happen before adding aliases so the mapping is correct
+                        if has_invalidate_with_sink and sink_table:
+                            self._add_valid_column_to_insert(parsed)
+                        
+                        # Add aliases to SELECT outputs to match sink column names (if explicit column list)
+                        # This ensures sink column references in constraints can be replaced correctly
+                        self._add_aliases_to_insert_select_outputs(parsed, select_expr)
+                        
+                        # Get mapping from sink columns to SELECT output columns
+                        sink_to_output_mapping = None
+                        if sink_table:
+                            sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
+                        
+                        # Ensure subqueries and CTEs have columns needed for constraints
+                        ensure_subqueries_have_constraint_columns(
+                            select_expr, matching_policies, source_tables
+                        )
+                        
+                        # Check if 'valid' is already in INSERT column list (user-provided value)
+                        # If so, we should replace it with constraint, not combine
+                        insert_has_valid = False
+                        if hasattr(parsed, 'this') and isinstance(parsed.this, exp.Schema):
+                            if hasattr(parsed.this, 'expressions') and parsed.this.expressions:
+                                for col in parsed.this.expressions:
+                                    col_name = None
+                                    if isinstance(col, exp.Identifier):
+                                        col_name = col.name.lower()
+                                    elif isinstance(col, exp.Column):
+                                        col_name = get_column_name(col).lower()
+                                    elif isinstance(col, str):
+                                        col_name = col.lower()
+                                    if col_name == "valid":
+                                        insert_has_valid = True
+                                        break
+                        
+                        if self._has_aggregations(select_expr):
+                            apply_policy_constraints_to_aggregation(
+                                select_expr, matching_policies, source_tables,
+                                stream_file_path=self._stream_file_path if self._human_review_enabled else None,
+                                sink_table=sink_table,
+                                sink_to_output_mapping=sink_to_output_mapping,
+                                replace_existing_valid=insert_has_valid
+                            )
+                        else:
+                            apply_policy_constraints_to_scan(
+                                select_expr, matching_policies, source_tables,
+                                stream_file_path=self._stream_file_path if self._human_review_enabled else None,
+                                sink_table=sink_table,
+                                sink_to_output_mapping=sink_to_output_mapping,
+                                replace_existing_valid=insert_has_valid
+                            )
 
             return parsed.sql(pretty=True, dialect="duckdb")
         except Exception as e:
             # In production, you might want to log this error
+            print("Encountered exception: ", e)
             return query
 
     def _execute_transformed(self, query: str):
@@ -205,6 +288,31 @@ class SQLRewriter:
         except Exception as e:
             raise ValueError(f"Failed to get columns for table '{table_name}': {e}")
 
+    def _get_column_type(self, table_name: str, column_name: str) -> Optional[str]:
+        """Get the data type of a column in a table.
+        
+        Args:
+            table_name: The name of the table.
+            column_name: The name of the column.
+            
+        Returns:
+            The data type as a string (e.g., 'BOOLEAN', 'INTEGER'), or None if column doesn't exist.
+            
+        Raises:
+            ValueError: If query fails.
+        """
+        try:
+            result = self.conn.execute(
+                """
+                SELECT data_type 
+                FROM information_schema.columns 
+                WHERE table_schema = 'main' AND table_name = ? AND column_name = ?
+                """,
+                [table_name.lower(), column_name.lower()]
+            ).fetchone()
+            return result[0].upper() if result else None
+        except Exception as e:
+            raise ValueError(f"Failed to get column type for '{table_name}.{column_name}': {e}")
 
     def _validate_table_exists(self, table_name: str, table_type: str) -> None:
         """Validate that a table exists in the database.
@@ -274,6 +382,7 @@ class SQLRewriter:
         - The source table exists (if provided)
         - The sink table exists (if provided)
         - All columns referenced in the constraint exist in their respective tables
+        - For INVALIDATE policies with sink tables, the sink table has a boolean column named 'valid'
 
         Args:
             policy: The DFCPolicy to register.
@@ -293,6 +402,22 @@ class SQLRewriter:
             source_columns = self._get_table_columns(policy.source)
         if policy.sink:
             sink_columns = self._get_table_columns(policy.sink)
+        
+        # For INVALIDATE policies with sink tables, validate that sink has a boolean 'valid' column
+        if policy.on_fail == Resolution.INVALIDATE and policy.sink:
+            if sink_columns is None:
+                raise ValueError(f"Sink table '{policy.sink}' has no columns")
+            if "valid" not in sink_columns:
+                raise ValueError(
+                    f"Sink table '{policy.sink}' must have a boolean column named 'valid' "
+                    f"for INVALIDATE resolution policies"
+                )
+            valid_column_type = self._get_column_type(policy.sink, "valid")
+            if valid_column_type != "BOOLEAN":
+                raise ValueError(
+                    f"Column 'valid' in sink table '{policy.sink}' must be of type BOOLEAN, "
+                    f"but found type '{valid_column_type}'"
+                )
 
         columns = list(policy._constraint_parsed.find_all(exp.Column))
         for column in columns:
@@ -348,6 +473,308 @@ class SQLRewriter:
                 from_tables.add(table.name.lower())
         return from_tables
 
+    def _get_sink_table(self, parsed: exp.Insert) -> Optional[str]:
+        """Extract sink table name from an INSERT statement.
+        
+        Args:
+            parsed: The parsed INSERT statement.
+            
+        Returns:
+            The lowercase sink table name, or None if not found.
+        """
+        if not isinstance(parsed, exp.Insert):
+            return None
+        
+        def _extract_table_name(table_expr) -> Optional[str]:
+            """Helper to extract table name from various expression types.
+            
+            Based on sqlglot structure:
+            - When INSERT has column list: parsed.this is a Schema containing a Table
+            - When INSERT has no column list: parsed.this is a Table directly
+            - Table.name is always a string (not an Identifier)
+            """
+            # Handle Schema objects (when INSERT has column list: INSERT INTO table (col1, col2))
+            if isinstance(table_expr, exp.Schema):
+                # Schema.this contains the Table
+                if hasattr(table_expr, 'this') and isinstance(table_expr.this, exp.Table):
+                    return _extract_table_name(table_expr.this)
+            
+            # Handle Table expressions
+            if isinstance(table_expr, exp.Table):
+                # Table.name is always a string in sqlglot
+                if hasattr(table_expr, 'name') and table_expr.name:
+                    return str(table_expr.name).lower()
+                # Fallback to alias_or_name if name is not available
+                if hasattr(table_expr, 'alias_or_name'):
+                    return str(table_expr.alias_or_name).lower()
+            
+            return None
+        
+        # In sqlglot, INSERT statements have the table in parsed.this
+        # This can be either a Table (no column list) or Schema (with column list)
+        if hasattr(parsed, 'this') and parsed.this:
+            result = _extract_table_name(parsed.this)
+            if result:
+                return result
+        
+        # Fallback: find Table expressions that are NOT inside a SELECT
+        # (to avoid picking up source tables from INSERT ... SELECT)
+        # This handles edge cases where parsed.this might not be set correctly
+        for table in parsed.find_all(exp.Table):
+            # Skip tables that are inside a SELECT statement (these are source tables)
+            if table.find_ancestor(exp.Select):
+                continue
+            # Skip tables that are inside JOIN clauses (these are source tables)
+            if table.find_ancestor(exp.Join):
+                continue
+            # This should be the sink table
+            result = _extract_table_name(table)
+            if result:
+                return result
+        
+        return None
+
+    def _get_insert_source_tables(self, parsed: exp.Insert) -> Set[str]:
+        """Extract source table names from an INSERT ... SELECT statement.
+        
+        Args:
+            parsed: The parsed INSERT statement.
+            
+        Returns:
+            A set of lowercase table names from the SELECT part of the INSERT statement.
+        """
+        if not isinstance(parsed, exp.Insert):
+            return set()
+        
+        # Check if INSERT has a SELECT statement
+        select_expr = parsed.find(exp.Select)
+        if select_expr:
+            return self._get_source_tables(select_expr)
+        
+        return set()
+
+    def _get_insert_column_mapping(
+        self,
+        insert_parsed: exp.Insert,
+        select_parsed: exp.Select
+    ) -> dict[str, str]:
+        """Get mapping from sink table column names to SELECT output column names/aliases.
+        
+        For INSERT INTO sink (col1, col2) SELECT x, y FROM source:
+        - If column list is specified: maps sink column names to SELECT output by position
+        - If no column list: maps by position (sink.col1 -> first SELECT output, etc.)
+        
+        Args:
+            insert_parsed: The parsed INSERT statement.
+            select_parsed: The parsed SELECT statement within the INSERT.
+            
+        Returns:
+            Dictionary mapping sink column name (lowercase) to SELECT output column name/alias (lowercase).
+            The output column name is the alias if present, otherwise the column name.
+        """
+        mapping = {}
+        
+        # Get the INSERT column list if specified
+        # In sqlglot, INSERT columns might be in different places
+        insert_columns = []
+        
+        # When INSERT has column list, parsed.this is a Schema and columns are in Schema.expressions
+        if hasattr(insert_parsed, 'this') and isinstance(insert_parsed.this, exp.Schema):
+            if hasattr(insert_parsed.this, 'expressions') and insert_parsed.this.expressions:
+                for col in insert_parsed.this.expressions:
+                    if isinstance(col, exp.Identifier):
+                        insert_columns.append(col.name.lower())
+                    elif isinstance(col, exp.Column):
+                        insert_columns.append(get_column_name(col).lower())
+                    elif isinstance(col, str):
+                        insert_columns.append(col.lower())
+        
+        # Check for columns attribute (common in sqlglot)
+        if not insert_columns and hasattr(insert_parsed, 'columns') and insert_parsed.columns:
+            for col in insert_parsed.columns:
+                if isinstance(col, exp.Identifier):
+                    insert_columns.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    insert_columns.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    insert_columns.append(col.lower())
+        
+        # Also check expressions attribute as fallback
+        if not insert_columns and hasattr(insert_parsed, 'expressions') and insert_parsed.expressions:
+            for expr in insert_parsed.expressions:
+                if isinstance(expr, exp.Identifier):
+                    insert_columns.append(expr.name.lower())
+                elif isinstance(expr, exp.Column):
+                    insert_columns.append(get_column_name(expr).lower())
+        
+        # Get SELECT output columns (with aliases if present)
+        select_outputs = []
+        for expr in select_parsed.expressions:
+            if isinstance(expr, exp.Alias):
+                # Column has an alias - use the alias
+                if isinstance(expr.alias, exp.Identifier):
+                    alias_name = expr.alias.name.lower()
+                elif isinstance(expr.alias, str):
+                    alias_name = expr.alias.lower()
+                else:
+                    alias_name = str(expr.alias).lower()
+                select_outputs.append(alias_name)
+            elif isinstance(expr, exp.Column):
+                # Column without alias - use column name
+                select_outputs.append(get_column_name(expr).lower())
+            elif isinstance(expr, exp.Star):
+                # SELECT * - can't map columns reliably
+                return {}
+            else:
+                # Expression without alias - use position-based name
+                # This is a fallback, ideally columns should have aliases
+                select_outputs.append(f"col{len(select_outputs) + 1}")
+        
+        # Map sink columns to SELECT outputs by position
+        if insert_columns:
+            # Column list specified: map by position
+            for i, sink_col in enumerate(insert_columns):
+                if i < len(select_outputs):
+                    mapping[sink_col] = select_outputs[i]
+        else:
+            # No column list: map by position
+            # We can't know the actual sink column names, so we'll need to map
+            # based on the constraint's column references
+            # For now, map by position assuming sink columns are referenced by position
+            for i, select_output in enumerate(select_outputs):
+                # Use position-based mapping
+                mapping[f"col{i + 1}"] = select_output
+        
+        return mapping
+
+    def _add_valid_column_to_insert(self, insert_parsed: exp.Insert) -> None:
+        """Add 'valid' column to INSERT column list if not already present.
+        
+        For INVALIDATE policies with sink tables, the INSERT statement needs to include
+        the 'valid' column in its column list so that the SELECT output can be mapped
+        to it. This only modifies INSERT statements with explicit column lists.
+        
+        Args:
+            insert_parsed: The parsed INSERT statement to modify.
+        """
+        # Check if INSERT has an explicit column list
+        # When INSERT has column list, parsed.this is a Schema and columns are in Schema.expressions
+        if hasattr(insert_parsed, 'this') and isinstance(insert_parsed.this, exp.Schema):
+            if hasattr(insert_parsed.this, 'expressions') and insert_parsed.this.expressions:
+                # Check if 'valid' is already in the column list
+                column_names = []
+                for col in insert_parsed.this.expressions:
+                    if isinstance(col, exp.Identifier):
+                        column_names.append(col.name.lower())
+                    elif isinstance(col, exp.Column):
+                        column_names.append(get_column_name(col).lower())
+                    elif isinstance(col, str):
+                        column_names.append(col.lower())
+                
+                # Add 'valid' column if not already present
+                if "valid" not in column_names:
+                    valid_identifier = exp.Identifier(this="valid", quoted=False)
+                    insert_parsed.this.expressions.append(valid_identifier)
+                return
+        
+        # Check for columns attribute (common in sqlglot)
+        if hasattr(insert_parsed, 'columns') and insert_parsed.columns:
+            # Check if 'valid' is already in the column list
+            column_names = []
+            for col in insert_parsed.columns:
+                if isinstance(col, exp.Identifier):
+                    column_names.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    column_names.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    column_names.append(col.lower())
+            
+            # Add 'valid' column if not already present
+            if "valid" not in column_names:
+                valid_identifier = exp.Identifier(this="valid", quoted=False)
+                insert_parsed.columns.append(valid_identifier)
+            return
+
+    def _add_aliases_to_insert_select_outputs(
+        self,
+        insert_parsed: exp.Insert,
+        select_parsed: exp.Select
+    ) -> None:
+        """Add aliases to SELECT outputs to match sink column names when INSERT has explicit column list.
+        
+        This ensures that sink column references in constraints can be replaced with SELECT output
+        column references. For example, if INSERT INTO table (col1, col2) SELECT x, y, we add
+        aliases: SELECT x AS col1, y AS col2.
+        
+        Args:
+            insert_parsed: The parsed INSERT statement.
+            select_parsed: The parsed SELECT statement within the INSERT.
+        """
+        # Get the INSERT column list if specified
+        insert_columns = []
+        
+        # When INSERT has column list, parsed.this is a Schema and columns are in Schema.expressions
+        if hasattr(insert_parsed, 'this') and isinstance(insert_parsed.this, exp.Schema):
+            if hasattr(insert_parsed.this, 'expressions') and insert_parsed.this.expressions:
+                for col in insert_parsed.this.expressions:
+                    if isinstance(col, exp.Identifier):
+                        insert_columns.append(col.name.lower())
+                    elif isinstance(col, exp.Column):
+                        insert_columns.append(get_column_name(col).lower())
+                    elif isinstance(col, str):
+                        insert_columns.append(col.lower())
+        
+        # Check for columns attribute (common in sqlglot)
+        if not insert_columns and hasattr(insert_parsed, 'columns') and insert_parsed.columns:
+            for col in insert_parsed.columns:
+                if isinstance(col, exp.Identifier):
+                    insert_columns.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    insert_columns.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    insert_columns.append(col.lower())
+        
+        # Also check expressions attribute as fallback
+        if not insert_columns and hasattr(insert_parsed, 'expressions') and insert_parsed.expressions:
+            for expr in insert_parsed.expressions:
+                if isinstance(expr, exp.Identifier):
+                    insert_columns.append(expr.name.lower())
+                elif isinstance(expr, exp.Column):
+                    insert_columns.append(get_column_name(expr).lower())
+        
+        # Only add aliases if there's an explicit column list
+        if not insert_columns:
+            return
+        
+        # Add aliases to SELECT outputs that don't already have them
+        for i, expr in enumerate(select_parsed.expressions):
+            if i >= len(insert_columns):
+                break
+            
+            # Skip if already has an alias
+            if isinstance(expr, exp.Alias):
+                continue
+            
+            # Skip SELECT * (can't add aliases)
+            if isinstance(expr, exp.Star):
+                continue
+            
+            sink_col_name = insert_columns[i]
+            
+            # Skip if expression is already a Column with the same name as sink column
+            # (no need to add redundant alias like "txn_id AS txn_id")
+            if isinstance(expr, exp.Column):
+                col_name = get_column_name(expr).lower()
+                if col_name == sink_col_name:
+                    continue
+            
+            # Add alias matching the sink column name
+            alias_expr = exp.Alias(
+                this=expr,
+                alias=exp.Identifier(this=sink_col_name, quoted=False)
+            )
+            select_parsed.expressions[i] = alias_expr
+
     def _has_aggregations(self, parsed: exp.Select) -> bool:
         """Check if a SELECT query contains aggregations.
         
@@ -363,19 +790,45 @@ class SQLRewriter:
             for expr in parsed.expressions
         )
 
-    def _find_matching_policies(self, source_tables: Set[str]) -> list[DFCPolicy]:
-        """Find policies that match the source tables in the query.
+    def _find_matching_policies(
+        self, 
+        source_tables: Set[str], 
+        sink_table: Optional[str] = None
+    ) -> list[DFCPolicy]:
+        """Find policies that match the source and sink tables in the query.
+        
+        Matching rules:
+        - If a policy has only a sink, it matches INSERT queries with that sink table.
+        - If a policy has only a source, it matches SELECT queries with that source table.
+        - If a policy has both sink and source, it matches INSERT INTO sink queries.
+          The policy will be applied and will fail if the source is not present in the query.
         
         Args:
             source_tables: Set of source table names from the query.
+            sink_table: Optional sink table name from the query (for INSERT statements).
             
         Returns:
-            List of policies that have a source matching one of the source tables.
+            List of policies that match the query's source and sink tables.
         """
         matching = []
         for policy in self._policies:
-            if policy.source and policy.source.lower() in source_tables:
-                matching.append(policy)
+            policy_source = policy.source.lower() if policy.source else None
+            policy_sink = policy.sink.lower() if policy.sink else None
+            
+            if policy_sink and policy_source:
+                # Policy has both sink and source: match INSERT INTO sink queries
+                # The policy will fail if source is not present (enforcing that source must be present)
+                if sink_table is not None and policy_sink == sink_table:
+                    matching.append(policy)
+            elif policy_sink:
+                # Policy has only sink: query must be INSERT INTO sink
+                if sink_table is not None and policy_sink == sink_table:
+                    matching.append(policy)
+            elif policy_source:
+                # Policy has only source: query must be SELECT ... FROM source
+                if source_tables and policy_source in source_tables:
+                    matching.append(policy)
+        
         return matching
 
     def _register_kill_udf(self) -> None:

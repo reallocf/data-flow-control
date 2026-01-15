@@ -106,6 +106,24 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 - Group related functionality in the same module
 - Keep functions focused and single-purpose
 
+## Testing
+
+### Running Tests
+
+**Run rewriter tests after any changes** - Rewriter tests can be run with `uv run pytest` and should be run after making any Rewriter changes to ensure functionality is preserved.
+
+### Test Assertions
+
+**Assert full strings, not partial matches** - When comparing strings in tests, always assert full strings instead of looking for partial string matches. This ensures tests are precise and catch unintended changes:
+
+```python
+# Correct: assert full string
+assert result == "SELECT * FROM table WHERE id = 1"
+
+# Wrong: partial match can hide issues
+assert "SELECT" in result
+```
+
 ## Important Design Decisions
 
 1. **Policy validation split**: Syntax validation at creation, catalog validation at registration

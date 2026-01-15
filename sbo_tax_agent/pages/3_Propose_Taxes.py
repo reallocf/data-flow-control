@@ -91,18 +91,59 @@ with col1:
 with col2:
     st.subheader("Tax Form")
     try:
-        schedule_c_query = """
+        irs_form_query = """
             SELECT * FROM irs_form 
             ORDER BY txn_id
         """
-        schedule_c_result = rewriter.execute(schedule_c_query)
-        schedule_c_rows = schedule_c_result.fetchall()
-        schedule_c_columns = [desc[0] for desc in schedule_c_result.description]
+        irs_form_result = rewriter.execute(irs_form_query)
+        irs_form_rows = irs_form_result.fetchall()
+        irs_form_columns = [desc[0] for desc in irs_form_result.description]
         
-        if schedule_c_rows:
-            schedule_c_df = pd.DataFrame(schedule_c_rows, columns=schedule_c_columns)
-            st.dataframe(schedule_c_df, width='stretch', hide_index=True)
-            st.caption(f"Total entries: {len(schedule_c_df)}")
+        if irs_form_rows:
+            irs_form_df = pd.DataFrame(irs_form_rows, columns=irs_form_columns)
+            
+            # Format numeric columns to show minimal decimals
+            def format_number(x):
+                if pd.notna(x) and isinstance(x, (int, float)):
+                    return f'{x:g}'
+                return x
+            
+            format_dict = {}
+            numeric_columns = ['amount', 'business_use_pct']
+            for col in numeric_columns:
+                if col in irs_form_df.columns:
+                    format_dict[col] = format_number
+            
+            # Remove 'valid' column from display but keep it for styling
+            has_valid_column = 'valid' in irs_form_df.columns
+            
+            if has_valid_column:
+                # Store invalid mask before dropping column
+                invalid_rows = irs_form_df['valid'] == False
+                # Drop the valid column from display
+                display_df = irs_form_df.drop(columns=['valid'])
+                
+                # Update format_dict to only include columns still in display_df
+                display_format_dict = {k: v for k, v in format_dict.items() if k in display_df.columns}
+                
+                # Apply styling: highlight invalid rows in red
+                def highlight_invalid(row):
+                    if invalid_rows.loc[row.name]:
+                        return ['background-color: #ffcccc'] * len(row)
+                    return [''] * len(row)
+                
+                styled_df = display_df.style.apply(highlight_invalid, axis=1)
+                if display_format_dict:
+                    styled_df = styled_df.format(display_format_dict)
+                st.dataframe(styled_df, width='stretch', hide_index=True)
+            else:
+                if format_dict:
+                    styled_df = irs_form_df.style.format(format_dict)
+                    st.dataframe(styled_df, width='stretch', hide_index=True)
+                else:
+                    st.dataframe(irs_form_df, width='stretch', hide_index=True)
+            
+            st.caption(f"Total entries: {len(irs_form_df)}")
         else:
             st.info("No tax form entries yet. Click 'Propose Taxes' to start processing.")
     except Exception as e:

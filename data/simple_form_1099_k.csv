@@ -1,2 +1,2 @@
-return_id,form_id,payer_name,payer_tin,amount_type,amount,source_file
-1,5001,Payment Processor Inc,12-3456789,Gross amount,3500.00,1099k_2023.csv
+form_name,amount
+Stripe Receipt,3500.00

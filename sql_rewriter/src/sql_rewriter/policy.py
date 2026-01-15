@@ -16,6 +16,7 @@ class Resolution(Enum):
     REMOVE = "REMOVE"
     KILL = "KILL"
     HUMAN = "HUMAN"
+    INVALIDATE = "INVALIDATE"
 
 
 class DFCPolicy:
@@ -40,7 +41,7 @@ class DFCPolicy:
 
         Args:
             constraint: A SQL expression that must evaluate to true for the policy to pass.
-            on_fail: Action to take when the policy fails (REMOVE, KILL, or HUMAN).
+            on_fail: Action to take when the policy fails (REMOVE, KILL, HUMAN, or INVALIDATE).
             source: Optional source table name.
             sink: Optional sink table name.
 
@@ -145,7 +146,7 @@ class DFCPolicy:
                     on_fail = Resolution(value.upper())
                 except ValueError:
                     raise ValueError(
-                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', or 'HUMAN'"
+                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'HUMAN', or 'INVALIDATE'"
                     )
         
         # Validate required fields
@@ -367,6 +368,20 @@ class DFCPolicy:
                         f"All columns from source table '{self.source}' must be aggregated. "
                         f"Unaggregated source columns found: {', '.join(unaggregated_source_columns)}"
                     )
+
+    def get_identifier(self) -> str:
+        """Get a descriptive identifier for a policy for logging purposes.
+        
+        Returns:
+            A string identifier for the policy.
+        """
+        parts = []
+        if self.source:
+            parts.append(f"source={self.source}")
+        if self.sink:
+            parts.append(f"sink={self.sink}")
+        parts.append(f"constraint={self.constraint}")
+        return f"DFCPolicy({', '.join(parts)})"
 
     def __repr__(self) -> str:
         """Return a string representation of the policy."""

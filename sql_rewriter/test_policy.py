@@ -145,10 +145,7 @@ def test_policy_repr():
         on_fail=Resolution.REMOVE,
     )
     repr_str = repr(policy)
-    assert "source='users'" in repr_str
-    assert "sink='analytics'" in repr_str
-    assert "constraint='max(users.age) >= 18'" in repr_str
-    assert "on_fail=REMOVE" in repr_str
+    assert repr_str == "DFCPolicy(source='users', sink='analytics', constraint='max(users.age) >= 18', on_fail=REMOVE)"
 
 
 def test_policy_repr_source_only():
@@ -159,8 +156,7 @@ def test_policy_repr_source_only():
         on_fail=Resolution.KILL,
     )
     repr_str = repr(policy)
-    assert "source='users'" in repr_str
-    assert "sink=" not in repr_str or "sink=None" in repr_str
+    assert repr_str == "DFCPolicy(source='users', constraint='max(users.age) >= 18', on_fail=KILL)"
 
 
 def test_policy_equality():
@@ -210,10 +206,49 @@ def test_policy_inequality_different_on_fail():
     assert policy1 != policy2
 
 
+def test_policy_with_invalidate_resolution():
+    """Test creating a policy with INVALIDATE resolution."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.INVALIDATE,
+    )
+    assert policy.source == "users"
+    assert policy.sink is None
+    assert policy.constraint == "max(users.age) >= 18"
+    assert policy.on_fail == Resolution.INVALIDATE
+
+
+def test_policy_invalidate_resolution_with_sink():
+    """Test creating a policy with INVALIDATE resolution and sink table."""
+    policy = DFCPolicy(
+        sink="reports",
+        constraint="reports.status = 'approved'",
+        on_fail=Resolution.INVALIDATE,
+    )
+    assert policy.source is None
+    assert policy.sink == "reports"
+    assert policy.constraint == "reports.status = 'approved'"
+    assert policy.on_fail == Resolution.INVALIDATE
+
+
+def test_policy_invalidate_resolution_repr():
+    """Test string representation of policy with INVALIDATE resolution."""
+    policy = DFCPolicy(
+        source="users",
+        constraint="max(users.age) >= 18",
+        on_fail=Resolution.INVALIDATE,
+    )
+    repr_str = repr(policy)
+    assert repr_str == "DFCPolicy(source='users', constraint='max(users.age) >= 18', on_fail=INVALIDATE)"
+
+
 def test_resolution_enum():
     """Test Resolution enum values."""
     assert Resolution.REMOVE.value == "REMOVE"
     assert Resolution.KILL.value == "KILL"
+    assert Resolution.HUMAN.value == "HUMAN"
+    assert Resolution.INVALIDATE.value == "INVALIDATE"
 
 
 def test_policy_complex_constraint():
@@ -223,8 +258,7 @@ def test_policy_complex_constraint():
         constraint="(max(users.age) >= 18 AND min(users.status) = 'active') OR (max(users.age) >= 21 AND min(users.status) = 'pending')",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.age) >= 18" in policy.constraint
-    assert "OR" in policy.constraint
+    assert policy.constraint == "(max(users.age) >= 18 AND min(users.status) = 'active') OR (max(users.age) >= 21 AND min(users.status) = 'pending')"
 
 
 def test_policy_with_table_qualification():
@@ -235,8 +269,7 @@ def test_policy_with_table_qualification():
         constraint="max(users.id) = orders.user_id AND min(users.created_at) < orders.created_at",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.id)" in policy.constraint
-    assert "orders.user_id" in policy.constraint
+    assert policy.constraint == "max(users.id) = orders.user_id AND min(users.created_at) < orders.created_at"
 
 
 def test_policy_aggregation_over_source():
@@ -247,7 +280,7 @@ def test_policy_aggregation_over_source():
         constraint="max(users.age) > 18 AND reports.status = 'active'",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.age)" in policy.constraint
+    assert policy.constraint == "max(users.age) > 18 AND reports.status = 'active'"
 
 
 def test_policy_aggregation_over_source_only():
@@ -257,7 +290,7 @@ def test_policy_aggregation_over_source_only():
         constraint="max(users.age) > 18",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.age)" in policy.constraint
+    assert policy.constraint == "max(users.age) > 18"
 
 
 def test_policy_aggregation_rejects_sink():
@@ -299,8 +332,7 @@ def test_policy_aggregation_mixed_constraint():
         constraint="max(users.age) > 10 AND reports.status = 'active'",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.age)" in policy.constraint
-    assert "reports.status" in policy.constraint
+    assert policy.constraint == "max(users.age) > 10 AND reports.status = 'active'"
 
 
 def test_policy_multiple_aggregations_over_source():
@@ -311,8 +343,7 @@ def test_policy_multiple_aggregations_over_source():
         constraint="max(users.age) > 18 AND min(users.age) < 100 AND reports.status = 'active'",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.age)" in policy.constraint
-    assert "min(users.age)" in policy.constraint
+    assert policy.constraint == "max(users.age) > 18 AND min(users.age) < 100 AND reports.status = 'active'"
 
 
 def test_policy_aggregation_source_with_sink_column():
@@ -323,8 +354,7 @@ def test_policy_aggregation_source_with_sink_column():
         constraint="max(users.foo) > 10 AND reports.bar = 'cat'",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.foo)" in policy.constraint
-    assert "reports.bar" in policy.constraint
+    assert policy.constraint == "max(users.foo) > 10 AND reports.bar = 'cat'"
 
 
 def test_policy_rejects_unqualified_columns_with_source_only():
@@ -429,7 +459,7 @@ def test_policy_aggregation_count_star():
         constraint="COUNT(*) > 0",
         on_fail=Resolution.REMOVE,
     )
-    assert "COUNT(*)" in policy.constraint
+    assert policy.constraint == "COUNT(*) > 0"
 
 
 def test_policy_aggregation_sum():
@@ -439,7 +469,7 @@ def test_policy_aggregation_sum():
         constraint="SUM(users.age) > 100",
         on_fail=Resolution.REMOVE,
     )
-    assert "SUM(users.age)" in policy.constraint
+    assert policy.constraint == "SUM(users.age) > 100"
 
 
 def test_policy_aggregation_avg():
@@ -449,7 +479,7 @@ def test_policy_aggregation_avg():
         constraint="AVG(users.age) > 25",
         on_fail=Resolution.REMOVE,
     )
-    assert "AVG(users.age)" in policy.constraint
+    assert policy.constraint == "AVG(users.age) > 25"
 
 
 def test_policy_aggregation_count():
@@ -459,7 +489,7 @@ def test_policy_aggregation_count():
         constraint="COUNT(users.id) > 10",
         on_fail=Resolution.REMOVE,
     )
-    assert "COUNT(users.id)" in policy.constraint
+    assert policy.constraint == "COUNT(users.id) > 10"
 
 
 def test_policy_constraint_references_unknown_table():
@@ -579,9 +609,7 @@ def test_policy_complex_nested_aggregations():
         constraint="max(users.age) + min(users.age) > 50 AND COUNT(users.id) > 100",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.age)" in policy.constraint
-    assert "min(users.age)" in policy.constraint
-    assert "COUNT(users.id)" in policy.constraint
+    assert policy.constraint == "max(users.age) + min(users.age) > 50 AND COUNT(users.id) > 100"
 
 
 def test_policy_constraint_with_literals():
@@ -601,8 +629,7 @@ def test_policy_constraint_with_string_literals():
         constraint="reports.status = 'approved' AND reports.type = 'monthly'",
         on_fail=Resolution.KILL,
     )
-    assert "'approved'" in policy.constraint
-    assert "'monthly'" in policy.constraint
+    assert policy.constraint == "reports.status = 'approved' AND reports.type = 'monthly'"
 
 
 def test_policy_aggregation_with_arithmetic():
@@ -612,7 +639,7 @@ def test_policy_aggregation_with_arithmetic():
         constraint="max(users.age) * 2 > 40",
         on_fail=Resolution.REMOVE,
     )
-    assert "max(users.age) * 2" in policy.constraint
+    assert policy.constraint == "max(users.age) * 2 > 40"
 
 
 def test_policy_inequality_different_source():

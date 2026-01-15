@@ -130,7 +130,8 @@ def initialize_tables(conn):
             txn_id           UBIGINT,
             amount           DOUBLE,
             kind             VARCHAR,
-            business_use_pct       DOUBLE
+            business_use_pct       DOUBLE,
+            valid            BOOLEAN
         )
     """)
     

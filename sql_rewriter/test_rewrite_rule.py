@@ -32,8 +32,8 @@ class TestApplyPolicyConstraintsToAggregation:
         # Should have HAVING clause
         assert parsed.args.get("having") is not None
         having_sql = parsed.args["having"].sql()
-        # Check that the constraint is in the HAVING clause
-        assert "max(foo.id) > 1" in having_sql.lower() or "MAX(FOO.ID) > 1" in having_sql.upper()
+        # Each policy addition is wrapped in parentheses (includes HAVING keyword)
+        assert having_sql == "HAVING (MAX(foo.id) > 1)"
 
     def test_combines_with_existing_having_clause(self):
         """Test that new constraint is combined with existing HAVING using AND."""
@@ -51,12 +51,9 @@ class TestApplyPolicyConstraintsToAggregation:
         # Should have combined HAVING clause
         having = parsed.args.get("having")
         assert having is not None
-        having_sql = having.sql().upper()
-        # Should contain both conditions
-        assert "MAX(FOO.ID) < 10" in having_sql or "max(foo.id) < 10" in having_sql.lower()
-        assert "MAX(FOO.ID) > 1" in having_sql or "max(foo.id) > 1" in having_sql.lower()
-        # Should be combined with AND
-        assert "AND" in having_sql
+        having_sql = having.sql()
+        # Should contain both conditions combined with AND, wrapped in parentheses (includes HAVING keyword)
+        assert having_sql == "HAVING (MAX(foo.id) < 10) AND (MAX(foo.id) > 1)"
 
     def test_applies_multiple_policies(self):
         """Test that multiple policies are applied correctly."""
@@ -79,9 +76,11 @@ class TestApplyPolicyConstraintsToAggregation:
         # Should have HAVING clause with both constraints
         having = parsed.args.get("having")
         assert having is not None
-        having_sql = having.sql().upper()
-        assert "MAX(FOO.ID) > 1" in having_sql or "max(foo.id) > 1" in having_sql.lower()
-        assert "MAX(FOO.ID) < 10" in having_sql or "max(foo.id) < 10" in having_sql.lower()
+        having_sql = having.sql()
+        # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
+        # The order depends on policy order, and KILL wraps in CASE
+        # Both constraints should be wrapped in parentheses (includes HAVING keyword)
+        assert having_sql == "HAVING (MAX(foo.id) > 1) AND (CASE WHEN MAX(foo.id) < 10 THEN true ELSE KILL() END)"
 
     def test_does_not_modify_query_without_policies(self):
         """Test that query is not modified when no policies are provided."""
@@ -110,10 +109,120 @@ class TestApplyPolicyConstraintsToAggregation:
         # Should have HAVING clause
         having = parsed.args.get("having")
         assert having is not None
-        having_sql = having.sql().upper()
-        assert "MAX" in having_sql
-        assert "MIN" in having_sql
-        assert "AND" in having_sql
+        having_sql = having.sql()
+        # Each policy addition is wrapped in parentheses
+        assert having_sql == "HAVING (MAX(foo.id) > 1 AND MIN(foo.id) < 5)"
+
+    def test_combines_with_existing_having_with_or_clause(self):
+        """Test that new constraint is combined correctly with existing HAVING that has OR."""
+        query = "SELECT max(foo.id) FROM foo HAVING max(foo.id) < 5 OR max(foo.id) > 10"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        
+        apply_policy_constraints_to_aggregation(parsed, [policy], {"foo"})
+        
+        # Should have combined HAVING clause with parentheses to ensure proper precedence
+        having = parsed.args.get("having")
+        assert having is not None
+        having_sql = having.sql()
+        # The OR clause should be wrapped in parentheses, and the new constraint too
+        assert having_sql == "HAVING (MAX(foo.id) < 5 OR MAX(foo.id) > 10) AND (MAX(foo.id) > 1)"
+
+    def test_combines_policy_with_or_constraint_with_existing_having(self):
+        """Test that policy constraint with OR is combined correctly with existing HAVING."""
+        query = "SELECT max(foo.id) FROM foo HAVING max(foo.id) < 10"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) = 1 OR max(foo.id) = 3",
+            on_fail=Resolution.REMOVE,
+        )
+        
+        apply_policy_constraints_to_aggregation(parsed, [policy], {"foo"})
+        
+        # Should have combined HAVING clause with parentheses
+        having = parsed.args.get("having")
+        assert having is not None
+        having_sql = having.sql()
+        # Both expressions should be wrapped in parentheses
+        assert having_sql == "HAVING (MAX(foo.id) < 10) AND (MAX(foo.id) = 1 OR MAX(foo.id) = 3)"
+
+    def test_invalidate_resolution_adds_column_to_aggregation(self):
+        """Test that INVALIDATE resolution adds a 'valid' column to aggregation queries."""
+        query = "SELECT max(foo.id) FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_policy_constraints_to_aggregation(parsed, [policy], {"foo"})
+        
+        # Should have 'valid' column in SELECT, not HAVING clause
+        assert parsed.args.get("having") is None
+        
+        # Check the full SQL string
+        # valid = constraint, so when constraint is MAX(foo.id) > 1,
+        # valid = (MAX(foo.id) > 1) (wrapped in parentheses like REMOVE)
+        full_sql = parsed.sql()
+        assert full_sql == "SELECT MAX(foo.id), (MAX(foo.id) > 1) AS valid FROM foo"
+
+    def test_invalidate_resolution_combines_multiple_policies(self):
+        """Test that multiple INVALIDATE policies are combined with AND in the 'valid' column."""
+        query = "SELECT max(foo.id) FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.INVALIDATE,
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) < 10",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_policy_constraints_to_aggregation(parsed, [policy1, policy2], {"foo"})
+        
+        # Should have 'valid' column with combined constraints
+        # Both constraints are combined with AND
+        # valid = MAX(foo.id) > 1 AND MAX(foo.id) < 10
+        # Check the full SQL string
+        full_sql = parsed.sql()
+        assert full_sql == "SELECT MAX(foo.id), (MAX(foo.id) > 1) AND (MAX(foo.id) < 10) AS valid FROM foo"
+
+    def test_invalidate_resolution_with_other_resolutions(self):
+        """Test that INVALIDATE resolution works alongside REMOVE/KILL policies."""
+        query = "SELECT max(foo.id) FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) < 10",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_policy_constraints_to_aggregation(parsed, [policy1, policy2], {"foo"})
+        
+        # Should have both HAVING clause (from REMOVE) and 'valid' column (from INVALIDATE)
+        # valid = (MAX(foo.id) < 10) (wrapped in parentheses)
+        # Check the full SQL string
+        full_sql = parsed.sql()
+        assert full_sql == "SELECT MAX(foo.id), (MAX(foo.id) < 10) AS valid FROM foo HAVING (MAX(foo.id) > 1)"
 
 
 class TestApplyPolicyConstraintsToScan:
@@ -136,7 +245,8 @@ class TestApplyPolicyConstraintsToScan:
         assert parsed.args.get("where") is not None
         where_sql = parsed.args["where"].sql()
         # The aggregation should be transformed (max(foo.id) becomes foo.id)
-        assert "WHERE" in where_sql.upper()
+        # Each policy addition is wrapped in parentheses (includes WHERE keyword)
+        assert where_sql == "WHERE (foo.id > 1)"
 
     def test_combines_with_existing_where_clause(self):
         """Test that new constraint is combined with existing WHERE using AND."""
@@ -154,11 +264,9 @@ class TestApplyPolicyConstraintsToScan:
         # Should have combined WHERE clause
         where_expr = parsed.args.get("where")
         assert where_expr is not None
-        where_sql = where_expr.sql().upper()
-        # Should contain both conditions
-        assert "ID < 10" in where_sql or "id < 10" in where_sql.lower()
-        # Should be combined with AND
-        assert "AND" in where_sql
+        where_sql = where_expr.sql()
+        # Should contain both conditions combined with AND, wrapped in parentheses (includes WHERE keyword)
+        assert where_sql == "WHERE (id < 10) AND (foo.id > 1)"
 
     def test_applies_multiple_policies(self):
         """Test that multiple policies are applied correctly."""
@@ -181,8 +289,50 @@ class TestApplyPolicyConstraintsToScan:
         # Should have WHERE clause with both constraints
         where_expr = parsed.args.get("where")
         assert where_expr is not None
-        where_sql = where_expr.sql().upper()
-        assert "AND" in where_sql
+        where_sql = where_expr.sql()
+        # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
+        # Both constraints should be wrapped in parentheses (includes WHERE keyword)
+        assert where_sql == "WHERE (foo.id > 1) AND (CASE WHEN foo.id < 10 THEN true ELSE KILL() END)"
+
+    def test_combines_with_existing_where_with_or_clause(self):
+        """Test that new constraint is combined correctly with existing WHERE that has OR."""
+        query = "SELECT id FROM foo WHERE id < 5 OR id > 10"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        
+        apply_policy_constraints_to_scan(parsed, [policy], {"foo"})
+        
+        # Should have combined WHERE clause with parentheses to ensure proper precedence
+        where_expr = parsed.args.get("where")
+        assert where_expr is not None
+        where_sql = where_expr.sql()
+        # The OR clause should be wrapped in parentheses, and the new constraint too
+        assert where_sql == "WHERE (id < 5 OR id > 10) AND (foo.id > 1)"
+
+    def test_combines_policy_with_or_constraint_with_existing_where(self):
+        """Test that policy constraint with OR is combined correctly with existing WHERE."""
+        query = "SELECT id FROM foo WHERE id < 10"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) = 1 OR max(foo.id) = 3",
+            on_fail=Resolution.REMOVE,
+        )
+        
+        apply_policy_constraints_to_scan(parsed, [policy], {"foo"})
+        
+        # Should have combined WHERE clause with parentheses
+        where_expr = parsed.args.get("where")
+        assert where_expr is not None
+        where_sql = where_expr.sql()
+        # Both expressions should be wrapped in parentheses
+        assert where_sql == "WHERE (id < 10) AND (foo.id = 1 OR foo.id = 3)"
 
     def test_transforms_aggregations_in_constraint(self):
         """Test that aggregations in constraints are transformed to columns."""
@@ -202,10 +352,78 @@ class TestApplyPolicyConstraintsToScan:
         assert where_expr is not None
         where_sql = where_expr.sql()
         # max(foo.id) should be transformed to foo.id
-        assert "foo.id" in where_sql.lower() or "FOO.ID" in where_sql.upper()
-        # Should not contain "max" in the WHERE clause (it's been transformed)
-        # Actually, let's check that it's been transformed - the SQL should have "id" or "foo.id"
-        assert "> 1" in where_sql or ">1" in where_sql
+        # Each policy addition is wrapped in parentheses (includes WHERE keyword)
+        assert where_sql == "WHERE (foo.id > 1)"
+
+    def test_invalidate_resolution_adds_column_to_scan(self):
+        """Test that INVALIDATE resolution adds a 'valid' column to scan queries."""
+        query = "SELECT id FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_policy_constraints_to_scan(parsed, [policy], {"foo"})
+        
+        # Should have 'valid' column in SELECT, not WHERE clause
+        assert parsed.args.get("where") is None
+        
+        # Check the full SQL string
+        # valid = (foo.id > 1) (wrapped in parentheses like REMOVE)
+        full_sql = parsed.sql()
+        assert full_sql == "SELECT id, (foo.id > 1) AS valid FROM foo"
+
+    def test_invalidate_resolution_combines_multiple_policies_in_scan(self):
+        """Test that multiple INVALIDATE policies are combined with AND in scan queries."""
+        query = "SELECT id FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.INVALIDATE,
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="min(foo.id) < 10",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_policy_constraints_to_scan(parsed, [policy1, policy2], {"foo"})
+        
+        # Should have 'valid' column with combined constraints
+        # Both constraints are combined with AND
+        # valid = foo.id > 1 AND foo.id < 10
+        # Check the full SQL string
+        full_sql = parsed.sql()
+        assert full_sql == "SELECT id, (foo.id > 1) AND (foo.id < 10) AS valid FROM foo"
+
+    def test_invalidate_resolution_with_other_resolutions_in_scan(self):
+        """Test that INVALIDATE resolution works alongside REMOVE/KILL policies in scan queries."""
+        query = "SELECT id FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="min(foo.id) < 10",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_policy_constraints_to_scan(parsed, [policy1, policy2], {"foo"})
+        
+        # Should have both WHERE clause (from REMOVE) and 'valid' column (from INVALIDATE)
+        # valid = (foo.id < 10) (wrapped in parentheses)
+        # Check the full SQL string
+        full_sql = parsed.sql()
+        assert full_sql == "SELECT id, (foo.id < 10) AS valid FROM foo WHERE (foo.id > 1)"
 
 
 class TestTransformAggregationsToColumns:
@@ -220,7 +438,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # COUNT should be replaced with 1
-        assert "1 > 0" in transformed_sql or "1>0" in transformed_sql.replace(" ", "")
+        assert transformed_sql == "1 > 0"
 
     def test_transforms_count_distinct_to_one(self):
         """Test that COUNT(DISTINCT ...) is transformed to 1."""
@@ -231,7 +449,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # COUNT(DISTINCT ...) should be replaced with 1
-        assert "1 > 0" in transformed_sql or "1>0" in transformed_sql.replace(" ", "")
+        assert transformed_sql == "1 > 0"
 
     def test_transforms_count_star_to_one(self):
         """Test that COUNT(*) is transformed to 1."""
@@ -242,7 +460,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # COUNT(*) should be replaced with 1
-        assert "1 > 0" in transformed_sql or "1>0" in transformed_sql.replace(" ", "")
+        assert transformed_sql == "1 > 0"
 
     def test_transforms_max_to_column(self):
         """Test that MAX is transformed to the underlying column."""
@@ -253,10 +471,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # MAX should be replaced with the column
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        assert "> 1" in transformed_sql or ">1" in transformed_sql
-        # Should not contain "max"
-        assert "max" not in transformed_sql.lower() or "max" not in transformed_sql
+        assert transformed_sql == "foo.id > 1"
 
     def test_transforms_min_to_column(self):
         """Test that MIN is transformed to the underlying column."""
@@ -267,8 +482,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # MIN should be replaced with the column
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        assert "< 10" in transformed_sql or "<10" in transformed_sql
+        assert transformed_sql == "foo.id < 10"
 
     def test_transforms_sum_to_column(self):
         """Test that SUM is transformed to the underlying column."""
@@ -279,7 +493,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # SUM should be replaced with the column
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
+        assert transformed_sql == "foo.id > 5"
 
     def test_transforms_avg_to_column(self):
         """Test that AVG is transformed to the underlying column."""
@@ -290,7 +504,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # AVG should be replaced with the column
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
+        assert transformed_sql == "foo.id > 2"
 
     def test_transforms_count_if_to_case_when(self):
         """Test that COUNT_IF is transformed to CASE WHEN."""
@@ -300,11 +514,8 @@ class TestTransformAggregationsToColumns:
         transformed = transform_aggregations_to_columns(parsed, {"foo"})
         
         transformed_sql = transformed.sql()
-        # COUNT_IF should be replaced with CASE WHEN
-        assert "CASE" in transformed_sql.upper()
-        assert "WHEN" in transformed_sql.upper()
-        # Should contain the condition
-        assert "foo.id > 5" in transformed_sql.lower() or "FOO.ID > 5" in transformed_sql.upper()
+        # COUNT_IF should be replaced with CASE WHEN ... THEN 1 ELSE 0 END
+        assert transformed_sql == "CASE WHEN foo.id > 5 THEN 1 ELSE 0 END > 0"
 
     def test_transforms_countif_to_case_when(self):
         """Test that COUNTIF is transformed to CASE WHEN."""
@@ -314,9 +525,8 @@ class TestTransformAggregationsToColumns:
         transformed = transform_aggregations_to_columns(parsed, {"foo"})
         
         transformed_sql = transformed.sql()
-        # COUNTIF should be replaced with CASE WHEN
-        assert "CASE" in transformed_sql.upper()
-        assert "WHEN" in transformed_sql.upper()
+        # COUNTIF should be replaced with CASE WHEN ... THEN 1 ELSE 0 END
+        assert transformed_sql == "CASE WHEN foo.id > 5 THEN 1 ELSE 0 END > 0"
 
     def test_transforms_array_agg_to_array(self):
         """Test that ARRAY_AGG is transformed to ARRAY[column]."""
@@ -326,9 +536,8 @@ class TestTransformAggregationsToColumns:
         transformed = transform_aggregations_to_columns(parsed, {"foo"})
         
         transformed_sql = transformed.sql()
-        # ARRAY_AGG should be replaced with array syntax
-        assert "[" in transformed_sql or "ARRAY" in transformed_sql.upper()
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
+        # ARRAY_AGG should be replaced with ARRAY(column) syntax
+        assert transformed_sql == "ARRAY(foo.id) = ARRAY(2)"
 
     def test_transforms_approx_count_distinct_to_one(self):
         """Test that APPROX_COUNT_DISTINCT is transformed to 1."""
@@ -339,7 +548,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # APPROX_COUNT_DISTINCT should be replaced with 1
-        assert "1 > 0" in transformed_sql or "1>0" in transformed_sql.replace(" ", "")
+        assert transformed_sql == "1 > 0"
 
     def test_transforms_complex_constraint_with_multiple_aggregations(self):
         """Test that complex constraints with multiple aggregations are transformed."""
@@ -349,14 +558,8 @@ class TestTransformAggregationsToColumns:
         transformed = transform_aggregations_to_columns(parsed, {"foo"})
         
         transformed_sql = transformed.sql()
-        # All aggregations should be transformed
-        assert "max" not in transformed_sql.lower() or "MAX" not in transformed_sql
-        assert "min" not in transformed_sql.lower() or "MIN" not in transformed_sql
-        assert "COUNT" not in transformed_sql.upper() or "count" not in transformed_sql.lower()
-        # Should contain the column references
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        # Should contain the literal 1
-        assert "1" in transformed_sql
+        # All aggregations should be transformed: max/min to column, COUNT to 1
+        assert transformed_sql == "foo.id > 1 AND foo.id < 10 AND 1 > 0"
 
     def test_transforms_max_with_case_expression(self):
         """Test that max(CASE WHEN ...) preserves the full CASE expression."""
@@ -367,15 +570,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # The CASE expression should be preserved, not just the first column
-        assert "CASE" in transformed_sql.upper()
-        assert "WHEN" in transformed_sql.upper()
-        assert "THEN" in transformed_sql.upper()
-        assert "ELSE" in transformed_sql.upper()
-        # Should contain both columns from the CASE expression
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        assert "foo.status" in transformed_sql.lower() or "FOO.STATUS" in transformed_sql.upper()
-        # Should not contain the aggregation function
-        assert "max" not in transformed_sql.lower() or "MAX" not in transformed_sql
+        assert transformed_sql == "CASE WHEN foo.id > 0 THEN foo.status ELSE NULL END > 'active'"
 
     def test_transforms_min_with_function_call(self):
         """Test that min(function_call(...)) preserves the full function call."""
@@ -386,10 +581,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # The COALESCE function should be preserved
-        assert "COALESCE" in transformed_sql.upper() or "coalesce" in transformed_sql.lower()
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        # Should not contain the aggregation function
-        assert "min" not in transformed_sql.lower() or "MIN" not in transformed_sql
+        assert transformed_sql == "COALESCE(foo.id, 0) > 5"
 
     def test_transforms_sum_with_arithmetic_expression(self):
         """Test that sum(expr1 + expr2) preserves the full arithmetic expression."""
@@ -400,11 +592,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # The arithmetic expression should be preserved
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        assert "foo.value" in transformed_sql.lower() or "FOO.VALUE" in transformed_sql.upper()
-        assert "+" in transformed_sql
-        # Should not contain the aggregation function
-        assert "sum" not in transformed_sql.lower() or "SUM" not in transformed_sql
+        assert transformed_sql == "foo.id + foo.value > 100"
 
     def test_transforms_avg_with_nested_case(self):
         """Test that avg(CASE WHEN ... THEN ... ELSE ... END) preserves the full CASE expression."""
@@ -415,15 +603,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # The CASE expression should be preserved
-        assert "CASE" in transformed_sql.upper()
-        assert "WHEN" in transformed_sql.upper()
-        assert "THEN" in transformed_sql.upper()
-        assert "ELSE" in transformed_sql.upper()
-        # Should contain the columns and values from the CASE expression
-        assert "foo.status" in transformed_sql.lower() or "FOO.STATUS" in transformed_sql.upper()
-        assert "foo.value" in transformed_sql.lower() or "FOO.VALUE" in transformed_sql.upper()
-        # Should not contain the aggregation function
-        assert "avg" not in transformed_sql.lower() or "AVG" not in transformed_sql
+        assert transformed_sql == "CASE WHEN foo.status = 'active' THEN foo.value ELSE 0 END > 50"
 
     def test_transforms_nested_aggregations(self):
         """Test that nested aggregations are transformed correctly."""
@@ -434,9 +614,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # Both aggregations should be transformed to columns
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        assert "+" in transformed_sql or " + " in transformed_sql
-        assert "> 5" in transformed_sql or ">5" in transformed_sql
+        assert transformed_sql == "foo.id + foo.id > 5"
 
     def test_preserves_non_aggregation_expressions(self):
         """Test that non-aggregation expressions are preserved."""
@@ -447,8 +625,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # Non-aggregation expressions should be unchanged
-        assert "foo.id > 5" in transformed_sql.lower() or "FOO.ID > 5" in transformed_sql.upper()
-        assert "foo.name = 'test'" in transformed_sql.lower() or "FOO.NAME = 'test'" in transformed_sql.upper()
+        assert transformed_sql == "foo.id > 5 AND foo.name = 'test'"
 
     def test_handles_aggregation_without_column(self):
         """Test that aggregations without columns (like COUNT(*)) are handled."""
@@ -459,7 +636,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # COUNT(*) should be replaced with 1
-        assert "1 > 0" in transformed_sql or "1>0" in transformed_sql.replace(" ", "")
+        assert transformed_sql == "1 > 0"
 
     def test_handles_mixed_aggregation_types(self):
         """Test that different aggregation types in one constraint are handled."""
@@ -470,9 +647,7 @@ class TestTransformAggregationsToColumns:
         
         transformed_sql = transformed.sql()
         # MAX should become column, COUNT should become 1
-        assert "foo.id" in transformed_sql.lower() or "FOO.ID" in transformed_sql.upper()
-        assert "1" in transformed_sql
-        assert ">" in transformed_sql
+        assert transformed_sql == "foo.id > 1"
 
 
 class TestEnsureColumnsAccessible:
@@ -531,7 +706,8 @@ class TestIntegration:
         # Should have HAVING clause
         assert parsed.args.get("having") is not None
         having_sql = parsed.args["having"].sql()
-        assert "max(foo.id) > 1" in having_sql.lower() or "MAX(FOO.ID) > 1" in having_sql.upper()
+        # Each policy addition is wrapped in parentheses
+        assert having_sql == "HAVING (MAX(foo.id) > 1)"
 
     def test_scan_query_with_policy_transforms_aggregations(self):
         """Test that scan queries transform aggregations in policy constraints."""
@@ -549,10 +725,9 @@ class TestIntegration:
         # Should have WHERE clause
         assert parsed.args.get("where") is not None
         where_sql = parsed.args["where"].sql()
-        # The aggregation should be transformed
-        assert "WHERE" in where_sql.upper()
         # max(foo.id) should be transformed to foo.id
-        assert "foo.id" in where_sql.lower() or "FOO.ID" in where_sql.upper()
+        # Each policy addition is wrapped in parentheses (includes WHERE keyword)
+        assert where_sql == "WHERE (foo.id > 1)"
 
     def test_multiple_policies_on_aggregation_query(self):
         """Test that multiple policies are correctly applied to aggregation queries."""
@@ -575,8 +750,10 @@ class TestIntegration:
         # Should have HAVING clause with both constraints
         having = parsed.args.get("having")
         assert having is not None
-        having_sql = having.sql().upper()
-        assert "AND" in having_sql
+        having_sql = having.sql()
+        # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
+        # Both constraints should be wrapped in parentheses (includes HAVING keyword)
+        assert having_sql == "HAVING (MAX(foo.id) > 1) AND (CASE WHEN MAX(foo.id) < 10 THEN true ELSE KILL() END)"
 
     def test_multiple_policies_on_scan_query(self):
         """Test that multiple policies are correctly applied to scan queries."""
@@ -599,6 +776,8 @@ class TestIntegration:
         # Should have WHERE clause with both constraints
         where_expr = parsed.args.get("where")
         assert where_expr is not None
-        where_sql = where_expr.sql().upper()
-        assert "AND" in where_sql
+        where_sql = where_expr.sql()
+        # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
+        # Both constraints should be wrapped in parentheses (includes WHERE keyword)
+        assert where_sql == "WHERE (foo.id > 1) AND (CASE WHEN foo.id < 10 THEN true ELSE KILL() END)"
 

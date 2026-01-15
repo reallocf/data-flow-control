@@ -1,6 +1,7 @@
-return_id,txn_id,txn_date,amount,description,account_name,source_file
-1,1001,2023-01-15,1500.00,Payment from Client A,Checking Account,bank_export.csv
-1,1002,2023-02-20,-250.00,Office supplies purchase,Credit Card,credit_card_export.csv
-1,1003,2023-03-10,2000.00,Payment from Client B,Checking Account,bank_export.csv
-1,1004,2023-04-05,-150.00,Software subscription,Credit Card,credit_card_export.csv
-1,1005,2023-05-12,-75.00,Internet service,Checking Account,bank_export.csv
+txn_id,amount,category,description
+1,1500.00,saber,Excalibur
+2,-250.00,supplies,Coal and fuel
+3,2000.00,equine,Horseshoe set
+4,-500.00,supplies,Steel and iron
+5,-85.50,meal,The Forge & Fork Restaurant
+6,-45.00,entertainment,Netflix subscription
