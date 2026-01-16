@@ -13,11 +13,7 @@ This repository relies on a custom DuckDB build, a SQL rewriter, and an AI-power
 
 ## 2. Build `extended_duckdb`
 
-You must independently install and build DuckDB and the extension CI tools.
-
     cd extended_duckdb
-    git clone https://github.com/duckdb/duckdb
-    git clone https://github.com/duckdb/extension-ci-tools
 
 ### Build DuckDB + Extensions
 
