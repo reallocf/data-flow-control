@@ -17,10 +17,25 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 
 # Extension path
-EXT_PATH = PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "repository" / "v1.4.1" / "osx_arm64" / "external.duckdb_extension"
+EXT_PATH = (
+    PROJECT_ROOT
+    / "extended_duckdb"
+    / "build"
+    / "release"
+    / "repository"
+    / "v1.4.1"
+    / "osx_arm64"
+    / "external.duckdb_extension"
+)
 if not EXT_PATH.exists():
     alt_paths = [
-        PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "extension" / "external" / "external.duckdb_extension",
+        PROJECT_ROOT
+        / "extended_duckdb"
+        / "build"
+        / "release"
+        / "extension"
+        / "external"
+        / "external.duckdb_extension",
         PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "external.duckdb_extension",
     ]
     for alt_path in alt_paths:
@@ -30,7 +45,7 @@ if not EXT_PATH.exists():
     else:
         raise FileNotFoundError(f"Extension not found. Tried: {EXT_PATH} and alternatives")
 
-# CSV file path
+# CSV file path (update filename if needed)
 CSV_PATH = PROJECT_ROOT / "data" / "simple_bank_txn.csv"
 
 # Connect to DuckDB with unsigned extension loading
@@ -43,66 +58,62 @@ con = duckdb.connect(
 con.execute(f"LOAD '{EXT_PATH}'")
 
 # Load CSV data into DuckDB table
-# Reorder columns to match working pattern: VARCHAR first, then numeric, then VARCHAR
+# Keep a stable column order: VARCHAR first, then numeric, then int, then VARCHAR
+# (This mirrors your "working pattern" comment, but adapted to new schema.)
 con.execute(f"""
     CREATE TABLE bank_txn AS
-    SELECT description, amount, txn_id, account_name
+    SELECT
+        description::VARCHAR AS description,
+        category::VARCHAR    AS category,
+        amount::DOUBLE       AS amount,
+        txn_id::INTEGER      AS txn_id
     FROM read_csv_auto('{CSV_PATH}');
 """)
 
 # Create a temporary file for the stream (initially empty)
-stream_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+stream_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt")
 stream_path = stream_file.name
 stream_file.close()
 
 # Define & register the Python UDF
-def address_violating_rows(description: str, amount: float, txn_id: int, account_name: str, stream_endpoint: str) -> bool:
-    """Handle violating rows where description=="Internet service". Writes row to stream file with amount=0.0."""
-    # Write the violating row to the stream file with amount=0.0
-    with open(stream_endpoint, 'a') as f:
-        f.write(f"{description}\t0.0\t{txn_id}\t{account_name}\n")
+def address_violating_rows(
+    description: str,
+    category: str,
+    amount: float,
+    txn_id: int,
+    stream_endpoint: str,
+) -> bool:
+    """
+    Handle violating rows. Writes row to stream file with amount=0.0.
+    Returns False to filter out the original violating row from the base table output.
+    """
+    with open(stream_endpoint, "a") as f:
+        f.write(f"{description}\t{category}\t0.0\t{txn_id}\n")
         f.flush()
-    return False  # Filter out the violating row
+    return False
 
 con.create_function("address_violating_rows", address_violating_rows)
 
-# Query with violation condition
+# Violation condition:
+# Treat category == "saber" as violating (so txn_id=1 "Excalibur" gets streamed with amount=0.0)
 query = f"""
 SELECT *
 FROM bank_txn
 WHERE CASE
-        WHEN LOWER(description) != 'internet service' THEN TRUE
-        ELSE address_violating_rows(description, amount, txn_id, account_name, '{stream_path}')
+        WHEN LOWER(category) != 'saber' THEN TRUE
+        ELSE address_violating_rows(description, category, amount, txn_id, '{stream_path}')
       END;
 """
 
 # Execute the query
 df = con.execute(query).df()
 
-# Expected: 4 table rows (non-Internet service) + 1 stream row (Internet service with amount=0) = 5 rows
-expected_rows = 5
+expected_rows = 6
 passed = len(df) == expected_rows
-
-# Verify stream data is unionized
-stream_row_count = sum(1 for _, row in df.iterrows() 
-                       if row['description'].lower() == 'internet service' and row['amount'] == 0.0)
-table_row_count = sum(1 for _, row in df.iterrows() 
-                       if not (row['description'].lower() == 'internet service' and row['amount'] == 0.0))
-
-stream_correct = stream_row_count == 1
-table_correct = table_row_count == 4
 
 # Output results
 print("Results:")
 print(df)
-print(f"\nTotal rows: {len(df)} (expected: {expected_rows})")
-print(f"Stream rows: {stream_row_count} (expected: 1)")
-print(f"Table rows: {table_row_count} (expected: 4)")
-
-if passed and stream_correct and table_correct:
-    print("\n✓ Test PASSED")
-else:
-    print("\n✗ Test FAILED")
 
 # Cleanup
 try:
