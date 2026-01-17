@@ -76,7 +76,6 @@ class SQLRewriter:
         Returns:
             The transformed SQL query string.
         """
-        print(f"[QUERY REWRITE] Original query:\n{query}\n")
         try:
             parsed = sqlglot.parse_one(query, read="duckdb")
 
@@ -89,9 +88,6 @@ class SQLRewriter:
                     )
                     
                     if matching_policies:
-                        for policy in matching_policies:
-                            print(f"Matched policy: {policy.get_identifier()}")
-                        
                         # Ensure subqueries and CTEs have columns needed for constraints
                         ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
                         
@@ -183,12 +179,9 @@ class SQLRewriter:
                             )
 
             transformed = parsed.sql(pretty=True, dialect="duckdb")
-            print(f"[QUERY REWRITE] Transformed query:\n{transformed}\n")
             return transformed
         except Exception as e:
             # In production, you might want to log this error
-            print(f"[QUERY REWRITE] Encountered exception: {e}")
-            print(f"[QUERY REWRITE] Returning original query unchanged\n")
             return query
 
     def _execute_transformed(self, query: str):
@@ -927,11 +920,7 @@ class SQLRewriter:
         Returns:
             Optional list of fixed column values, or None if LLM couldn't fix it or failed.
         """
-        print(f"[LLM] _call_llm_to_fix_row called with constraint='{constraint}', description='{description}', "
-              f"column_values={column_values}, column_names={column_names}")
-        
         if not self._bedrock_client:
-            print("[LLM] Bedrock client not available, skipping LLM fix")
             return None
         
         bedrock_client = self._bedrock_client
@@ -952,14 +941,10 @@ class SQLRewriter:
         if column_names and len(column_names) == len(column_values):
             for name, value in zip(column_names, column_values):
                 row_data[name] = make_json_serializable(value)
-            print(f"[LLM] Using column names: {column_names}")
         else:
             # Use generic column names
             for i, value in enumerate(column_values):
                 row_data[f"col{i}"] = make_json_serializable(value)
-            print(f"[LLM] Using generic column names (col0, col1, ...)")
-        
-        print(f"[LLM] Row data: {row_data}")
         
         # Build prompt for LLM
         constraint_desc = description or "Policy constraint"
@@ -976,10 +961,6 @@ Your task is to fix the violating row data so it satisfies the policy constraint
 
 Return only the JSON object (or null), no additional text or explanation."""
         
-        print(f"[LLM] Prompt: {prompt}")
-        print(f"[LLM] Prompt length: {len(prompt)} characters")
-        print(f"[LLM] Using model: {self._bedrock_model_id}")
-        
         try:
             request_body = {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -992,13 +973,11 @@ Return only the JSON object (or null), no additional text or explanation."""
                 ]
             }
             
-            print(f"[LLM] Invoking Bedrock API with model {self._bedrock_model_id}")
             response = bedrock_client.invoke_model(
                 modelId=self._bedrock_model_id,
                 body=json.dumps(request_body)
             )
             
-            print("[LLM] Received response from Bedrock")
             response_body = json.loads(response['body'].read())
             
             # Extract text content from response
@@ -1007,17 +986,12 @@ Return only the JSON object (or null), no additional text or explanation."""
                 if content_block.get('type') == 'text':
                     text_content += content_block.get('text', '')
             
-            print(f"[LLM] Response text length: {len(text_content)} characters")
-            print(f"[LLM] Response text (first 500 chars): {text_content[:500]}")
-            
             if not text_content:
-                print("[LLM] LLM returned empty response - cannot fix row")
                 return None
             
             text_content = text_content.strip()
             
             if text_content.lower() == 'null':
-                print("[LLM] LLM returned null - cannot fix row")
                 return None
             
             # Try to extract JSON from response (might be wrapped in markdown code blocks or have extra text)
@@ -1028,22 +1002,16 @@ Return only the JSON object (or null), no additional text or explanation."""
                 end = text_content.find('```', start)
                 if end != -1:
                     json_text = text_content[start:end].strip()
-                    print(f"[LLM] Extracted JSON from markdown code block")
             elif '```' in text_content:
                 start = text_content.find('```') + 3
                 end = text_content.find('```', start)
                 if end != -1:
                     json_text = text_content[start:end].strip()
-                    print(f"[LLM] Extracted JSON from code block")
             
             # Parse JSON response
             try:
                 fixed_row_data = json.loads(json_text)
-                print(f"[LLM] Parsed fixed row data: {fixed_row_data}")
-            except json.JSONDecodeError as e:
-                print(f"[LLM] Failed to parse response as JSON: {e}")
-                print(f"[LLM] Full response text was: {text_content}")
-                print(f"[LLM] Attempted to parse: {json_text[:200]}")
+            except json.JSONDecodeError:
                 return None
             
             # Convert back to list of values in the same order
@@ -1053,23 +1021,13 @@ Return only the JSON object (or null), no additional text or explanation."""
                 # Use generic column names
                 fixed_values = [fixed_row_data.get(f"col{i}", val) for i, val in enumerate(column_values)]
             
-            print(f"[LLM] Successfully fixed row: {column_values} -> {fixed_values}")
             return fixed_values
             
-        except (ClientError, BotoCoreError) as e:
-            print(f"[LLM] Bedrock API error: {e}")
-            import traceback
-            traceback.print_exc()
+        except (ClientError, BotoCoreError):
             return None
-        except json.JSONDecodeError as e:
-            print(f"[LLM] Failed to parse LLM response as JSON: {e}")
-            import traceback
-            traceback.print_exc()
+        except json.JSONDecodeError:
             return None
-        except Exception as e:
-            print(f"[LLM] Unexpected error calling LLM: {e}")
-            import traceback
-            traceback.print_exc()
+        except Exception:
             return None
     
     def _register_address_violating_rows_udf(self) -> None:
@@ -1107,9 +1065,7 @@ Return only the JSON object (or null), no additional text or explanation."""
             
             # Strip quotes from stream_endpoint if present (SQL string literals include quotes)
             if stream_endpoint:
-                print(f"[UDF] Raw stream_endpoint received: {repr(stream_endpoint)}")
                 stream_endpoint = stream_endpoint.strip().strip("'").strip('"')
-                print(f"[UDF] Cleaned stream_endpoint: {repr(stream_endpoint)}")
             
             # Parse column names from JSON string
             column_names = None
@@ -1118,15 +1074,7 @@ Return only the JSON object (or null), no additional text or explanation."""
                     # Strip quotes from JSON string if present
                     column_names_json_cleaned = column_names_json.strip().strip("'").strip('"')
                     column_names = json.loads(column_names_json_cleaned)
-                    print(f"[UDF] Parsed column names: {column_names}")
-                    print(f"[UDF] Column values count: {len(column_values)}, Column names count: {len(column_names) if column_names else 0}")
-                    # Validate that column names match column values count
-                    if column_names and len(column_names) != len(column_values):
-                        print(f"[UDF] WARNING: Column names count ({len(column_names)}) doesn't match column values count ({len(column_values)})")
-                        print(f"[UDF] Column names: {column_names}")
-                        print(f"[UDF] Column values: {column_values}")
-                except Exception as e:
-                    print(f"[UDF] Failed to parse column names JSON: {e}")
+                except Exception:
                     column_names = None
             
             # If we have constraint and bedrock client, try to fix with LLM
@@ -1146,39 +1094,20 @@ Return only the JSON object (or null), no additional text or explanation."""
                                 # Ensure values are written in the same order as column_names
                                 # Format: tab-separated values matching the SELECT output column order
                                 row_data = '\t'.join(str(val).lower() if isinstance(val, bool) else str(val) for val in fixed_values)
-                                print(f"[UDF] About to write fixed row to stream file: {stream_endpoint}")
-                                print(f"[UDF] Row data to write: {row_data}")
                                 
-                                # Check if file exists before writing
                                 import os
-                                file_exists_before = os.path.exists(stream_endpoint)
-                                file_size_before = os.path.getsize(stream_endpoint) if file_exists_before else 0
-                                print(f"[UDF] File exists before write: {file_exists_before}, size: {file_size_before}")
-                                
                                 with open(stream_endpoint, 'a') as f:
                                     f.write(f"{row_data}\n")
                                     f.flush()
                                     # Force sync to disk
                                     os.fsync(f.fileno())
-                                
-                                file_size_after = os.path.getsize(stream_endpoint)
-                                print(f"[UDF] LLM fixed violating row and wrote to stream: {row_data}")
-                                print(f"[UDF] File size after write: {file_size_after} (was {file_size_before})")
-                                print(f"[UDF] Column names: {column_names}")
-                                print(f"[UDF] Fixed values count: {len(fixed_values)}, Column names count: {len(column_names) if column_names else 0}")
-                            except Exception as e:
-                                print(f"[WARNING] Failed to write fixed row to stream: {e}")
-                                import traceback
-                                traceback.print_exc()
+                            except Exception:
+                                pass
                         
                         # Return False to filter out original row (fixed version is in stream)
                         return False
-                    else:
-                        # LLM couldn't fix it
-                        print(f"[UDF] LLM could not fix violating row")
-                except Exception as e:
-                    # If LLM call fails
-                    print(f"[WARNING] Error in LLM resolution: {e}")
+                except Exception:
+                    pass
             
             # Return False to filter out from original query
             return False
@@ -1194,6 +1123,16 @@ Return only the JSON object (or null), no additional text or explanation."""
             Path to stream file.
         """
         return self._stream_file_path
+    
+    def reset_stream_file_path(self) -> None:
+        """Reset the stream file path by creating a new temporary file.
+        
+        This clears any existing stream entries and ensures a fresh file for new runs.
+        """
+        import tempfile
+        stream_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+        self._stream_file_path = stream_file.name
+        stream_file.close()
     
     def close(self) -> None:
         """Close the DuckDB connection."""

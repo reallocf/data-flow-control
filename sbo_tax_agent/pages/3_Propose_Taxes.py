@@ -34,6 +34,9 @@ if st.button("Reset Page", type="secondary"):
         # Truncate agent_logs table
         rewriter.conn.execute("DELETE FROM agent_logs")
         
+        # Reset stream file path to avoid including same stream entries across different runs
+        rewriter.reset_stream_file_path()
+        
         # Clear session state
         if 'agent_processing' in st.session_state:
             st.session_state.agent_processing = False

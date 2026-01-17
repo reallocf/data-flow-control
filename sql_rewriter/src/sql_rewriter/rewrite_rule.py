@@ -182,7 +182,6 @@ def _wrap_llm_constraint(
                     )
                     columns.append(col_expr)
                     column_names.append(f"{table_name}.{column_name}")
-                    print(f"[REWRITE_RULE] Added source column to UDF: {table_name}.{column_name} (NOT added to SELECT output)")
     
     # Now extract all columns from the SELECT output
     # These are the columns that will be in the final SELECT output (for INSERT)
@@ -294,10 +293,6 @@ def _wrap_llm_constraint(
     # Escape policy constraint and description for SQL string literals
     constraint_str = policy.constraint.replace("'", "''")
     description_str = (policy.description or "").replace("'", "''")
-    
-    # Debug: Print column names and columns to verify source columns are included
-    print(f"[REWRITE_RULE] Column names for UDF: {column_names}")
-    print(f"[REWRITE_RULE] Number of columns: {len(columns)}, Number of column names: {len(column_names)}")
     
     # Create JSON string of column names
     column_names_json = json.dumps(column_names)
