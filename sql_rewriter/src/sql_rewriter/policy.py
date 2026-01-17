@@ -15,8 +15,8 @@ class Resolution(Enum):
 
     REMOVE = "REMOVE"
     KILL = "KILL"
-    HUMAN = "HUMAN"
     INVALIDATE = "INVALIDATE"
+    LLM = "LLM"
 
 
 class DFCPolicy:
@@ -36,14 +36,16 @@ class DFCPolicy:
         on_fail: Resolution,
         source: Optional[str] = None,
         sink: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> None:
         """Initialize a DFC policy.
 
         Args:
             constraint: A SQL expression that must evaluate to true for the policy to pass.
-            on_fail: Action to take when the policy fails (REMOVE, KILL, HUMAN, or INVALIDATE).
+            on_fail: Action to take when the policy fails (REMOVE, KILL, INVALIDATE, or LLM).
             source: Optional source table name.
             sink: Optional sink table name.
+            description: Optional description of the policy.
 
         Raises:
             ValueError: If neither source nor sink is provided, or if validation fails.
@@ -55,6 +57,7 @@ class DFCPolicy:
         self.sink = sink
         self.constraint = constraint
         self.on_fail = on_fail
+        self.description = description
 
         self._constraint_parsed = self._parse_constraint()
         self._validate()
@@ -65,10 +68,11 @@ class DFCPolicy:
         """Create a DFCPolicy from a policy string.
         
         Parses a policy string in the format:
-        SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>
+        SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
         
         Fields can be separated by any whitespace (spaces, tabs, newlines).
         The constraint value can contain spaces.
+        DESCRIPTION is optional and can appear anywhere in the string.
         
         Args:
             policy_str: The policy string to parse
@@ -89,13 +93,14 @@ class DFCPolicy:
         sink = None
         constraint = None
         on_fail = None
+        description = None
         
         # Find positions of all keywords (case-insensitive)
         # Handle "ON FAIL" as a special case since it's two words
         keyword_positions = []
         
         # Find single-word keywords
-        for keyword in ['SOURCE', 'SINK', 'CONSTRAINT']:
+        for keyword in ['SOURCE', 'SINK', 'CONSTRAINT', 'DESCRIPTION']:
             pattern = r'\b' + re.escape(keyword) + r'\b'
             for match in re.finditer(pattern, normalized, re.IGNORECASE):
                 keyword_positions.append((match.start(), keyword.upper()))
@@ -146,8 +151,10 @@ class DFCPolicy:
                     on_fail = Resolution(value.upper())
                 except ValueError:
                     raise ValueError(
-                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'HUMAN', or 'INVALIDATE'"
+                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'INVALIDATE', or 'LLM'"
                     )
+            elif keyword == 'DESCRIPTION':
+                description = value if value else None
         
         # Validate required fields
         if constraint is None:
@@ -164,7 +171,8 @@ class DFCPolicy:
             constraint=constraint,
             on_fail=on_fail,
             source=source,
-            sink=sink
+            sink=sink,
+            description=description
         )
 
     def _validate(self) -> None:
@@ -392,6 +400,8 @@ class DFCPolicy:
             parts.append(f"sink={self.sink!r}")
         parts.append(f"constraint={self.constraint!r}")
         parts.append(f"on_fail={self.on_fail.value}")
+        if self.description:
+            parts.append(f"description={self.description!r}")
         return f"DFCPolicy({', '.join(parts)})"
 
     def __eq__(self, other: object) -> bool:
@@ -403,5 +413,6 @@ class DFCPolicy:
             and self.sink == other.sink
             and self.constraint == other.constraint
             and self.on_fail == other.on_fail
+            and self.description == other.description
         )
 

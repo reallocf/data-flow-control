@@ -3,13 +3,17 @@
 import duckdb
 import sqlglot
 from sqlglot import exp
-from typing import Any, Optional, Set, Union
+from typing import Any, Optional, Set, Union, Dict, List
 import tempfile
 import os
-import threading
+import json
+from decimal import Decimal
+import boto3
+from botocore.exceptions import ClientError, BotoCoreError
 
 from .policy import DFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
+from .rewrite_rule import _extract_columns_from_constraint
 from .rewrite_rule import (
     apply_policy_constraints_to_aggregation,
     apply_policy_constraints_to_scan,
@@ -23,18 +27,17 @@ class SQLRewriter:
     def __init__(
         self, 
         conn: Optional[duckdb.DuckDBPyConnection] = None,
-        human_review_enabled: bool = True,
-        pending_file_path: Optional[str] = None,
-        stream_file_path: Optional[str] = None
+        stream_file_path: Optional[str] = None,
+        bedrock_client: Optional[Any] = None,
+        bedrock_model_id: Optional[str] = None
     ) -> None:
         """Initialize the SQL rewriter with a DuckDB connection.
 
         Args:
             conn: Optional DuckDB connection. If None, creates a new in-memory database connection.
-            human_review_enabled: If True, enables human review mode for HUMAN resolution policies.
-                                 Violating rows will be written to a pending file for review.
-            pending_file_path: Optional path for pending file (violating rows). If None, creates a temp file.
-            stream_file_path: Optional path for stream file (approved rows). If None, creates a temp file.
+            stream_file_path: Optional path for stream file (fixed rows from LLM). If None, creates a temp file.
+            bedrock_client: Optional boto3 Bedrock Runtime client for LLM resolution policies.
+            bedrock_model_id: Optional Bedrock model ID. Defaults to Claude Haiku if not provided.
         """
         if conn is not None:
             self.conn = conn
@@ -42,28 +45,17 @@ class SQLRewriter:
             self.conn = duckdb.connect()
         self._policies: list[DFCPolicy] = []
         
-        # Human review configuration
-        self._human_review_enabled = human_review_enabled
-        if human_review_enabled:
-            if pending_file_path is None:
-                pending_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
-                self._pending_file_path = pending_file.name
-                pending_file.close()
-            else:
-                self._pending_file_path = pending_file_path
-            
-            if stream_file_path is None:
-                stream_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
-                self._stream_file_path = stream_file.name
-                stream_file.close()
-            else:
-                self._stream_file_path = stream_file_path
-            
-            self._violating_rows_count = 0
-            self._pending_file_lock = threading.Lock()
+        # Bedrock client for LLM resolution
+        self._bedrock_client = bedrock_client
+        self._bedrock_model_id = bedrock_model_id or os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+        
+        # Stream file for LLM-fixed rows
+        if stream_file_path is None:
+            stream_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
+            self._stream_file_path = stream_file.name
+            stream_file.close()
         else:
-            self._pending_file_path = None
-            self._stream_file_path = None
+            self._stream_file_path = stream_file_path
         
         self._register_kill_udf()
         self._register_address_violating_rows_udf()
@@ -84,6 +76,7 @@ class SQLRewriter:
         Returns:
             The transformed SQL query string.
         """
+        print(f"[QUERY REWRITE] Original query:\n{query}\n")
         try:
             parsed = sqlglot.parse_one(query, read="duckdb")
 
@@ -105,12 +98,12 @@ class SQLRewriter:
                         if self._has_aggregations(parsed):
                             apply_policy_constraints_to_aggregation(
                                 parsed, matching_policies, from_tables, 
-                                stream_file_path=self._stream_file_path if self._human_review_enabled else None
+                                stream_file_path=self._stream_file_path
                             )
                         else:
                             apply_policy_constraints_to_scan(
                                 parsed, matching_policies, from_tables,
-                                stream_file_path=self._stream_file_path if self._human_review_enabled else None
+                                stream_file_path=self._stream_file_path
                             )
             
             elif isinstance(parsed, exp.Insert):
@@ -145,6 +138,9 @@ class SQLRewriter:
                         if sink_table:
                             sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
                         
+                        # Get INSERT column list to filter which columns should be in SELECT output
+                        insert_columns = self._get_insert_column_list(parsed)
+                        
                         # Ensure subqueries and CTEs have columns needed for constraints
                         ensure_subqueries_have_constraint_columns(
                             select_expr, matching_policies, source_tables
@@ -170,24 +166,29 @@ class SQLRewriter:
                         if self._has_aggregations(select_expr):
                             apply_policy_constraints_to_aggregation(
                                 select_expr, matching_policies, source_tables,
-                                stream_file_path=self._stream_file_path if self._human_review_enabled else None,
+                                stream_file_path=self._stream_file_path,
                                 sink_table=sink_table,
                                 sink_to_output_mapping=sink_to_output_mapping,
-                                replace_existing_valid=insert_has_valid
+                                replace_existing_valid=insert_has_valid,
+                                insert_columns=insert_columns
                             )
                         else:
                             apply_policy_constraints_to_scan(
                                 select_expr, matching_policies, source_tables,
-                                stream_file_path=self._stream_file_path if self._human_review_enabled else None,
+                                stream_file_path=self._stream_file_path,
                                 sink_table=sink_table,
                                 sink_to_output_mapping=sink_to_output_mapping,
-                                replace_existing_valid=insert_has_valid
+                                replace_existing_valid=insert_has_valid,
+                                insert_columns=insert_columns
                             )
 
-            return parsed.sql(pretty=True, dialect="duckdb")
+            transformed = parsed.sql(pretty=True, dialect="duckdb")
+            print(f"[QUERY REWRITE] Transformed query:\n{transformed}\n")
+            return transformed
         except Exception as e:
             # In production, you might want to log this error
-            print("Encountered exception: ", e)
+            print(f"[QUERY REWRITE] Encountered exception: {e}")
+            print(f"[QUERY REWRITE] Returning original query unchanged\n")
             return query
 
     def _execute_transformed(self, query: str):
@@ -454,6 +455,53 @@ class SQLRewriter:
         """
         return self._policies.copy()
 
+    def delete_policy(
+        self,
+        source: Optional[str] = None,
+        sink: Optional[str] = None,
+        constraint: str = "",
+        on_fail: Optional[Resolution] = None,
+        description: Optional[str] = None,
+    ) -> bool:
+        """Delete a DFC policy from the rewriter by matching all provided parameters.
+        
+        All provided parameters must match exactly for a policy to be deleted.
+        If a parameter is None (for source/sink/description/on_fail) or empty string (for constraint),
+        it will match any value for that field. However, at least one of source, sink, or
+        constraint must be provided to identify the policy.
+        
+        Args:
+            source: Optional source table name to match. None matches any source.
+            sink: Optional sink table name to match. None matches any sink.
+            constraint: Constraint SQL expression to match. Empty string matches any constraint.
+            on_fail: Optional resolution type to match. None matches any resolution.
+            description: Optional description to match. None matches any description.
+        
+        Returns:
+            True if a policy was found and deleted, False otherwise.
+            
+        Raises:
+            ValueError: If neither source, sink, nor constraint is provided.
+        """
+        if source is None and sink is None and not constraint:
+            raise ValueError("At least one of source, sink, or constraint must be provided")
+        
+        # Find matching policy by comparing each field
+        for i, policy in enumerate(self._policies):
+            # Compare each field individually, allowing None/empty to match any
+            source_match = source is None or policy.source == source
+            sink_match = sink is None or policy.sink == sink
+            constraint_match = not constraint or policy.constraint == constraint
+            on_fail_match = on_fail is None or policy.on_fail == on_fail
+            description_match = description is None or policy.description == description
+            
+            if source_match and sink_match and constraint_match and on_fail_match and description_match:
+                # Remove the matching policy
+                del self._policies[i]
+                return True
+        
+        return False
+
     def _get_source_tables(self, parsed: exp.Select) -> Set[str]:
         """Extract source table names from a SELECT query.
         
@@ -692,22 +740,15 @@ class SQLRewriter:
                 insert_parsed.columns.append(valid_identifier)
             return
 
-    def _add_aliases_to_insert_select_outputs(
-        self,
-        insert_parsed: exp.Insert,
-        select_parsed: exp.Select
-    ) -> None:
-        """Add aliases to SELECT outputs to match sink column names when INSERT has explicit column list.
-        
-        This ensures that sink column references in constraints can be replaced with SELECT output
-        column references. For example, if INSERT INTO table (col1, col2) SELECT x, y, we add
-        aliases: SELECT x AS col1, y AS col2.
+    def _get_insert_column_list(self, insert_parsed: exp.Insert) -> List[str]:
+        """Get the INSERT column list if specified.
         
         Args:
             insert_parsed: The parsed INSERT statement.
-            select_parsed: The parsed SELECT statement within the INSERT.
+            
+        Returns:
+            List of column names (lowercase) in the INSERT column list, or empty list if no column list.
         """
-        # Get the INSERT column list if specified
         insert_columns = []
         
         # When INSERT has column list, parsed.this is a Schema and columns are in Schema.expressions
@@ -738,6 +779,26 @@ class SQLRewriter:
                     insert_columns.append(expr.name.lower())
                 elif isinstance(expr, exp.Column):
                     insert_columns.append(get_column_name(expr).lower())
+        
+        return insert_columns
+
+    def _add_aliases_to_insert_select_outputs(
+        self,
+        insert_parsed: exp.Insert,
+        select_parsed: exp.Select
+    ) -> None:
+        """Add aliases to SELECT outputs to match sink column names when INSERT has explicit column list.
+        
+        This ensures that sink column references in constraints can be replaced with SELECT output
+        column references. For example, if INSERT INTO table (col1, col2) SELECT x, y, we add
+        aliases: SELECT x AS col1, y AS col2.
+        
+        Args:
+            insert_parsed: The parsed INSERT statement.
+            select_parsed: The parsed SELECT statement within the INSERT.
+        """
+        # Get the INSERT column list if specified
+        insert_columns = self._get_insert_column_list(insert_parsed)
         
         # Only add aliases if there's an explicit column list
         if not insert_columns:
@@ -847,133 +908,292 @@ class SQLRewriter:
         
         self.conn.create_function('kill', kill, return_type='BOOLEAN')
 
-    def _register_address_violating_rows_udf(self) -> None:
-        """Register the address_violating_rows UDF for HUMAN resolution policies.
+    
+    def _call_llm_to_fix_row(
+        self, 
+        constraint: str,
+        description: Optional[str],
+        column_values: List[Any],
+        column_names: Optional[List[str]] = None
+    ) -> Optional[List[Any]]:
+        """Call LLM to try to fix a violating row based on the constraint.
         
-        This UDF is used by HUMAN resolution policies to handle violating rows
-        through a human-in-the-loop mechanism. When human_review_enabled is True,
-        violating rows are written to a pending file for review.
+        Args:
+            constraint: The policy constraint that was violated.
+            description: Optional policy description.
+            column_values: List of column values from the violating row.
+            column_names: Optional list of column names corresponding to column_values.
+        
+        Returns:
+            Optional list of fixed column values, or None if LLM couldn't fix it or failed.
+        """
+        print(f"[LLM] _call_llm_to_fix_row called with constraint='{constraint}', description='{description}', "
+              f"column_values={column_values}, column_names={column_names}")
+        
+        if not self._bedrock_client:
+            print("[LLM] Bedrock client not available, skipping LLM fix")
+            return None
+        
+        bedrock_client = self._bedrock_client
+        
+        # Helper function to convert values to JSON-serializable types
+        def make_json_serializable(value):
+            """Convert value to JSON-serializable type."""
+            if isinstance(value, Decimal):
+                return float(value)
+            elif isinstance(value, (int, float, str, bool, type(None))):
+                return value
+            else:
+                # For other types, convert to string
+                return str(value)
+        
+        # Build row data dictionary
+        row_data = {}
+        if column_names and len(column_names) == len(column_values):
+            for name, value in zip(column_names, column_values):
+                row_data[name] = make_json_serializable(value)
+            print(f"[LLM] Using column names: {column_names}")
+        else:
+            # Use generic column names
+            for i, value in enumerate(column_values):
+                row_data[f"col{i}"] = make_json_serializable(value)
+            print(f"[LLM] Using generic column names (col0, col1, ...)")
+        
+        print(f"[LLM] Row data: {row_data}")
+        
+        # Build prompt for LLM
+        constraint_desc = description or "Policy constraint"
+        
+        prompt = f"""You are a data quality assistant. A row of data has violated a data flow control policy.
+
+POLICY CONSTRAINT: {constraint}
+POLICY DESCRIPTION: {constraint_desc}
+
+VIOLATING ROW DATA:
+{json.dumps(row_data, indent=2)}
+
+Your task is to fix the violating row data so it satisfies the policy constraint. Return the fixed row data as a JSON object with the same keys as the input row data. Only modify values that need to be changed to satisfy the constraint. If you cannot fix the row, return null.
+
+Return only the JSON object (or null), no additional text or explanation."""
+        
+        print(f"[LLM] Prompt: {prompt}")
+        print(f"[LLM] Prompt length: {len(prompt)} characters")
+        print(f"[LLM] Using model: {self._bedrock_model_id}")
+        
+        try:
+            request_body = {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": 2048,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            }
+            
+            print(f"[LLM] Invoking Bedrock API with model {self._bedrock_model_id}")
+            response = bedrock_client.invoke_model(
+                modelId=self._bedrock_model_id,
+                body=json.dumps(request_body)
+            )
+            
+            print("[LLM] Received response from Bedrock")
+            response_body = json.loads(response['body'].read())
+            
+            # Extract text content from response
+            text_content = ""
+            for content_block in response_body.get('content', []):
+                if content_block.get('type') == 'text':
+                    text_content += content_block.get('text', '')
+            
+            print(f"[LLM] Response text length: {len(text_content)} characters")
+            print(f"[LLM] Response text (first 500 chars): {text_content[:500]}")
+            
+            if not text_content:
+                print("[LLM] LLM returned empty response - cannot fix row")
+                return None
+            
+            text_content = text_content.strip()
+            
+            if text_content.lower() == 'null':
+                print("[LLM] LLM returned null - cannot fix row")
+                return None
+            
+            # Try to extract JSON from response (might be wrapped in markdown code blocks or have extra text)
+            json_text = text_content
+            # Try to extract JSON from markdown code blocks
+            if '```json' in text_content:
+                start = text_content.find('```json') + 7
+                end = text_content.find('```', start)
+                if end != -1:
+                    json_text = text_content[start:end].strip()
+                    print(f"[LLM] Extracted JSON from markdown code block")
+            elif '```' in text_content:
+                start = text_content.find('```') + 3
+                end = text_content.find('```', start)
+                if end != -1:
+                    json_text = text_content[start:end].strip()
+                    print(f"[LLM] Extracted JSON from code block")
+            
+            # Parse JSON response
+            try:
+                fixed_row_data = json.loads(json_text)
+                print(f"[LLM] Parsed fixed row data: {fixed_row_data}")
+            except json.JSONDecodeError as e:
+                print(f"[LLM] Failed to parse response as JSON: {e}")
+                print(f"[LLM] Full response text was: {text_content}")
+                print(f"[LLM] Attempted to parse: {json_text[:200]}")
+                return None
+            
+            # Convert back to list of values in the same order
+            if column_names:
+                fixed_values = [fixed_row_data.get(name, val) for name, val in zip(column_names, column_values)]
+            else:
+                # Use generic column names
+                fixed_values = [fixed_row_data.get(f"col{i}", val) for i, val in enumerate(column_values)]
+            
+            print(f"[LLM] Successfully fixed row: {column_values} -> {fixed_values}")
+            return fixed_values
+            
+        except (ClientError, BotoCoreError) as e:
+            print(f"[LLM] Bedrock API error: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+        except json.JSONDecodeError as e:
+            print(f"[LLM] Failed to parse LLM response as JSON: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+        except Exception as e:
+            print(f"[LLM] Unexpected error calling LLM: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def _register_address_violating_rows_udf(self) -> None:
+        """Register the address_violating_rows UDF for LLM resolution policies.
+        
+        This UDF is used by LLM resolution policies to handle violating rows.
+        The LLM is called to try to fix the row data, and fixed rows are written to the stream file.
         
         Users can override this by registering their own address_violating_rows
         function after creating the SQLRewriter instance.
         """
-        if self._human_review_enabled:
-            def address_violating_rows(*args) -> bool:
-                """address_violating_rows function that writes violating rows to pending file.
-                
-                Writes violating row data to the pending file in tab-separated format.
-                The last argument is the stream_endpoint (path to stream file).
-                
-                Args:
-                    *args: Variable arguments - columns from the constraint plus stream_endpoint.
-                          The last argument is the stream_endpoint string.
-                
-                Returns:
-                    bool: False to filter out the violating row.
-                """
-                if not args:
-                    return False
-                
-                # Last argument is stream_endpoint, rest are column values
-                column_values = args[:-1] if len(args) > 1 else args
-                stream_endpoint = args[-1] if len(args) > 1 else ''
-                
-                # Write violating row to pending file
-                # Format: tab-separated values
-                with self._pending_file_lock:
-                    with open(self._pending_file_path, 'a') as f:
-                        row_data = '\t'.join(str(val).lower() if isinstance(val, bool) else str(val) for val in column_values)
-                        f.write(f"{row_data}\n")
-                        f.flush()
+        def address_violating_rows(*args) -> bool:
+            """address_violating_rows function that handles violating rows with LLM.
+            
+            Calls LLM to try to fix the row, writes fixed row to stream if successful.
+            
+            Args:
+                *args: Variable arguments - columns, constraint, description, column_names_json, stream_endpoint.
+                      Format: col1, col2, ..., constraint, description, column_names_json, stream_endpoint
+                      (stream_endpoint is last for async_rewrite compatibility)
+            
+            Returns:
+                bool: False to filter out the violating row.
+            """
+            if not args or len(args) < 4:
+                return False
+            
+            # Last four arguments are: constraint, description, column_names_json, stream_endpoint
+            # Rest are column values
+            column_values = list(args[:-4]) if len(args) >= 4 else []
+            constraint = args[-4] if len(args) >= 4 else ''
+            description = args[-3] if len(args) >= 3 else ''
+            column_names_json = args[-2] if len(args) >= 2 else ''
+            stream_endpoint = args[-1] if len(args) >= 1 else ''
+            
+            # Strip quotes from stream_endpoint if present (SQL string literals include quotes)
+            if stream_endpoint:
+                print(f"[UDF] Raw stream_endpoint received: {repr(stream_endpoint)}")
+                stream_endpoint = stream_endpoint.strip().strip("'").strip('"')
+                print(f"[UDF] Cleaned stream_endpoint: {repr(stream_endpoint)}")
+            
+            # Parse column names from JSON string
+            column_names = None
+            if column_names_json:
+                try:
+                    # Strip quotes from JSON string if present
+                    column_names_json_cleaned = column_names_json.strip().strip("'").strip('"')
+                    column_names = json.loads(column_names_json_cleaned)
+                    print(f"[UDF] Parsed column names: {column_names}")
+                    print(f"[UDF] Column values count: {len(column_values)}, Column names count: {len(column_names) if column_names else 0}")
+                    # Validate that column names match column values count
+                    if column_names and len(column_names) != len(column_values):
+                        print(f"[UDF] WARNING: Column names count ({len(column_names)}) doesn't match column values count ({len(column_values)})")
+                        print(f"[UDF] Column names: {column_names}")
+                        print(f"[UDF] Column values: {column_values}")
+                except Exception as e:
+                    print(f"[UDF] Failed to parse column names JSON: {e}")
+                    column_names = None
+            
+            # If we have constraint and bedrock client, try to fix with LLM
+            if constraint and self._bedrock_client:
+                try:
+                    fixed_values = self._call_llm_to_fix_row(
+                        constraint, 
+                        description if description else None,
+                        column_values, 
+                        column_names
+                    )
                     
-                    self._violating_rows_count += 1
-                    print(f"[UDF] Violating row #{self._violating_rows_count} written to pending file: {row_data}")
-                
-                # Return False to filter out from original query (it will come from stream if user passes it)
-                return False
-        else:
-            def address_violating_rows(*args) -> bool:
-                """Default address_violating_rows function for HUMAN resolution.
-                
-                This default implementation returns False to filter out violating rows.
-                Enable human_review_enabled to write rows to a file for review.
-                
-                Args:
-                    *args: Variable arguments - columns from the constraint plus stream_endpoint.
-                
-                Returns:
-                    bool: False to filter out the violating row.
-                """
-                return False
+                    if fixed_values:
+                        # Write fixed row to stream file
+                        if stream_endpoint:
+                            try:
+                                # Ensure values are written in the same order as column_names
+                                # Format: tab-separated values matching the SELECT output column order
+                                row_data = '\t'.join(str(val).lower() if isinstance(val, bool) else str(val) for val in fixed_values)
+                                print(f"[UDF] About to write fixed row to stream file: {stream_endpoint}")
+                                print(f"[UDF] Row data to write: {row_data}")
+                                
+                                # Check if file exists before writing
+                                import os
+                                file_exists_before = os.path.exists(stream_endpoint)
+                                file_size_before = os.path.getsize(stream_endpoint) if file_exists_before else 0
+                                print(f"[UDF] File exists before write: {file_exists_before}, size: {file_size_before}")
+                                
+                                with open(stream_endpoint, 'a') as f:
+                                    f.write(f"{row_data}\n")
+                                    f.flush()
+                                    # Force sync to disk
+                                    os.fsync(f.fileno())
+                                
+                                file_size_after = os.path.getsize(stream_endpoint)
+                                print(f"[UDF] LLM fixed violating row and wrote to stream: {row_data}")
+                                print(f"[UDF] File size after write: {file_size_after} (was {file_size_before})")
+                                print(f"[UDF] Column names: {column_names}")
+                                print(f"[UDF] Fixed values count: {len(fixed_values)}, Column names count: {len(column_names) if column_names else 0}")
+                            except Exception as e:
+                                print(f"[WARNING] Failed to write fixed row to stream: {e}")
+                                import traceback
+                                traceback.print_exc()
+                        
+                        # Return False to filter out original row (fixed version is in stream)
+                        return False
+                    else:
+                        # LLM couldn't fix it
+                        print(f"[UDF] LLM could not fix violating row")
+                except Exception as e:
+                    # If LLM call fails
+                    print(f"[WARNING] Error in LLM resolution: {e}")
+            
+            # Return False to filter out from original query
+            return False
         
         # Register with a flexible signature - DuckDB will handle the variable arguments
         # We use a generic signature that accepts any number of arguments
         self.conn.create_function('address_violating_rows', address_violating_rows, return_type='BOOLEAN')
 
-    def get_pending_file_path(self) -> Optional[str]:
-        """Get the path to the pending file containing violating rows.
-        
-        Returns:
-            Path to pending file if human review is enabled, None otherwise.
-        """
-        return self._pending_file_path if self._human_review_enabled else None
-    
     def get_stream_file_path(self) -> Optional[str]:
-        """Get the path to the stream file for approved rows.
+        """Get the path to the stream file for LLM-fixed rows.
         
         Returns:
-            Path to stream file if human review is enabled, None otherwise.
+            Path to stream file.
         """
-        return self._stream_file_path if self._human_review_enabled else None
-    
-    def get_violating_rows_count(self) -> int:
-        """Get the number of violating rows collected so far.
-        
-        Returns:
-            Number of violating rows written to the pending file.
-        """
-        return self._violating_rows_count if self._human_review_enabled else 0
-    
-    def review_pending_rows(self) -> list[dict]:
-        """Read and return all pending violating rows from the pending file.
-        
-        Returns:
-            List of dictionaries, each containing the row data as key-value pairs.
-            Returns empty list if human review is not enabled or file doesn't exist.
-        """
-        if not self._human_review_enabled or not self._pending_file_path:
-            return []
-        
-        if not os.path.exists(self._pending_file_path):
-            return []
-        
-        rows = []
-        with open(self._pending_file_path, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    parts = line.split('\t')
-                    # Convert to dict with indexed keys (col0, col1, etc.)
-                    # Users can customize this based on their column names
-                    row_dict = {f'col{i}': part for i, part in enumerate(parts)}
-                    rows.append(row_dict)
-        
-        return rows
-    
-    def approve_row(self, row_data: list) -> None:
-        """Approve a row by writing it to the stream file.
-        
-        Args:
-            row_data: List of column values to write to the stream file.
-                     Should match the format written to pending file (tab-separated).
-        """
-        if not self._human_review_enabled or not self._stream_file_path:
-            return
-        
-        with open(self._stream_file_path, 'a') as f:
-            row_str = '\t'.join(str(val).lower() if isinstance(val, bool) else str(val) for val in row_data)
-            f.write(f"{row_str}\n")
-            f.flush()
+        return self._stream_file_path
     
     def close(self) -> None:
         """Close the DuckDB connection."""

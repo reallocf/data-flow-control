@@ -1673,6 +1673,7 @@ name = "sql-rewriter"
 version = "0.1.0"
 source = { editable = "../sql_rewriter" }
 dependencies = [
+    { name = "boto3" },
     { name = "duckdb" },
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
@@ -1682,12 +1683,16 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "boto3", specifier = ">=1.26.0" },
     { name = "duckdb", specifier = "==1.4.1" },
     { name = "numpy", specifier = ">=1.24.4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "sqlglot", specifier = ">=24.0.0" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.4.2" }]
 
 [[package]]
 name = "sqlglot"

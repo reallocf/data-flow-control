@@ -10,15 +10,31 @@ Uses a global shared DuckDB instance that persists across all Streamlit sessions
 
 import os
 import threading
+from pathlib import Path
 import duckdb
 import pandas as pd
 import use_local_duckdb  # Must be imported before duckdb to configure environment
 from sql_rewriter import SQLRewriter, DFCPolicy
 from utils import SCHEMAS, validate_csv_schema
+from agent import create_bedrock_client, BEDROCK_MODEL_ID
 
 # Initialize local DuckDB environment
 # Fail loudly if the library doesn't exist
 use_local_duckdb.setup_local_duckdb()
+
+# Get extension path for loading external extension
+_SCRIPT_DIR = Path(__file__).parent
+_PROJECT_ROOT = _SCRIPT_DIR.parent
+_EXT_PATH = _PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "repository" / "v1.4.1" / "osx_arm64" / "external.duckdb_extension"
+if not _EXT_PATH.exists():
+    alt_paths = [
+        _PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "extension" / "external" / "external.duckdb_extension",
+        _PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "external.duckdb_extension",
+    ]
+    for alt_path in alt_paths:
+        if alt_path.exists():
+            _EXT_PATH = alt_path
+            break
 
 # Global shared database connection (initialized once per server)
 _db_rewriter = None
@@ -46,10 +62,35 @@ def get_db_connection(tax_return_path=None, form_1099_k_path=None, bank_txn_path
     with _db_lock:
         if _db_rewriter is None:
             # Create in-memory database connection (once per server)
-            conn = duckdb.connect()
+            conn = duckdb.connect(
+                database=":memory:",
+                config={"allow_unsigned_extensions": "true"},
+            )
+            
+            # Load the external extension (required for async rewrite and external operator)
+            if _EXT_PATH.exists():
+                conn.execute(f"LOAD '{_EXT_PATH}'")
+                print(f"[DB] Loaded external extension from {_EXT_PATH}")
+            else:
+                print(f"[WARNING] External extension not found at {_EXT_PATH}. Async rewrite will not work.")
+            
             initialize_tables(conn)
-            # Wrap with SQLRewriter
-            _db_rewriter = SQLRewriter(conn=conn)
+            
+            # Create Bedrock client for LLM resolution policies
+            try:
+                bedrock_client = create_bedrock_client()
+            except Exception as e:
+                # If Bedrock client creation fails, continue without it
+                # LLM resolution policies won't work, but other functionality will
+                print(f"[WARNING] Failed to create Bedrock client: {e}. LLM resolution policies will not be available.")
+                bedrock_client = None
+            
+            # Wrap with SQLRewriter, passing Bedrock client and model ID
+            _db_rewriter = SQLRewriter(
+                conn=conn,
+                bedrock_client=bedrock_client,
+                bedrock_model_id=BEDROCK_MODEL_ID
+            )
             
             # Load data from file paths if provided
             if tax_return_path or form_1099_k_path or bank_txn_path:
@@ -261,8 +302,10 @@ def load_data_from_files(rewriter, tax_return_path=None, form_1099_k_path=None, 
 def load_policies_from_file(rewriter, policies_path):
     """Load policies from a CSV file and register them.
     
-    The CSV file should have a single column named 'policy' with policy statements
-    in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>
+    The CSV file should have a 'policy' column with policy statements
+    in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
+    Optionally, the CSV can have a separate 'description' column that will be used if DESCRIPTION
+    is not present in the policy string.
     
     Args:
         rewriter: SQLRewriter instance
@@ -293,6 +336,12 @@ def load_policies_from_file(rewriter, policies_path):
             try:
                 # Parse and create the policy from string
                 policy = DFCPolicy.from_policy_str(policy_text)
+                
+                # If description column exists and policy doesn't have a description, use CSV description
+                if 'description' in df.columns and not policy.description:
+                    csv_description = str(row['description']).strip()
+                    if csv_description and csv_description.lower() != 'nan':
+                        policy.description = csv_description
                 
                 # Register the policy (this will validate against database)
                 rewriter.register_policy(policy)

@@ -1,7 +1,2 @@
 txn_id,amount,category,description
-1,1500.00,saber,Excalibur
-2,-250.00,supplies,Coal and fuel
-3,2000.00,equine,Horseshoe set
-4,-500.00,supplies,Steel and iron
-5,-85.50,meal,The Forge & Fork Restaurant
-6,-45.00,entertainment,Netflix subscription
+1,-85.50,meal,The Forge & Fork Restaurant

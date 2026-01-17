@@ -25,6 +25,32 @@ except Exception as e:
     st.error(f"Failed to connect to database: {str(e)}")
     st.stop()
 
+# Reset button
+if st.button("Reset Page", type="secondary"):
+    try:
+        # Truncate irs_form table
+        rewriter.conn.execute("DELETE FROM irs_form")
+        
+        # Truncate agent_logs table
+        rewriter.conn.execute("DELETE FROM agent_logs")
+        
+        # Clear session state
+        if 'agent_processing' in st.session_state:
+            st.session_state.agent_processing = False
+        if 'agent_progress' in st.session_state:
+            st.session_state.agent_progress = []
+        if 'transactions_to_process' in st.session_state:
+            st.session_state.transactions_to_process = []
+        if 'current_txn_index' in st.session_state:
+            st.session_state.current_txn_index = 0
+        if 'tax_return_info' in st.session_state:
+            st.session_state.tax_return_info = None
+        
+        st.success("Page reset successfully!")
+        st.rerun()
+    except Exception as e:
+        st.error(f"Error resetting page: {str(e)}")
+
 # Check if there are any existing agent logs
 try:
     existing_logs = db.load_agent_logs(rewriter)

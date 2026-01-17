@@ -247,8 +247,8 @@ def test_resolution_enum():
     """Test Resolution enum values."""
     assert Resolution.REMOVE.value == "REMOVE"
     assert Resolution.KILL.value == "KILL"
-    assert Resolution.HUMAN.value == "HUMAN"
     assert Resolution.INVALIDATE.value == "INVALIDATE"
+    assert Resolution.LLM.value == "LLM"
 
 
 def test_policy_complex_constraint():

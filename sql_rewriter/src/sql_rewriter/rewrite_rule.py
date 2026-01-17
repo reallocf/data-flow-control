@@ -3,6 +3,7 @@
 import sqlglot
 from sqlglot import exp
 from typing import Set, List, Optional
+import json
 
 from .policy import DFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
@@ -90,15 +91,17 @@ def _extract_columns_from_constraint(
     return columns
 
 
-def _wrap_human_constraint(
+def _wrap_llm_constraint(
     constraint_expr: exp.Expression,
     policy: DFCPolicy,
     source_tables: Set[str],
     stream_file_path: Optional[str] = None,
     sink_table: Optional[str] = None,
-    sink_to_output_mapping: Optional[dict[str, str]] = None
+    sink_to_output_mapping: Optional[dict[str, str]] = None,
+    parsed: Optional[exp.Select] = None,
+    insert_columns: Optional[List[str]] = None
 ) -> exp.Expression:
-    """Wrap a constraint expression in CASE WHEN for HUMAN resolution policies.
+    """Wrap a constraint expression in CASE WHEN for LLM resolution policies.
     
     When the constraint fails, calls address_violating_rows with columns from the
     constraint. The function returns False to filter out the row, allowing it to
@@ -111,28 +114,211 @@ def _wrap_human_constraint(
         stream_file_path: Optional path to stream file for approved rows.
         sink_table: Optional sink table name (for INSERT statements).
         sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
+        parsed: Optional parsed SELECT statement to extract all output columns from.
+        insert_columns: Optional list of column names in INSERT column list (for INSERT statements).
         
     Returns:
         A CASE WHEN expression that returns true if constraint passes,
         or calls address_violating_rows() if constraint fails.
     """
-    # Extract columns from the constraint that belong to source or sink tables
-    columns = _extract_columns_from_constraint(
-        constraint_expr, source_tables, sink_table, sink_to_output_mapping
+    columns = []
+    column_names = []
+    
+    # First, extract source table columns from the constraint and add them to the UDF call
+    # These columns are needed for the UDF but should NOT be added to the SELECT output
+    # (they'll be available in the filter child for constraint evaluation, but not in SELECT)
+    if source_tables:
+        # Find which source tables are actually present in the query (FROM/JOIN/subqueries/CTEs)
+        actual_source_tables = set()
+        if parsed:
+            for table in parsed.find_all(exp.Table):
+                # Only consider tables in FROM/JOIN clauses, not in column references
+                if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
+                    actual_source_tables.add(table.name.lower())
+            
+            # Also check subqueries and CTEs for source tables
+            for subquery in parsed.find_all(exp.Subquery):
+                if isinstance(subquery.this, exp.Select):
+                    for table in subquery.this.find_all(exp.Table):
+                        if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
+                            actual_source_tables.add(table.name.lower())
+        
+        # Extract source table columns from constraint and add to UDF call
+        # These will be passed to the UDF and written to the stream, but NOT added to SELECT
+        # NOTE: Even if the source table is not in the query's FROM clause (e.g., no FROM clause),
+        # we still need to include source columns if they're referenced in the constraint,
+        # because the constraint might reference them for evaluation purposes
+        for column in constraint_expr.find_all(exp.Column):
+            table_name = get_table_name_from_column(column)
+            # Include if table is in source_tables (from policy)
+            # We check actual_source_tables, but if it's empty (no FROM clause), we still include
+            # source columns if they're in the policy's source_tables
+            if table_name and table_name in source_tables:
+                # Only require actual_source_tables check if we have a FROM clause
+                # If no FROM clause (actual_source_tables is empty), still include source columns
+                if actual_source_tables and table_name.lower() not in actual_source_tables:
+                    continue  # Skip if FROM clause exists but table is not in it
+                
+                column_name = get_column_name(column)
+                # Check if we already have this column (don't duplicate)
+                already_included = any(
+                    isinstance(c, exp.Column) and 
+                    get_table_name_from_column(c) and
+                    get_table_name_from_column(c).lower() == table_name.lower() and
+                    get_column_name(c).lower() == column_name.lower()
+                    for c in columns
+                )
+                if not already_included:
+                    # Add source column to UDF call (qualified: bank_txn.category)
+                    # NOTE: We do NOT add it to the SELECT output because:
+                    # 1. The filter is applied to the table scan, so category is available from the table scan
+                    # 2. Adding it to SELECT would make the SELECT have 5 columns, but INSERT expects 4
+                    # 3. The UDF can access category from the filter child (table scan) via the column reference
+                    
+                    # Add to UDF call arguments (this makes it available to the UDF)
+                    col_expr = exp.Column(
+                        this=exp.Identifier(this=column_name, quoted=False),
+                        table=exp.Identifier(this=table_name, quoted=False)
+                    )
+                    columns.append(col_expr)
+                    column_names.append(f"{table_name}.{column_name}")
+                    print(f"[REWRITE_RULE] Added source column to UDF: {table_name}.{column_name} (NOT added to SELECT output)")
+    
+    # Now extract all columns from the SELECT output
+    # These are the columns that will be in the final SELECT output (for INSERT)
+    if parsed:
+        for expr in parsed.expressions:
+            col_name = None
+            table_name = None
+            if isinstance(expr, exp.Alias):
+                # Expression with alias (e.g., ABS(amount) AS amount)
+                # Use the alias name to reference the column
+                if isinstance(expr.alias, exp.Identifier):
+                    col_name = expr.alias.name
+                elif isinstance(expr.alias, str):
+                    col_name = expr.alias
+                else:
+                    col_name = str(expr.alias)
+                # Check if the expression itself is a column (e.g., bank_txn.category AS category)
+                if isinstance(expr.this, exp.Column):
+                    table_name = get_table_name_from_column(expr.this)
+            elif isinstance(expr, exp.Column):
+                # Column without alias - use column name
+                col_name = get_column_name(expr)
+                table_name = get_table_name_from_column(expr)
+            elif isinstance(expr, exp.Star):
+                # SELECT * - can't extract individual columns
+                # Fall back to extracting from constraint
+                break
+            else:
+                # Other expression types (e.g., literals, function calls without alias)
+                # Try to get a name from the expression if possible
+                # For now, skip these - they're not typically needed for LLM fixing
+                # If needed, we could generate a position-based name like "col0", "col1", etc.
+                pass
+            
+            # Include all columns from SELECT for the UDF call
+            # This includes source table columns (like "category") needed for constraints
+            if col_name:
+                # Check if we already have this column (don't duplicate)
+                already_included = any(
+                    isinstance(c, exp.Column) and 
+                    get_column_name(c).lower() == col_name.lower()
+                    for c in columns
+                )
+                if not already_included:
+                    # Create column reference using the alias or column name
+                    output_col = exp.Column(
+                        this=exp.Identifier(this=col_name, quoted=False)
+                    )
+                    columns.append(output_col)
+                    # Use qualified name if it's a source table column, otherwise just the column name
+                    if table_name and table_name in source_tables:
+                        column_names.append(f"{table_name}.{col_name}")
+                    else:
+                        column_names.append(col_name.lower())
+    else:
+        # Fallback: Extract only sink table columns from the constraint
+        # This is the old behavior for backwards compatibility
+        if sink_table and sink_to_output_mapping:
+            for column in constraint_expr.find_all(exp.Column):
+                table_name = get_table_name_from_column(column)
+                # Only include sink table columns
+                if table_name and table_name == sink_table:
+                    col_name = get_column_name(column).lower()
+                    if col_name in sink_to_output_mapping:
+                        output_col_name = sink_to_output_mapping[col_name]
+                        # Check if we already have this column (don't duplicate)
+                        already_included = any(
+                            get_column_name(col).lower() == output_col_name.lower()
+                            for col in columns
+                        )
+                        if not already_included:
+                            # Create unqualified column reference to SELECT output
+                            output_col = exp.Column(
+                                this=exp.Identifier(this=output_col_name, quoted=False)
+                            )
+                            columns.append(output_col)
+                            column_names.append(output_col_name)
+        
+        # For INSERT statements, also include specific columns: txn_id, amount, kind, business_use_pct
+        if sink_table and sink_to_output_mapping:
+            # HACK -- hard coded
+            additional_columns = ['txn_id', 'amount', 'kind', 'business_use_pct']
+            for col_name in additional_columns:
+                if col_name in sink_to_output_mapping:
+                    output_col_name = sink_to_output_mapping[col_name]
+                    # Check if we already have this column (don't duplicate)
+                    already_included = any(
+                        isinstance(col, exp.Column) and 
+                        get_column_name(col).lower() == output_col_name.lower()
+                        for col in columns
+                    )
+                    if not already_included:
+                        # Create unqualified column reference to SELECT output
+                        output_col = exp.Column(
+                            this=exp.Identifier(this=output_col_name, quoted=False)
+                        )
+                        columns.append(output_col)
+                        # Add column name in same order as column is added
+                        column_names.append(output_col_name)
+    
+    # Ensure column_names matches columns exactly (same order and count)
+    # This is critical for the UDF to receive values in the correct order
+    assert len(column_names) == len(columns), (
+        f"Column names count ({len(column_names)}) must match columns count ({len(columns)})"
     )
     
     # Build the address_violating_rows function call
-    # Pass stream_file_path as the last argument
-    if stream_file_path:
-        # Escape single quotes in the path
-        escaped_path = stream_file_path.replace("'", "''")
-        stream_endpoint = exp.Literal(this=f"'{escaped_path}'", is_string=True)
-    else:
-        stream_endpoint = exp.Literal(this="''", is_string=True)
+    # Order: columns, constraint, description, column_names_json, stream_endpoint (stream_endpoint is last for async_rewrite)
+    # Escape policy constraint and description for SQL string literals
+    constraint_str = policy.constraint.replace("'", "''")
+    description_str = (policy.description or "").replace("'", "''")
     
-    # Create function call with columns and stream_endpoint
-    # address_violating_rows(col1, col2, ..., stream_endpoint)
-    expressions = columns + [stream_endpoint]
+    # Debug: Print column names and columns to verify source columns are included
+    print(f"[REWRITE_RULE] Column names for UDF: {column_names}")
+    print(f"[REWRITE_RULE] Number of columns: {len(columns)}, Number of column names: {len(column_names)}")
+    
+    # Create JSON string of column names
+    column_names_json = json.dumps(column_names)
+    # Escape single quotes in JSON string for SQL
+    column_names_json_escaped = column_names_json.replace("'", "''")
+    
+    constraint_literal = exp.Literal(this=f"'{constraint_str}'", is_string=True)
+    description_literal = exp.Literal(this=f"'{description_str}'", is_string=True)
+    column_names_literal = exp.Literal(this=f"'{column_names_json_escaped}'", is_string=True)
+    
+    # stream_endpoint is last (for async_rewrite to find it easily)
+    # Pass path directly without escaping (file paths don't contain quotes)
+    # This matches db_example.py which uses f-string interpolation: '{stream_path}'
+    if stream_file_path:
+        stream_endpoint = exp.Literal(this=stream_file_path, is_string=True)
+    else:
+        stream_endpoint = exp.Literal(this="", is_string=True)
+    
+    # Create function call with columns, constraint, description, column_names_json, stream_endpoint
+    # address_violating_rows(col1, col2, ..., constraint, description, column_names_json, stream_endpoint)
+    expressions = columns + [constraint_literal, description_literal, column_names_literal, stream_endpoint]
     address_call = exp.Anonymous(this="address_violating_rows", expressions=expressions)
     
     return exp.Case(
@@ -256,7 +442,8 @@ def apply_policy_constraints_to_aggregation(
     stream_file_path: Optional[str] = None,
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
-    replace_existing_valid: bool = False
+    replace_existing_valid: bool = False,
+    insert_columns: Optional[List[str]] = None
 ) -> None:
     """Apply policy constraints to an aggregation query.
     
@@ -267,7 +454,7 @@ def apply_policy_constraints_to_aggregation(
         parsed: The parsed SELECT statement to modify.
         policies: List of policies to apply.
         source_tables: Set of source table names in the query.
-        stream_file_path: Optional path to stream file for HUMAN resolution.
+        stream_file_path: Optional path to stream file for LLM resolution.
         sink_table: Optional sink table name (for INSERT statements).
         sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
     """
@@ -300,10 +487,11 @@ def apply_policy_constraints_to_aggregation(
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
-        elif policy.on_fail == Resolution.HUMAN:
-            constraint_expr = _wrap_human_constraint(
+        elif policy.on_fail == Resolution.LLM:
+            constraint_expr = _wrap_llm_constraint(
                 constraint_expr, policy, source_tables, stream_file_path,
-                sink_table, sink_to_output_mapping
+                sink_table, sink_to_output_mapping, parsed=parsed,
+                insert_columns=insert_columns
             )
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
         elif policy.on_fail == Resolution.INVALIDATE:
@@ -866,7 +1054,8 @@ def apply_policy_constraints_to_scan(
     stream_file_path: Optional[str] = None,
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
-    replace_existing_valid: bool = False
+    replace_existing_valid: bool = False,
+    insert_columns: Optional[List[str]] = None
 ) -> None:
     """Apply policy constraints to a non-aggregation query (table scan).
     
@@ -879,7 +1068,7 @@ def apply_policy_constraints_to_scan(
         parsed: The parsed SELECT statement to modify.
         policies: List of policies to apply.
         source_tables: Set of source table names in the query.
-        stream_file_path: Optional path to stream file for HUMAN resolution.
+        stream_file_path: Optional path to stream file for LLM resolution.
         sink_table: Optional sink table name (for INSERT statements).
         sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
     """
@@ -912,10 +1101,11 @@ def apply_policy_constraints_to_scan(
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
-        elif policy.on_fail == Resolution.HUMAN:
-            constraint_expr = _wrap_human_constraint(
+        elif policy.on_fail == Resolution.LLM:
+            constraint_expr = _wrap_llm_constraint(
                 constraint_expr, policy, source_tables, stream_file_path,
-                sink_table, sink_to_output_mapping
+                sink_table, sink_to_output_mapping, parsed=parsed,
+                insert_columns=insert_columns
             )
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
         elif policy.on_fail == Resolution.INVALIDATE:

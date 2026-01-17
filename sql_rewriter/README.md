@@ -6,7 +6,8 @@ A SQL query rewriter that intercepts queries, applies Data Flow Control (DFC) po
 
 - **Query Interception**: Automatically transforms SQL queries before execution
 - **Data Flow Control Policies**: Define constraints on data movement between source and sink tables
-- **Policy Resolution**: Two modes - `REMOVE` (filter rows) or `KILL` (abort query)
+- **Policy Resolution**: Multiple modes - `REMOVE` (filter rows), `KILL` (abort query), `LLM` (AI-fix violating rows), `INVALIDATE` (mark rows as invalid)
+- **LLM Integration**: Uses AWS Bedrock to automatically fix violating rows based on policy constraints
 - **Aggregation Support**: Handles both aggregation queries (HAVING clauses) and table scans (WHERE clauses)
 - **Subquery and CTE Support**: Automatically handles subqueries and Common Table Expressions (CTEs), adding missing columns needed for policy evaluation
 - **DuckDB Integration**: Executes transformed queries against DuckDB with full SQL support
@@ -89,6 +90,35 @@ with SQLRewriter() as rewriter:
     # Only returns rows where the aggregation constraint passes
 ```
 
+### Using LLM Resolution
+
+```python
+import boto3
+from sql_rewriter import SQLRewriter, DFCPolicy, Resolution
+
+# Create a Bedrock client
+bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-2")
+
+# Create a rewriter with Bedrock client for LLM resolution
+with SQLRewriter(bedrock_client=bedrock_client) as rewriter:
+    rewriter.execute("CREATE TABLE transactions (id INTEGER, amount DOUBLE, description VARCHAR)")
+    rewriter.execute("INSERT INTO transactions VALUES (1, 100.0, 'Purchase'), (2, -50.0, 'Refund')")
+    
+    # Policy that uses LLM to fix violating rows
+    policy = DFCPolicy(
+        source="transactions",
+        constraint="transactions.amount > 0",
+        on_fail=Resolution.LLM,  # AI will try to fix violating rows
+        description="Only positive amounts allowed"
+    )
+    rewriter.register_policy(policy)
+    
+    # Query - violating rows will be fixed by LLM and written to stream file
+    results = rewriter.fetchall("SELECT * FROM transactions")
+    # Fixed rows are available in the stream file
+    stream_path = rewriter.get_stream_file_path()
+```
+
 ## Usage
 
 ### Creating Policies
@@ -131,6 +161,8 @@ policy3 = DFCPolicy(
 
 - **`Resolution.REMOVE`**: Filters out rows/results that don't meet the constraint
 - **`Resolution.KILL`**: Aborts the entire query if any row fails the constraint
+- **`Resolution.LLM`**: Uses AI (via AWS Bedrock) to automatically fix violating rows. Fixed rows are written to a stream file. Requires a Bedrock client to be passed to the SQLRewriter constructor.
+- **`Resolution.INVALIDATE`**: Adds a 'valid' column to the query results, marking rows that fail the constraint as invalid (false) and valid rows as true
 
 ### Registering Policies
 
@@ -220,6 +252,35 @@ with SQLRewriter() as rewriter:
         results = rewriter.fetchall("SELECT * FROM sensitive")
     except Exception as e:
         print("Query aborted:", e)
+```
+
+### Using LLM to Fix Violating Rows
+
+```python
+import boto3
+from sql_rewriter import SQLRewriter, DFCPolicy, Resolution
+
+# Create Bedrock client for LLM resolution
+bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-2")
+
+with SQLRewriter(bedrock_client=bedrock_client) as rewriter:
+    rewriter.execute("CREATE TABLE products (id INTEGER, price DOUBLE, category VARCHAR)")
+    rewriter.execute("INSERT INTO products VALUES (1, -10.0, 'Electronics'), (2, 50.0, 'Books')")
+    
+    # Policy that uses LLM to fix negative prices
+    policy = DFCPolicy(
+        source="products",
+        constraint="products.price >= 0",
+        on_fail=Resolution.LLM,
+        description="Prices must be non-negative"
+    )
+    rewriter.register_policy(policy)
+    
+    # Query - LLM will attempt to fix the negative price row
+    results = rewriter.fetchall("SELECT * FROM products")
+    # Fixed rows are written to the stream file
+    stream_path = rewriter.get_stream_file_path()
+    print(f"Fixed rows available at: {stream_path}")
 ```
 
 ## Testing

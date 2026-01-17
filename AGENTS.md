@@ -11,7 +11,7 @@ This project implements Data Flow Control (DFC) policies that can filter or abor
 ### Policy System
 
 - **Validation split**: Syntax validation at policy creation, catalog validation at registration
-- **Resolution types**: `REMOVE` filters rows, `KILL` aborts the query
+- **Resolution types**: `REMOVE` filters rows, `KILL` aborts the query, `LLM` uses AI to fix violating rows, `INVALIDATE` marks rows as invalid
 - **Column qualification**: All constraint columns must be qualified with table names
 - **Source aggregation**: Source columns must be aggregated when source is present
 
@@ -128,7 +128,11 @@ assert "SELECT" in result
 
 1. **Policy validation split**: Syntax validation at creation, catalog validation at registration
 2. **Aggregation vs scan**: Different transformation strategies (HAVING vs WHERE)
-3. **KILL vs REMOVE**: KILL wraps in CASE WHEN to abort query, REMOVE filters rows
+3. **Resolution types**: 
+   - `KILL` wraps in CASE WHEN to abort query
+   - `REMOVE` filters rows
+   - `LLM` uses AI to fix violating rows and writes them to stream file
+   - `INVALIDATE` marks rows with a 'valid' column
 4. **Column qualification required**: Simplifies source/sink identification
 5. **Source columns must be aggregated**: Ensures constraints work correctly in aggregation context
 

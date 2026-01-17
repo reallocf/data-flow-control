@@ -229,6 +229,44 @@ def test_register_policy_stores_policies(rewriter):
     assert policy2 in rewriter._policies
 
 
+def test_register_policy_with_description(rewriter):
+    """Test that policy descriptions are preserved when registering and retrieving."""
+    policy_with_description = DFCPolicy(
+        source="foo",
+        constraint="max(foo.id) >= 1",
+        on_fail=Resolution.REMOVE,
+        description="Test policy description",
+    )
+    policy_without_description = DFCPolicy(
+        sink="baz",
+        constraint="baz.x > 5",
+        on_fail=Resolution.KILL,
+    )
+    
+    rewriter.register_policy(policy_with_description)
+    rewriter.register_policy(policy_without_description)
+    
+    # Retrieve policies using public API
+    policies = rewriter.get_dfc_policies()
+    assert len(policies) == 2
+    
+    # Find the policy with description
+    policy_with_desc = next((p for p in policies if p.description == "Test policy description"), None)
+    assert policy_with_desc is not None
+    assert policy_with_desc.description == "Test policy description"
+    assert policy_with_desc.source == "foo"
+    assert policy_with_desc.constraint == "max(foo.id) >= 1"
+    assert policy_with_desc.on_fail == Resolution.REMOVE
+    
+    # Find the policy without description
+    policy_without_desc = next((p for p in policies if p.description is None), None)
+    assert policy_without_desc is not None
+    assert policy_without_desc.description is None
+    assert policy_without_desc.sink == "baz"
+    assert policy_without_desc.constraint == "baz.x > 5"
+    assert policy_without_desc.on_fail == Resolution.KILL
+
+
 def test_transform_query_with_join(rewriter):
     """Test that transform_query handles JOINs correctly."""
     # Query with JOIN - foo is in the JOIN, so bar should be added
@@ -2947,3 +2985,345 @@ WHERE
   )"""
         
         assert transformed == expected
+
+
+class TestDeletePolicy:
+    """Tests for delete_policy functionality."""
+    
+    def test_delete_policy_by_all_fields(self, rewriter):
+        """Test deleting a policy by matching all fields."""
+        policy = DFCPolicy(
+            source="foo",
+            sink="baz",
+            constraint="min(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+            description="Test policy"
+        )
+        rewriter.register_policy(policy)
+        
+        assert len(rewriter.get_dfc_policies()) == 1
+        
+        # Delete by all fields
+        deleted = rewriter.delete_policy(
+            source="foo",
+            sink="baz",
+            constraint="min(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+            description="Test policy"
+        )
+        
+        assert deleted is True
+        assert len(rewriter.get_dfc_policies()) == 0
+    
+    def test_delete_policy_by_source_and_constraint(self, rewriter):
+        """Test deleting a policy by matching source and constraint only."""
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) < 10",
+            on_fail=Resolution.KILL,
+        )
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        
+        assert len(rewriter.get_dfc_policies()) == 2
+        
+        # Delete by source and constraint
+        deleted = rewriter.delete_policy(
+            source="foo",
+            constraint="max(foo.id) > 1"
+        )
+        
+        assert deleted is True
+        policies = rewriter.get_dfc_policies()
+        assert len(policies) == 1
+        assert policies[0].constraint == "max(foo.id) < 10"
+    
+    def test_delete_policy_by_sink_only(self, rewriter):
+        """Test deleting a policy by matching sink only."""
+        policy1 = DFCPolicy(
+            sink="baz",
+            constraint="baz.x > 5",
+            on_fail=Resolution.KILL,
+        )
+        policy2 = DFCPolicy(
+            sink="baz",
+            constraint="baz.x < 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        
+        assert len(rewriter.get_dfc_policies()) == 2
+        
+        # Delete by sink and constraint
+        deleted = rewriter.delete_policy(
+            sink="baz",
+            constraint="baz.x > 5"
+        )
+        
+        assert deleted is True
+        policies = rewriter.get_dfc_policies()
+        assert len(policies) == 1
+        assert policies[0].constraint == "baz.x < 20"
+    
+    def test_delete_policy_by_constraint_only(self, rewriter):
+        """Test deleting a policy by matching constraint only."""
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        policy2 = DFCPolicy(
+            source="baz",
+            constraint="max(baz.x) > 5",
+            on_fail=Resolution.KILL,
+        )
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        
+        assert len(rewriter.get_dfc_policies()) == 2
+        
+        # Delete by constraint only
+        deleted = rewriter.delete_policy(constraint="max(foo.id) > 1")
+        
+        assert deleted is True
+        policies = rewriter.get_dfc_policies()
+        assert len(policies) == 1
+        assert policies[0].constraint == "max(baz.x) > 5"
+    
+    def test_delete_policy_with_description(self, rewriter):
+        """Test deleting a policy that includes a description."""
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+            description="First policy"
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+            description="Second policy"
+        )
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        
+        assert len(rewriter.get_dfc_policies()) == 2
+        
+        # Delete by description
+        deleted = rewriter.delete_policy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            description="First policy"
+        )
+        
+        assert deleted is True
+        policies = rewriter.get_dfc_policies()
+        assert len(policies) == 1
+        assert policies[0].description == "Second policy"
+    
+    def test_delete_policy_without_description_matches_any(self, rewriter):
+        """Test that not providing description matches policies with or without description."""
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+            description="Has description"
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) < 10",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        
+        assert len(rewriter.get_dfc_policies()) == 2
+        
+        # Delete without description should match policy with description
+        deleted = rewriter.delete_policy(
+            source="foo",
+            constraint="max(foo.id) > 1"
+        )
+        
+        assert deleted is True
+        policies = rewriter.get_dfc_policies()
+        assert len(policies) == 1
+        assert policies[0].constraint == "max(foo.id) < 10"
+    
+    def test_delete_policy_by_on_fail(self, rewriter):
+        """Test deleting a policy by matching on_fail resolution."""
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.KILL,
+        )
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        
+        assert len(rewriter.get_dfc_policies()) == 2
+        
+        # Delete by on_fail
+        deleted = rewriter.delete_policy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE
+        )
+        
+        assert deleted is True
+        policies = rewriter.get_dfc_policies()
+        assert len(policies) == 1
+        assert policies[0].on_fail == Resolution.KILL
+    
+    def test_delete_policy_not_found_returns_false(self, rewriter):
+        """Test that deleting a non-existent policy returns False."""
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+        
+        # Try to delete a different policy
+        deleted = rewriter.delete_policy(
+            source="foo",
+            constraint="max(foo.id) > 100"  # Different constraint
+        )
+        
+        assert deleted is False
+        assert len(rewriter.get_dfc_policies()) == 1
+    
+    def test_delete_policy_requires_at_least_one_identifier(self, rewriter):
+        """Test that delete_policy requires at least one of source, sink, or constraint."""
+        with pytest.raises(ValueError, match="At least one of source, sink, or constraint must be provided"):
+            rewriter.delete_policy()
+    
+    def test_delete_policy_case_sensitive_matching(self, rewriter):
+        """Test that delete_policy matches are case-sensitive for table names."""
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+        
+        # Try to delete with different case (should not match)
+        deleted = rewriter.delete_policy(
+            source="FOO",  # Different case
+            constraint="max(foo.id) > 1"
+        )
+        
+        assert deleted is False
+        assert len(rewriter.get_dfc_policies()) == 1
+    
+    def test_delete_policy_multiple_policies_same_source(self, rewriter):
+        """Test deleting one of multiple policies with the same source."""
+        policy1 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        policy2 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.name) = 'Alice'",
+            on_fail=Resolution.KILL,
+        )
+        policy3 = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) < 10",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        rewriter.register_policy(policy3)
+        
+        assert len(rewriter.get_dfc_policies()) == 3
+        
+        # Delete middle policy
+        deleted = rewriter.delete_policy(
+            source="foo",
+            constraint="max(foo.name) = 'Alice'"
+        )
+        
+        assert deleted is True
+        policies = rewriter.get_dfc_policies()
+        assert len(policies) == 2
+        constraints = {p.constraint for p in policies}
+        assert "max(foo.id) > 1" in constraints
+        assert "max(foo.id) < 10" in constraints
+        assert "max(foo.name) = 'Alice'" not in constraints
+    
+    def test_delete_policy_with_source_and_sink(self, rewriter):
+        """Test deleting a policy that has both source and sink."""
+        policy = DFCPolicy(
+            source="foo",
+            sink="baz",
+            constraint="min(foo.id) = baz.x",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+        
+        assert len(rewriter.get_dfc_policies()) == 1
+        
+        # Delete by source, sink, and constraint
+        deleted = rewriter.delete_policy(
+            source="foo",
+            sink="baz",
+            constraint="min(foo.id) = baz.x"
+        )
+        
+        assert deleted is True
+        assert len(rewriter.get_dfc_policies()) == 0
+    
+    def test_delete_policy_with_empty_constraint_matches_any(self, rewriter):
+        """Test that empty constraint string matches any constraint."""
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+        
+        # Delete with empty constraint should match any constraint
+        deleted = rewriter.delete_policy(source="foo", constraint="")
+        
+        assert deleted is True
+        assert len(rewriter.get_dfc_policies()) == 0
+    
+    def test_delete_policy_verifies_policy_no_longer_applies(self, rewriter):
+        """Test that after deleting a policy, it no longer affects queries."""
+        policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+        
+        # Query should be transformed with policy
+        transformed = rewriter.transform_query("SELECT * FROM foo")
+        assert "max(foo.id) > 1" in transformed or "foo.id > 1" in transformed
+        
+        # Delete the policy
+        deleted = rewriter.delete_policy(
+            source="foo",
+            constraint="max(foo.id) > 1"
+        )
+        assert deleted is True
+        
+        # Query should no longer be transformed
+        transformed = rewriter.transform_query("SELECT * FROM foo")
+        assert "max(foo.id) > 1" not in transformed
+        assert "foo.id > 1" not in transformed
+        # The query should be unchanged (may have pretty printing)
+        assert "SELECT" in transformed and "FROM foo" in transformed
+        assert "max(foo.id)" not in transformed
