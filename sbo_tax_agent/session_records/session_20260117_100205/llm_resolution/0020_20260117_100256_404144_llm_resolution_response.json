@@ -1,0 +1,38 @@
+{
+  "type": "llm_resolution_response",
+  "sequence": 20,
+  "timestamp": "20260117_100256_404144",
+  "constraint": "'not min(bank_txn.category) = ''meal'' or irs_form.business_use_pct <= 50.0'",
+  "description": "'Meal expenses must have business use percentage <= 50%'",
+  "response": {
+    "model": "claude-haiku-4-5-20251001",
+    "id": "msg_bdrk_019W2aNi3rLoVofPbCaKL7f3",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "```json\n{\n  \"bank_txn.category\": \"meal\",\n  \"txn_id\": 5,\n  \"amount\": -85.5,\n  \"kind\": \"Expense\",\n  \"business_use_pct\": 50.0\n}\n```"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 233,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 68
+    }
+  },
+  "fixed_row_data": {
+    "bank_txn.category": "meal",
+    "txn_id": 5,
+    "amount": -85.5,
+    "kind": "Expense",
+    "business_use_pct": 50.0
+  }
+}

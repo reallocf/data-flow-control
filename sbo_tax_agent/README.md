@@ -88,6 +88,76 @@ Or with the local DuckDB wrapper:
 
 The app will open in your default web browser at `http://localhost:8501`.
 
+### Command-Line Arguments
+
+The app supports several command-line arguments for loading data and controlling LLM interaction:
+
+#### Data Loading Arguments
+
+- `--tax-return <path>`: Path to tax_return CSV file to load on startup
+- `--bank-txn <path>`: Path to bank_txn CSV file to load on startup
+- `--form-1099-k <path>`: Path to form_1099_k CSV file to load on startup
+- `--policies <path>`: Path to policies CSV file to load on startup
+
+Example:
+```bash
+uv run streamlit run app.py -- --tax-return data/tax_return.csv --bank-txn data/bank_txn.csv
+```
+
+#### LLM Recording and Replay
+
+- `--record <directory>`: Record all LLM requests and responses to files in the specified directory. Creates timestamped session directories with organized subdirectories for agent loop messages and LLM resolution responses.
+
+- `--replay <session_dir>`: Replay a previous session by returning recorded responses instead of calling the LLM. Useful for testing, debugging, or running without API costs.
+
+- `--delay <ms>`: Add a delay in milliseconds before returning replayed LLM responses. Only applies when `--replay` is used. Useful for demos to simulate network latency and make the replay look more realistic. Default: 0 (no delay).
+
+You can use both `--record` and `--replay` together to record a new session while replaying an old one.
+
+**Recording Example:**
+```bash
+uv run streamlit run app.py -- --record session_records
+```
+
+This creates a directory structure like:
+```
+session_records/
+  session_20260117_100205/
+    agent_loop/
+      0001_20260117_100224_202613_txn_1_iteration_1_request.json
+      0002_20260117_100226_912875_txn_1_iteration_1_response.json
+      ...
+    llm_resolution/
+      0019_20260117_100255_317016_llm_resolution_request.json
+      0020_20260117_100256_404144_llm_resolution_response.json
+      ...
+```
+
+**Replay Example:**
+```bash
+uv run streamlit run app.py -- --replay session_records/session_20260117_100205
+```
+
+**Replay with Delay (for demos):**
+```bash
+uv run streamlit run app.py -- --replay session_records/session_20260117_100205 --delay 500
+```
+
+When replaying:
+- The app loads all recorded requests and responses from the session directory
+- Incoming requests are matched to recorded requests (by transaction ID + iteration for agent loop, or constraint + description + row_data for LLM resolution)
+- If `--delay` is specified, waits the specified number of milliseconds before returning each response (simulates network latency)
+- Recorded responses are returned instead of calling the LLM
+- If no matching recorded response is found, the app falls back to calling the actual LLM
+- All replay activity is logged in the agent logs with `[REPLAY]` prefixes
+
+**Combined Example:**
+```bash
+uv run streamlit run app.py -- --record new_sessions --replay session_records/session_20260117_100205
+```
+
+This replays the old session but also records any new LLM calls that weren't in the original recording (e.g., if a request doesn't match).
+
 ### App Features
 
 The app has three main tabs:

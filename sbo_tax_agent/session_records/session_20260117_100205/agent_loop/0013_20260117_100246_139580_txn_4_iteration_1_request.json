@@ -1,0 +1,38 @@
+{
+  "type": "agent_loop_request",
+  "sequence": 13,
+  "timestamp": "20260117_100246_139580",
+  "transaction_id": "4",
+  "iteration": 1,
+  "request": {
+    "anthropic_version": "bedrock-2023-05-31",
+    "max_tokens": 4096,
+    "messages": [
+      {
+        "role": "user",
+        "content": "You are a tax agent analyzing bank transactions to identify business expenses and income.\n\nTAX RETURN CONTEXT:\n- Business Name: Smith Smithing\n- Business Description: Custom blacksmithing and metalworking services\n- Tax Year: 2023\n\nCURRENT TRANSACTION:\n- Transaction ID: 4\n- Amount: -500.0\n- Description: Steel and iron\n\nBANK_TXN TABLE SCHEMA:\n- txn_id (UBIGINT): Unique transaction identifier\n- amount (DOUBLE): Transaction amount\n- category (VARCHAR): Transaction category\n- description (VARCHAR): Transaction description text\n\nIRS_FORM TABLE SCHEMA:\n- txn_id (UBIGINT): The transaction ID from bank_txn\n- amount (DOUBLE): Transaction amount (use absolute value)\n- kind (VARCHAR): Type of transaction (e.g., \"Expense\", \"Income\")\n- business_use_pct (DOUBLE): Percentage of the transaction that is deductible (0.0 to 100.0)\n\nINSTRUCTIONS:\n1. Analyze the transaction to determine if it's business-related:\n   - POSITIVE amounts (payments received) are typically INCOME\n   - NEGATIVE amounts (payments made) are typically EXPENSES\n2. If the transaction is business-related:\n   - Use the database tool to INSERT a row into irs_form data FROM bank_txn\n   - Set kind = Income|Expense\n   - Set amount = ABS(transaction amount)\n   - Set business_use_pct to a value between 0 and 100 based on how much is business-related\n   - Refer directly to the bank_txn columns in the SELECT statement where appropriate\n3. If the transaction is NOT business-related, insert a business_use_pct of 0.\n4. Only insert one row per transaction.\n5. Consider meals as 100% business use unless told otherwise.\n\nYou have access to a database tool. Use it to:\n- Query existing data if needed: SELECT * FROM table_name WHERE conditions\n- Insert new irs_form entries: INSERT INTO irs_form (irs_form columns...) SELECT (bank_txn columns...) FROM bank_txn WHERE conditions\n\nAnalyze this transaction and take appropriate action."
+      }
+    ],
+    "tools": [
+      {
+        "name": "execute_sql",
+        "description": "Execute a SQL query on the database. Supports SELECT, INSERT, UPDATE, DELETE operations. Returns results as JSON.",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "sql_query": {
+              "type": "string",
+              "description": "The SQL query to execute"
+            }
+          },
+          "required": [
+            "sql_query"
+          ]
+        }
+      }
+    ],
+    "tool_choice": {
+      "type": "auto"
+    }
+  }
+}

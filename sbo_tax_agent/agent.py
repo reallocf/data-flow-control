@@ -225,20 +225,42 @@ def process_transaction_with_agent(
     bedrock_client,
     rewriter,
     transaction: Dict[str, Any],
-    tax_return_info: Dict[str, Any]
+    tax_return_info: Dict[str, Any],
+    recorder=None,
+    replay_manager=None
 ) -> Tuple[bool, str, list]:
     """Process a single transaction with the agent.
     
+    Uses AWS Bedrock to analyze a bank transaction and determine if it's a business
+    expense or income. The agent can query the database and insert entries into the
+    irs_form table. Supports recording and replaying LLM interactions.
+    
     Args:
-        bedrock_client: Boto3 Bedrock Runtime client
-        rewriter: SQLRewriter instance
-        transaction: Transaction dictionary
+        bedrock_client: Boto3 Bedrock Runtime client (used if replay_manager is None or
+                       no recorded response is found)
+        rewriter: SQLRewriter instance for database access
+        transaction: Transaction dictionary with transaction details
         tax_return_info: Tax return information dictionary
+        recorder: Optional LLMRecorder instance for recording LLM requests/responses
+        replay_manager: Optional ReplayManager instance for replaying recorded responses
+                       instead of calling the LLM
         
     Returns:
-        Tuple[bool, str, list]: (success, message, logs) - success indicates if entry was created, logs is list of log strings
+        Tuple[bool, str, list]: 
+            - success: True if an irs_form entry was created, False otherwise
+            - message: Human-readable message describing the result
+            - logs: List of log strings from the agent interaction
+        
+    Note:
+        If replay_manager is provided and enabled, the function will attempt to use
+        recorded responses instead of calling Bedrock. If no recorded response is found,
+        it falls back to calling the actual LLM. All interactions are logged, and if
+        recorder is provided, new interactions are also recorded.
     """
     logs = []
+    
+    # Get transaction ID for recording
+    transaction_id = transaction.get('txn_id')
     
     def log(msg: str):
         """Add a log message and also print it."""
@@ -300,16 +322,54 @@ def process_transaction_with_agent(
         log(json.dumps(request_body, indent=2))
         log("")
         
-        response = bedrock_client.invoke_model(
-            modelId=BEDROCK_MODEL_ID,
-            body=json.dumps(request_body)
-        )
+        # Check if we should replay instead of calling LLM
+        if replay_manager and replay_manager.is_enabled():
+            response_body = replay_manager.get_agent_loop_response(
+                transaction_id=transaction_id,
+                iteration=1,
+                request_body=request_body
+            )
+            if response_body is None:
+                # Fall through to actual LLM call
+                response = bedrock_client.invoke_model(
+                    modelId=BEDROCK_MODEL_ID,
+                    body=json.dumps(request_body)
+                )
+                response_body = json.loads(response['body'].read())
+                log(f"[RESPONSE] Received from Bedrock (iteration 1)")
+                log(json.dumps(response_body, indent=2))
+                log("")
+            else:
+                log(f"[RESPONSE] Received from replay (iteration 1)")
+                log(json.dumps(response_body, indent=2))
+                log("")
+        else:
+            # Record request if recorder is available
+            if recorder and recorder.is_enabled():
+                recorder.record_agent_loop_request(
+                    transaction_id=transaction_id,
+                    iteration=1,
+                    request_body=request_body
+                )
+            
+            response = bedrock_client.invoke_model(
+                modelId=BEDROCK_MODEL_ID,
+                body=json.dumps(request_body)
+            )
+            
+            response_body = json.loads(response['body'].read())
+            
+            log(f"[RESPONSE] Received from Bedrock (iteration 1)")
+            log(json.dumps(response_body, indent=2))
+            log("")
         
-        response_body = json.loads(response['body'].read())
-        
-        log(f"[RESPONSE] Received from Bedrock (iteration 1)")
-        log(json.dumps(response_body, indent=2))
-        log("")
+        # Record response if recorder is available (for both replay and live calls)
+        if recorder and recorder.is_enabled():
+            recorder.record_agent_loop_response(
+                transaction_id=transaction_id,
+                iteration=1,
+                response_body=response_body
+            )
         
         # Process response - handle tool use with conversation loop
         entry_created = False
@@ -413,16 +473,54 @@ def process_transaction_with_agent(
             log(json.dumps(request_body, indent=2))
             log("")
             
-            response = bedrock_client.invoke_model(
-                modelId=BEDROCK_MODEL_ID,
-                body=json.dumps(request_body)
-            )
+            # Check if we should replay instead of calling LLM
+            if replay_manager and replay_manager.is_enabled():
+                response_body = replay_manager.get_agent_loop_response(
+                    transaction_id=transaction_id,
+                    iteration=iteration + 1,
+                    request_body=request_body
+                )
+                if response_body is None:
+                    # Fall through to actual LLM call
+                    response = bedrock_client.invoke_model(
+                        modelId=BEDROCK_MODEL_ID,
+                        body=json.dumps(request_body)
+                    )
+                    response_body = json.loads(response['body'].read())
+                    log(f"[RESPONSE] Received from Bedrock (iteration {iteration + 1})")
+                    log(json.dumps(response_body, indent=2))
+                    log("")
+                else:
+                    log(f"[RESPONSE] Received from replay (iteration {iteration + 1})")
+                    log(json.dumps(response_body, indent=2))
+                    log("")
+            else:
+                # Record request if recorder is available
+                if recorder and recorder.is_enabled():
+                    recorder.record_agent_loop_request(
+                        transaction_id=transaction_id,
+                        iteration=iteration + 1,
+                        request_body=request_body
+                    )
+                
+                response = bedrock_client.invoke_model(
+                    modelId=BEDROCK_MODEL_ID,
+                    body=json.dumps(request_body)
+                )
+                
+                response_body = json.loads(response['body'].read())
+                
+                log(f"[RESPONSE] Received from Bedrock (iteration {iteration + 1})")
+                log(json.dumps(response_body, indent=2))
+                log("")
             
-            response_body = json.loads(response['body'].read())
-            
-            log(f"[RESPONSE] Received from Bedrock (iteration {iteration + 1})")
-            log(json.dumps(response_body, indent=2))
-            log("")
+            # Record response if recorder is available (for both replay and live calls)
+            if recorder and recorder.is_enabled():
+                recorder.record_agent_loop_response(
+                    transaction_id=transaction_id,
+                    iteration=iteration + 1,
+                    response_body=response_body
+                )
         
         log("=" * 80)
         log("AGENTIC LOOP: Completed")

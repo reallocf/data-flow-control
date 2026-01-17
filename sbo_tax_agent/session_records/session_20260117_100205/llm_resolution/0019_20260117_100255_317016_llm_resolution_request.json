@@ -1,0 +1,24 @@
+{
+  "type": "llm_resolution_request",
+  "sequence": 19,
+  "timestamp": "20260117_100255_317016",
+  "constraint": "'not min(bank_txn.category) = ''meal'' or irs_form.business_use_pct <= 50.0'",
+  "description": "'Meal expenses must have business use percentage <= 50%'",
+  "row_data": {
+    "bank_txn.category": "meal",
+    "txn_id": 5,
+    "amount": -85.5,
+    "kind": "Expense",
+    "business_use_pct": 100.0
+  },
+  "request": {
+    "anthropic_version": "bedrock-2023-05-31",
+    "max_tokens": 2048,
+    "messages": [
+      {
+        "role": "user",
+        "content": "You are a data quality assistant. A row of data has violated a data flow control policy.\n\nPOLICY CONSTRAINT: 'not min(bank_txn.category) = ''meal'' or irs_form.business_use_pct <= 50.0'\nPOLICY DESCRIPTION: 'Meal expenses must have business use percentage <= 50%'\n\nVIOLATING ROW DATA:\n{\n  \"bank_txn.category\": \"meal\",\n  \"txn_id\": 5,\n  \"amount\": -85.5,\n  \"kind\": \"Expense\",\n  \"business_use_pct\": 100.0\n}\n\nYour task is to fix the violating row data so it satisfies the policy constraint. Return the fixed row data as a JSON object with the same keys as the input row data. Only modify values that need to be changed to satisfy the constraint. If you cannot fix the row, return null.\n\nReturn only the JSON object (or null), no additional text or explanation."
+      }
+    ]
+  }
+}

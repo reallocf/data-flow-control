@@ -29,7 +29,8 @@ class SQLRewriter:
         conn: Optional[duckdb.DuckDBPyConnection] = None,
         stream_file_path: Optional[str] = None,
         bedrock_client: Optional[Any] = None,
-        bedrock_model_id: Optional[str] = None
+        bedrock_model_id: Optional[str] = None,
+        recorder: Optional[Any] = None
     ) -> None:
         """Initialize the SQL rewriter with a DuckDB connection.
 
@@ -37,7 +38,13 @@ class SQLRewriter:
             conn: Optional DuckDB connection. If None, creates a new in-memory database connection.
             stream_file_path: Optional path for stream file (fixed rows from LLM). If None, creates a temp file.
             bedrock_client: Optional boto3 Bedrock Runtime client for LLM resolution policies.
+                           Required for LLM resolution policies to work. If None, LLM resolution
+                           policies will not be able to fix violating rows.
             bedrock_model_id: Optional Bedrock model ID. Defaults to Claude Haiku if not provided.
+                             Can also be set via BEDROCK_MODEL_ID environment variable.
+            recorder: Optional LLMRecorder instance for recording LLM responses.
+                    Use set_recorder() to set this after initialization if needed.
+                    When set, all LLM requests and responses are recorded to files.
         """
         if conn is not None:
             self.conn = conn
@@ -49,6 +56,12 @@ class SQLRewriter:
         self._bedrock_client = bedrock_client
         self._bedrock_model_id = bedrock_model_id or os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
         
+        # Recorder for LLM responses
+        self._recorder = recorder
+        
+        # Replay manager for replaying recorded responses
+        self._replay_manager = None
+        
         # Stream file for LLM-fixed rows
         if stream_file_path is None:
             stream_file = tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt')
@@ -59,6 +72,31 @@ class SQLRewriter:
         
         self._register_kill_udf()
         self._register_address_violating_rows_udf()
+    
+    def set_recorder(self, recorder: Optional[Any]) -> None:
+        """Set the recorder for LLM responses.
+        
+        When set, all LLM requests and responses in _call_llm_to_fix_row() will
+        be recorded to files for later replay or analysis.
+        
+        Args:
+            recorder: Optional LLMRecorder instance for recording LLM responses.
+                    If None, recording is disabled.
+        """
+        self._recorder = recorder
+    
+    def set_replay_manager(self, replay_manager: Optional[Any]) -> None:
+        """Set the replay manager for replaying recorded responses.
+        
+        When set, _call_llm_to_fix_row() will attempt to use recorded responses
+        instead of calling the LLM. If no recorded response is found, it falls
+        back to calling the actual LLM (if bedrock_client is available).
+        
+        Args:
+            replay_manager: Optional ReplayManager instance for replaying recorded responses.
+                          If None, replay is disabled and actual LLM calls are made.
+        """
+        self._replay_manager = replay_manager
 
     def transform_query(self, query: str) -> str:
         """Transform a SQL query according to the rewriter's rules.
@@ -911,14 +949,38 @@ class SQLRewriter:
     ) -> Optional[List[Any]]:
         """Call LLM to try to fix a violating row based on the constraint.
         
+        Uses AWS Bedrock to call an LLM (default: Claude Haiku) to fix a row that
+        violates a data flow control policy. The LLM receives the constraint, description,
+        and row data, and attempts to return fixed values that satisfy the constraint.
+        
+        Supports recording and replaying LLM interactions:
+        - If recorder is set, records the request and response
+        - If replay_manager is set, attempts to use recorded responses instead of
+          calling the LLM
+        
         Args:
-            constraint: The policy constraint that was violated.
-            description: Optional policy description.
-            column_values: List of column values from the violating row.
+            constraint: The policy constraint that was violated (SQL expression)
+            description: Optional policy description for context
+            column_values: List of column values from the violating row
             column_names: Optional list of column names corresponding to column_values.
+                         If provided, row data is sent as a dictionary. Otherwise,
+                         generic column names (col0, col1, etc.) are used.
         
         Returns:
-            Optional list of fixed column values, or None if LLM couldn't fix it or failed.
+            Optional list of fixed column values in the same order as column_values,
+            or None if:
+            - LLM couldn't fix the row
+            - LLM returned null
+            - Response parsing failed
+            - No bedrock client is configured
+            - Replay manager is enabled but no recorded response was found and
+              bedrock client is not available
+        
+        Note:
+            If replay_manager is set and enabled, this method will attempt to use
+            a recorded response instead of calling Bedrock. If no recorded response
+            is found, it falls back to calling the actual LLM (if bedrock_client is
+            available).
         """
         if not self._bedrock_client:
             return None
@@ -973,12 +1035,37 @@ Return only the JSON object (or null), no additional text or explanation."""
                 ]
             }
             
-            response = bedrock_client.invoke_model(
-                modelId=self._bedrock_model_id,
-                body=json.dumps(request_body)
-            )
-            
-            response_body = json.loads(response['body'].read())
+            # Check if we should replay instead of calling LLM
+            if self._replay_manager and self._replay_manager.is_enabled():
+                response_body = self._replay_manager.get_llm_resolution_response(
+                    constraint=constraint,
+                    description=description,
+                    row_data=row_data,
+                    request_body=request_body
+                )
+                if response_body is None:
+                    # Fall back to actual LLM call if no recorded response found
+                    response = bedrock_client.invoke_model(
+                        modelId=self._bedrock_model_id,
+                        body=json.dumps(request_body)
+                    )
+                    response_body = json.loads(response['body'].read())
+            else:
+                # Record request if recorder is available
+                if self._recorder and self._recorder.is_enabled():
+                    self._recorder.record_llm_resolution_request(
+                        constraint=constraint,
+                        description=description,
+                        row_data=row_data,
+                        request_body=request_body
+                    )
+                
+                response = bedrock_client.invoke_model(
+                    modelId=self._bedrock_model_id,
+                    body=json.dumps(request_body)
+                )
+                
+                response_body = json.loads(response['body'].read())
             
             # Extract text content from response
             text_content = ""
@@ -1012,6 +1099,18 @@ Return only the JSON object (or null), no additional text or explanation."""
             try:
                 fixed_row_data = json.loads(json_text)
             except json.JSONDecodeError:
+                fixed_row_data = None
+            
+            # Record response if recorder is available
+            if self._recorder and self._recorder.is_enabled():
+                self._recorder.record_llm_resolution_response(
+                    constraint=constraint,
+                    description=description,
+                    response_body=response_body,
+                    fixed_row_data=fixed_row_data
+                )
+            
+            if fixed_row_data is None:
                 return None
             
             # Convert back to list of values in the same order

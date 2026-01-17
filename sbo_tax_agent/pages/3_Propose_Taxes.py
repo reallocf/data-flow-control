@@ -21,6 +21,14 @@ st.header("Propose Taxes")
 # Get database connection
 try:
     rewriter = db.get_db_connection()
+    # Set recorder if available
+    recorder = st.session_state.get('llm_recorder')
+    if recorder:
+        rewriter.set_recorder(recorder)
+    # Set replay manager if available
+    replay_manager = st.session_state.get('replay_manager')
+    if replay_manager:
+        rewriter.set_replay_manager(replay_manager)
 except Exception as e:
     st.error(f"Failed to connect to database: {str(e)}")
     st.stop()
@@ -305,11 +313,15 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
             # Process this transaction
             try:
                 bedrock_client = agent.create_bedrock_client()
+                recorder = st.session_state.get('llm_recorder')
+                replay_manager = st.session_state.get('replay_manager')
                 entry_created, message, logs = agent.process_transaction_with_agent(
                     bedrock_client,
                     rewriter,
                     transaction,
-                    st.session_state.tax_return_info
+                    st.session_state.tax_return_info,
+                    recorder=recorder,
+                    replay_manager=replay_manager
                 )
                 
                 # Save logs to database for persistence
