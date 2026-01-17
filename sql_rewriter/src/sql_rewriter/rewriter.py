@@ -11,13 +11,19 @@ from decimal import Decimal
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 
-from .policy import DFCPolicy, Resolution
+from .policy import DFCPolicy, AggregateDFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 from .rewrite_rule import _extract_columns_from_constraint
 from .rewrite_rule import (
     apply_policy_constraints_to_aggregation,
     apply_policy_constraints_to_scan,
+    apply_aggregate_policy_constraints_to_aggregation,
+    apply_aggregate_policy_constraints_to_scan,
     ensure_subqueries_have_constraint_columns,
+    get_policy_identifier,
+    _extract_source_aggregates_from_constraint,
+    _extract_sink_expressions_from_constraint,
+    _find_outer_aggregate_for_inner,
 )
 
 
@@ -51,6 +57,7 @@ class SQLRewriter:
         else:
             self.conn = duckdb.connect()
         self._policies: list[DFCPolicy] = []
+        self._aggregate_policies: list[AggregateDFCPolicy] = []
         
         # Bedrock client for LLM resolution
         self._bedrock_client = bedrock_client
@@ -124,6 +131,9 @@ class SQLRewriter:
                     matching_policies = self._find_matching_policies(
                         source_tables=from_tables, sink_table=None
                     )
+                    matching_aggregate_policies = self._find_matching_aggregate_policies(
+                        source_tables=from_tables, sink_table=None
+                    )
                     
                     if matching_policies:
                         # Ensure subqueries and CTEs have columns needed for constraints
@@ -139,6 +149,17 @@ class SQLRewriter:
                                 parsed, matching_policies, from_tables,
                                 stream_file_path=self._stream_file_path
                             )
+                    
+                    if matching_aggregate_policies:
+                        # Apply aggregate policy rewriting (adds temp columns)
+                        if self._has_aggregations(parsed):
+                            apply_aggregate_policy_constraints_to_aggregation(
+                                parsed, matching_aggregate_policies, from_tables
+                            )
+                        else:
+                            apply_aggregate_policy_constraints_to_scan(
+                                parsed, matching_aggregate_policies, from_tables
+                            )
             
             elif isinstance(parsed, exp.Insert):
                 sink_table = self._get_sink_table(parsed)
@@ -147,6 +168,20 @@ class SQLRewriter:
                 matching_policies = self._find_matching_policies(
                     source_tables=source_tables, sink_table=sink_table
                 )
+                matching_aggregate_policies = self._find_matching_aggregate_policies(
+                    source_tables=source_tables, sink_table=sink_table
+                )
+                
+                # Find the SELECT statement within the INSERT (needed for both regular and aggregate policies)
+                select_expr = parsed.find(exp.Select)
+                
+                # Initialize sink_to_output_mapping (needed for aggregate policies even if no regular policies)
+                sink_to_output_mapping = None
+                if select_expr and sink_table:
+                    # Add aliases to SELECT outputs to match sink column names (if explicit column list)
+                    # This ensures sink column references in constraints can be replaced correctly
+                    self._add_aliases_to_insert_select_outputs(parsed, select_expr)
+                    sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
                 
                 if matching_policies:
                     # Check if any matching policy is INVALIDATE with sink
@@ -155,21 +190,14 @@ class SQLRewriter:
                         for p in matching_policies
                     )
                     
-                    # Find the SELECT statement within the INSERT
-                    select_expr = parsed.find(exp.Select)
                     if select_expr:
                         # If INVALIDATE policy with sink, add 'valid' column to INSERT column list
                         # This must happen before adding aliases so the mapping is correct
                         if has_invalidate_with_sink and sink_table:
                             self._add_valid_column_to_insert(parsed)
                         
-                        # Add aliases to SELECT outputs to match sink column names (if explicit column list)
-                        # This ensures sink column references in constraints can be replaced correctly
-                        self._add_aliases_to_insert_select_outputs(parsed, select_expr)
-                        
-                        # Get mapping from sink columns to SELECT output columns
-                        sink_to_output_mapping = None
-                        if sink_table:
+                        # Get mapping from sink columns to SELECT output columns (if not already set)
+                        if not sink_to_output_mapping and sink_table:
                             sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
                         
                         # Get INSERT column list to filter which columns should be in SELECT output
@@ -215,6 +243,26 @@ class SQLRewriter:
                                 replace_existing_valid=insert_has_valid,
                                 insert_columns=insert_columns
                             )
+                
+                if matching_aggregate_policies and select_expr:
+                        # Apply aggregate policy rewriting (adds temp columns)
+                        # Note: Aggregate policies always add temp columns regardless of resolution
+                        has_aggs = self._has_aggregations(select_expr)
+                        if has_aggs:
+                            apply_aggregate_policy_constraints_to_aggregation(
+                                select_expr, matching_aggregate_policies, source_tables,
+                                sink_table=sink_table,
+                                sink_to_output_mapping=sink_to_output_mapping
+                            )
+                        else:
+                            apply_aggregate_policy_constraints_to_scan(
+                                select_expr, matching_aggregate_policies, source_tables,
+                                sink_table=sink_table,
+                                sink_to_output_mapping=sink_to_output_mapping
+                            )
+                        
+                        # Add temp columns to INSERT column list so they're included in the table
+                        self._add_aggregate_temp_columns_to_insert(parsed, matching_aggregate_policies, select_expr)
 
             transformed = parsed.sql(pretty=True, dialect="duckdb")
             return transformed
@@ -317,6 +365,59 @@ class SQLRewriter:
         except Exception as e:
             raise ValueError(f"Failed to get columns for table '{table_name}': {e}")
 
+    def _create_aggregate_function(self, func_name: str, expressions: List[exp.Expression]) -> exp.AggFunc:
+        """Create an aggregate function expression using the proper sqlglot class.
+        
+        Args:
+            func_name: The aggregate function name (e.g., "MAX", "SUM", "MIN").
+            expressions: List of expressions to aggregate.
+            
+        Returns:
+            An aggregate function expression.
+        """
+        func_name_upper = func_name.upper()
+        
+        # Map function names to sqlglot aggregate classes
+        # Only include classes that actually exist in sqlglot
+        agg_class_map = {
+            "MAX": exp.Max,
+            "MIN": exp.Min,
+            "SUM": exp.Sum,
+            "AVG": exp.Avg,
+            "COUNT": exp.Count,
+        }
+        
+        # Add optional aggregate classes if they exist
+        if hasattr(exp, "CountIf"):
+            agg_class_map["COUNT_IF"] = exp.CountIf
+        if hasattr(exp, "Stddev"):
+            agg_class_map["STDDEV"] = exp.Stddev
+        if hasattr(exp, "Variance"):
+            agg_class_map["VARIANCE"] = exp.Variance
+        if hasattr(exp, "AnyValue"):
+            agg_class_map["ANY_VALUE"] = exp.AnyValue
+        if hasattr(exp, "First"):
+            agg_class_map["FIRST"] = exp.First
+        if hasattr(exp, "Last"):
+            agg_class_map["LAST"] = exp.Last
+        if hasattr(exp, "StringAgg"):
+            agg_class_map["STRING_AGG"] = exp.StringAgg
+        if hasattr(exp, "ArrayAgg"):
+            agg_class_map["ARRAY_AGG"] = exp.ArrayAgg
+        
+        if func_name_upper in agg_class_map:
+            agg_class = agg_class_map[func_name_upper]
+            # Most sqlglot aggregate classes use 'this' for the expression
+            # If there's only one expression, use 'this'; otherwise use 'expressions'
+            if len(expressions) == 1:
+                return agg_class(this=expressions[0])
+            else:
+                # For aggregates that take multiple expressions, use expressions parameter
+                return agg_class(expressions=expressions)
+        else:
+            # Fallback to generic AggFunc for unknown functions
+            return exp.AggFunc(this=func_name, expressions=expressions)
+    
     def _get_column_type(self, table_name: str, column_name: str) -> Optional[str]:
         """Get the data type of a column in a table.
         
@@ -404,7 +505,7 @@ class SQLRewriter:
                 f"does not exist in {table_type} table '{table_name}'"
             )
 
-    def register_policy(self, policy: DFCPolicy) -> None:
+    def register_policy(self, policy: Union[DFCPolicy, AggregateDFCPolicy]) -> None:
         """Register a DFC policy with the rewriter.
 
         This validates that:
@@ -433,7 +534,9 @@ class SQLRewriter:
             sink_columns = self._get_table_columns(policy.sink)
         
         # For INVALIDATE policies with sink tables, validate that sink has a boolean 'valid' column
-        if policy.on_fail == Resolution.INVALIDATE and policy.sink:
+        # Skip this check for AggregateDFCPolicy as they use finalize instead
+        if (policy.on_fail == Resolution.INVALIDATE and policy.sink and 
+            not isinstance(policy, AggregateDFCPolicy)):
             if sink_columns is None:
                 raise ValueError(f"Sink table '{policy.sink}' has no columns")
             if "valid" not in sink_columns:
@@ -452,7 +555,21 @@ class SQLRewriter:
         for column in columns:
             table_name = get_table_name_from_column(column)
             if not table_name:
-                col_name = get_column_name(column)
+                col_name = get_column_name(column).lower()
+                
+                # Allow unqualified columns in specific cases (same as policy validation)
+                # 1. Columns inside FILTER clauses
+                if column.find_ancestor(exp.Filter) is not None:
+                    continue
+                
+                # 2. Columns that are direct arguments to aggregate functions AND match sink table name
+                parent = column.parent
+                if isinstance(parent, exp.AggFunc):
+                    if hasattr(parent, 'this') and parent.this == column:
+                        if policy.sink and col_name == policy.sink.lower():
+                            continue
+                
+                # Otherwise, it's an unqualified column that should be flagged
                 raise ValueError(
                     f"Column '{col_name}' in constraint is not qualified with a table name. "
                     "This should have been caught during policy creation."
@@ -476,7 +593,11 @@ class SQLRewriter:
                     f"('{policy.source}') or sink ('{policy.sink}')"
                 )
 
-        self._policies.append(policy)
+        # Store aggregate policies separately
+        if isinstance(policy, AggregateDFCPolicy):
+            self._aggregate_policies.append(policy)
+        else:
+            self._policies.append(policy)
 
     def get_dfc_policies(self) -> list[DFCPolicy]:
         """Get all registered DFC policies.
@@ -485,6 +606,228 @@ class SQLRewriter:
             List of all registered DFCPolicy objects.
         """
         return self._policies.copy()
+    
+    def get_aggregate_policies(self) -> list[AggregateDFCPolicy]:
+        """Get all registered AggregateDFCPolicy objects.
+        
+        Returns:
+            List of all registered AggregateDFCPolicy objects.
+        """
+        return self._aggregate_policies.copy()
+    
+    def finalize_aggregate_policies(self, sink_table: str) -> Dict[str, Optional[str]]:
+        """Finalize aggregate policies by evaluating constraints after all data is processed.
+        
+        Queries the sink table to compute outer source aggregates and sink aggregates,
+        then evaluates each policy's constraint. Returns violation messages for policies
+        that fail.
+        
+        Args:
+            sink_table: The sink table name to query.
+            
+        Returns:
+            Dictionary mapping policy identifiers to violation messages (or None if no violation).
+            Keys are policy identifiers, values are violation message strings or None.
+        """
+        violations = {}
+        
+        # Find all aggregate policies for this sink table
+        matching_policies = [
+            p for p in self._aggregate_policies
+            if p.sink and p.sink.lower() == sink_table.lower()
+        ]
+        
+        if not matching_policies:
+            return violations
+        
+        # Check if sink table exists and has data
+        if not self._table_exists(sink_table):
+            # No table yet, no violations
+            for policy in matching_policies:
+                policy_id = get_policy_identifier(policy)
+                violations[policy_id] = None
+            return violations
+        
+        # Get all columns in the sink table
+        sink_columns = self._get_table_columns(sink_table)
+        
+        for policy in matching_policies:
+            policy_id = get_policy_identifier(policy)
+            violation_message = None
+            
+            try:
+                # Get temp column names for this policy
+                temp_col_counter = 1
+                source_temp_cols = []
+                sink_temp_cols = []
+                
+                # Extract source aggregates and their temp column names
+                if policy.source:
+                    source_aggregates = _extract_source_aggregates_from_constraint(
+                        policy._constraint_parsed, policy.source
+                    )
+                    for _ in source_aggregates:
+                        temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                        if temp_col_name.lower() in sink_columns:
+                            source_temp_cols.append(temp_col_name)
+                        temp_col_counter += 1
+                
+                # Extract sink expressions and their temp column names
+                sink_expressions = _extract_sink_expressions_from_constraint(
+                    policy._constraint_parsed, policy.sink
+                )
+                for _ in sink_expressions:
+                    temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                    if temp_col_name.lower() in sink_columns:
+                        sink_temp_cols.append(temp_col_name)
+                    temp_col_counter += 1
+                
+                # If no temp columns exist, skip evaluation (no data inserted yet)
+                if not source_temp_cols and not sink_temp_cols:
+                    violations[policy_id] = None
+                    continue
+                
+                # Build query to evaluate constraint with outer aggregates
+                # Replace source aggregates with outer aggregates over temp columns
+                # Replace sink expressions with aggregates over temp columns
+                constraint_expr = sqlglot.parse_one(policy.constraint, read="duckdb")
+                
+                # Create a mapping from original expressions to temp column aggregates
+                replacement_map = {}
+                temp_col_idx = 0
+                
+                # Map source aggregates to outer aggregates
+                if policy.source:
+                    source_aggregates = _extract_source_aggregates_from_constraint(
+                        policy._constraint_parsed, policy.source
+                    )
+                    for agg_expr in source_aggregates:
+                        if temp_col_idx < len(source_temp_cols):
+                            temp_col_name = source_temp_cols[temp_col_idx]
+                            inner_agg_sql = agg_expr.sql()
+                            
+                            # Find the outer aggregate function that wraps this inner aggregate
+                            outer_agg_name = _find_outer_aggregate_for_inner(
+                                policy._constraint_parsed, inner_agg_sql
+                            )
+                            
+                            # If there's an outer aggregate, use it; otherwise use the inner aggregate function
+                            if outer_agg_name:
+                                # Replace the entire nested expression (e.g., max(sum(foo.amount))) 
+                                # with outer aggregate over temp column (e.g., max(_policy_tmp1))
+                                # Find the outer aggregate expression in the constraint
+                                for outer_agg in policy._constraint_parsed.find_all(exp.AggFunc):
+                                    outer_agg_sql = outer_agg.sql()
+                                    if inner_agg_sql.upper() in outer_agg_sql.upper() and outer_agg_sql.upper() != inner_agg_sql.upper():
+                                        # This is the outer aggregate - replace it
+                                        temp_col_ref = exp.Column(
+                                            this=exp.Identifier(this=temp_col_name, quoted=False)
+                                        )
+                                        # Create the proper aggregate function class
+                                        new_outer_agg = self._create_aggregate_function(outer_agg_name, [temp_col_ref])
+                                        replacement_map[outer_agg_sql] = new_outer_agg.sql()
+                                        break
+                            else:
+                                # No outer aggregate - use the inner aggregate function
+                                agg_name = agg_expr.sql_name().upper() if hasattr(agg_expr, 'sql_name') else 'SUM'
+                                temp_col_ref = exp.Column(
+                                    this=exp.Identifier(this=temp_col_name, quoted=False)
+                                )
+                                outer_agg = self._create_aggregate_function(agg_name, [temp_col_ref])
+                                replacement_map[inner_agg_sql] = outer_agg.sql()
+                            temp_col_idx += 1
+                
+                # Map sink expressions to aggregates
+                temp_col_idx = 0
+                sink_expressions = _extract_sink_expressions_from_constraint(
+                    policy._constraint_parsed, policy.sink
+                )
+                for sink_expr in sink_expressions:
+                    if temp_col_idx < len(sink_temp_cols):
+                        temp_col_name = sink_temp_cols[temp_col_idx]
+                        # For sink, we aggregate the temp columns (which contain unaggregated values)
+                        temp_col_ref = exp.Column(
+                            this=exp.Identifier(this=temp_col_name, quoted=False)
+                        )
+                        # Use SUM as default aggregate for sink (can be customized)
+                        sink_agg = self._create_aggregate_function("SUM", [temp_col_ref])
+                        
+                        # Check if the sink expression is wrapped in a FILTER clause
+                        # If so, we need to preserve the FILTER when replacing
+                        if isinstance(sink_expr, exp.Filter):
+                            # Create a new Filter with the new aggregate but keep the same filter condition
+                            new_filter = exp.Filter(
+                                this=sink_agg,
+                                expression=sink_expr.expression  # Keep the same WHERE condition
+                            )
+                            replacement_map[sink_expr.sql()] = new_filter.sql()
+                        else:
+                            # No FILTER, just replace the aggregate
+                            replacement_map[sink_expr.sql()] = sink_agg.sql()
+                        temp_col_idx += 1
+                
+                # Replace expressions in constraint using expression tree transformation
+                # This is more robust than string replacement as it handles case differences
+                constraint_expr = sqlglot.parse_one(policy.constraint, read="duckdb")
+                
+                # Build a mapping from expression objects to replacement expressions
+                expr_replacement_map = {}
+                for old_expr_sql, new_expr_sql in replacement_map.items():
+                    # Find the expression in the constraint tree that matches
+                    # Check both AggFunc nodes and Filter nodes (since Filter wraps aggregates)
+                    for node in constraint_expr.find_all(exp.AggFunc):
+                        node_sql = node.sql()
+                        # Case-insensitive comparison
+                        if node_sql.upper() == old_expr_sql.upper():
+                            # Parse the replacement expression
+                            new_expr = sqlglot.parse_one(new_expr_sql, read="duckdb")
+                            expr_replacement_map[node] = new_expr
+                            break
+                    
+                    # Also check Filter nodes (they wrap aggregates with FILTER clauses)
+                    for node in constraint_expr.find_all(exp.Filter):
+                        node_sql = node.sql()
+                        # Case-insensitive comparison
+                        if node_sql.upper() == old_expr_sql.upper():
+                            # Parse the replacement expression
+                            new_expr = sqlglot.parse_one(new_expr_sql, read="duckdb")
+                            expr_replacement_map[node] = new_expr
+                            break
+                
+                # Replace expressions in the tree
+                def replace_node(node):
+                    """Replace nodes that are in the replacement map."""
+                    if node in expr_replacement_map:
+                        return expr_replacement_map[node]
+                    return node
+                
+                # Transform the constraint expression
+                constraint_expr = constraint_expr.transform(replace_node, copy=False)
+                constraint_sql = constraint_expr.sql()
+                
+                # Build final evaluation query
+                eval_query = f"SELECT ({constraint_sql}) AS constraint_result FROM {sink_table}"
+                
+                # Execute and check result
+                result = self.conn.execute(eval_query).fetchone()
+                if result and len(result) > 0:
+                    constraint_passed = result[0]
+                    if not constraint_passed:
+                        # Constraint failed
+                        violation_message = f"Aggregate policy constraint violated: {policy.constraint}"
+                        if policy.description:
+                            violation_message = f"{policy.description}: {violation_message}"
+                else:
+                    # No result or empty result - treat as no violation for now
+                    violation_message = None
+                    
+            except Exception as e:
+                # If evaluation fails, treat as violation
+                violation_message = f"Error evaluating aggregate policy constraint: {str(e)}"
+            
+            violations[policy_id] = violation_message
+        
+        return violations
 
     def delete_policy(
         self,
@@ -518,6 +861,7 @@ class SQLRewriter:
             raise ValueError("At least one of source, sink, or constraint must be provided")
         
         # Find matching policy by comparing each field
+        # Check regular policies first
         for i, policy in enumerate(self._policies):
             # Compare each field individually, allowing None/empty to match any
             source_match = source is None or policy.source == source
@@ -529,6 +873,20 @@ class SQLRewriter:
             if source_match and sink_match and constraint_match and on_fail_match and description_match:
                 # Remove the matching policy
                 del self._policies[i]
+                return True
+        
+        # Check aggregate policies if not found in regular policies
+        for i, policy in enumerate(self._aggregate_policies):
+            # Compare each field individually, allowing None/empty to match any
+            source_match = source is None or policy.source == source
+            sink_match = sink is None or policy.sink == sink
+            constraint_match = not constraint or policy.constraint == constraint
+            on_fail_match = on_fail is None or policy.on_fail == on_fail
+            description_match = description is None or policy.description == description
+            
+            if source_match and sink_match and constraint_match and on_fail_match and description_match:
+                # Remove the matching policy
+                del self._aggregate_policies[i]
                 return True
         
         return False
@@ -771,6 +1129,64 @@ class SQLRewriter:
                 insert_parsed.columns.append(valid_identifier)
             return
 
+    def _add_aggregate_temp_columns_to_insert(
+        self, 
+        insert_parsed: exp.Insert, 
+        policies: list[AggregateDFCPolicy],
+        select_parsed: exp.Select
+    ) -> None:
+        """Add aggregate policy temp columns to INSERT column list.
+        
+        Aggregate policies add temp columns to the SELECT statement, and these need to be
+        included in the INSERT column list so they're stored in the sink table for finalize.
+        
+        Args:
+            insert_parsed: The parsed INSERT statement to modify.
+            policies: List of aggregate policies that are being applied.
+            select_parsed: The parsed SELECT statement within the INSERT.
+        """
+        # Collect all temp column names from the SELECT expressions
+        temp_column_names = []
+        seen = set()
+        for expr in select_parsed.expressions:
+            if isinstance(expr, exp.Alias):
+                alias_name = get_column_name(expr.alias).lower()
+                # Check if this is a temp column (starts with _policy_ and ends with _tmpN)
+                if alias_name.startswith("_policy_") and "_tmp" in alias_name:
+                    if alias_name not in seen:
+                        temp_column_names.append(alias_name)
+                        seen.add(alias_name)
+        
+        if not temp_column_names:
+            return
+        
+        # Check if INSERT has an explicit column list
+        if hasattr(insert_parsed, 'this') and isinstance(insert_parsed.this, exp.Schema):
+            if hasattr(insert_parsed.this, 'expressions') and insert_parsed.this.expressions:
+                # Get existing column names
+                existing_columns = []
+                for col in insert_parsed.this.expressions:
+                    if isinstance(col, exp.Identifier):
+                        existing_columns.append(col.name.lower())
+                    elif isinstance(col, exp.Column):
+                        existing_columns.append(get_column_name(col).lower())
+                    elif isinstance(col, str):
+                        existing_columns.append(col.lower())
+                
+                # Add temp columns that aren't already present
+                for temp_col in temp_column_names:
+                    if temp_col not in existing_columns:
+                        temp_identifier = exp.Identifier(this=temp_col, quoted=False)
+                        insert_parsed.this.expressions.append(temp_identifier)
+        
+        # Also check for columns attribute (common in sqlglot)
+        if hasattr(insert_parsed, 'columns') and insert_parsed.columns:
+            existing_columns = [col.lower() if isinstance(col, str) else get_column_name(col).lower() 
+                              for col in insert_parsed.columns]
+            for temp_col in temp_column_names:
+                if temp_col not in existing_columns:
+                    insert_parsed.columns.append(temp_col)
+
     def _get_insert_column_list(self, insert_parsed: exp.Insert) -> List[str]:
         """Get the INSERT column list if specified.
         
@@ -873,11 +1289,24 @@ class SQLRewriter:
         Returns:
             True if the query contains aggregations, False otherwise.
         """
-        return any(
-            isinstance(expr, exp.AggFunc) or 
-            (isinstance(expr, exp.Column) and expr.find_ancestor(exp.AggFunc))
-            for expr in parsed.expressions
-        )
+        # Check all expressions, including those wrapped in Aliases
+        # But exclude aggregations in subqueries (they don't make the outer query an aggregation)
+        for expr in parsed.expressions:
+            # Check if expression is directly an aggregate
+            if isinstance(expr, exp.AggFunc):
+                return True
+            # Check if expression is an Alias containing an aggregate
+            if isinstance(expr, exp.Alias) and isinstance(expr.this, exp.AggFunc):
+                return True
+            # Check if expression contains an aggregate, but skip those in subqueries
+            # Subqueries are wrapped in Subquery nodes
+            for node in expr.find_all(exp.AggFunc):
+                # Check if this aggregate is inside a subquery
+                subquery_ancestor = node.find_ancestor(exp.Subquery)
+                if subquery_ancestor is None:
+                    # This aggregate is not in a subquery, so it's in the main SELECT
+                    return True
+        return False
 
     def _find_matching_policies(
         self, 
@@ -907,6 +1336,42 @@ class SQLRewriter:
             if policy_sink and policy_source:
                 # Policy has both sink and source: match INSERT INTO sink queries
                 # The policy will fail if source is not present (enforcing that source must be present)
+                if sink_table is not None and policy_sink == sink_table:
+                    matching.append(policy)
+            elif policy_sink:
+                # Policy has only sink: query must be INSERT INTO sink
+                if sink_table is not None and policy_sink == sink_table:
+                    matching.append(policy)
+            elif policy_source:
+                # Policy has only source: query must be SELECT ... FROM source
+                if source_tables and policy_source in source_tables:
+                    matching.append(policy)
+        
+        return matching
+    
+    def _find_matching_aggregate_policies(
+        self, 
+        source_tables: Set[str], 
+        sink_table: Optional[str] = None
+    ) -> list[AggregateDFCPolicy]:
+        """Find aggregate policies that match the source and sink tables in the query.
+        
+        Matching rules are the same as _find_matching_policies.
+        
+        Args:
+            source_tables: Set of source table names from the query.
+            sink_table: Optional sink table name from the query (for INSERT statements).
+            
+        Returns:
+            List of aggregate policies that match the query's source and sink tables.
+        """
+        matching = []
+        for policy in self._aggregate_policies:
+            policy_source = policy.source.lower() if policy.source else None
+            policy_sink = policy.sink.lower() if policy.sink else None
+            
+            if policy_sink and policy_source:
+                # Policy has both sink and source: match INSERT INTO sink queries
                 if sink_table is not None and policy_sink == sink_table:
                     matching.append(policy)
             elif policy_sink:

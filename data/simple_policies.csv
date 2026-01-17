@@ -2,3 +2,4 @@ policy,description
 SOURCE bank_txn SINK irs_form CONSTRAINT count(distinct bank_txn.txn_id) = 1 ON FAIL REMOVE,"Ensure one-to-one mapping"
 SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.txn_id) = irs_form.txn_id ON FAIL REMOVE,"Ensure transaction IDs match between source and sink"
 SOURCE bank_txn SINK irs_form CONSTRAINT not min(bank_txn.category) = 'meal' or irs_form.business_use_pct <= 50.0 ON FAIL INVALIDATE,"Meal expenses must have business use percentage <= 50%"
+AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000 ON FAIL INVALIDATE,"Ensure sum of income entries exceeds threshold"

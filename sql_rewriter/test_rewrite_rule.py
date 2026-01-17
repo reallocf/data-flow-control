@@ -4,12 +4,15 @@ import pytest
 import sqlglot
 from sqlglot import exp
 
-from sql_rewriter.policy import DFCPolicy, Resolution
+from sql_rewriter.policy import DFCPolicy, AggregateDFCPolicy, Resolution
 from sql_rewriter.rewrite_rule import (
     apply_policy_constraints_to_aggregation,
     apply_policy_constraints_to_scan,
+    apply_aggregate_policy_constraints_to_aggregation,
+    apply_aggregate_policy_constraints_to_scan,
     transform_aggregations_to_columns,
     ensure_columns_accessible,
+    get_policy_identifier,
 )
 
 
@@ -781,3 +784,113 @@ class TestIntegration:
         # Both constraints should be wrapped in parentheses (includes WHERE keyword)
         assert where_sql == "WHERE (foo.id > 1) AND (CASE WHEN foo.id < 10 THEN true ELSE KILL() END)"
 
+
+
+class TestApplyAggregatePolicyConstraintsToAggregation:
+    """Tests for apply_aggregate_policy_constraints_to_aggregation."""
+
+    def test_adds_temp_column_for_source_aggregate(self):
+        """Test that temp column is added for source aggregate."""
+        query = "SELECT sum(foo.amount) FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = AggregateDFCPolicy(
+            source="foo",
+            constraint="sum(foo.amount) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_aggregate_policy_constraints_to_aggregation(parsed, [policy], {"foo"})
+        
+        # Should have temp column added
+        expressions = parsed.expressions
+        assert len(expressions) >= 2  # Original + temp column
+        
+        # Find temp column
+        temp_col_found = False
+        for expr in expressions:
+            if isinstance(expr, exp.Alias):
+                alias_name = expr.alias.this if hasattr(expr.alias, 'this') else str(expr.alias)
+                if alias_name and alias_name.startswith("_policy_") and "_tmp" in alias_name:
+                    temp_col_found = True
+                    break
+        
+        assert temp_col_found, "Temp column not found in SELECT list"
+
+    def test_adds_multiple_temp_columns_for_multiple_aggregates(self):
+        """Test that multiple temp columns are added for multiple aggregates."""
+        query = "SELECT sum(foo.amount), max(foo.id) FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        
+        policy = AggregateDFCPolicy(
+            source="foo",
+            constraint="sum(foo.amount) > 100 AND max(foo.id) > 10",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        apply_aggregate_policy_constraints_to_aggregation(parsed, [policy], {"foo"})
+        
+        # Should have temp columns for both aggregates
+        expressions = parsed.expressions
+        temp_cols = []
+        for expr in expressions:
+            if isinstance(expr, exp.Alias):
+                alias_name = expr.alias.this if hasattr(expr.alias, 'this') else str(expr.alias)
+                if alias_name and alias_name.startswith("_policy_") and "_tmp" in alias_name:
+                    temp_cols.append(alias_name)
+        
+        assert len(temp_cols) == 2, f"Expected 2 temp columns, found {len(temp_cols)}"
+
+    def test_does_not_modify_query_without_policies(self):
+        """Test that query is not modified when no aggregate policies are provided."""
+        query = "SELECT sum(foo.amount) FROM foo"
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        original_sql = parsed.sql()
+        
+        apply_aggregate_policy_constraints_to_aggregation(parsed, [], {"foo"})
+        
+        # Query should be unchanged
+        assert parsed.sql() == original_sql
+
+
+class TestGetPolicyIdentifier:
+    """Tests for get_policy_identifier function."""
+
+    def test_same_policy_same_identifier(self):
+        """Test that same policy produces same identifier."""
+        policy1 = AggregateDFCPolicy(
+            source="users",
+            sink="reports",
+            constraint="sum(users.amount) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        policy2 = AggregateDFCPolicy(
+            source="users",
+            sink="reports",
+            constraint="sum(users.amount) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        id1 = get_policy_identifier(policy1)
+        id2 = get_policy_identifier(policy2)
+        
+        assert id1 == id2
+        assert id1.startswith("policy_")
+
+    def test_different_policies_different_identifiers(self):
+        """Test that different policies produce different identifiers."""
+        policy1 = AggregateDFCPolicy(
+            source="users",
+            constraint="sum(users.amount) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        policy2 = AggregateDFCPolicy(
+            source="users",
+            constraint="sum(users.amount) > 200",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        id1 = get_policy_identifier(policy1)
+        id2 = get_policy_identifier(policy2)
+        
+        assert id1 != id2

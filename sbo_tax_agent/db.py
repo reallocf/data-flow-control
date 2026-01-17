@@ -14,7 +14,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 import use_local_duckdb  # Must be imported before duckdb to configure environment
-from sql_rewriter import SQLRewriter, DFCPolicy
+from sql_rewriter import SQLRewriter, DFCPolicy, AggregateDFCPolicy
 from utils import SCHEMAS, validate_csv_schema
 from agent import create_bedrock_client, BEDROCK_MODEL_ID
 
@@ -172,7 +172,8 @@ def initialize_tables(conn):
             amount           DOUBLE,
             kind             VARCHAR,
             business_use_pct       DOUBLE,
-            valid            BOOLEAN
+            valid            BOOLEAN,
+            _policy_4394bd62_tmp1  DOUBLE
         )
     """)
     
@@ -334,8 +335,15 @@ def load_policies_from_file(rewriter, policies_path):
                 raise ValueError(f"Empty policy text at row {idx + 2} (1-indexed, including header) in {policies_path}")
             
             try:
+                # Determine if this is an aggregate policy by checking for AGGREGATE keyword
+                normalized = policy_text.strip().upper()
+                is_aggregate = normalized.startswith('AGGREGATE') or ' AGGREGATE ' in normalized
+                
                 # Parse and create the policy from string
-                policy = DFCPolicy.from_policy_str(policy_text)
+                if is_aggregate:
+                    policy = AggregateDFCPolicy.from_policy_str(policy_text)
+                else:
+                    policy = DFCPolicy.from_policy_str(policy_text)
                 
                 # If description column exists and policy doesn't have a description, use CSV description
                 if 'description' in df.columns and not policy.description:

@@ -5,7 +5,7 @@ Allows defining data flow control policies.
 """
 
 import streamlit as st
-from sql_rewriter import DFCPolicy
+from sql_rewriter import DFCPolicy, AggregateDFCPolicy
 import db
 import pandas as pd
 
@@ -33,17 +33,28 @@ if 'editing_policy_index' not in st.session_state:
 if 'editing_policy_text' not in st.session_state:
     st.session_state.editing_policy_text = ""
 
-# Get the list of registered policies
-policies = rewriter.get_dfc_policies()
+# Get the list of registered policies (both regular and aggregate)
+regular_policies = rewriter.get_dfc_policies()
+aggregate_policies = rewriter.get_aggregate_policies()
+
+# Combine all policies into a single list with type information
+all_policies = []
+for policy in regular_policies:
+    all_policies.append(('regular', policy))
+for policy in aggregate_policies:
+    all_policies.append(('aggregate', policy))
 
 def build_policy_text(policy, include_description=False):
     """Build policy string from policy object.
     
     Args:
-        policy: The DFCPolicy object
+        policy: The DFCPolicy or AggregateDFCPolicy object
         include_description: If True, include DESCRIPTION in the output (for editing)
     """
     parts = []
+    # Add AGGREGATE keyword for aggregate policies
+    if isinstance(policy, AggregateDFCPolicy):
+        parts.append("AGGREGATE")
     if policy.source:
         parts.append(f"SOURCE {policy.source}")
     if policy.sink:
@@ -54,10 +65,11 @@ def build_policy_text(policy, include_description=False):
         parts.append(f"DESCRIPTION {policy.description}")
     return ' '.join(parts)
 
-if not policies:
+if not all_policies:
     st.info("No policies registered yet. Create a policy using the form below.")
 else:
-    for idx, policy in enumerate(policies):
+    # Display all policies together
+    for idx, (policy_type, policy) in enumerate(all_policies):
         # Build policy string for display (without description, shown separately)
         policy_text = build_policy_text(policy, include_description=False)
         
@@ -75,21 +87,32 @@ else:
             with col1:
                 if st.button("✓", key=f"confirm_{idx}"):
                     try:
-                        # Parse the new policy
-                        new_policy = DFCPolicy.from_policy_str(edited_text)
+                        # Parse the new policy - determine type from the text
+                        edited_text_normalized = edited_text.strip().upper()
+                        is_aggregate = edited_text_normalized.startswith('AGGREGATE') or ' AGGREGATE ' in edited_text_normalized
+                        
+                        if is_aggregate:
+                            new_policy = AggregateDFCPolicy.from_policy_str(edited_text)
+                        else:
+                            new_policy = DFCPolicy.from_policy_str(edited_text)
                         
                         # Get all current policies before making changes
-                        all_policies = rewriter.get_dfc_policies()
+                        all_regular = rewriter.get_dfc_policies()
+                        all_aggregate = rewriter.get_aggregate_policies()
                         
-                        # To maintain position: delete all policies from this position onwards,
-                        # then re-register them with the new policy at the correct position
+                        # Build list of all policies with their types
+                        all_current = []
+                        for p in all_regular:
+                            all_current.append(('regular', p))
+                        for p in all_aggregate:
+                            all_current.append(('aggregate', p))
                         
                         # Get policies that come after the one we're editing
-                        policies_after = all_policies[idx + 1:] if idx + 1 < len(all_policies) else []
+                        policies_after = all_current[idx + 1:] if idx + 1 < len(all_current) else []
                         
                         # Delete policies from the end backwards to avoid index shifting issues
                         # First delete all policies that come after (in reverse order)
-                        for p in reversed(policies_after):
+                        for p_type, p in reversed(policies_after):
                             rewriter.delete_policy(
                                 source=p.source,
                                 sink=p.sink,
@@ -114,7 +137,7 @@ else:
                             rewriter.register_policy(new_policy)
                             
                             # Re-register the policies that came after (in original order)
-                            for p in policies_after:
+                            for p_type, p in policies_after:
                                 rewriter.register_policy(p)
                             
                             st.session_state.editing_policy_index = None
@@ -152,13 +175,28 @@ else:
 # Policy creation form
 st.subheader("Create New Policy")
 
-st.markdown("**Example policy:**")
-st.code("SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE", language=None)
+# Policy type selector
+policy_type = st.radio(
+    "Policy Type",
+    ["Regular", "Aggregate"],
+    help="Regular policies evaluate constraints over a single data flow. Aggregate policies evaluate constraints over all data flows."
+)
+
+if policy_type == "Regular":
+    st.markdown("**Example regular policy:**")
+    st.code("SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE", language=None)
+    placeholder = "SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE"
+    help_text = "Enter policy in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nFields can be separated by any whitespace (spaces, tabs, newlines)."
+else:
+    st.markdown("**Example aggregate policy:**")
+    st.code("AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT sum(sum(bank_txn.amount)) > 1000 ON FAIL INVALIDATE", language=None)
+    placeholder = "AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT sum(sum(bank_txn.amount)) > 1000 ON FAIL INVALIDATE"
+    help_text = "Enter aggregate policy in the format: AGGREGATE SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nAggregate policies currently only support INVALIDATE resolution.\nFields can be separated by any whitespace (spaces, tabs, newlines)."
 
 policy_text = st.text_area(
     "Policy Definition",
-    placeholder="SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE",
-    help="Enter policy in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nFields can be separated by any whitespace (spaces, tabs, newlines).",
+    placeholder=placeholder,
+    help=help_text,
     height=150
 )
 
@@ -168,7 +206,10 @@ if st.button("Create Policy"):
     else:
         try:
             # Parse and create the policy from string
-            policy = DFCPolicy.from_policy_str(policy_text)
+            if policy_type == "Aggregate":
+                policy = AggregateDFCPolicy.from_policy_str(policy_text)
+            else:
+                policy = DFCPolicy.from_policy_str(policy_text)
             
             # Register the policy (this will validate against database)
             rewriter.register_policy(policy)

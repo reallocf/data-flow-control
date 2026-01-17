@@ -56,6 +56,8 @@ if st.button("Reset Page", type="secondary"):
             st.session_state.current_txn_index = 0
         if 'tax_return_info' in st.session_state:
             st.session_state.tax_return_info = None
+        if 'aggregate_policy_violations' in st.session_state:
+            st.session_state.aggregate_policy_violations = {}
         
         st.success("Page reset successfully!")
         st.rerun()
@@ -154,31 +156,65 @@ with col2:
             # Remove 'valid' column from display but keep it for styling
             has_valid_column = 'valid' in irs_form_df.columns
             
+            # Remove policy temp columns from display (they're internal tracking columns)
+            policy_temp_columns = [col for col in irs_form_df.columns if col.startswith('_policy_') and '_tmp' in col]
+            
+            # Check for aggregate policy violations
+            aggregate_violations = st.session_state.get('aggregate_policy_violations', {})
+            has_aggregate_violations = any(
+                msg is not None for msg in aggregate_violations.values()
+            )
+            
+            # Drop columns that shouldn't be displayed
+            columns_to_drop = []
             if has_valid_column:
-                # Store invalid mask before dropping column
-                invalid_rows = irs_form_df['valid'] == False
-                # Drop the valid column from display
-                display_df = irs_form_df.drop(columns=['valid'])
+                columns_to_drop.append('valid')
+            if policy_temp_columns:
+                columns_to_drop.extend(policy_temp_columns)
+            
+            if columns_to_drop:
+                # Store invalid mask before dropping columns
+                invalid_rows = irs_form_df['valid'] == False if has_valid_column else pd.Series([False] * len(irs_form_df), index=irs_form_df.index)
+                # Drop the columns from display
+                display_df = irs_form_df.drop(columns=columns_to_drop)
                 
                 # Update format_dict to only include columns still in display_df
                 display_format_dict = {k: v for k, v in format_dict.items() if k in display_df.columns}
                 
-                # Apply styling: highlight invalid rows in red
+                # Apply styling: highlight invalid rows in red background
+                # and add subtle background tint for aggregate violations
                 def highlight_invalid(row):
-                    if invalid_rows.loc[row.name]:
-                        return ['background-color: #ffcccc'] * len(row)
-                    return [''] * len(row)
+                    styles = []
+                    for col in display_df.columns:
+                        style = ''
+                        if has_valid_column and invalid_rows.loc[row.name]:
+                            # Strong red background for invalid rows (takes priority)
+                            style = 'background-color: #ffcccc'
+                        elif has_aggregate_violations:
+                            # Very subtle red tint for all other cells when aggregate violations exist
+                            # This provides a subtle table-wide indicator
+                            style = 'background-color: #fff5f5'
+                        styles.append(style)
+                    return styles
                 
                 styled_df = display_df.style.apply(highlight_invalid, axis=1)
+                
                 if display_format_dict:
                     styled_df = styled_df.format(display_format_dict)
+                
                 st.dataframe(styled_df, width='stretch', hide_index=True)
             else:
-                if format_dict:
-                    styled_df = irs_form_df.style.format(format_dict)
+                # No valid column or policy temp columns to drop, but still check for policy temp columns
+                display_df = irs_form_df
+                if policy_temp_columns:
+                    display_df = irs_form_df.drop(columns=policy_temp_columns)
+                
+                display_format_dict = {k: v for k, v in format_dict.items() if k in display_df.columns}
+                if display_format_dict:
+                    styled_df = display_df.style.format(display_format_dict)
                     st.dataframe(styled_df, width='stretch', hide_index=True)
                 else:
-                    st.dataframe(irs_form_df, width='stretch', hide_index=True)
+                    st.dataframe(display_df, width='stretch', hide_index=True)
             
             st.caption(f"Total entries: {len(irs_form_df)}")
         else:
@@ -355,6 +391,14 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
                 if st.session_state.current_txn_index < len(st.session_state.transactions_to_process):
                     st.rerun()
                 else:
+                    # All transactions processed - finalize aggregate policies
+                    try:
+                        violations = rewriter.finalize_aggregate_policies("irs_form")
+                        st.session_state.aggregate_policy_violations = violations
+                    except Exception as e:
+                        st.warning(f"Error finalizing aggregate policies: {str(e)}")
+                        st.session_state.aggregate_policy_violations = {}
+                    
                     st.session_state.agent_processing = False
                     st.rerun()
                     
@@ -387,7 +431,14 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
                 st.session_state.agent_progress.append(progress_update)
                 st.session_state.agent_processing = False
         else:
-            # All transactions processed
+            # All transactions processed - finalize aggregate policies
+            try:
+                violations = rewriter.finalize_aggregate_policies("irs_form")
+                st.session_state.aggregate_policy_violations = violations
+            except Exception as e:
+                st.warning(f"Error finalizing aggregate policies: {str(e)}")
+                st.session_state.aggregate_policy_violations = {}
+            
             st.session_state.agent_processing = False
                         
     except Exception as e:

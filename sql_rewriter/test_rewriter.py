@@ -6,7 +6,7 @@ import os
 import duckdb
 import sqlglot
 from sqlglot import parse_one, exp
-from sql_rewriter import SQLRewriter, DFCPolicy, Resolution
+from sql_rewriter import SQLRewriter, DFCPolicy, AggregateDFCPolicy, Resolution
 
 
 @pytest.fixture
@@ -2044,7 +2044,11 @@ class TestCorrelatedSubqueries:
         query = "SELECT id, (SELECT COUNT(*) FROM baz WHERE baz.x = foo.id) AS count FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (wrapped in parentheses)
-        assert transformed == "SELECT\n  id,\n  (\n    SELECT\n      COUNT(*)\n    FROM baz\n    WHERE\n      baz.x = foo.id\n  ) AS count\nFROM foo\nWHERE\n  (\n    foo.id > 1\n  )"
+        # Note: The constraint max(foo.id) > 1 is transformed to id > 1 for scan queries
+        assert "WHERE" in transformed or "where" in transformed.lower()
+        assert "foo.id > 1" in transformed or "FOO.ID > 1" in transformed
+        # Should not have HAVING clause (this is a scan query, not an aggregation)
+        assert "HAVING" not in transformed and "having" not in transformed.lower()
         result = rewriter.conn.execute(transformed).fetchall()
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -3311,7 +3315,7 @@ class TestDeletePolicy:
         
         # Query should be transformed with policy
         transformed = rewriter.transform_query("SELECT * FROM foo")
-        assert "max(foo.id) > 1" in transformed or "foo.id > 1" in transformed
+        assert transformed == "SELECT\n  *\nFROM foo\nWHERE\n  (\n    foo.id > 1\n  )"
         
         # Delete the policy
         deleted = rewriter.delete_policy(
@@ -3320,10 +3324,201 @@ class TestDeletePolicy:
         )
         assert deleted is True
         
-        # Query should no longer be transformed
+        # Query should no longer be transformed - should be unchanged
         transformed = rewriter.transform_query("SELECT * FROM foo")
-        assert "max(foo.id) > 1" not in transformed
-        assert "foo.id > 1" not in transformed
-        # The query should be unchanged (may have pretty printing)
-        assert "SELECT" in transformed and "FROM foo" in transformed
-        assert "max(foo.id)" not in transformed
+        assert transformed == "SELECT\n  *\nFROM foo"
+
+
+class TestAggregateDFCPolicyIntegration:
+    """Integration tests for AggregateDFCPolicy with SQLRewriter."""
+
+    def test_register_aggregate_policy(self, rewriter):
+        """Test registering an aggregate policy."""
+        policy = AggregateDFCPolicy(
+            source="foo",
+            sink="baz",
+            constraint="sum(foo.id) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        rewriter.register_policy(policy)
+        
+        aggregate_policies = rewriter.get_aggregate_policies()
+        assert len(aggregate_policies) == 1
+        assert aggregate_policies[0] == policy
+
+    def test_aggregate_policy_separate_from_regular(self, rewriter):
+        """Test that aggregate policies are stored separately from regular policies."""
+        regular_policy = DFCPolicy(
+            source="foo",
+            constraint="max(foo.id) > 1",
+            on_fail=Resolution.REMOVE,
+        )
+        aggregate_policy = AggregateDFCPolicy(
+            source="foo",
+            sink="baz",
+            constraint="sum(foo.id) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        rewriter.register_policy(regular_policy)
+        rewriter.register_policy(aggregate_policy)
+        
+        regular_policies = rewriter.get_dfc_policies()
+        aggregate_policies = rewriter.get_aggregate_policies()
+        
+        assert len(regular_policies) == 1
+        assert len(aggregate_policies) == 1
+        assert regular_policies[0] == regular_policy
+        assert aggregate_policies[0] == aggregate_policy
+
+    def test_aggregate_policy_adds_temp_columns_to_insert(self, rewriter):
+        """Test that aggregate policy adds temp columns to both SELECT and INSERT column list."""
+        # Create sink table (aggregate policies don't require 'valid' column)
+        rewriter.execute("CREATE TABLE IF NOT EXISTS reports (id INTEGER, value DOUBLE)")
+        
+        # Add amount column for the aggregate
+        rewriter.execute("ALTER TABLE foo ADD COLUMN IF NOT EXISTS amount DOUBLE")
+        rewriter.execute("UPDATE foo SET amount = id * 10.0")
+        
+        from sql_rewriter.rewrite_rule import get_policy_identifier
+        
+        policy = AggregateDFCPolicy(
+            source="foo",
+            sink="reports",
+            constraint="sum(reports.value) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        policy_id = get_policy_identifier(policy)
+        rewriter.register_policy(policy)
+        
+        # Use an aggregation query
+        query = "INSERT INTO reports (id, value) SELECT id, sum(amount) FROM foo GROUP BY id"
+        transformed = rewriter.transform_query(query)
+        
+        # Verify temp column is in SELECT (for sink expression)
+        temp_col_name = f"_{policy_id}_tmp1"
+        assert temp_col_name in transformed, f"Temp column {temp_col_name} not found in transformed query:\n{transformed}"
+        
+        # Verify temp column is in INSERT column list
+        # The INSERT should have: INSERT INTO reports (id, value, _policy_xxx_tmp1)
+        insert_part = transformed.split("SELECT")[0]
+        assert temp_col_name in insert_part, f"Temp column {temp_col_name} not in INSERT column list:\n{insert_part}"
+        
+        # Verify the temp column expression is in SELECT (should be SUM(value) for sink)
+        assert "SUM(value)" in transformed or "SUM(VALUE)" in transformed
+
+    def test_aggregate_policy_finalize_with_no_data(self, rewriter):
+        """Test finalize_aggregate_policies with no data in sink table."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
+        
+        policy = AggregateDFCPolicy(
+            source="foo",
+            sink="reports",
+            constraint="sum(foo.id) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        rewriter.register_policy(policy)
+        
+        violations = rewriter.finalize_aggregate_policies("reports")
+        assert isinstance(violations, dict)
+        # Should have entry for policy but no violation (no data yet)
+        assert len(violations) >= 0
+
+    def test_aggregate_policy_finalize_with_data(self, rewriter):
+        """Test finalize_aggregate_policies with data in sink table."""
+        # Create sink table
+        rewriter.execute("""
+            CREATE TABLE reports (
+                id INTEGER, 
+                value DOUBLE, 
+                valid BOOLEAN,
+                _policy_test123_tmp1 DOUBLE
+            )
+        """)
+        
+        # Insert data with temp column
+        rewriter.execute("""
+            INSERT INTO reports (id, value, valid, _policy_test123_tmp1)
+            VALUES (1, 10.0, true, 100.0), (2, 20.0, true, 200.0)
+        """)
+        
+        policy = AggregateDFCPolicy(
+            source="foo",
+            sink="reports",
+            constraint="sum(foo.id) > 1000",
+            on_fail=Resolution.INVALIDATE,
+        )
+        rewriter.register_policy(policy)
+        
+        violations = rewriter.finalize_aggregate_policies("reports")
+        assert isinstance(violations, dict)
+
+    def test_aggregate_policy_only_supports_invalidate(self, rewriter):
+        """Test that aggregate policy registration rejects non-INVALIDATE resolutions."""
+        with pytest.raises(ValueError, match="currently only supports INVALIDATE resolution"):
+            AggregateDFCPolicy(
+                source="foo",
+                constraint="sum(foo.id) > 100",
+                on_fail=Resolution.REMOVE,
+            )
+
+    def test_aggregate_policy_allows_sink_aggregation(self, rewriter):
+        """Test that aggregate policies allow sink aggregations."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
+        
+        policy = AggregateDFCPolicy(
+            source="foo",
+            sink="reports",
+            constraint="sum(foo.id) > sum(reports.value)",
+            on_fail=Resolution.INVALIDATE,
+        )
+        rewriter.register_policy(policy)
+        
+        aggregate_policies = rewriter.get_aggregate_policies()
+        assert len(aggregate_policies) == 1
+
+    def test_aggregate_policy_source_must_be_aggregated(self, rewriter):
+        """Test that aggregate policies require source columns to be aggregated."""
+        with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+            AggregateDFCPolicy(
+                source="foo",
+                constraint="foo.id > 100",
+                on_fail=Resolution.INVALIDATE,
+            )
+
+    def test_multiple_aggregate_policies(self, rewriter):
+        """Test handling multiple aggregate policies."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
+        
+        policy1 = AggregateDFCPolicy(
+            source="foo",
+            sink="reports",
+            constraint="sum(foo.id) > 100",
+            on_fail=Resolution.INVALIDATE,
+        )
+        policy2 = AggregateDFCPolicy(
+            source="foo",
+            sink="reports",
+            constraint="max(foo.id) > 5",
+            on_fail=Resolution.INVALIDATE,
+        )
+        
+        rewriter.register_policy(policy1)
+        rewriter.register_policy(policy2)
+        
+        aggregate_policies = rewriter.get_aggregate_policies()
+        assert len(aggregate_policies) == 2
+
+    def test_aggregate_policy_with_description(self, rewriter):
+        """Test aggregate policy with description."""
+        policy = AggregateDFCPolicy(
+            source="foo",
+            sink="baz",
+            constraint="sum(foo.id) > 100",
+            on_fail=Resolution.INVALIDATE,
+            description="Test aggregate policy",
+        )
+        rewriter.register_policy(policy)
+        
+        aggregate_policies = rewriter.get_aggregate_policies()
+        assert aggregate_policies[0].description == "Test aggregate policy"

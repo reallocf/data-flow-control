@@ -5,7 +5,7 @@ from sqlglot import exp
 from typing import Set, List, Optional
 import json
 
-from .policy import DFCPolicy, Resolution
+from .policy import DFCPolicy, AggregateDFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 
 
@@ -187,6 +187,13 @@ def _wrap_llm_constraint(
     # These are the columns that will be in the final SELECT output (for INSERT)
     if parsed:
         for expr in parsed.expressions:
+            # Skip aggregate policy temp columns (they start with _policy_ and contain _tmp)
+            # These are internal tracking columns and shouldn't be passed to the LLM UDF
+            if isinstance(expr, exp.Alias):
+                alias_name = get_column_name(expr.alias).lower()
+                if alias_name.startswith('_policy_') and '_tmp' in alias_name:
+                    continue  # Skip aggregate policy temp columns
+            
             col_name = None
             table_name = None
             if isinstance(expr, exp.Alias):
@@ -822,11 +829,36 @@ def _replace_sink_table_references_in_constraint(
     def replace_sink_column(node):
         if isinstance(node, exp.Column):
             table_name = get_table_name_from_column(node)
+            col_name = get_column_name(node).lower()
+            
+            # Check if this is a qualified sink table column (e.g., irs_form.amount)
             if table_name and table_name == sink_table:
-                col_name = get_column_name(node).lower()
                 if col_name in sink_to_output_mapping:
                     # Replace with unqualified column reference to SELECT output
                     output_col_name = sink_to_output_mapping[col_name]
+                    return exp.Column(
+                        this=exp.Identifier(this=output_col_name, quoted=False)
+                    )
+            # Check if this is an unqualified column that matches the sink table name
+            # This handles cases like sum(irs_form) where irs_form is shorthand
+            elif not table_name and col_name == sink_table.lower():
+                # For unqualified sink table name, we need to determine which column to use
+                # In aggregate functions, this typically means we should use a specific column
+                # For now, if there's only one column in the mapping, use it; otherwise use the first one
+                # This is a heuristic - ideally the policy should specify the column explicitly
+                if len(sink_to_output_mapping) == 1:
+                    output_col_name = list(sink_to_output_mapping.values())[0]
+                    return exp.Column(
+                        this=exp.Identifier(this=output_col_name, quoted=False)
+                    )
+                # If multiple columns, try to use a common one like 'amount' or the first one
+                elif 'amount' in sink_to_output_mapping:
+                    return exp.Column(
+                        this=exp.Identifier(this=sink_to_output_mapping['amount'], quoted=False)
+                    )
+                else:
+                    # Use the first column in the mapping
+                    output_col_name = list(sink_to_output_mapping.values())[0]
                     return exp.Column(
                         this=exp.Identifier(this=output_col_name, quoted=False)
                     )
@@ -1203,4 +1235,492 @@ def transform_aggregations_to_columns(
     
     transformed = transformed.transform(replace_agg, copy=True)
     return transformed
+
+
+def get_policy_identifier(policy: AggregateDFCPolicy) -> str:
+    """Generate a unique identifier for a policy for temp column naming.
+    
+    Args:
+        policy: The AggregateDFCPolicy instance.
+        
+    Returns:
+        A string identifier derived from the policy.
+    """
+    # Use a hash of the constraint and source/sink to create a unique identifier
+    import hashlib
+    policy_str = f"{policy.source or ''}_{policy.sink or ''}_{policy.constraint}"
+    hash_obj = hashlib.md5(policy_str.encode())
+    return f"policy_{hash_obj.hexdigest()[:8]}"
+
+
+def _extract_source_aggregates_from_constraint(
+    constraint_expr: exp.Expression,
+    source_table: str
+) -> List[exp.AggFunc]:
+    """Extract innermost source aggregate expressions from a constraint.
+    
+    For nested aggregates like max(sum(foo.amount)), extracts the innermost
+    aggregate (sum(foo.amount)) that directly contains the source column.
+    The outer aggregate (max) will be applied during finalize.
+    
+    Args:
+        constraint_expr: The parsed constraint expression.
+        source_table: The source table name.
+        
+    Returns:
+        List of innermost aggregate function expressions that reference the source table.
+    """
+    aggregates = []
+    seen = set()
+    
+    for agg_func in constraint_expr.find_all(exp.AggFunc):
+        # Check if this aggregate references the source table directly
+        columns = list(agg_func.find_all(exp.Column))
+        has_source_column = False
+        for column in columns:
+            table_name = get_table_name_from_column(column)
+            if table_name == source_table.lower():
+                has_source_column = True
+                break
+        
+        if not has_source_column:
+            continue
+        
+        # Check if this aggregate is nested inside another aggregate
+        # by checking if its parent is an AggFunc
+        parent = agg_func.parent
+        is_nested = isinstance(parent, exp.AggFunc)
+        
+        # Check if this aggregate wraps another aggregate (it's an outer aggregate)
+        # In sqlglot, nested aggregates have the inner aggregate as the 'this' attribute
+        has_nested_agg = hasattr(agg_func, 'this') and isinstance(agg_func.this, exp.AggFunc)
+        
+        if is_nested and not has_nested_agg:
+            # This is nested inside another aggregate and doesn't wrap another aggregate
+            # So it's the innermost one we want
+            agg_sql = agg_func.sql()
+            if agg_sql not in seen:
+                seen.add(agg_sql)
+                # Parse fresh to avoid mutability issues
+                agg_copy = sqlglot.parse_one(agg_sql, read="duckdb")
+                aggregates.append(agg_copy)
+        elif not is_nested and not has_nested_agg:
+            # Not nested and doesn't wrap another aggregate - it's a simple aggregate
+            agg_sql = agg_func.sql()
+            if agg_sql not in seen:
+                seen.add(agg_sql)
+                agg_copy = sqlglot.parse_one(agg_sql, read="duckdb")
+                aggregates.append(agg_copy)
+    
+    return aggregates
+
+
+def _find_outer_aggregate_for_inner(
+    constraint_expr: exp.Expression,
+    inner_agg_sql: str
+) -> Optional[str]:
+    """Find the outer aggregate function name that wraps an inner aggregate.
+    
+    For nested aggregates like max(sum(foo.amount)), if inner_agg_sql is
+    "sum(foo.amount)", returns "MAX".
+    
+    Args:
+        constraint_expr: The parsed constraint expression.
+        inner_agg_sql: The SQL of the inner aggregate expression.
+        
+    Returns:
+        The outer aggregate function name (e.g., "MAX", "MIN") or None if not nested.
+    """
+    # Find all aggregates in the constraint
+    for agg_func in constraint_expr.find_all(exp.AggFunc):
+        # Check if this aggregate wraps the inner aggregate
+        # In sqlglot, nested aggregates have the inner aggregate as the 'this' attribute
+        if hasattr(agg_func, 'this') and isinstance(agg_func.this, exp.AggFunc):
+            # Check if the inner aggregate matches
+            inner_agg_in_expr = agg_func.this
+            if inner_agg_in_expr.sql().upper() == inner_agg_sql.upper():
+                # This aggregate wraps the inner one - return its function name
+                # The function name is the class name (Max, Min, etc.) or sql_name()
+                if hasattr(agg_func, 'sql_name'):
+                    return agg_func.sql_name().upper()
+                else:
+                    # Use class name (Max -> MAX, Min -> MIN, etc.)
+                    class_name = type(agg_func).__name__
+                    return class_name.upper()
+    
+    return None
+
+
+def _extract_sink_expressions_from_constraint(
+    constraint_expr: exp.Expression,
+    sink_table: str,
+    sink_to_output_mapping: Optional[dict[str, str]] = None
+) -> List[exp.Expression]:
+    """Extract all sink column/expression references from a constraint.
+    
+    Args:
+        constraint_expr: The parsed constraint expression.
+        sink_table: The sink table name.
+        sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
+        
+    Returns:
+        List of expressions that reference the sink table (columns or aggregates).
+    """
+    expressions = []
+    seen = set()
+    
+    # First, find all aggregate functions that reference the sink table
+    # This handles cases like sum(irs_form) where irs_form is unqualified
+    for agg_func in constraint_expr.find_all(exp.AggFunc):
+        # Check if this aggregate references the sink table
+        references_sink = False
+        
+        # Check the direct argument to the aggregate (agg_func.this)
+        if hasattr(agg_func, 'this'):
+            this_expr = agg_func.this
+            if isinstance(this_expr, exp.Column):
+                table_name = get_table_name_from_column(this_expr)
+                col_name = get_column_name(this_expr).lower()
+                
+                # Check if column references sink table (qualified or unqualified match)
+                if table_name == sink_table.lower():
+                    references_sink = True
+                # Check if unqualified column matches sink table name (shorthand like sum(irs_form))
+                elif not table_name and col_name == sink_table.lower():
+                    # The direct argument to an aggregate is never inside a FILTER clause
+                    # (FILTER is a separate attribute of the aggregate, not a parent of 'this')
+                    references_sink = True
+        
+        # Also check other columns in the aggregate (for cases where sink table is referenced elsewhere)
+        if not references_sink:
+            columns = list(agg_func.find_all(exp.Column))
+            for column in columns:
+                table_name = get_table_name_from_column(column)
+                if table_name == sink_table.lower():
+                    # Skip columns inside FILTER clauses (they're part of the filter, not the aggregate expression)
+                    if column.find_ancestor(exp.Filter) is None:
+                        references_sink = True
+                        break
+        
+        if references_sink:
+            # Extract the whole aggregate (including FILTER clause if present)
+            # If the aggregate is wrapped in a FILTER, extract the Filter node instead
+            if isinstance(agg_func.parent, exp.Filter):
+                # The FILTER wraps the aggregate, so extract the Filter node
+                filter_node = agg_func.parent
+                filter_sql = filter_node.sql()
+                if filter_sql not in seen:
+                    seen.add(filter_sql)
+                    filter_copy = sqlglot.parse_one(filter_sql, read="duckdb")
+                    expressions.append(filter_copy)
+            else:
+                # No FILTER, just extract the aggregate
+                agg_sql = agg_func.sql()
+                if agg_sql not in seen:
+                    seen.add(agg_sql)
+                    agg_copy = sqlglot.parse_one(agg_sql, read="duckdb")
+                    expressions.append(agg_copy)
+    
+    # Also find non-aggregate columns that reference the sink table
+    # Skip columns that are already part of aggregates we extracted (including those in FILTER clauses)
+    for column in constraint_expr.find_all(exp.Column):
+        table_name = get_table_name_from_column(column)
+        if table_name == sink_table.lower():
+            # Skip if this column is already part of an aggregate we extracted
+            agg_ancestor = column.find_ancestor(exp.AggFunc)
+            if agg_ancestor:
+                # Check if we already extracted this aggregate (or its Filter wrapper)
+                agg_sql = agg_ancestor.sql()
+                # Check if the aggregate is wrapped in a Filter
+                if isinstance(agg_ancestor.parent, exp.Filter):
+                    filter_sql = agg_ancestor.parent.sql()
+                    if filter_sql in seen:
+                        continue
+                if agg_sql in seen:
+                    continue
+            
+            # Skip columns inside FILTER clauses - they're part of the filter condition, not standalone expressions
+            if column.find_ancestor(exp.Filter) is not None:
+                continue
+            
+            # This is a regular sink column (not in an aggregate)
+            col_sql = column.sql()
+            if sink_to_output_mapping:
+                # Map to output column name
+                col_name = get_column_name(column).lower()
+                if col_name in sink_to_output_mapping:
+                    output_col_name = sink_to_output_mapping[col_name]
+                    col_expr = exp.Column(
+                        this=exp.Identifier(this=output_col_name, quoted=False)
+                    )
+                    col_sql = col_expr.sql()
+            
+            if col_sql not in seen:
+                seen.add(col_sql)
+                col_copy = sqlglot.parse_one(col_sql, read="duckdb")
+                expressions.append(col_copy)
+    
+    return expressions
+
+
+def _add_temp_column_to_select(
+    parsed: exp.Select,
+    expr: exp.Expression,
+    column_name: str,
+    source_tables: Optional[Set[str]] = None
+) -> None:
+    """Add a temp column to a SELECT statement.
+    
+    Args:
+        parsed: The parsed SELECT statement to modify.
+        expr: The expression to add as a column.
+        column_name: The name for the temp column.
+        source_tables: Optional set of source table names to help ensure columns are accessible.
+    """
+    # Create a fresh copy of the expression to avoid mutability issues
+    expr_sql = expr.sql()
+    expr_copy = sqlglot.parse_one(expr_sql, read="duckdb")
+    
+    # Check if this is a scan query (no GROUP BY, no aggregations in main SELECT)
+    # For scan queries, FILTER clauses in aggregates can't reference SELECT output columns
+    # We need to convert FILTER to CASE expression
+    has_group_by = parsed.args.get('group') is not None
+    is_scan_query = not has_group_by and not any(
+        isinstance(e, exp.AggFunc) or 
+        (isinstance(e, exp.Alias) and isinstance(e.this, exp.AggFunc))
+        for e in parsed.expressions
+        if not isinstance(e, exp.Alias) or not isinstance(e.this, exp.Subquery)
+    )
+    
+    # If it's a scan query and we have a Filter-wrapped aggregate, handle it specially
+    # For scan queries, we can't use aggregates in SELECT without GROUP BY
+    # We also can't reference SELECT output columns in the condition
+    # So we'll just store the scalar value (amount or 0) and let finalize aggregate it
+    if is_scan_query and isinstance(expr_copy, exp.Filter):
+        agg_func = expr_copy.this
+        if isinstance(agg_func, exp.AggFunc):
+            where_expr = expr_copy.expression  # This is a Where expression
+            condition = where_expr.this if hasattr(where_expr, 'this') else where_expr
+            
+            # Get the aggregate argument (e.g., 'amount' from SUM(amount))
+            agg_arg = agg_func.this if hasattr(agg_func, 'this') else exp.Literal(this="1", is_string=False)
+            
+            # Check if condition references SELECT output columns (unqualified columns that are in SELECT)
+            # Get all SELECT output column names (aliases or column names)
+            select_output_cols = set()
+            for expr in parsed.expressions:
+                if isinstance(expr, exp.Alias):
+                    alias_name = get_column_name(expr.alias).lower()
+                    select_output_cols.add(alias_name)
+                    # Also check if the expression itself is a column
+                    if isinstance(expr.this, exp.Column):
+                        col_name = get_column_name(expr.this).lower()
+                        select_output_cols.add(col_name)
+                elif isinstance(expr, exp.Column):
+                    col_name = get_column_name(expr).lower()
+                    select_output_cols.add(col_name)
+            
+            # Check if condition references any SELECT output columns
+            condition_cols = [get_column_name(col).lower() for col in condition.find_all(exp.Column) 
+                             if not get_table_name_from_column(col)]  # Unqualified columns
+            references_select_output = any(col in select_output_cols for col in condition_cols)
+            
+            if references_select_output:
+                # Replace SELECT output column references with their actual values/expressions
+                # Build mapping from output column names to their expressions
+                output_col_to_expr = {}
+                for expr in parsed.expressions:
+                    output_col_name = None
+                    if isinstance(expr, exp.Alias):
+                        alias_name = get_column_name(expr.alias).lower()
+                        output_col_to_expr[alias_name] = expr.this
+                        # Also map the underlying column name if it's a column
+                        if isinstance(expr.this, exp.Column):
+                            col_name = get_column_name(expr.this).lower()
+                            output_col_to_expr[col_name] = expr.this
+                    elif isinstance(expr, exp.Column):
+                        col_name = get_column_name(expr).lower()
+                        output_col_to_expr[col_name] = expr
+                
+                # Replace column references in condition with their actual expressions
+                def replace_output_col_refs(node):
+                    if isinstance(node, exp.Column):
+                        col_name = get_column_name(node).lower()
+                        table_name = get_table_name_from_column(node)
+                        # If it's an unqualified column that matches a SELECT output
+                        if not table_name and col_name in output_col_to_expr:
+                            # Replace with the actual expression/value
+                            replacement = output_col_to_expr[col_name]
+                            
+                            # If replacement is a Literal, use it directly
+                            if isinstance(replacement, exp.Literal):
+                                # Create a fresh copy
+                                return exp.Literal(this=replacement.this, is_string=replacement.is_string)
+                            
+                            # If replacement is a Column that's actually a quoted string literal,
+                            # extract the value and create a proper Literal
+                            if isinstance(replacement, exp.Column):
+                                # Check if it's a quoted identifier that should be a literal
+                                col_identifier = replacement.this
+                                if isinstance(col_identifier, exp.Identifier):
+                                    # Extract the name (which might be the string value)
+                                    str_value = col_identifier.name if hasattr(col_identifier, 'name') else str(col_identifier)
+                                    # Create a proper string literal
+                                    return exp.Literal(this=str_value, is_string=True)
+                            
+                            # For other expression types, create a fresh copy
+                            replacement_sql = replacement.sql()
+                            # Parse as an expression (not a full statement)
+                            # Wrap in parentheses to ensure proper parsing
+                            parsed_replacement = sqlglot.parse_one(f"({replacement_sql})", read="duckdb")
+                            # Extract the expression from the parentheses
+                            if isinstance(parsed_replacement, exp.Paren):
+                                return parsed_replacement.this
+                            return parsed_replacement
+                    return node
+                
+                # Transform the condition to replace output column references
+                condition_replaced = condition.transform(replace_output_col_refs, copy=True)
+                
+                # Now use the replaced condition in CASE expression
+                case_expr = exp.Case(
+                    ifs=[exp.If(this=condition_replaced, true=agg_arg)],
+                    default=exp.Literal(this="0", is_string=False)
+                )
+                expr_copy = case_expr
+            else:
+                # Condition can be evaluated - use CASE expression (without aggregate for scan query)
+                case_expr = exp.Case(
+                    ifs=[exp.If(this=condition, true=agg_arg)],
+                    default=exp.Literal(this="0", is_string=False)
+                )
+                expr_copy = case_expr
+    
+    # Check if expression references columns that need to be accessible
+    # If it's a Filter-wrapped aggregate (for aggregation queries), ensure filter columns are accessible
+    if isinstance(expr_copy, exp.Filter):
+        # Extract columns from the filter condition
+        filter_columns = list(expr_copy.find_all(exp.Column))
+        # Ensure these columns are accessible in the SELECT context
+        if source_tables:
+            ensure_columns_accessible(parsed, expr_copy, source_tables)
+    
+    # Create alias
+    alias = exp.Alias(
+        this=expr_copy,
+        alias=exp.Identifier(this=column_name, quoted=False)
+    )
+    
+    # Add to SELECT list
+    parsed.expressions.append(alias)
+
+
+def apply_aggregate_policy_constraints_to_aggregation(
+    parsed: exp.Select,
+    policies: list[AggregateDFCPolicy],
+    source_tables: Set[str],
+    sink_table: Optional[str] = None,
+    sink_to_output_mapping: Optional[dict[str, str]] = None
+) -> None:
+    """Apply aggregate policy constraints to an aggregation query.
+    
+    Adds temp columns for source aggregates (inner aggregates) and sink expressions.
+    These temp columns will be used during finalize to compute outer aggregates.
+    
+    Args:
+        parsed: The parsed SELECT statement to modify.
+        policies: List of aggregate policies to apply.
+        source_tables: Set of source table names in the query.
+        sink_table: Optional sink table name (for INSERT statements).
+        sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
+    """
+    for policy in policies:
+        policy_id = get_policy_identifier(policy)
+        temp_col_counter = 1
+        
+        # Extract and add source aggregates
+        if policy.source and policy.source.lower() in source_tables:
+            source_aggregates = _extract_source_aggregates_from_constraint(
+                policy._constraint_parsed, policy.source
+            )
+            
+            for agg_expr in source_aggregates:
+                temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
+                temp_col_counter += 1
+        
+        # Extract and add sink expressions
+        if policy.sink and sink_table and policy.sink.lower() == sink_table.lower():
+            # Extract sink expressions BEFORE replacement (they need to reference the sink table)
+            constraint_expr_orig = sqlglot.parse_one(policy.constraint, read="duckdb")
+            sink_expressions = _extract_sink_expressions_from_constraint(
+                constraint_expr_orig, sink_table, sink_to_output_mapping
+            )
+            
+            for sink_expr in sink_expressions:
+                # Replace sink table references in the expression (including FILTER clauses)
+                # This is needed because sink table columns need to reference SELECT output columns
+                if sink_to_output_mapping:
+                    sink_expr = _replace_sink_table_references_in_constraint(
+                        sink_expr, sink_table, sink_to_output_mapping
+                    )
+                
+                temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                _add_temp_column_to_select(parsed, sink_expr, temp_col_name, source_tables)
+                temp_col_counter += 1
+
+
+def apply_aggregate_policy_constraints_to_scan(
+    parsed: exp.Select,
+    policies: list[AggregateDFCPolicy],
+    source_tables: Set[str],
+    sink_table: Optional[str] = None,
+    sink_to_output_mapping: Optional[dict[str, str]] = None
+) -> None:
+    """Apply aggregate policy constraints to a scan (non-aggregation) query.
+    
+    Adds temp columns for source aggregates (inner aggregates computed per row/group)
+    and sink expressions. Source columns still need inner aggregation even in scan queries.
+    
+    Args:
+        parsed: The parsed SELECT statement to modify.
+        policies: List of aggregate policies to apply.
+        source_tables: Set of source table names in the query.
+        sink_table: Optional sink table name (for INSERT statements).
+        sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
+    """
+    for policy in policies:
+        policy_id = get_policy_identifier(policy)
+        temp_col_counter = 1
+        
+        # Extract and add source aggregates (still need inner aggregation in scan queries)
+        if policy.source and policy.source.lower() in source_tables:
+            source_aggregates = _extract_source_aggregates_from_constraint(
+                policy._constraint_parsed, policy.source
+            )
+            
+            for agg_expr in source_aggregates:
+                temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
+                temp_col_counter += 1
+        
+        # Extract and add sink expressions
+        if policy.sink and sink_table and policy.sink.lower() == sink_table.lower():
+            # Extract sink expressions BEFORE replacement (they need to reference the sink table)
+            constraint_expr_orig = sqlglot.parse_one(policy.constraint, read="duckdb")
+            sink_expressions = _extract_sink_expressions_from_constraint(
+                constraint_expr_orig, sink_table, sink_to_output_mapping
+            )
+            
+            for sink_expr in sink_expressions:
+                # Replace sink table references in the expression (including FILTER clauses)
+                # This is needed because sink table columns need to reference SELECT output columns
+                if sink_to_output_mapping:
+                    sink_expr = _replace_sink_table_references_in_constraint(
+                        sink_expr, sink_table, sink_to_output_mapping
+                    )
+                
+                temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                _add_temp_column_to_select(parsed, sink_expr, temp_col_name, source_tables)
+                temp_col_counter += 1
 
