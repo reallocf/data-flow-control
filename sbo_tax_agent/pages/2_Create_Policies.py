@@ -184,13 +184,13 @@ policy_type = st.radio(
 
 if policy_type == "Regular":
     st.markdown("**Example regular policy:**")
-    st.code("SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE", language=None)
-    placeholder = "SOURCE bank_txn SINK irs_form CONSTRAINT sum(bank_txn.amount) > 0 ON FAIL REMOVE"
+    st.code("SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.amount) > -1000 ON FAIL REMOVE", language=None)
+    placeholder = "SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.amount) > -1000 ON FAIL REMOVE"
     help_text = "Enter policy in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nFields can be separated by any whitespace (spaces, tabs, newlines)."
 else:
     st.markdown("**Example aggregate policy:**")
-    st.code("AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT sum(sum(bank_txn.amount)) > 1000 ON FAIL INVALIDATE", language=None)
-    placeholder = "AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT sum(sum(bank_txn.amount)) > 1000 ON FAIL INVALIDATE"
+    st.code("AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT min(min(bank_txn.amount)) > 1000 ON FAIL INVALIDATE", language=None)
+    placeholder = "AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT min(min(bank_txn.amount)) > 1000 ON FAIL INVALIDATE"
     help_text = "Enter aggregate policy in the format: AGGREGATE SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nAggregate policies currently only support INVALIDATE resolution.\nFields can be separated by any whitespace (spaces, tabs, newlines)."
 
 policy_text = st.text_area(
