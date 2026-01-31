@@ -11,9 +11,11 @@ This project implements Data Flow Control (DFC) policies that can filter or abor
 ### Policy System
 
 - **Validation split**: Syntax validation at policy creation, catalog validation at registration
+- **Policy types**: `DFCPolicy` for standard policies, `AggregateDFCPolicy` for policies evaluated after all data is processed
 - **Resolution types**: `REMOVE` filters rows, `KILL` aborts the query, `LLM` uses AI to fix violating rows, `INVALIDATE` marks rows as invalid
 - **Column qualification**: All constraint columns must be qualified with table names
-- **Source aggregation**: Source columns must be aggregated when source is present
+- **Source aggregation**: Source columns must be aggregated when source is present (for `DFCPolicy`)
+- **Aggregate policies**: `AggregateDFCPolicy` uses inner/outer aggregation patterns and currently only supports `INVALIDATE` resolution
 
 ### Query Transformation
 
@@ -80,7 +82,11 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 
 ### Accessing Internal State
 
-**Use public API methods, not private attributes** - Always use public methods like `get_dfc_policies()` instead of accessing `_policies` directly. This maintains encapsulation and allows for future implementation changes.
+**Use public API methods, not private attributes** - Always use public methods like `get_dfc_policies()` and `get_aggregate_policies()` instead of accessing `_policies` or `_aggregate_policies` directly. This maintains encapsulation and allows for future implementation changes.
+
+### Aggregate Policies
+
+**AggregateDFCPolicy is a separate policy type** - Aggregate policies are stored separately from regular policies and use different evaluation logic. They require the `AGGREGATE` keyword when parsing from strings and currently only support `INVALIDATE` resolution. Use `register_policy()` for both types - it automatically detects the policy type and stores it in the appropriate list.
 
 ### AWS IAM Explicit Deny Policies
 
@@ -127,14 +133,16 @@ assert "SELECT" in result
 ## Important Design Decisions
 
 1. **Policy validation split**: Syntax validation at creation, catalog validation at registration
-2. **Aggregation vs scan**: Different transformation strategies (HAVING vs WHERE)
-3. **Resolution types**: 
+2. **Policy types**: Two policy types - `DFCPolicy` for standard policies applied during query execution, `AggregateDFCPolicy` for policies evaluated after all data is processed
+3. **Aggregation vs scan**: Different transformation strategies (HAVING vs WHERE)
+4. **Resolution types**: 
    - `KILL` wraps in CASE WHEN to abort query
    - `REMOVE` filters rows
    - `LLM` uses AI to fix violating rows and writes them to stream file
    - `INVALIDATE` marks rows with a 'valid' column
-4. **Column qualification required**: Simplifies source/sink identification
-5. **Source columns must be aggregated**: Ensures constraints work correctly in aggregation context
+5. **Column qualification required**: Simplifies source/sink identification
+6. **Source columns must be aggregated**: Ensures constraints work correctly in aggregation context (for `DFCPolicy`)
+7. **Aggregate policies use inner/outer aggregation**: Source columns aggregated twice (inner during query, outer during finalize), sink columns aggregated once during finalize
 
 ## Agentic Systems (SBO Tax Agent)
 

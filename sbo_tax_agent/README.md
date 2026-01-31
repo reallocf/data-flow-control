@@ -177,7 +177,7 @@ The app has three main tabs:
 
 ## AWS Bedrock Setup
 
-The Propose Taxes page uses AWS Bedrock to access Claude 3 Haiku for analyzing transactions. You need to set up AWS credentials and enable Bedrock access.
+The Propose Taxes page uses AWS Bedrock to access Claude Haiku 4.5 for analyzing transactions. You need to set up AWS credentials and enable Bedrock access.
 
 ### 1. Enable Claude Models in AWS Bedrock
 
@@ -188,7 +188,7 @@ The Propose Taxes page uses AWS Bedrock to access Claude 3 Haiku for analyzing t
 5. Submit the request (approval is usually instant for Claude models)
 6. Wait for the model to show as "Access granted"
 
-**Note**: The default model used is `anthropic.claude-haiku-4-5-20251001-v1:0`. You can change this in `agent.py` if needed.
+**Note**: The default model used is `us.anthropic.claude-haiku-4-5-20251001-v1:0`. You can change this in `agent.py` if needed.
 
 ### 2. Set Up AWS Credentials
 
@@ -246,7 +246,7 @@ Your AWS user/role needs the following permissions:
         "bedrock:InvokeModel",
         "bedrock:InvokeModelWithResponseStream"
       ],
-      "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+      "Resource": "arn:aws:bedrock:*::foundation-model/us.anthropic.claude-haiku-4-5-20251001-v1:0"
     }
   ]
 }

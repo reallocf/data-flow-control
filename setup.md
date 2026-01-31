@@ -167,7 +167,7 @@ Uses an AI agent to analyze transactions and identify business expenses.
 
 ## AWS Bedrock Setup
 
-The Propose Taxes page uses Claude Haiku 4.5 via AWS Bedrock.
+The Propose Taxes page uses Claude Haiku 4.5 via AWS Bedrock for analyzing transactions and identifying business expenses.
 
 ---
 
@@ -180,9 +180,9 @@ The Propose Taxes page uses Claude Haiku 4.5 via AWS Bedrock.
 
 Default model:
 
-    anthropic.claude-haiku-4-5-20251001-v1:0
+    us.anthropic.claude-haiku-4-5-20251001-v1:0
 
-You can change this in `agent.py`.
+You can change this in `agent.py` or set the `BEDROCK_MODEL_ID` environment variable.
 
 ---
 
@@ -233,7 +233,7 @@ Attach an IAM role with Bedrock permissions (for EC2/ECS).
             "bedrock:InvokeModel",
             "bedrock:InvokeModelWithResponseStream"
           ],
-          "Resource": "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+          "Resource": "arn:aws:bedrock:*::foundation-model/us.anthropic.claude-haiku-4-5-20251001-v1:0"
         }
       ]
     }

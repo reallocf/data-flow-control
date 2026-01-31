@@ -6,8 +6,10 @@ A SQL query rewriter that intercepts queries, applies Data Flow Control (DFC) po
 
 - **Query Interception**: Automatically transforms SQL queries before execution
 - **Data Flow Control Policies**: Define constraints on data movement between source and sink tables
+- **Aggregate Policies**: Special policies for evaluating constraints after all data is processed (using inner/outer aggregation patterns)
 - **Policy Resolution**: Multiple modes - `REMOVE` (filter rows), `KILL` (abort query), `LLM` (AI-fix violating rows), `INVALIDATE` (mark rows as invalid)
 - **LLM Integration**: Uses AWS Bedrock to automatically fix violating rows based on policy constraints
+- **LLM Recording/Replay**: Record LLM interactions for testing and replaying without API costs
 - **Aggregation Support**: Handles both aggregation queries (HAVING clauses) and table scans (WHERE clauses)
 - **Subquery and CTE Support**: Automatically handles subqueries and Common Table Expressions (CTEs), adding missing columns needed for policy evaluation
 - **DuckDB Integration**: Executes transformed queries against DuckDB with full SQL support
@@ -90,6 +92,10 @@ with SQLRewriter() as rewriter:
     # Only returns rows where the aggregation constraint passes
 ```
 
+**Note**: The default Bedrock model ID is `us.anthropic.claude-haiku-4-5-20251001-v1:0`. You can override it by:
+- Setting the `BEDROCK_MODEL_ID` environment variable
+- Passing `bedrock_model_id` parameter to the `SQLRewriter` constructor
+
 ### Using LLM Resolution
 
 ```python
@@ -117,6 +123,23 @@ with SQLRewriter(bedrock_client=bedrock_client) as rewriter:
     results = rewriter.fetchall("SELECT * FROM transactions")
     # Fixed rows are available in the stream file
     stream_path = rewriter.get_stream_file_path()
+```
+
+### Using LLM Recording and Replay
+
+You can record LLM interactions for testing and replay them later:
+
+```python
+from recording import LLMRecorder
+from replay import ReplayManager
+
+# Recording: Save all LLM requests/responses to files
+recorder = LLMRecorder(base_dir="session_records")
+rewriter.set_recorder(recorder)
+
+# Replay: Use recorded responses instead of calling the LLM
+replay_manager = ReplayManager(session_dir="session_records/session_20260117_100205", delay_ms=500)
+rewriter.set_replay_manager(replay_manager)
 ```
 
 ## Usage
@@ -154,8 +177,40 @@ policy3 = DFCPolicy(
 ### Policy Constraints
 
 - **All columns must be qualified** with table names (e.g., `users.age`, not just `age`)
-- **Source columns must be aggregated** when a source table is specified
+- **Source columns must be aggregated** when a source table is specified (for regular `DFCPolicy`)
 - **Constraints are SQL expressions** that evaluate to boolean
+
+### Aggregate Policies
+
+`AggregateDFCPolicy` is a special type of policy that uses inner/outer aggregation patterns:
+- Source columns are aggregated twice: once during query execution (inner aggregate) and once during finalization (outer aggregate)
+- Sink columns can be aggregated or unaggregated (aggregated once during finalization)
+- Constraints are evaluated after all data is processed via the `finalize_aggregate_policies()` method
+- Currently only supports `Resolution.INVALIDATE` (other resolution types may be added in the future)
+
+```python
+from sql_rewriter import SQLRewriter, AggregateDFCPolicy, Resolution
+
+rewriter = SQLRewriter()
+rewriter.execute("CREATE TABLE source_table (amount INTEGER)")
+rewriter.execute("CREATE TABLE sink_table (total INTEGER)")
+
+# Create an aggregate policy
+aggregate_policy = AggregateDFCPolicy(
+    source="source_table",
+    sink="sink_table",
+    constraint="sum(sink_table.total) > 1000",
+    on_fail=Resolution.INVALIDATE,  # Only INVALIDATE is currently supported
+    description="Total must exceed 1000"
+)
+
+# Register the policy (same method as regular policies)
+rewriter.register_policy(aggregate_policy)
+
+# After processing data, finalize aggregate policies
+violations = rewriter.finalize_aggregate_policies(sink_table="sink_table")
+# Returns dict mapping policy identifiers to violation messages (or None if no violation)
+```
 
 ### Policy Resolution
 
@@ -188,9 +243,15 @@ rewriter.register_policy(policy)  # Validates tables and columns exist
 Get all registered policies using the public API:
 
 ```python
+# Get regular DFC policies
 policies = rewriter.get_dfc_policies()  # Returns list of DFCPolicy objects
 for policy in policies:
     print(f"Source: {policy.source}, Constraint: {policy.constraint}")
+
+# Get aggregate policies
+aggregate_policies = rewriter.get_aggregate_policies()  # Returns list of AggregateDFCPolicy objects
+for policy in aggregate_policies:
+    print(f"Source: {policy.source}, Sink: {policy.sink}, Constraint: {policy.constraint}")
 ```
 
 ### Query Execution
@@ -304,9 +365,9 @@ The test files serve as comprehensive usage examples:
 
 ## Architecture
 
-- **`rewriter.py`**: Main `SQLRewriter` class - query interception, policy registration, execution
-- **`policy.py`**: `DFCPolicy` class - policy definition and validation
-- **`rewrite_rule.py`**: Policy application logic - HAVING/WHERE clause injection
+- **`rewriter.py`**: Main `SQLRewriter` class - query interception, policy registration, execution, LLM integration
+- **`policy.py`**: `DFCPolicy` and `AggregateDFCPolicy` classes - policy definition and validation
+- **`rewrite_rule.py`**: Policy application logic - HAVING/WHERE clause injection, aggregation transformations
 - **`sqlglot_utils.py`**: Shared utility functions for sqlglot expressions
 
 ## Documentation
