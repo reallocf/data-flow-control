@@ -19,3 +19,7 @@ A small business owner tax agent that demonstrates data flow control using `sql_
 ## extended_duckdb
 
 A custom DuckDB build with extensions. See [`extended_duckdb/README.md`](extended_duckdb/README.md) for more details.
+
+## experiment_harness
+
+A reusable framework for running experiments using the Strategy design pattern. Provides configurable execution parameters, warm-up runs, setup/teardown steps, and CSV result export. See [`experiment_harness/README.md`](experiment_harness/README.md) for more details.

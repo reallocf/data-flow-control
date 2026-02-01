@@ -52,7 +52,67 @@ Test the installation using the local DuckDB build:
 
 ---
 
-## 4. `sbo_tax_agent`
+## 4. Set Up `experiment_harness`
+
+    cd experiment_harness
+    uv sync --extra dev
+
+Test the installation:
+
+    uv run pytest
+
+---
+
+# Experiment Harness
+
+A reusable framework for running experiments using the Strategy design pattern. Useful for performance testing, benchmarking, and collecting metrics from SQL rewriting operations.
+
+## Installation
+
+    cd experiment_harness
+    uv sync --extra dev
+
+## Quick Start
+
+Define an experiment by implementing `ExperimentStrategy`:
+
+```python
+from experiment_harness import ExperimentStrategy, ExperimentContext, ExperimentResult
+from experiment_harness import ExperimentRunner, ExperimentConfig
+
+class MyExperiment(ExperimentStrategy):
+    def setup(self, context):
+        # One-time setup
+        pass
+    
+    def execute(self, context):
+        # Run experiment, return result
+        return ExperimentResult(
+            duration_ms=100.5,
+            custom_metrics={"rows_processed": 1000}
+        )
+    
+    def teardown(self, context):
+        # Cleanup
+        pass
+
+# Run experiment
+config = ExperimentConfig(
+    num_executions=10,
+    num_warmup_runs=2,
+    output_dir="./results"
+)
+runner = ExperimentRunner(MyExperiment(), config)
+collector = runner.run()
+```
+
+Results are automatically exported to CSV with summary statistics.
+
+See [`experiment_harness/README.md`](experiment_harness/README.md) for full documentation.
+
+---
+
+## 5. `sbo_tax_agent`
 
 See the full documentation below.
 

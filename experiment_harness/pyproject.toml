@@ -1,0 +1,32 @@
+[project]
+name = "experiment-harness"
+version = "0.1.0"
+description = "Reusable framework for running experiments using the Strategy design pattern"
+requires-python = ">=3.9"
+dependencies = [
+    "duckdb>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+norecursedirs = [".venv", "__pycache__"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/experiment_harness"]

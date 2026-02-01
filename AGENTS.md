@@ -130,6 +130,46 @@ assert result == "SELECT * FROM table WHERE id = 1"
 assert "SELECT" in result
 ```
 
+## Verifying Correctness
+
+**Always verify correctness before completing changes** - Before finishing any code changes, agents must verify correctness by:
+
+1. **Linting with Ruff** - Run Ruff to check for code style issues, unused imports, and other linting problems:
+   ```bash
+   # For the main project (if Ruff is configured)
+   python3 -m ruff check .
+   
+   # For vldb_2026_big_paper_experiments
+   cd vldb_2026_big_paper_experiments
+   python3 -m ruff check src/ tests/
+   
+   # Auto-fix issues where possible
+   python3 -m ruff check src/ tests/ --fix
+   ```
+   
+   Ruff will catch:
+   - Unused imports (F401)
+   - Code style violations
+   - Deprecated Python syntax
+   - Unused variables and arguments
+   - And many other code quality issues
+
+2. **Running Tests** - Execute the test suite to ensure functionality is preserved:
+   ```bash
+   # Run all tests
+   uv run pytest
+   
+   # Run tests for a specific module
+   uv run pytest tests/test_rewriter.py
+   
+   # Run tests with verbose output
+   uv run pytest -v
+   ```
+   
+   Tests should pass before considering changes complete. If tests fail, fix the issues before proceeding.
+
+**Both linting and tests must pass** - Code changes are not complete until both Ruff linting passes (with no errors or only acceptable warnings) and all relevant tests pass.
+
 ## Important Design Decisions
 
 1. **Policy validation split**: Syntax validation at creation, catalog validation at registration
@@ -157,6 +197,29 @@ assert "SELECT" in result
 ### Database Tool Design
 
 **Execute through SQLRewriter to respect DFC policies** - When giving an agent access to a database tool, route all SQL queries through the SQLRewriter so that Data Flow Control policies are enforced. This ensures the agent can't bypass policy restrictions.
+
+## Experiment Harness
+
+### Running Experiments
+
+**Use experiment_harness for performance testing** - The `experiment_harness` project provides a reusable framework for running experiments with configurable parameters. Define experiments by implementing the `ExperimentStrategy` interface, then use `ExperimentRunner` to execute them with warm-up runs, multiple executions, and automatic CSV result export.
+
+### Experiment Strategy Pattern
+
+**Implement ExperimentStrategy for custom experiments** - Create experiment strategies by subclassing `ExperimentStrategy` and implementing `setup()`, `execute()`, and `teardown()` methods. The `execute()` method should return an `ExperimentResult` with timing and custom metrics. This allows experiments to be defined in any directory while using the shared harness infrastructure.
+
+### Configuration Best Practices
+
+**Configure experiments with ExperimentConfig** - Use `ExperimentConfig` to set:
+- `num_executions`: Number of runs to collect results for
+- `num_warmup_runs`: Number of warm-up runs to discard (important for JIT/cache warming)
+- `database_config`: DuckDB connection parameters if needed
+- `system_config`: System-level parameters (threads, memory limits)
+- `output_dir` and `output_filename`: Where to save CSV results
+
+### Metrics Collection
+
+**Collect both timing and custom metrics** - The harness automatically collects execution duration. Use `ExperimentResult.custom_metrics` to add custom metrics like row counts, memory usage, or query-specific measurements. The CSV export includes summary statistics (mean, median, stddev, min, max) for all numeric metrics.
 
 ## When in Doubt
 

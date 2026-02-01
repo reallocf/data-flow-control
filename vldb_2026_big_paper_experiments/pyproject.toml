@@ -1,0 +1,107 @@
+[project]
+name = "vldb-2026-experiments"
+version = "0.1.0"
+description = "VLDB 2026 paper experiments for SQL rewriting performance evaluation"
+requires-python = ">=3.9"
+dependencies = [
+    "sql-rewriter",
+    "experiment-harness",
+    # duckdb is provided by SmokedDuck build - do not install standard DuckDB
+    # "duckdb>=1.0.0",
+    "pandas>=2.0.0",
+    "numpy>=1.20.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+norecursedirs = [".venv", "__pycache__"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vldb_experiments"]
+
+[tool.ruff]
+# Exclude common directories
+exclude = [
+    ".venv",
+    "__pycache__",
+    ".git",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+# Line length
+line-length = 100
+
+# Target Python version
+target-version = "py39"
+
+[tool.ruff.lint]
+# Opinionated linting based on Python best practices
+# Enable comprehensive rule sets
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes (includes F401 for unused imports)
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming
+    "UP",  # pyupgrade (modernize Python syntax)
+    "B",   # flake8-bugbear (common bugs)
+    "C4",  # flake8-comprehensions (better comprehensions)
+    "SIM", # flake8-simplify (simplify code)
+    "ARG", # flake8-unused-arguments
+    "PIE", # flake8-pie (misc lints)
+    "PT",  # flake8-pytest-style
+    "RET", # flake8-return
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "Q",   # flake8-quotes
+    "RUF", # Ruff-specific rules
+]
+
+# Ignore specific rules if needed (add here)
+ignore = [
+    "E501",  # Line too long (handled by line-length)
+    "B008",  # Do not perform function calls in argument defaults (sometimes needed)
+    "PT011", # pytest.raises without match (can be too strict)
+]
+# Import sorting configuration
+[tool.ruff.lint.isort]
+known-first-party = ["vldb_experiments"]
+force-sort-within-sections = true
+split-on-trailing-comma = true
+
+# Naming conventions
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["classmethod", "pytest.fixture"]
+staticmethod-decorators = ["staticmethod"]
+
+# Type checking imports
+[tool.ruff.lint.flake8-type-checking]
+strict = false
+
+# Quote style
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+docstring-quotes = "double"
