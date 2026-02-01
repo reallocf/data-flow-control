@@ -4,7 +4,7 @@ from decimal import Decimal
 import json
 import os
 import tempfile
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Optional, Union
 
 from botocore.exceptions import BotoCoreError, ClientError
 import duckdb
@@ -22,6 +22,8 @@ from .rewrite_rule import (
     apply_policy_constraints_to_scan,
     ensure_subqueries_have_constraint_columns,
     get_policy_identifier,
+    rewrite_exists_subqueries_as_joins,
+    wrap_query_with_limit_in_cte_for_remove_policy,
 )
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 
@@ -81,10 +83,10 @@ class SQLRewriter:
 
     def set_recorder(self, recorder: Optional[Any]) -> None:
         """Set the recorder for LLM responses.
-        
+
         When set, all LLM requests and responses in _call_llm_to_fix_row() will
         be recorded to files for later replay or analysis.
-        
+
         Args:
             recorder: Optional LLMRecorder instance for recording LLM responses.
                     If None, recording is disabled.
@@ -93,11 +95,11 @@ class SQLRewriter:
 
     def set_replay_manager(self, replay_manager: Optional[Any]) -> None:
         """Set the replay manager for replaying recorded responses.
-        
+
         When set, _call_llm_to_fix_row() will attempt to use recorded responses
         instead of calling the LLM. If no recorded response is found, it falls
         back to calling the actual LLM (if bedrock_client is available).
-        
+
         Args:
             replay_manager: Optional ReplayManager instance for replaying recorded responses.
                           If None, replay is disabled and actual LLM calls are made.
@@ -110,7 +112,7 @@ class SQLRewriter:
         Applies DFC policies to queries over source tables. For aggregation queries,
         policies are applied as HAVING clauses. For non-aggregation queries, policies
         are applied as WHERE clauses with aggregations transformed to columns.
-        
+
         For INSERT statements, policies are matched based on sink table and source tables
         from the SELECT part (if present).
 
@@ -135,22 +137,34 @@ class SQLRewriter:
                     )
 
                     if matching_policies:
-                        # Ensure subqueries and CTEs have columns needed for constraints
-                        ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
+                        rewrite_exists_subqueries_as_joins(parsed, matching_policies, from_tables)
 
-                        if self._has_aggregations(parsed):
-                            apply_policy_constraints_to_aggregation(
-                                parsed, matching_policies, from_tables,
-                                stream_file_path=self._stream_file_path
+                        from_tables = self._get_source_tables(parsed)
+
+                        has_limit = parsed.args.get("limit") is not None
+                        has_remove_policy = any(p.on_fail == Resolution.REMOVE for p in matching_policies)
+
+                        if has_limit and has_remove_policy:
+                            remove_policy = next(p for p in matching_policies if p.on_fail == Resolution.REMOVE)
+                            is_aggregation = self._has_aggregations(parsed)
+                            wrap_query_with_limit_in_cte_for_remove_policy(
+                                parsed, remove_policy, from_tables, is_aggregation
                             )
                         else:
-                            apply_policy_constraints_to_scan(
-                                parsed, matching_policies, from_tables,
-                                stream_file_path=self._stream_file_path
-                            )
+                            ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
+
+                            if self._has_aggregations(parsed):
+                                apply_policy_constraints_to_aggregation(
+                                    parsed, matching_policies, from_tables,
+                                    stream_file_path=self._stream_file_path
+                                )
+                            else:
+                                apply_policy_constraints_to_scan(
+                                    parsed, matching_policies, from_tables,
+                                    stream_file_path=self._stream_file_path
+                                )
 
                     if matching_aggregate_policies:
-                        # Apply aggregate policy rewriting (adds temp columns)
                         if self._has_aggregations(parsed):
                             apply_aggregate_policy_constraints_to_aggregation(
                                 parsed, matching_aggregate_policies, from_tables
@@ -171,44 +185,32 @@ class SQLRewriter:
                     source_tables=source_tables, sink_table=sink_table
                 )
 
-                # Find the SELECT statement within the INSERT (needed for both regular and aggregate policies)
                 select_expr = parsed.find(exp.Select)
 
-                # Initialize sink_to_output_mapping (needed for aggregate policies even if no regular policies)
                 sink_to_output_mapping = None
                 if select_expr and sink_table:
-                    # Add aliases to SELECT outputs to match sink column names (if explicit column list)
-                    # This ensures sink column references in constraints can be replaced correctly
                     self._add_aliases_to_insert_select_outputs(parsed, select_expr)
                     sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
 
                 if matching_policies:
-                    # Check if any matching policy is INVALIDATE with sink
                     has_invalidate_with_sink = any(
                         p.on_fail == Resolution.INVALIDATE and p.sink
                         for p in matching_policies
                     )
 
                     if select_expr:
-                        # If INVALIDATE policy with sink, add 'valid' column to INSERT column list
-                        # This must happen before adding aliases so the mapping is correct
                         if has_invalidate_with_sink and sink_table:
                             self._add_valid_column_to_insert(parsed)
 
-                        # Get mapping from sink columns to SELECT output columns (if not already set)
                         if not sink_to_output_mapping and sink_table:
                             sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
 
-                        # Get INSERT column list to filter which columns should be in SELECT output
                         insert_columns = self._get_insert_column_list(parsed)
 
-                        # Ensure subqueries and CTEs have columns needed for constraints
                         ensure_subqueries_have_constraint_columns(
                             select_expr, matching_policies, source_tables
                         )
 
-                        # Check if 'valid' is already in INSERT column list (user-provided value)
-                        # If so, we should replace it with constraint, not combine
                         insert_has_valid = False
                         if hasattr(parsed, "this") and isinstance(parsed.this, exp.Schema):
                             if hasattr(parsed.this, "expressions") and parsed.this.expressions:
@@ -244,8 +246,6 @@ class SQLRewriter:
                             )
 
                 if matching_aggregate_policies and select_expr:
-                        # Apply aggregate policy rewriting (adds temp columns)
-                        # Note: Aggregate policies always add temp columns regardless of resolution
                         has_aggs = self._has_aggregations(select_expr)
                         if has_aggs:
                             apply_aggregate_policy_constraints_to_aggregation(
@@ -263,18 +263,16 @@ class SQLRewriter:
                         # Add temp columns to INSERT column list so they're included in the table
                         self._add_aggregate_temp_columns_to_insert(parsed, matching_aggregate_policies, select_expr)
 
-            transformed = parsed.sql(pretty=True, dialect="duckdb")
-            return transformed
+            return parsed.sql(pretty=True, dialect="duckdb")
         except Exception:
-            # In production, you might want to log this error
             return query
 
     def _execute_transformed(self, query: str):
         """Execute a transformed query and return the cursor.
-        
+
         Args:
             query: The SQL query string to execute.
-            
+
         Returns:
             The DuckDB cursor from executing the transformed query.
         """
@@ -326,8 +324,8 @@ class SQLRewriter:
         try:
             result = self.conn.execute(
                 """
-                SELECT table_name 
-                FROM information_schema.tables 
+                SELECT table_name
+                FROM information_schema.tables
                 WHERE table_schema = 'main' AND table_name = ?
                 """,
                 [table_name.lower()]
@@ -336,7 +334,7 @@ class SQLRewriter:
         except Exception:
             return False
 
-    def _get_table_columns(self, table_name: str) -> Set[str]:
+    def _get_table_columns(self, table_name: str) -> set[str]:
         """Get all column names for a table.
 
         Args:
@@ -354,8 +352,8 @@ class SQLRewriter:
         try:
             result = self.conn.execute(
                 """
-                SELECT column_name 
-                FROM information_schema.columns 
+                SELECT column_name
+                FROM information_schema.columns
                 WHERE table_schema = 'main' AND table_name = ?
                 """,
                 [table_name.lower()]
@@ -364,13 +362,13 @@ class SQLRewriter:
         except Exception as e:
             raise ValueError(f"Failed to get columns for table '{table_name}': {e}")
 
-    def _create_aggregate_function(self, func_name: str, expressions: List[exp.Expression]) -> exp.AggFunc:
+    def _create_aggregate_function(self, func_name: str, expressions: list[exp.Expression]) -> exp.AggFunc:
         """Create an aggregate function expression using the proper sqlglot class.
-        
+
         Args:
             func_name: The aggregate function name (e.g., "MAX", "SUM", "MIN").
             expressions: List of expressions to aggregate.
-            
+
         Returns:
             An aggregate function expression.
         """
@@ -417,22 +415,22 @@ class SQLRewriter:
 
     def _get_column_type(self, table_name: str, column_name: str) -> Optional[str]:
         """Get the data type of a column in a table.
-        
+
         Args:
             table_name: The name of the table.
             column_name: The name of the column.
-            
+
         Returns:
             The data type as a string (e.g., 'BOOLEAN', 'INTEGER'), or None if column doesn't exist.
-            
+
         Raises:
             ValueError: If query fails.
         """
         try:
             result = self.conn.execute(
                 """
-                SELECT data_type 
-                FROM information_schema.columns 
+                SELECT data_type
+                FROM information_schema.columns
                 WHERE table_schema = 'main' AND table_name = ? AND column_name = ?
                 """,
                 [table_name.lower(), column_name.lower()]
@@ -443,11 +441,11 @@ class SQLRewriter:
 
     def _validate_table_exists(self, table_name: str, table_type: str) -> None:
         """Validate that a table exists in the database.
-        
+
         Args:
             table_name: The table name to validate.
             table_type: The type of table ("Source" or "Sink") for error messages.
-            
+
         Raises:
             ValueError: If the table does not exist.
         """
@@ -458,11 +456,11 @@ class SQLRewriter:
         self, column: exp.Column, policy: DFCPolicy
     ) -> Optional[str]:
         """Determine which table type (source/sink) a column belongs to.
-        
+
         Args:
             column: The column expression to check.
             policy: The policy to check against.
-            
+
         Returns:
             "source" if column belongs to source table, "sink" if sink table,
             or None if it doesn't belong to either.
@@ -481,17 +479,17 @@ class SQLRewriter:
         self,
         column: exp.Column,
         table_name: str,
-        table_columns: Set[str],
+        table_columns: set[str],
         table_type: str,
     ) -> None:
         """Validate that a column exists in a specific table.
-        
+
         Args:
             column: The column expression to validate.
             table_name: The table name the column should belong to.
             table_columns: Set of column names in the table.
             table_type: The type of table ("source" or "sink") for error messages.
-            
+
         Raises:
             ValueError: If the column doesn't exist in the table.
         """
@@ -522,8 +520,8 @@ class SQLRewriter:
         if policy.sink:
             self._validate_table_exists(policy.sink, "Sink")
 
-        source_columns: Optional[Set[str]] = None
-        sink_columns: Optional[Set[str]] = None
+        source_columns: Optional[set[str]] = None
+        sink_columns: Optional[set[str]] = None
 
         if policy.source:
             source_columns = self._get_table_columns(policy.source)
@@ -598,7 +596,7 @@ class SQLRewriter:
 
     def get_dfc_policies(self) -> list[DFCPolicy]:
         """Get all registered DFC policies.
-        
+
         Returns:
             List of all registered DFCPolicy objects.
         """
@@ -606,29 +604,28 @@ class SQLRewriter:
 
     def get_aggregate_policies(self) -> list[AggregateDFCPolicy]:
         """Get all registered AggregateDFCPolicy objects.
-        
+
         Returns:
             List of all registered AggregateDFCPolicy objects.
         """
         return self._aggregate_policies.copy()
 
-    def finalize_aggregate_policies(self, sink_table: str) -> Dict[str, Optional[str]]:
+    def finalize_aggregate_policies(self, sink_table: str) -> dict[str, Optional[str]]:
         """Finalize aggregate policies by evaluating constraints after all data is processed.
-        
+
         Queries the sink table to compute outer source aggregates and sink aggregates,
         then evaluates each policy's constraint. Returns violation messages for policies
         that fail.
-        
+
         Args:
             sink_table: The sink table name to query.
-            
+
         Returns:
             Dictionary mapping policy identifiers to violation messages (or None if no violation).
             Keys are policy identifiers, values are violation message strings or None.
         """
         violations = {}
 
-        # Find all aggregate policies for this sink table
         matching_policies = [
             p for p in self._aggregate_policies
             if p.sink and p.sink.lower() == sink_table.lower()
@@ -835,22 +832,22 @@ class SQLRewriter:
         description: Optional[str] = None,
     ) -> bool:
         """Delete a DFC policy from the rewriter by matching all provided parameters.
-        
+
         All provided parameters must match exactly for a policy to be deleted.
         If a parameter is None (for source/sink/description/on_fail) or empty string (for constraint),
         it will match any value for that field. However, at least one of source, sink, or
         constraint must be provided to identify the policy.
-        
+
         Args:
             source: Optional source table name to match. None matches any source.
             sink: Optional sink table name to match. None matches any sink.
             constraint: Constraint SQL expression to match. Empty string matches any constraint.
             on_fail: Optional resolution type to match. None matches any resolution.
             description: Optional description to match. None matches any description.
-        
+
         Returns:
             True if a policy was found and deleted, False otherwise.
-            
+
         Raises:
             ValueError: If neither source, sink, nor constraint is provided.
         """
@@ -888,12 +885,12 @@ class SQLRewriter:
 
         return False
 
-    def _get_source_tables(self, parsed: exp.Select) -> Set[str]:
+    def _get_source_tables(self, parsed: exp.Select) -> set[str]:
         """Extract source table names from a SELECT query.
-        
+
         Args:
             parsed: The parsed SELECT statement.
-            
+
         Returns:
             A set of lowercase table names from FROM/JOIN clauses.
         """
@@ -906,10 +903,10 @@ class SQLRewriter:
 
     def _get_sink_table(self, parsed: exp.Insert) -> Optional[str]:
         """Extract sink table name from an INSERT statement.
-        
+
         Args:
             parsed: The parsed INSERT statement.
-            
+
         Returns:
             The lowercase sink table name, or None if not found.
         """
@@ -918,7 +915,7 @@ class SQLRewriter:
 
         def _extract_table_name(table_expr) -> Optional[str]:
             """Helper to extract table name from various expression types.
-            
+
             Based on sqlglot structure:
             - When INSERT has column list: parsed.this is a Schema containing a Table
             - When INSERT has no column list: parsed.this is a Table directly
@@ -965,12 +962,12 @@ class SQLRewriter:
 
         return None
 
-    def _get_insert_source_tables(self, parsed: exp.Insert) -> Set[str]:
+    def _get_insert_source_tables(self, parsed: exp.Insert) -> set[str]:
         """Extract source table names from an INSERT ... SELECT statement.
-        
+
         Args:
             parsed: The parsed INSERT statement.
-            
+
         Returns:
             A set of lowercase table names from the SELECT part of the INSERT statement.
         """
@@ -990,15 +987,15 @@ class SQLRewriter:
         select_parsed: exp.Select
     ) -> dict[str, str]:
         """Get mapping from sink table column names to SELECT output column names/aliases.
-        
+
         For INSERT INTO sink (col1, col2) SELECT x, y FROM source:
         - If column list is specified: maps sink column names to SELECT output by position
         - If no column list: maps by position (sink.col1 -> first SELECT output, etc.)
-        
+
         Args:
             insert_parsed: The parsed INSERT statement.
             select_parsed: The parsed SELECT statement within the INSERT.
-            
+
         Returns:
             Dictionary mapping sink column name (lowercase) to SELECT output column name/alias (lowercase).
             The output column name is the alias if present, otherwise the column name.
@@ -1080,11 +1077,11 @@ class SQLRewriter:
 
     def _add_valid_column_to_insert(self, insert_parsed: exp.Insert) -> None:
         """Add 'valid' column to INSERT column list if not already present.
-        
+
         For INVALIDATE policies with sink tables, the INSERT statement needs to include
         the 'valid' column in its column list so that the SELECT output can be mapped
         to it. This only modifies INSERT statements with explicit column lists.
-        
+
         Args:
             insert_parsed: The parsed INSERT statement to modify.
         """
@@ -1133,10 +1130,10 @@ class SQLRewriter:
         select_parsed: exp.Select
     ) -> None:
         """Add aggregate policy temp columns to INSERT column list.
-        
+
         Aggregate policies add temp columns to the SELECT statement, and these need to be
         included in the INSERT column list so they're stored in the sink table for finalize.
-        
+
         Args:
             insert_parsed: The parsed INSERT statement to modify.
             policies: List of aggregate policies that are being applied.
@@ -1184,12 +1181,12 @@ class SQLRewriter:
                 if temp_col not in existing_columns:
                     insert_parsed.columns.append(temp_col)
 
-    def _get_insert_column_list(self, insert_parsed: exp.Insert) -> List[str]:
+    def _get_insert_column_list(self, insert_parsed: exp.Insert) -> list[str]:
         """Get the INSERT column list if specified.
-        
+
         Args:
             insert_parsed: The parsed INSERT statement.
-            
+
         Returns:
             List of column names (lowercase) in the INSERT column list, or empty list if no column list.
         """
@@ -1232,11 +1229,11 @@ class SQLRewriter:
         select_parsed: exp.Select
     ) -> None:
         """Add aliases to SELECT outputs to match sink column names when INSERT has explicit column list.
-        
+
         This ensures that sink column references in constraints can be replaced with SELECT output
         column references. For example, if INSERT INTO table (col1, col2) SELECT x, y, we add
         aliases: SELECT x AS col1, y AS col2.
-        
+
         Args:
             insert_parsed: The parsed INSERT statement.
             select_parsed: The parsed SELECT statement within the INSERT.
@@ -1279,10 +1276,10 @@ class SQLRewriter:
 
     def _has_aggregations(self, parsed: exp.Select) -> bool:
         """Check if a SELECT query contains aggregations.
-        
+
         Args:
             parsed: The parsed SELECT statement.
-            
+
         Returns:
             True if the query contains aggregations, False otherwise.
         """
@@ -1307,21 +1304,21 @@ class SQLRewriter:
 
     def _find_matching_policies(
         self,
-        source_tables: Set[str],
+        source_tables: set[str],
         sink_table: Optional[str] = None
     ) -> list[DFCPolicy]:
         """Find policies that match the source and sink tables in the query.
-        
+
         Matching rules:
         - If a policy has only a sink, it matches INSERT queries with that sink table.
         - If a policy has only a source, it matches SELECT queries with that source table.
         - If a policy has both sink and source, it matches INSERT INTO sink queries.
           The policy will be applied and will fail if the source is not present in the query.
-        
+
         Args:
             source_tables: Set of source table names from the query.
             sink_table: Optional sink table name from the query (for INSERT statements).
-            
+
         Returns:
             List of policies that match the query's source and sink tables.
         """
@@ -1348,17 +1345,17 @@ class SQLRewriter:
 
     def _find_matching_aggregate_policies(
         self,
-        source_tables: Set[str],
+        source_tables: set[str],
         sink_table: Optional[str] = None
     ) -> list[AggregateDFCPolicy]:
         """Find aggregate policies that match the source and sink tables in the query.
-        
+
         Matching rules are the same as _find_matching_policies.
-        
+
         Args:
             source_tables: Set of source table names from the query.
             sink_table: Optional sink table name from the query (for INSERT statements).
-            
+
         Returns:
             List of aggregate policies that match the query's source and sink tables.
         """
@@ -1384,16 +1381,16 @@ class SQLRewriter:
 
     def _register_kill_udf(self) -> None:
         """Register the kill UDF that raises a ValueError when called.
-        
+
         This UDF is used by KILL resolution policies to abort queries
         when policy constraints fail.
         """
         def kill() -> bool:
             """Kill function that raises ValueError to abort the query.
-            
+
             Returns:
                 bool: Never returns, always raises ValueError.
-                
+
             Raises:
                 ValueError: Always raised with message "KILLing due to dfc policy violation"
             """
@@ -1406,20 +1403,20 @@ class SQLRewriter:
         self,
         constraint: str,
         description: Optional[str],
-        column_values: List[Any],
-        column_names: Optional[List[str]] = None
-    ) -> Optional[List[Any]]:
+        column_values: list[Any],
+        column_names: Optional[list[str]] = None
+    ) -> Optional[list[Any]]:
         """Call LLM to try to fix a violating row based on the constraint.
-        
+
         Uses AWS Bedrock to call an LLM (default: Claude Haiku) to fix a row that
         violates a data flow control policy. The LLM receives the constraint, description,
         and row data, and attempts to return fixed values that satisfy the constraint.
-        
+
         Supports recording and replaying LLM interactions:
         - If recorder is set, records the request and response
         - If replay_manager is set, attempts to use recorded responses instead of
           calling the LLM
-        
+
         Args:
             constraint: The policy constraint that was violated (SQL expression)
             description: Optional policy description for context
@@ -1427,7 +1424,7 @@ class SQLRewriter:
             column_names: Optional list of column names corresponding to column_values.
                          If provided, row data is sent as a dictionary. Otherwise,
                          generic column names (col0, col1, etc.) are used.
-        
+
         Returns:
             Optional list of fixed column values in the same order as column_values,
             or None if:
@@ -1437,7 +1434,7 @@ class SQLRewriter:
             - No bedrock client is configured
             - Replay manager is enabled but no recorded response was found and
               bedrock client is not available
-        
+
         Note:
             If replay_manager is set and enabled, this method will attempt to use
             a recorded response instead of calling Bedrock. If no recorded response
@@ -1592,23 +1589,23 @@ Return only the JSON object (or null), no additional text or explanation."""
 
     def _register_address_violating_rows_udf(self) -> None:
         """Register the address_violating_rows UDF for LLM resolution policies.
-        
+
         This UDF is used by LLM resolution policies to handle violating rows.
         The LLM is called to try to fix the row data, and fixed rows are written to the stream file.
-        
+
         Users can override this by registering their own address_violating_rows
         function after creating the SQLRewriter instance.
         """
         def address_violating_rows(*args) -> bool:
             """address_violating_rows function that handles violating rows with LLM.
-            
+
             Calls LLM to try to fix the row, writes fixed row to stream if successful.
-            
+
             Args:
                 *args: Variable arguments - columns, constraint, description, column_names_json, stream_endpoint.
                       Format: col1, col2, ..., constraint, description, column_names_json, stream_endpoint
                       (stream_endpoint is last for async_rewrite compatibility)
-            
+
             Returns:
                 bool: False to filter out the violating row.
             """
@@ -1655,7 +1652,6 @@ Return only the JSON object (or null), no additional text or explanation."""
                                 # Format: tab-separated values matching the SELECT output column order
                                 row_data = "\t".join(str(val).lower() if isinstance(val, bool) else str(val) for val in fixed_values)
 
-                                import os
                                 with open(stream_endpoint, "a") as f:
                                     f.write(f"{row_data}\n")
                                     f.flush()
@@ -1678,7 +1674,7 @@ Return only the JSON object (or null), no additional text or explanation."""
 
     def get_stream_file_path(self) -> Optional[str]:
         """Get the path to the stream file for LLM-fixed rows.
-        
+
         Returns:
             Path to stream file.
         """
@@ -1686,10 +1682,9 @@ Return only the JSON object (or null), no additional text or explanation."""
 
     def reset_stream_file_path(self) -> None:
         """Reset the stream file path by creating a new temporary file.
-        
+
         This clears any existing stream entries and ensures a fresh file for new runs.
         """
-        import tempfile
         stream_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt")
         self._stream_file_path = stream_file.name
         stream_file.close()

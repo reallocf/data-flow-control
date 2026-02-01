@@ -381,7 +381,7 @@ def test_policy_rejects_unqualified_columns_with_source_and_sink():
 
 def test_policy_table_name_extraction_with_source_only():
     """Test that table name extraction works correctly with source table only.
-    
+
     This validates that column.table is correctly extracted when it's a string
     or an Identifier object for source-only policies.
     """
@@ -395,7 +395,7 @@ def test_policy_table_name_extraction_with_source_only():
 
 def test_policy_table_name_extraction_with_source_and_sink():
     """Test that table name extraction works correctly with both source and sink.
-    
+
     This validates that column.table is correctly extracted for policies with
     both source and sink tables.
     """
@@ -411,7 +411,7 @@ def test_policy_table_name_extraction_with_source_and_sink():
 
 def test_policy_table_name_extraction_rejects_aggregation_over_sink():
     """Test that table name extraction correctly identifies sink table in aggregations.
-    
+
     This validates that column.table is correctly extracted in aggregation checks,
     ensuring aggregations over sink tables are rejected.
     """
@@ -426,7 +426,7 @@ def test_policy_table_name_extraction_rejects_aggregation_over_sink():
 
 def test_policy_table_name_extraction_rejects_unaggregated_source_with_sink():
     """Test that table name extraction correctly identifies unaggregated source columns.
-    
+
     This validates that column.table is correctly extracted in source column checks,
     ensuring unaggregated source columns are rejected when sink is also present.
     """
@@ -441,7 +441,7 @@ def test_policy_table_name_extraction_rejects_unaggregated_source_with_sink():
 
 def test_policy_table_name_extraction_rejects_multiple_unaggregated_source_columns():
     """Test that table name extraction correctly identifies multiple unaggregated source columns.
-    
+
     This validates that column.table is correctly extracted for all source columns,
     ensuring all unaggregated source columns are identified.
     """
@@ -495,7 +495,7 @@ def test_policy_aggregation_count():
 
 def test_policy_constraint_references_unknown_table():
     """Test that constraint referencing a table not in source or sink is allowed during policy creation.
-    
+
     Note: Policy validation only checks SQL syntax, not table existence.
     Table existence validation happens in register_policy().
     """
@@ -684,7 +684,7 @@ def test_policy_equality_with_both_none():
 
 def test_get_table_name_from_column_handles_all_types():
     """Test that get_table_name_from_column handles all expected types correctly.
-    
+
     This verifies that the function correctly extracts table names from columns
     with different table types (Identifier, str) and returns None for unqualified columns.
     The function also has a fallback for unexpected types to prevent silent validation skips.

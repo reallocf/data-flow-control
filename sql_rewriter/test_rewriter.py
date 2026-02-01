@@ -15,13 +15,11 @@ def rewriter():
     """Create a SQLRewriter instance with test data."""
     rewriter = SQLRewriter()
 
-    # Set up test table "foo" with data
     rewriter.execute("CREATE TABLE foo (id INTEGER, name VARCHAR)")
     rewriter.execute("INSERT INTO foo VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Charlie')")
     rewriter.execute("ALTER TABLE foo ADD COLUMN bar VARCHAR")
     rewriter.execute("UPDATE foo SET bar = 'value' || id::VARCHAR")
 
-    # Set up test table "baz" for testing non-transformed queries
     rewriter.execute("CREATE TABLE baz (x INTEGER, y VARCHAR)")
     rewriter.execute("INSERT INTO baz VALUES (10, 'test')")
 
@@ -32,7 +30,6 @@ def rewriter():
 
 def test_kill_udf_registered(rewriter):
     """Test that the kill UDF is registered and raises ValueError when called."""
-    # DuckDB wraps Python exceptions in InvalidInputException
     import duckdb
     with pytest.raises(duckdb.InvalidInputException) as exc_info:
         rewriter.conn.execute("SELECT kill()").fetchone()
@@ -40,12 +37,10 @@ def test_kill_udf_registered(rewriter):
 
 def test_execute_method_works(rewriter):
     """Test that the execute method works correctly."""
-    # Should not raise an exception for non-aggregate queries
     cursor = rewriter.execute("SELECT id FROM foo LIMIT 1")
     result = cursor.fetchone()
     assert result is not None
 
-    # Aggregate queries should work without transformation
     cursor = rewriter.execute("SELECT COUNT(*) FROM foo")
     result = cursor.fetchone()
     assert result[0] == 3
@@ -54,7 +49,6 @@ def test_execute_method_works(rewriter):
 def test_fetchone_method_works(rewriter):
     """Test that the fetchone method works correctly."""
     result = rewriter.fetchone("SELECT id, name FROM foo WHERE id = 1")
-    # Should return one row with 2 columns (id, name)
     assert result is not None
     assert len(result) == 2
     assert result == (1, "Alice")
@@ -62,11 +56,9 @@ def test_fetchone_method_works(rewriter):
 
 def test_aggregate_queries_not_transformed(rewriter):
     """Test that aggregate queries (like COUNT(*)) are not transformed."""
-    # COUNT(*) should work without adding 'bar' column
     result = rewriter.fetchall("SELECT COUNT(*) FROM foo")
     assert result == [(3,)]
 
-    # SUM query should also work
     result = rewriter.fetchall("SELECT SUM(id) FROM foo")
     assert result == [(6,)]  # 1 + 2 + 3 = 6
 
@@ -78,7 +70,6 @@ def test_context_manager(rewriter):
         rw.execute("INSERT INTO test VALUES (1)")
         result = rw.fetchall("SELECT * FROM test")
         assert result == [(1,)]
-    # Connection should be closed after context exit
 
 
 def test_register_policy_with_source_only(rewriter):
@@ -89,7 +80,6 @@ def test_register_policy_with_source_only(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    # Should not raise an exception
 
 
 def test_register_policy_with_sink_only(rewriter):
@@ -112,7 +102,6 @@ def test_register_policy_with_both_source_and_sink(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    # Should not raise an exception
 
 
 def test_register_policy_rejects_nonexistent_source_table():
@@ -176,10 +165,8 @@ def test_register_policy_rejects_column_from_wrong_table(rewriter):
         constraint="max(foo.id) > baz.x AND baz.y = 'test'",
         on_fail=Resolution.REMOVE,
     )
-    # This should work since all columns are from source or sink
     rewriter.register_policy(policy)
 
-    # But if we reference a column from a different table, it should fail
     rewriter2 = SQLRewriter()
     try:
         rewriter2.execute("CREATE TABLE users (id INTEGER)")
@@ -205,7 +192,6 @@ def test_register_policy_validates_all_columns(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    # Should not raise an exception
 
 
 def test_register_policy_stores_policies(rewriter):
@@ -224,7 +210,6 @@ def test_register_policy_stores_policies(rewriter):
     rewriter.register_policy(policy1)
     rewriter.register_policy(policy2)
 
-    # Policies should be stored
     assert len(rewriter._policies) == 2
     assert policy1 in rewriter._policies
     assert policy2 in rewriter._policies
@@ -247,11 +232,9 @@ def test_register_policy_with_description(rewriter):
     rewriter.register_policy(policy_with_description)
     rewriter.register_policy(policy_without_description)
 
-    # Retrieve policies using public API
     policies = rewriter.get_dfc_policies()
     assert len(policies) == 2
 
-    # Find the policy with description
     policy_with_desc = next((p for p in policies if p.description == "Test policy description"), None)
     assert policy_with_desc is not None
     assert policy_with_desc.description == "Test policy description"
@@ -259,7 +242,6 @@ def test_register_policy_with_description(rewriter):
     assert policy_with_desc.constraint == "max(foo.id) >= 1"
     assert policy_with_desc.on_fail == Resolution.REMOVE
 
-    # Find the policy without description
     policy_without_desc = next((p for p in policies if p.description is None), None)
     assert policy_without_desc is not None
     assert policy_without_desc.description is None
@@ -270,12 +252,9 @@ def test_register_policy_with_description(rewriter):
 
 def test_transform_query_with_join(rewriter):
     """Test that transform_query handles JOINs correctly."""
-    # Query with JOIN - foo is in the JOIN, so bar should be added
     query = "SELECT baz.x FROM baz JOIN foo ON baz.x = foo.id"
     transformed = rewriter.transform_query(query)
-    # Should still parse and execute (may have 0 results if no matches)
     result = rewriter.conn.execute(transformed).fetchall()
-    # Just verify it executes without error
     assert result is not None
 
 
@@ -283,24 +262,20 @@ def test_transform_query_with_subquery(rewriter):
     """Test that transform_query handles subqueries."""
     query = "SELECT * FROM (SELECT id FROM foo) AS sub"
     transformed = rewriter.transform_query(query)
-    # Should still work
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
 
 
 def test_transform_query_non_select_statements(rewriter):
     """Test that non-SELECT statements are not transformed."""
-    # INSERT statement
     insert_query = "INSERT INTO baz VALUES (20, 'new')"
     transformed = rewriter.transform_query(insert_query)
     assert transformed == "INSERT INTO baz\nVALUES\n  (20, 'new')"
 
-    # UPDATE statement
     update_query = "UPDATE baz SET y = 'updated' WHERE x = 10"
     transformed = rewriter.transform_query(update_query)
     assert transformed == "UPDATE baz SET y = 'updated'\nWHERE\n  x = 10"
 
-    # CREATE statement
     create_query = "CREATE TABLE test_table (col INTEGER)"
     transformed = rewriter.transform_query(create_query)
     assert transformed == "CREATE TABLE test_table (\n  col INT\n)"
@@ -310,13 +285,11 @@ def test_transform_query_invalid_sql_returns_original(rewriter):
     """Test that invalid SQL returns the original query."""
     invalid_query = "THIS IS NOT VALID SQL!!!"
     transformed = rewriter.transform_query(invalid_query)
-    # Should return original query when parsing fails
     assert transformed == invalid_query
 
 
 def test_transform_query_case_insensitive_table_name(rewriter):
     """Test that transform_query handles case-insensitive table names."""
-    # Test with different case variations
     query1 = "SELECT id FROM FOO"
     transformed1 = rewriter.transform_query(query1)
     assert transformed1 == "SELECT\n  id\nFROM FOO"
@@ -344,12 +317,11 @@ def test_fetchall_returns_empty_list_for_no_results(rewriter):
 
 def test_register_policy_with_different_case_table_name(rewriter):
     """Test that register_policy works with table names.
-    
+
     Note: DuckDB preserves case in information_schema, and _table_exists
     does case-sensitive comparison after converting input to lowercase.
     So we need to create the table with lowercase name for the lookup to work.
     """
-    # Create table with lowercase name to match _table_exists behavior
     rewriter.execute("CREATE TABLE testtable (col INTEGER)")
 
     policy = DFCPolicy(
@@ -357,7 +329,6 @@ def test_register_policy_with_different_case_table_name(rewriter):
         constraint="max(testtable.col) > 0",
         on_fail=Resolution.REMOVE,
     )
-    # Should work
     rewriter.register_policy(policy)
 
 
@@ -370,7 +341,6 @@ def test_register_policy_case_insensitive_column_names(rewriter):
         constraint="max(test.colname) > 0",  # lowercase column name
         on_fail=Resolution.REMOVE,
     )
-    # Should work - column names are case-insensitive
     rewriter.register_policy(policy)
 
 
@@ -410,14 +380,13 @@ def test_register_policy_same_policy_twice(rewriter):
 
 def test_table_exists_with_lowercase_table(rewriter):
     """Test that _table_exists works with lowercase table names.
-    
+
     Note: DuckDB preserves case in information_schema, and _table_exists
     does case-sensitive comparison after converting input to lowercase.
     So it works correctly with lowercase table names.
     """
     rewriter.execute("CREATE TABLE testtable (x INTEGER)")
 
-    # _table_exists converts input to lowercase and compares
     assert rewriter._table_exists("testtable")
     assert rewriter._table_exists("TestTable")  # Input converted to lowercase
     assert rewriter._table_exists("TESTTABLE")  # Input converted to lowercase
@@ -425,14 +394,13 @@ def test_table_exists_with_lowercase_table(rewriter):
 
 def test_get_table_columns_with_lowercase_table(rewriter):
     """Test that _get_table_columns works with lowercase table names.
-    
+
     Note: DuckDB preserves case in information_schema, and _get_table_columns
     does case-sensitive comparison after converting input to lowercase.
     So it works correctly with lowercase table names.
     """
     rewriter.execute("CREATE TABLE testtable (ColName INTEGER, AnotherCol VARCHAR)")
 
-    # _get_table_columns converts input to lowercase and returns lowercase column names
     columns = rewriter._get_table_columns("testtable")
     assert "colname" in columns
     assert "anothercol" in columns
@@ -441,7 +409,6 @@ def test_get_table_columns_with_lowercase_table(rewriter):
 def test_register_policy_with_empty_table(rewriter):
     """Test registering a policy with an empty table (no rows, but has columns)."""
     rewriter.execute("CREATE TABLE empty_table (id INTEGER)")
-    # Table exists but has no rows
 
     policy = DFCPolicy(
         source="empty_table",
@@ -449,24 +416,18 @@ def test_register_policy_with_empty_table(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    # Should not raise an exception
 
 
 def test_register_policy_rejects_unqualified_column_during_registration(rewriter):
     """Test that register_policy catches unqualified columns even if policy was created.
-    
+
     This tests the defensive check in register_policy.
     """
-    # Create a policy that somehow has an unqualified column
-    # (This shouldn't happen due to policy validation, but test the defensive check)
-    # Actually, we can't create such a policy due to validation, so this test
-    # validates that the check exists in register_policy
     policy = DFCPolicy(
         source="foo",
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
-    # Policy is valid, so registration should work
     rewriter.register_policy(policy)
     assert len(rewriter._policies) == 1
 
@@ -476,25 +437,21 @@ def test_execute_with_database_file():
     import os
     import tempfile
 
-    # Create a temporary file path
     fd, db_path = tempfile.mkstemp(suffix=".duckdb")
-    os.close(fd)  # Close the file descriptor so DuckDB can use it
+    os.close(fd)
 
-    # Remove the file so DuckDB can create it fresh
     if os.path.exists(db_path):
         os.unlink(db_path)
 
     try:
-        # First connection - create table and insert data
         conn1 = duckdb.connect(db_path)
         rewriter1 = SQLRewriter(conn=conn1)
         rewriter1.execute("CREATE TABLE test (x INTEGER)")
         rewriter1.execute("INSERT INTO test VALUES (1)")
         result = rewriter1.fetchall("SELECT * FROM test")
         assert result == [(1,)]
-        rewriter1.close()  # Explicitly close to flush to disk
+        rewriter1.close()
 
-        # Reopen and verify data persists
         conn2 = duckdb.connect(db_path)
         rewriter2 = SQLRewriter(conn=conn2)
         result = rewriter2.fetchall("SELECT * FROM test")
@@ -510,30 +467,25 @@ def test_transform_query_preserves_query_structure(rewriter):
     query = "SELECT id, name FROM foo WHERE id > 1 ORDER BY id"
     transformed = rewriter.transform_query(query)
 
-    # Should still have WHERE and ORDER BY
     assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  id > 1\nORDER BY\n  id"
 
-    # Should execute correctly
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 2  # id > 1 excludes id=1
 
 
 def test_register_policy_with_quoted_identifiers(rewriter):
     """Test registering policies with quoted identifiers.
-    
+
     Note: This test may be limited by sqlglot's parsing of quoted identifiers
     in table name validation. The policy validation requires valid SQL identifiers.
     """
-    # Use underscores instead of hyphens for valid identifiers
     rewriter.execute('CREATE TABLE "test_table" ("col_name" INTEGER)')
 
-    # Use unquoted names (DuckDB stores them in lowercase in information_schema)
     policy = DFCPolicy(
         source="test_table",
         constraint="max(test_table.col_name) > 0",
         on_fail=Resolution.REMOVE,
     )
-    # Should work with valid SQL identifiers
     rewriter.register_policy(policy)
 
 
@@ -1414,7 +1366,7 @@ class TestGetSourceTables:
     def test_get_source_tables_with_multiple_joins(self, rewriter):
         """Test that _get_source_tables extracts tables from multiple JOINs."""
         query = "SELECT * FROM foo f1 JOIN baz b1 ON f1.id = b1.x JOIN foo f2 ON f1.id = f2.id"
-        parsed = rewriter.transform_query(query)
+        rewriter.transform_query(query)
         # Should extract both foo and baz
         # This is tested indirectly through transform_query behavior
 
@@ -1958,6 +1910,256 @@ class TestExistsSubqueries:
         result = rewriter.conn.execute(transformed).fetchall()
         assert result is not None
 
+    def test_exists_subquery_with_policy_on_subquery_table(self, rewriter):
+        """Test EXISTS subquery where the policy applies to the table in the EXISTS clause.
+
+        This is the problematic case - when a policy exists on a table that's only referenced
+        in an EXISTS subquery, we can't apply the policy in a HAVING clause because the table
+        isn't accessible there. Instead, we should rewrite the EXISTS as a JOIN.
+        """
+        # Create test tables similar to TPC-H Q04
+        rewriter.execute("CREATE TABLE orders (o_orderkey INTEGER, o_orderdate DATE, o_orderpriority VARCHAR)")
+        rewriter.execute("INSERT INTO orders VALUES (1, '1993-07-15', '1-URGENT'), (2, '1993-08-15', '2-HIGH')")
+        rewriter.execute("CREATE TABLE lineitem (l_orderkey INTEGER, l_commitdate DATE, l_receiptdate DATE, l_quantity INTEGER)")
+        rewriter.execute("INSERT INTO lineitem VALUES (1, '1993-07-10', '1993-07-20', 10), (2, '1993-08-10', '1993-08-05', 5)")
+
+        # Policy on lineitem (the table in the EXISTS subquery)
+        policy = DFCPolicy(
+            source="lineitem",
+            constraint="max(lineitem.l_quantity) >= 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        # Query similar to TPC-H Q04
+        query = """SELECT o_orderpriority, COUNT(*) AS order_count
+FROM orders
+WHERE o_orderdate >= CAST('1993-07-01' AS DATE)
+  AND o_orderdate < CAST('1993-10-01' AS DATE)
+  AND EXISTS (
+    SELECT * FROM lineitem
+    WHERE l_orderkey = o_orderkey AND l_commitdate < l_receiptdate
+  )
+GROUP BY o_orderpriority
+ORDER BY o_orderpriority"""
+
+        transformed = rewriter.transform_query(query)
+
+        # Expected transformed query: EXISTS should be rewritten as JOIN with aggregation in subquery
+        expected = """SELECT
+  o_orderpriority,
+  COUNT(*) AS order_count
+FROM orders
+INNER JOIN (
+  SELECT
+    l_orderkey,
+    MAX(l_quantity) AS agg_0
+  FROM lineitem
+  WHERE
+    l_commitdate < l_receiptdate
+  GROUP BY
+    l_orderkey
+) AS exists_subquery
+  ON o_orderkey = exists_subquery.l_orderkey
+WHERE
+  o_orderdate >= CAST('1993-07-01' AS DATE)
+  AND o_orderdate < CAST('1993-10-01' AS DATE)
+GROUP BY
+  o_orderpriority
+HAVING
+  (
+    MAX(exists_subquery.agg_0) >= 1
+  )
+ORDER BY
+  o_orderpriority"""
+
+        # Normalize both queries for comparison (handles formatting differences)
+        expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
+        transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+
+        assert transformed_normalized == expected_normalized, (
+            f"Transformed query does not match expected.\n"
+            f"Expected:\n{expected_normalized}\n\n"
+            f"Actual:\n{transformed_normalized}"
+        )
+
+        # Should execute without error
+        result = rewriter.conn.execute(transformed).fetchall()
+        assert result is not None
+
+    def test_exists_subquery_with_policy_on_subquery_table_aggregation(self, rewriter):
+        """Test EXISTS subquery with aggregation query and policy on subquery table."""
+        rewriter.execute("CREATE TABLE orders (o_orderkey INTEGER, o_orderdate DATE)")
+        rewriter.execute("INSERT INTO orders VALUES (1, '1993-07-15'), (2, '1993-08-15')")
+        rewriter.execute("CREATE TABLE lineitem (l_orderkey INTEGER, l_quantity INTEGER)")
+        rewriter.execute("INSERT INTO lineitem VALUES (1, 10), (2, 5)")
+
+        policy = DFCPolicy(
+            source="lineitem",
+            constraint="max(lineitem.l_quantity) >= 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = """SELECT o_orderkey, COUNT(*)
+FROM orders
+WHERE EXISTS (SELECT * FROM lineitem WHERE l_orderkey = o_orderkey)
+GROUP BY o_orderkey"""
+
+        transformed = rewriter.transform_query(query)
+
+        # Should be rewritten as JOIN
+        assert "JOIN" in transformed.upper()
+        # Should have HAVING clause
+        assert "HAVING" in transformed.upper()
+
+        result = rewriter.conn.execute(transformed).fetchall()
+        assert result is not None
+
+    def test_exists_subquery_with_policy_on_outer_table(self, rewriter):
+        """Test EXISTS subquery where policy is on the outer table, not the subquery table.
+
+        In this case, we don't need to rewrite EXISTS since the policy can be applied normally.
+        """
+        rewriter.execute("CREATE TABLE orders (o_orderkey INTEGER, o_orderdate DATE)")
+        rewriter.execute("INSERT INTO orders VALUES (1, '1993-07-15'), (2, '1993-08-15')")
+        rewriter.execute("CREATE TABLE lineitem (l_orderkey INTEGER, l_quantity INTEGER)")
+        rewriter.execute("INSERT INTO lineitem VALUES (1, 10), (2, 5)")
+
+        # Policy on orders (the outer table)
+        policy = DFCPolicy(
+            source="orders",
+            constraint="max(orders.o_orderkey) >= 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = """SELECT o_orderkey
+FROM orders
+WHERE EXISTS (SELECT * FROM lineitem WHERE l_orderkey = o_orderkey)"""
+
+        transformed = rewriter.transform_query(query)
+
+        # Should have WHERE clause with policy constraint
+        assert "WHERE" in transformed.upper()
+        assert "orders.o_orderkey" in transformed or "o_orderkey" in transformed
+
+        result = rewriter.conn.execute(transformed).fetchall()
+        assert result is not None
+
+
+class TestRemovePolicyWithLimit:
+    """Tests for REMOVE policies with LIMIT clauses - should wrap in CTE and filter after limit."""
+
+    def test_remove_policy_with_limit_aggregation(self, rewriter):
+        """Test REMOVE policy with LIMIT on aggregation query - should wrap in CTE."""
+        rewriter.execute("CREATE TABLE test_table (id INTEGER, value INTEGER)")
+        rewriter.execute("INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)")
+
+        policy = DFCPolicy(
+            source="test_table",
+            constraint="count(*) > 2",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = """SELECT id, SUM(value) AS total
+FROM test_table
+GROUP BY id
+ORDER BY total DESC
+LIMIT 3"""
+
+        transformed = rewriter.transform_query(query)
+
+        # Should be wrapped in CTE with count(*) as dfc, then filtered in outer query
+        expected = """WITH cte AS (
+  SELECT
+    id,
+    SUM(value) AS total,
+    COUNT(*) AS dfc
+  FROM test_table
+  GROUP BY
+    id
+  ORDER BY
+    total DESC
+  LIMIT 3
+)
+SELECT
+  id,
+  total
+FROM cte
+WHERE
+  dfc > 2"""
+
+        # Normalize both queries for comparison
+        expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
+        transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+
+        assert transformed_normalized == expected_normalized, (
+            f"Transformed query does not match expected.\n"
+            f"Expected:\n{expected_normalized}\n\n"
+            f"Actual:\n{transformed_normalized}"
+        )
+
+        # Should execute without error
+        result = rewriter.conn.execute(transformed).fetchall()
+        assert result is not None
+
+    def test_remove_policy_with_limit_scan(self, rewriter):
+        """Test REMOVE policy with LIMIT on scan query - should wrap in CTE."""
+        rewriter.execute("CREATE TABLE test_table (id INTEGER, value INTEGER)")
+        rewriter.execute("INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)")
+
+        policy = DFCPolicy(
+            source="test_table",
+            constraint="max(test_table.value) > 15",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = """SELECT id, value
+FROM test_table
+WHERE id > 1
+ORDER BY value DESC
+LIMIT 3"""
+
+        transformed = rewriter.transform_query(query)
+
+        # Should be wrapped in CTE with value as dfc (max(value) transformed to value for scan),
+        # then filtered in outer query
+        expected = """WITH cte AS (
+  SELECT
+    id,
+    value,
+    value AS dfc
+  FROM test_table
+  WHERE
+    id > 1
+  ORDER BY
+    value DESC
+  LIMIT 3
+)
+SELECT
+  id,
+  value
+FROM cte
+WHERE
+  dfc > 15"""
+
+        # Normalize both queries for comparison
+        expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
+        transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+
+        assert transformed_normalized == expected_normalized, (
+            f"Transformed query does not match expected.\n"
+            f"Expected:\n{expected_normalized}\n\n"
+            f"Actual:\n{transformed_normalized}"
+        )
+
+        # Should execute without error
+        result = rewriter.conn.execute(transformed).fetchall()
+        assert result is not None
+
 
 class TestInSubqueries:
     """Tests for IN subqueries."""
@@ -2048,7 +2250,8 @@ class TestCorrelatedSubqueries:
         assert "WHERE" in transformed or "where" in transformed.lower()
         assert "foo.id > 1" in transformed or "FOO.ID > 1" in transformed
         # Should not have HAVING clause (this is a scan query, not an aggregation)
-        assert "HAVING" not in transformed and "having" not in transformed.lower()
+        assert "HAVING" not in transformed
+        assert "having" not in transformed.lower()
         result = rewriter.conn.execute(transformed).fetchall()
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -2106,7 +2309,7 @@ class TestSubqueryWithMissingColumns:
 
     def test_subquery_missing_policy_column(self, rewriter):
         """Test that subqueries are updated to include columns needed for policy evaluation.
-        
+
         This test verifies that when a source table is referenced in a subquery that
         doesn't select all columns necessary to evaluate the policy, the rewriter
         appropriately handles the situation (either by adding columns or applying
@@ -2149,7 +2352,7 @@ class TestSubqueryWithMissingColumns:
 
     def test_subquery_missing_policy_column_in_select_list(self, rewriter):
         """Test that subqueries without necessary columns in SELECT list are handled correctly.
-        
+
         This test verifies the specific scenario where a source table is referenced in a subquery
         that does NOT select all columns necessary to evaluate the policy. The rewriter should
         add the missing columns to the subquery's SELECT list so the policy can be evaluated
@@ -2186,7 +2389,7 @@ class TestSubqueryWithMissingColumns:
 
     def test_cte_missing_policy_column(self, rewriter):
         """Test that CTEs without necessary columns in SELECT list are handled correctly.
-        
+
         This test verifies that when a source table is referenced in a CTE that
         does NOT select all columns necessary to evaluate the policy, the rewriter
         adds the missing columns to the CTE's SELECT list so the policy can be evaluated
@@ -2908,7 +3111,7 @@ class TestInsertStatements:
 
     def test_insert_with_sink_column_references_in_constraint(self, rewriter):
         """Test INSERT with sink column references in constraint that should refer to SELECT output values.
-        
+
         When inserting into a table that doesn't exist yet, constraints referencing sink columns
         should refer to the values being inserted (SELECT output), not the table columns.
         """
@@ -2951,7 +3154,7 @@ class TestInsertStatements:
   kind,
   business_use_pct
 )
-SELECT txn_id, ABS(amount), 'Expense', 0.0 
+SELECT txn_id, ABS(amount), 'Expense', 0.0
 FROM bank_txn WHERE txn_id = 6"""
 
         transformed = rewriter.transform_query(query)
@@ -3429,8 +3632,8 @@ class TestAggregateDFCPolicyIntegration:
         # Create sink table
         rewriter.execute("""
             CREATE TABLE reports (
-                id INTEGER, 
-                value DOUBLE, 
+                id INTEGER,
+                value DOUBLE,
                 valid BOOLEAN,
                 _policy_test123_tmp1 DOUBLE
             )

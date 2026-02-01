@@ -387,7 +387,7 @@ class TestAggregatePolicyFinalize:
     """Tests for finalize_aggregate_policies method."""
 
     @pytest.fixture
-    def rewriter_with_data(self):
+    def rewriter_with_data(cls):
         """Create a SQLRewriter with test data for finalize tests."""
         from sql_rewriter import SQLRewriter
         rewriter = SQLRewriter()
@@ -409,7 +409,7 @@ class TestAggregatePolicyFinalize:
         # Insert data with temp columns (inner aggregates and sink values)
         rewriter.execute("""
             INSERT INTO irs_form (txn_id, amount, _policy_test_tmp1, _policy_test_tmp2)
-            VALUES 
+            VALUES
                 (1, 100.0, 100.0, 50.0),
                 (2, 200.0, 200.0, 75.0),
                 (3, 300.0, 300.0, 100.0)
@@ -488,7 +488,7 @@ class TestAggregatePolicyFinalize:
         # - Outer aggregate: max(temp_column) -> computed during finalize
         rewriter_with_data.execute(f"""
             INSERT INTO reports (id, value, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 100.0, 150.0),  -- group 1: sum = 150
                 (2, 200.0, 250.0),  -- group 2: sum = 250
                 (3, 300.0, 350.0)    -- group 3: sum = 350
@@ -515,7 +515,7 @@ class TestAggregatePolicyFinalize:
         """)
         rewriter_with_data.execute(f"""
             INSERT INTO reports (id, value, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 100.0, 200.0),
                 (2, 200.0, 300.0),
                 (3, 300.0, 600.0)  -- max(200, 300, 600) = 600 > 500, should pass
@@ -551,7 +551,7 @@ class TestAggregatePolicyFinalize:
         # - Finalize computes: sum(temp_column)
         rewriter_with_data.execute(f"""
             INSERT INTO reports (id, value, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 100.0, 100.0),
                 (2, 200.0, 200.0),
                 (3, 300.0, 300.0)  -- sum(100, 200, 300) = 600 > 500, should pass
@@ -574,7 +574,7 @@ class TestAggregatePolicyFinalize:
         """)
         rewriter_with_data.execute(f"""
             INSERT INTO reports (id, value, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 100.0, 100.0),
                 (2, 150.0, 150.0),
                 (3, 200.0, 200.0)  -- sum(100, 150, 200) = 450 < 500, should fail
@@ -614,7 +614,7 @@ class TestAggregatePolicyFinalize:
         # - Sink: sum(reports.value) -> sum of sink values
         rewriter_with_data.execute(f"""
             INSERT INTO reports (id, value, {source_temp_col}, {sink_temp_col})
-            VALUES 
+            VALUES
                 (1, 100.0, 150.0, 100.0),  -- group 1: sum(bank_txn.amount) = 150
                 (2, 200.0, 250.0, 200.0),  -- group 2: sum(bank_txn.amount) = 250
                 (3, 300.0, 350.0, 300.0)    -- group 3: sum(bank_txn.amount) = 350
@@ -657,7 +657,7 @@ class TestAggregatePolicyFinalize:
         # sum(100, 200, 300) = 600, which is not > 1000
         rewriter_with_data.execute(f"""
             INSERT INTO reports (id, value, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 100.0, 100.0),
                 (2, 200.0, 200.0),
                 (3, 300.0, 300.0)
@@ -730,7 +730,7 @@ class TestAggregatePolicyFinalize:
         # The FILTER clause should ensure only Income entries are summed
         rewriter_with_data.execute(f"""
             INSERT INTO irs_form (txn_id, amount, kind, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 1500.0, 'Income', 1500.0),
                 (2, 250.0, 'Expense', 250.0),
                 (3, 2000.0, 'Income', 2000.0),
@@ -762,7 +762,7 @@ class TestAggregatePolicyFinalize:
         # Insert data: Income entries are 2000 + 2500 = 4500, which is > 4000, so should pass
         rewriter_with_data.execute(f"""
             INSERT INTO irs_form (txn_id, amount, kind, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 2000.0, 'Income', 2000.0),
                 (2, 250.0, 'Expense', 250.0),
                 (3, 2500.0, 'Income', 2500.0),
@@ -787,7 +787,7 @@ class TestAggregatePolicyFinalize:
         # The FILTER should ensure only Income entries are considered
         rewriter_with_data.execute(f"""
             INSERT INTO irs_form (txn_id, amount, kind, {temp_col_name})
-            VALUES 
+            VALUES
                 (1, 1000.0, 'Income', 1000.0),
                 (2, 1500.0, 'Expense', 1500.0),
                 (3, 2000.0, 'Income', 2000.0),
@@ -987,7 +987,7 @@ class TestAggregatePolicyIntegration:
     """Integration tests for aggregate policies with rewriter."""
 
     @pytest.fixture
-    def rewriter(self):
+    def rewriter(cls):
         """Create a SQLRewriter instance with test data."""
         from sql_rewriter import SQLRewriter
         rewriter = SQLRewriter()

@@ -7,10 +7,10 @@ from sqlglot import exp
 
 def get_column_name(column: exp.Column) -> str:
     """Extract column name from a column expression.
-    
+
     Args:
         column: The column expression.
-        
+
     Returns:
         The column name as a string.
     """
@@ -23,10 +23,10 @@ def get_column_name(column: exp.Column) -> str:
 
 def get_table_name_from_column(column: exp.Column) -> Optional[str]:
     """Extract table name from a column expression, handling different types.
-    
+
     Args:
         column: The column expression to extract the table name from.
-        
+
     Returns:
         The table name as a lowercase string, or None if not qualified.
     """

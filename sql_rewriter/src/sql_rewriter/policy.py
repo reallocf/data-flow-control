@@ -2,7 +2,7 @@
 
 from enum import Enum
 import re
-from typing import Optional, Set
+from typing import Optional
 
 import sqlglot
 from sqlglot import exp
@@ -66,20 +66,20 @@ class DFCPolicy:
     @classmethod
     def from_policy_str(cls, policy_str: str) -> "DFCPolicy":
         """Create a DFCPolicy from a policy string.
-        
+
         Parses a policy string in the format:
         SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
-        
+
         Fields can be separated by any whitespace (spaces, tabs, newlines).
         The constraint value can contain spaces.
         DESCRIPTION is optional and can appear anywhere in the string.
-        
+
         Args:
             policy_str: The policy string to parse
-            
+
         Returns:
             DFCPolicy: A new DFCPolicy instance
-            
+
         Raises:
             ValueError: If the policy string cannot be parsed or is invalid
         """
@@ -135,15 +135,9 @@ class DFCPolicy:
             value = normalized[value_start:value_end].strip()
 
             if keyword == "SOURCE":
-                if value and value.upper() != "NONE":
-                    source = value
-                else:
-                    source = None
+                source = value if value and value.upper() != "NONE" else None
             elif keyword == "SINK":
-                if value and value.upper() != "NONE":
-                    sink = value
-                else:
-                    sink = None
+                sink = value if value and value.upper() != "NONE" else None
             elif keyword == "CONSTRAINT":
                 constraint = value
             elif keyword == "ON FAIL":
@@ -177,7 +171,7 @@ class DFCPolicy:
 
     def _validate(self) -> None:
         """Validate that source, sink, and constraint are valid SQL syntax.
-        
+
         This performs syntax validation only. Database binding validation (checking that
         tables and columns actually exist) should be performed when the policy is
         registered with a SQLRewriter instance.
@@ -210,11 +204,11 @@ class DFCPolicy:
 
     def _validate_table_name(self, table_name: str, table_type: str) -> None:
         """Validate that a table name is a valid SQL identifier.
-        
+
         Args:
             table_name: The table name to validate.
             table_type: The type of table ("Source" or "Sink") for error messages.
-            
+
         Raises:
             ValueError: If the table name is invalid.
         """
@@ -236,10 +230,10 @@ class DFCPolicy:
 
     def _parse_constraint(self) -> exp.Expression:
         """Parse the constraint SQL expression.
-        
+
         Returns:
             The parsed constraint expression.
-            
+
         Raises:
             ValueError: If the constraint is invalid or is a SELECT statement.
         """
@@ -288,13 +282,13 @@ class DFCPolicy:
                 f"Unqualified columns found: {', '.join(unqualified_columns)}"
             )
 
-    def _calculate_source_columns_needed(self) -> Set[str]:
+    def _calculate_source_columns_needed(self) -> set[str]:
         """Calculate the set of source columns needed after transforming aggregations to columns.
-        
+
         For scan queries, aggregations in constraints are transformed to their underlying columns.
         This method extracts which columns from the source table will be needed after that
         transformation. For example, max(foo.id) > 1 becomes id > 1, so 'id' is needed.
-        
+
         Returns:
             Set of column names (lowercase) needed from the source table.
         """
@@ -378,7 +372,7 @@ class DFCPolicy:
 
     def get_identifier(self) -> str:
         """Get a descriptive identifier for a policy for logging purposes.
-        
+
         Returns:
             A string identifier for the policy.
         """
@@ -468,20 +462,20 @@ class AggregateDFCPolicy:
     @classmethod
     def from_policy_str(cls, policy_str: str) -> "AggregateDFCPolicy":
         """Create an AggregateDFCPolicy from a policy string.
-        
+
         Parses a policy string in the format:
         AGGREGATE SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
-        
+
         Fields can be separated by any whitespace (spaces, tabs, newlines).
         The constraint value can contain spaces.
         DESCRIPTION is optional and can appear anywhere in the string.
-        
+
         Args:
             policy_str: The policy string to parse
-            
+
         Returns:
             AggregateDFCPolicy: A new AggregateDFCPolicy instance
-            
+
         Raises:
             ValueError: If the policy string cannot be parsed or is invalid
         """
@@ -545,15 +539,9 @@ class AggregateDFCPolicy:
             value = normalized[value_start:value_end].strip()
 
             if keyword == "SOURCE":
-                if value and value.upper() != "NONE":
-                    source = value
-                else:
-                    source = None
+                source = value if value and value.upper() != "NONE" else None
             elif keyword == "SINK":
-                if value and value.upper() != "NONE":
-                    sink = value
-                else:
-                    sink = None
+                sink = value if value and value.upper() != "NONE" else None
             elif keyword == "CONSTRAINT":
                 constraint = value
             elif keyword == "ON FAIL":
@@ -587,7 +575,7 @@ class AggregateDFCPolicy:
 
     def _validate(self) -> None:
         """Validate that source, sink, and constraint are valid SQL syntax.
-        
+
         This performs syntax validation only. Database binding validation (checking that
         tables and columns actually exist) should be performed when the policy is
         registered with a SQLRewriter instance.
@@ -620,11 +608,11 @@ class AggregateDFCPolicy:
 
     def _validate_table_name(self, table_name: str, table_type: str) -> None:
         """Validate that a table name is a valid SQL identifier.
-        
+
         Args:
             table_name: The table name to validate.
             table_type: The type of table ("Source" or "Sink") for error messages.
-            
+
         Raises:
             ValueError: If the table name is invalid.
         """
@@ -645,10 +633,10 @@ class AggregateDFCPolicy:
 
     def _parse_constraint(self) -> exp.Expression:
         """Parse the constraint SQL expression.
-        
+
         Returns:
             The parsed constraint expression.
-            
+
         Raises:
             ValueError: If the constraint is invalid or is a SELECT statement.
         """
@@ -683,7 +671,7 @@ class AggregateDFCPolicy:
 
     def _validate_column_qualification(self) -> None:
         """Validate that all columns in the constraint are qualified with table names.
-        
+
         Exceptions:
         - Columns inside FILTER clauses are allowed to be unqualified as they're
           in a WHERE context and may reference the sink table
@@ -723,9 +711,9 @@ class AggregateDFCPolicy:
                 f"Unaggregated columns found: {', '.join(unqualified_columns)}"
             )
 
-    def _calculate_source_columns_needed(self) -> Set[str]:
+    def _calculate_source_columns_needed(self) -> set[str]:
         """Calculate the set of source columns needed.
-        
+
         Returns:
             Set of column names (lowercase) needed from the source table.
         """
@@ -758,7 +746,7 @@ class AggregateDFCPolicy:
 
     def _validate_aggregation_rules(self) -> None:
         """Validate aggregation rules: source columns must be aggregated, sink columns can be aggregated or not."""
-        aggregate_funcs = list(self._constraint_parsed.find_all(exp.AggFunc))
+        list(self._constraint_parsed.find_all(exp.AggFunc))
         all_columns = list(self._constraint_parsed.find_all(exp.Column))
 
         # Source columns must be aggregated
@@ -784,7 +772,7 @@ class AggregateDFCPolicy:
 
     def get_identifier(self) -> str:
         """Get a descriptive identifier for a policy for logging purposes.
-        
+
         Returns:
             A string identifier for the policy.
         """

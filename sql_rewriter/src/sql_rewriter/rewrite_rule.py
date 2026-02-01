@@ -1,7 +1,8 @@
 """Rewrite rules for applying DFC policies to SQL queries."""
 
 import json
-from typing import List, Optional, Set
+import logging
+from typing import Optional
 
 import sqlglot
 from sqlglot import exp
@@ -9,13 +10,15 @@ from sqlglot import exp
 from .policy import AggregateDFCPolicy, DFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 
+logger = logging.getLogger(__name__)
+
 
 def _wrap_kill_constraint(constraint_expr: exp.Expression) -> exp.Expression:
     """Wrap a constraint expression in CASE WHEN for KILL resolution policies.
-    
+
     Args:
         constraint_expr: The constraint expression to wrap.
-        
+
     Returns:
         A CASE WHEN expression that returns true if constraint passes,
         or calls kill() if constraint fails.
@@ -32,20 +35,20 @@ def _wrap_kill_constraint(constraint_expr: exp.Expression) -> exp.Expression:
 
 def _extract_columns_from_constraint(
     constraint_expr: exp.Expression,
-    source_tables: Set[str],
+    source_tables: set[str],
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None
-) -> List[exp.Column]:
+) -> list[exp.Column]:
     """Extract all columns from a constraint expression that belong to source or sink tables.
-    
+
     For sink table columns, returns the corresponding SELECT output column references.
-    
+
     Args:
         constraint_expr: The constraint expression to extract columns from.
         source_tables: Set of source table names.
         sink_table: Optional sink table name.
         sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
-        
+
     Returns:
         List of column expressions from source and sink tables, in order of appearance.
         Sink columns are returned as unqualified references to SELECT output columns.
@@ -95,19 +98,19 @@ def _extract_columns_from_constraint(
 def _wrap_llm_constraint(
     constraint_expr: exp.Expression,
     policy: DFCPolicy,
-    source_tables: Set[str],
+    source_tables: set[str],
     stream_file_path: Optional[str] = None,
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     parsed: Optional[exp.Select] = None,
-    insert_columns: Optional[List[str]] = None
+    insert_columns: Optional[list[str]] = None
 ) -> exp.Expression:
     """Wrap a constraint expression in CASE WHEN for LLM resolution policies.
-    
+
     When the constraint fails, calls address_violating_rows with columns from the
     constraint. The function returns False to filter out the row, allowing it to
     be handled by the external operator.
-    
+
     Args:
         constraint_expr: The constraint expression to wrap.
         policy: The policy being applied.
@@ -117,7 +120,7 @@ def _wrap_llm_constraint(
         sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
         parsed: Optional parsed SELECT statement to extract all output columns from.
         insert_columns: Optional list of column names in INSERT column list (for INSERT statements).
-        
+
     Returns:
         A CASE WHEN expression that returns true if constraint passes,
         or calls address_violating_rows() if constraint fails.
@@ -321,7 +324,7 @@ def _wrap_llm_constraint(
 
     # Create function call with columns, constraint, description, column_names_json, stream_endpoint
     # address_violating_rows(col1, col2, ..., constraint, description, column_names_json, stream_endpoint)
-    expressions = columns + [constraint_literal, description_literal, column_names_literal, stream_endpoint]
+    expressions = [*columns, constraint_literal, description_literal, column_names_literal, stream_endpoint]
     address_call = exp.Anonymous(this="address_violating_rows", expressions=expressions)
 
     return exp.Case(
@@ -340,10 +343,10 @@ def _add_clause_to_select(
     clause_class: type
 ) -> None:
     """Add a clause (HAVING or WHERE) to a SELECT statement, combining with existing if needed.
-    
+
     Wraps both the existing expression and the new constraint in parentheses when combining
     them to ensure proper operator precedence, especially when OR clauses are involved.
-    
+
     Args:
         parsed: The parsed SELECT statement to modify.
         clause_name: The name of the clause ('having' or 'where').
@@ -375,12 +378,12 @@ def _add_invalidate_column_to_select(
     replace_existing: bool = False
 ) -> None:
     """Add a 'valid' column to a SELECT statement, combining with existing if needed.
-    
+
     If a 'valid' column already exists, combines the new constraint with the existing
     one using AND (both must pass for valid=true), unless replace_existing is True.
-    
+
     The valid column is true when the constraint passes, false when it fails.
-    
+
     Args:
         parsed: The parsed SELECT statement to modify.
         constraint_expr: The constraint expression to add as the 'valid' column.
@@ -441,18 +444,18 @@ def _add_invalidate_column_to_select(
 def apply_policy_constraints_to_aggregation(
     parsed: exp.Select,
     policies: list[DFCPolicy],
-    source_tables: Set[str],
+    source_tables: set[str],
     stream_file_path: Optional[str] = None,
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
-    insert_columns: Optional[List[str]] = None
+    insert_columns: Optional[list[str]] = None
 ) -> None:
     """Apply policy constraints to an aggregation query.
-    
+
     Adds HAVING clauses for each policy constraint and ensures all referenced
     columns are accessible.
-    
+
     Args:
         parsed: The parsed SELECT statement to modify.
         policies: List of policies to apply.
@@ -485,6 +488,11 @@ def apply_policy_constraints_to_aggregation(
                 constraint_expr, table_mapping
             )
 
+            # Replace aggregations from EXISTS-rewritten JOINs with subquery column references
+            constraint_expr = _replace_aggregations_from_join_subqueries(
+                parsed, constraint_expr, policy_source
+            )
+
             ensure_columns_accessible(parsed, constraint_expr, source_tables)
 
         if policy.on_fail == Resolution.KILL:
@@ -507,17 +515,17 @@ def apply_policy_constraints_to_aggregation(
 def ensure_columns_accessible(
     parsed: exp.Select,
     constraint_expr: exp.Expression,
-    source_tables: Set[str]
+    source_tables: set[str]
 ) -> None:
     """Ensure all columns referenced in the constraint are accessible in the query.
-    
+
     For aggregation queries with HAVING clauses, columns in aggregations are
     automatically accessible since aggregations can reference source table columns.
     Non-aggregated columns must be in SELECT or GROUP BY.
-    
+
     For now, we assume that policy constraints use aggregated source columns,
     which are always accessible in HAVING clauses. This is a no-op for now.
-    
+
     Args:
         parsed: The parsed SELECT statement.
         constraint_expr: The constraint expression to check.
@@ -528,12 +536,12 @@ def ensure_columns_accessible(
     # Future enhancement: check non-aggregated columns and ensure they're in SELECT/GROUP BY
 
 
-def _get_subqueries_in_from(parsed: exp.Select) -> List[tuple[exp.Subquery, str]]:
+def _get_subqueries_in_from(parsed: exp.Select) -> list[tuple[exp.Subquery, str]]:
     """Find all subqueries in FROM clauses with their aliases.
-    
+
     Args:
         parsed: The parsed SELECT statement.
-        
+
     Returns:
         List of tuples (subquery, alias) where alias is the subquery alias (lowercase).
     """
@@ -592,12 +600,12 @@ def _get_subqueries_in_from(parsed: exp.Select) -> List[tuple[exp.Subquery, str]
     return subqueries
 
 
-def _get_selected_columns(subquery: exp.Subquery) -> Set[str]:
+def _get_selected_columns(subquery: exp.Subquery) -> set[str]:
     """Get the set of column names selected in a subquery.
-    
+
     Args:
         subquery: The subquery expression.
-        
+
     Returns:
         Set of column names (lowercase) in the SELECT list.
     """
@@ -608,11 +616,11 @@ def _get_selected_columns(subquery: exp.Subquery) -> Set[str]:
 
 def _get_table_alias_in_subquery(subquery: exp.Subquery, table_name: str) -> str:
     """Get the table alias used in a subquery for a given table name.
-    
+
     Args:
         subquery: The subquery expression.
         table_name: The table name to find the alias for.
-        
+
     Returns:
         The table alias if found, otherwise the table name.
     """
@@ -623,7 +631,7 @@ def _get_table_alias_in_subquery(subquery: exp.Subquery, table_name: str) -> str
 
 def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name: str) -> None:
     """Add a column to a subquery's SELECT list if it's not already there.
-    
+
     Args:
         subquery: The subquery expression to modify.
         table_name: The table name for the column (for qualification).
@@ -659,12 +667,12 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     select_expr.expressions.append(col_expr)
 
 
-def _get_ctes(parsed: exp.Select) -> List[tuple[exp.CTE, str]]:
+def _get_ctes(parsed: exp.Select) -> list[tuple[exp.CTE, str]]:
     """Find all CTEs (Common Table Expressions) in a SELECT statement with their aliases.
-    
+
     Args:
         parsed: The parsed SELECT statement.
-        
+
     Returns:
         List of tuples (cte, alias) where alias is the CTE alias (lowercase).
     """
@@ -713,12 +721,12 @@ def _get_ctes(parsed: exp.Select) -> List[tuple[exp.CTE, str]]:
     return ctes
 
 
-def _get_selected_columns_from_select(select_expr: exp.Select) -> Set[str]:
+def _get_selected_columns_from_select(select_expr: exp.Select) -> set[str]:
     """Get the set of column names selected in a SELECT statement.
-    
+
     Args:
         select_expr: The SELECT expression.
-        
+
     Returns:
         Set of column names (lowercase) in the SELECT list.
     """
@@ -743,11 +751,11 @@ def _get_selected_columns_from_select(select_expr: exp.Select) -> Set[str]:
 
 def _get_table_alias_in_select(select_expr: exp.Select, table_name: str) -> str:
     """Get the table alias used in a SELECT statement for a given table name.
-    
+
     Args:
         select_expr: The SELECT expression.
         table_name: The table name to find the alias for.
-        
+
     Returns:
         The table alias if found, otherwise the table name.
     """
@@ -764,7 +772,7 @@ def _get_table_alias_in_select(select_expr: exp.Select, table_name: str) -> str:
 
 def _add_column_to_cte(cte: exp.CTE, table_name: str, column_name: str) -> None:
     """Add a column to a CTE's SELECT list if it's not already there.
-    
+
     Args:
         cte: The CTE expression to modify.
         table_name: The table name for the column (for qualification).
@@ -811,15 +819,15 @@ def _replace_sink_table_references_in_constraint(
     sink_to_output_mapping: dict[str, str]
 ) -> exp.Expression:
     """Replace sink table column references in a constraint with SELECT output column references.
-    
+
     For example, if constraint has `sink.col1` and mapping is `{'col1': 'x'}`,
     it becomes just `x` (unqualified column reference to the SELECT output).
-    
+
     Args:
         constraint_expr: The constraint expression to modify.
         sink_table: The sink table name (lowercase).
         sink_to_output_mapping: Dictionary mapping sink column names to SELECT output column names.
-        
+
     Returns:
         A new constraint expression with sink table references replaced.
     """
@@ -847,7 +855,7 @@ def _replace_sink_table_references_in_constraint(
                 # For now, if there's only one column in the mapping, use it; otherwise use the first one
                 # This is a heuristic - ideally the policy should specify the column explicitly
                 if len(sink_to_output_mapping) == 1:
-                    output_col_name = list(sink_to_output_mapping.values())[0]
+                    output_col_name = next(iter(sink_to_output_mapping.values()))
                     return exp.Column(
                         this=exp.Identifier(this=output_col_name, quoted=False)
                     )
@@ -857,27 +865,26 @@ def _replace_sink_table_references_in_constraint(
                         this=exp.Identifier(this=sink_to_output_mapping["amount"], quoted=False)
                     )
                 # Use the first column in the mapping
-                output_col_name = list(sink_to_output_mapping.values())[0]
+                output_col_name = next(iter(sink_to_output_mapping.values()))
                 return exp.Column(
                     this=exp.Identifier(this=output_col_name, quoted=False)
                 )
         return node
 
     # Transform the expression, replacing all sink column references
-    transformed = constraint_expr.transform(replace_sink_column, copy=True)
-    return transformed
+    return constraint_expr.transform(replace_sink_column, copy=True)
 
 
 def _get_source_table_to_alias_mapping(
     parsed: exp.Select,
-    source_tables: Set[str]
+    source_tables: set[str]
 ) -> dict[str, str]:
     """Build a mapping from source table names to their subquery/CTE aliases.
-    
+
     Args:
         parsed: The parsed SELECT statement.
         source_tables: Set of source table names in the query.
-        
+
     Returns:
         Dictionary mapping source table name (lowercase) to subquery/CTE alias (lowercase).
         Only includes mappings for source tables that are in subqueries/CTEs, not in the main query.
@@ -960,15 +967,15 @@ def _replace_table_references_in_constraint(
     table_mapping: dict[str, str]
 ) -> exp.Expression:
     """Replace table references in a constraint expression with subquery/CTE aliases.
-    
+
     This function replaces table references in columns, including columns inside
     aggregation functions. For example, max(foo.id) > 1 becomes max(sub.id) > 1
     when foo is mapped to sub.
-    
+
     Args:
         constraint_expr: The constraint expression to modify.
         table_mapping: Dictionary mapping source table names to subquery/CTE aliases.
-        
+
     Returns:
         A new constraint expression with table references replaced.
     """
@@ -981,30 +988,94 @@ def _replace_table_references_in_constraint(
             if table_name and table_name in table_mapping:
                 # Replace the table reference with the subquery/CTE alias
                 new_table = exp.Identifier(this=table_mapping[table_name], quoted=False)
-                new_column = exp.Column(
+                return exp.Column(
                     this=node.this,
                     table=new_table
                 )
-                return new_column
         return node
 
     # Transform the expression, replacing all column table references
     # This works for columns both inside and outside aggregation functions
-    transformed = constraint_expr.transform(replace_table, copy=True)
-    return transformed
+    return constraint_expr.transform(replace_table, copy=True)
+
+
+def _replace_aggregations_from_join_subqueries(
+    parsed: exp.Select,
+    constraint_expr: exp.Expression,
+    policy_source: Optional[str]
+) -> exp.Expression:
+    """Replace aggregations in constraints that reference tables only in JOIN subqueries.
+
+    When EXISTS subqueries are rewritten as JOINs, aggregations from the policy table
+    are computed in the JOIN subquery. This function replaces those aggregations in
+    constraints with references to the subquery alias columns.
+
+    Args:
+        parsed: The parsed SELECT statement.
+        constraint_expr: The constraint expression to modify.
+        policy_source: The policy source table name (lowercase), or None.
+
+    Returns:
+        A new constraint expression with aggregations replaced by subquery column references.
+    """
+    if not policy_source:
+        return constraint_expr
+
+    # Find JOINs that were created from EXISTS rewrites
+    joins = parsed.args.get("joins", [])
+    if not joins:
+        return constraint_expr
+
+    def replace_agg(node):
+        if isinstance(node, exp.AggFunc):
+            # Check if this aggregation references the policy source table
+            agg_columns = list(node.find_all(exp.Column))
+            references_policy_table = False
+            for col in agg_columns:
+                col_table = get_table_name_from_column(col)
+                if col_table and col_table.lower() == policy_source:
+                    references_policy_table = True
+                    break
+
+            if references_policy_table:
+                # Find the JOIN subquery that has this aggregation
+                agg_sql = node.sql()
+                for join in joins:
+                    if isinstance(join.this, exp.Subquery):
+                        subquery_node = join.this
+                        if hasattr(subquery_node, "meta") and "aggregation_aliases" in subquery_node.meta:
+                            aggregation_aliases = subquery_node.meta["aggregation_aliases"]
+                            policy_table = subquery_node.meta.get("policy_table")
+
+                            # Check if this aggregation matches one we computed in the subquery
+                            key = (policy_table, agg_sql)
+                            if key in aggregation_aliases:
+                                subquery_alias_name, agg_alias_name = aggregation_aliases[key]
+                                # Replace aggregation with column reference to subquery alias
+                                # DuckDB requires wrapping in an aggregate function in HAVING, even if already aggregated
+                                subquery_col = exp.Column(
+                                    this=exp.Identifier(this=agg_alias_name),
+                                    table=exp.Identifier(this=subquery_alias_name)
+                                )
+                                # Wrap in MAX() to satisfy DuckDB's HAVING clause requirements
+                                return exp.Max(this=subquery_col)
+        return node
+
+    # Transform the expression, replacing aggregations with subquery column references
+    return constraint_expr.transform(replace_agg, copy=True)
 
 
 def ensure_subqueries_have_constraint_columns(
     parsed: exp.Select,
-    policies: List[DFCPolicy],
-    source_tables: Set[str]
+    policies: list[DFCPolicy],
+    source_tables: set[str]
 ) -> None:
     """Ensure subqueries and CTEs that reference source tables include columns needed for constraints.
-    
+
     For each subquery or CTE that references a source table, this function ensures that
     all columns needed to evaluate policy constraints are included in the SELECT list.
     This allows the outer query to evaluate the constraints correctly.
-    
+
     Args:
         parsed: The parsed SELECT statement.
         policies: List of policies that will be applied.
@@ -1013,7 +1084,7 @@ def ensure_subqueries_have_constraint_columns(
     # Find all subqueries in FROM clauses
     subqueries = _get_subqueries_in_from(parsed)
 
-    for subquery, subquery_alias in subqueries:
+    for subquery, _subquery_alias in subqueries:
         if not isinstance(subquery.this, exp.Select):
             continue
 
@@ -1042,7 +1113,7 @@ def ensure_subqueries_have_constraint_columns(
     # Find all CTEs
     ctes = _get_ctes(parsed)
 
-    for cte, cte_alias in ctes:
+    for cte, _cte_alias in ctes:
         # Check if CTE has a SELECT expression
         cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
         if not cte_select:
@@ -1073,23 +1144,209 @@ def ensure_subqueries_have_constraint_columns(
                         _add_column_to_cte(cte, source_table, col_name)
 
 
+def wrap_query_with_limit_in_cte_for_remove_policy(
+    parsed: exp.Select,
+    policy: DFCPolicy,
+    source_tables: set[str],
+    is_aggregation: bool
+) -> None:
+    """Wrap a query with LIMIT in a CTE and apply REMOVE policy filter after the limit.
+
+    For REMOVE policies with LIMIT clauses, we need to apply the filter AFTER the limit
+    is applied. This is done by:
+    1. Wrapping the original query in a CTE
+    2. Adding the constraint expression as a temp column "dfc" in the CTE
+    3. Creating an outer SELECT that filters on dfc
+
+    Args:
+        parsed: The parsed SELECT statement to modify (must have LIMIT).
+        policy: The REMOVE policy to apply.
+        source_tables: Set of source table names in the query.
+        is_aggregation: Whether this is an aggregation query (affects how constraint is added).
+    """
+    logger.debug(f"wrap_query_with_limit_in_cte_for_remove_policy called for aggregation={is_aggregation}")
+
+    # Check if query has LIMIT
+    limit_expr = parsed.args.get("limit")
+    if not limit_expr:
+        logger.debug("Query does not have LIMIT, skipping CTE wrapping")
+        return
+
+    # Parse the constraint to extract left side (aggregation/column) and right side (threshold)
+    constraint_expr = policy._constraint_parsed
+
+    # Extract the aggregation/column expression from the left side of the comparison
+    # The constraint is typically: aggregation > threshold or aggregation >= threshold
+    dfc_expr = None
+    threshold_expr = None
+    comparison_op = None
+
+    # Find comparison operators (GT, GTE, LT, LTE, EQ, NEQ)
+    for op_class in (exp.GT, exp.GTE, exp.LT, exp.LTE, exp.EQ, exp.NEQ):
+        comparisons = list(constraint_expr.find_all(op_class))
+        if comparisons:
+            comp = comparisons[0]
+            dfc_expr = comp.this  # Left side (aggregation/column)
+            threshold_expr = comp.expression  # Right side (threshold)
+            comparison_op = op_class
+            logger.debug(f"Found comparison: {op_class.__name__}, dfc_expr={dfc_expr.sql()}, threshold={threshold_expr.sql()}")
+            break
+
+    if not dfc_expr or not threshold_expr:
+        logger.warning(f"Could not extract comparison from constraint: {constraint_expr.sql()}")
+        return
+
+    if is_aggregation:
+        def remove_table_qualifiers_from_agg(node):
+            if isinstance(node, exp.Column):
+                col_name = get_column_name(node)
+                return exp.Column(this=exp.Identifier(this=col_name))
+            return node
+        dfc_column_expr = dfc_expr.transform(remove_table_qualifiers_from_agg, copy=True)
+    else:
+        dfc_column_expr = transform_aggregations_to_columns(dfc_expr, source_tables)
+        def remove_table_qualifiers(node):
+            if isinstance(node, exp.Column):
+                col_name = get_column_name(node)
+                return exp.Column(this=exp.Identifier(this=col_name))
+            return node
+        dfc_column_expr = dfc_column_expr.transform(remove_table_qualifiers, copy=True)
+
+    dfc_expr_sql = dfc_column_expr.sql()
+    dfc_column_expr_copy = sqlglot.parse_one(dfc_expr_sql, read="duckdb")
+
+    dfc_alias = exp.Alias(
+        this=dfc_column_expr_copy,
+        alias=exp.Identifier(this="dfc")
+    )
+
+    original_sql = parsed.sql()
+    cte_body = sqlglot.parse_one(original_sql, read="duckdb")
+
+    if not isinstance(cte_body, exp.Select):
+        logger.warning(f"CTE body is not a SELECT: {type(cte_body)}")
+        return
+
+    if not hasattr(cte_body, "expressions"):
+        logger.warning("CTE body does not have expressions attribute")
+        return
+
+    logger.debug(f"Adding dfc column to CTE: {dfc_alias.sql()}")
+    logger.debug(f"CTE body before adding dfc: {cte_body.sql(pretty=True)[:500]}")
+
+    cte_body.expressions.append(dfc_alias)
+
+    logger.debug(f"CTE body after adding dfc: {cte_body.sql(pretty=True)[:500]}")
+
+    cte = exp.CTE(
+        this=cte_body,
+        alias=exp.TableAlias(this=exp.Identifier(this="cte"))
+    )
+
+    outer_expressions = []
+    for expr in parsed.expressions:
+        if isinstance(expr, exp.Star):
+            outer_expressions.append(expr)
+        elif isinstance(expr, exp.Alias):
+            alias_name = get_column_name(expr.alias)
+            outer_expressions.append(exp.Column(
+                this=exp.Identifier(this=alias_name)
+            ))
+        elif isinstance(expr, exp.Column):
+            col_name = get_column_name(expr)
+            outer_expressions.append(exp.Column(
+                this=exp.Identifier(this=col_name)
+            ))
+        else:
+            expr_sql = expr.sql()
+            alias_name = expr_sql.lower().replace("(", "_").replace(")", "").replace(" ", "_").replace(",", "_")
+            if not alias_name[0].isalpha():
+                alias_name = "expr_" + alias_name
+            alias_name = alias_name[:50]
+
+            for cte_expr in cte_body.expressions:
+                if cte_expr.sql() == expr_sql and not isinstance(cte_expr, exp.Alias):
+                    cte_expr_index = cte_body.expressions.index(cte_expr)
+                    cte_body.expressions[cte_expr_index] = exp.Alias(
+                        this=cte_expr,
+                        alias=exp.Identifier(this=alias_name)
+                    )
+                    break
+
+            outer_expressions.append(exp.Column(
+                this=exp.Identifier(this=alias_name)
+            ))
+
+    dfc_col_ref = exp.Column(
+        this=exp.Identifier(this="dfc")
+    )
+
+    if comparison_op == exp.GT:
+        where_condition = exp.GT(this=dfc_col_ref, expression=threshold_expr)
+    elif comparison_op == exp.GTE:
+        where_condition = exp.GTE(this=dfc_col_ref, expression=threshold_expr)
+    elif comparison_op == exp.LT:
+        where_condition = exp.LT(this=dfc_col_ref, expression=threshold_expr)
+    elif comparison_op == exp.LTE:
+        where_condition = exp.LTE(this=dfc_col_ref, expression=threshold_expr)
+    elif comparison_op == exp.EQ:
+        where_condition = exp.EQ(this=dfc_col_ref, expression=threshold_expr)
+    elif comparison_op == exp.NEQ:
+        where_condition = exp.NEQ(this=dfc_col_ref, expression=threshold_expr)
+    else:
+        logger.warning(f"Unknown comparison operator: {comparison_op}")
+        return
+
+    outer_from = exp.From(this=exp.Table(this=exp.Identifier(this="cte")))
+    outer_select = exp.Select(
+        expressions=outer_expressions,
+        from_=outer_from,
+        where=exp.Where(this=where_condition)
+    )
+
+    existing_with = parsed.args.get("with_")
+    if existing_with:
+        cte_expressions = [*existing_with.expressions, cte]
+        outer_select.set("with_", exp.With(expressions=cte_expressions))
+    else:
+        outer_select.set("with_", exp.With(expressions=[cte]))
+
+    parsed.set("expressions", outer_expressions)
+    parsed.set("from_", outer_from)
+    parsed.set("where", exp.Where(this=where_condition))
+
+    existing_with = parsed.args.get("with_")
+    if existing_with:
+        cte_expressions = [*existing_with.expressions, cte]
+        parsed.set("with_", exp.With(expressions=cte_expressions))
+    else:
+        parsed.set("with_", exp.With(expressions=[cte]))
+
+    parsed.set("group", None)
+    parsed.set("order", None)
+    parsed.set("limit", None)
+    parsed.set("joins", None)
+
+    logger.debug(f"CTE wrapping complete. New query: {parsed.sql(pretty=True)[:200]}...")
+
+
 def apply_policy_constraints_to_scan(
     parsed: exp.Select,
     policies: list[DFCPolicy],
-    source_tables: Set[str],
+    source_tables: set[str],
     stream_file_path: Optional[str] = None,
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
-    insert_columns: Optional[List[str]] = None
+    insert_columns: Optional[list[str]] = None
 ) -> None:
     """Apply policy constraints to a non-aggregation query (table scan).
-    
+
     Transforms aggregation functions in constraints to their underlying columns
     and adds WHERE clauses. For example:
     - max(foo.id) > 10 becomes id > 10
     - COUNT(*) > 0 becomes 1 > 0 (which is always true, so we can simplify)
-    
+
     Args:
         parsed: The parsed SELECT statement to modify.
         policies: List of policies to apply.
@@ -1124,6 +1381,11 @@ def apply_policy_constraints_to_scan(
                 constraint_expr, table_mapping
             )
 
+            # Replace aggregations from EXISTS-rewritten JOINs with subquery column references
+            constraint_expr = _replace_aggregations_from_join_subqueries(
+                parsed, constraint_expr, policy_source
+            )
+
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
@@ -1143,10 +1405,10 @@ def apply_policy_constraints_to_scan(
 
 def transform_aggregations_to_columns(
     constraint_expr: exp.Expression,
-    source_tables: Set[str]
+    source_tables: set[str]
 ) -> exp.Expression:
     """Transform aggregation functions in a constraint to their underlying columns.
-    
+
     For non-aggregation queries, we treat aggregations as if they're over a single row:
     - COUNT_IF(condition) → CASE WHEN condition THEN 1 ELSE 0 END
       * For a single row, COUNT_IF returns 1 if condition is true, 0 if false
@@ -1161,14 +1423,14 @@ def transform_aggregations_to_columns(
       * Percentile: quantile, percentile_cont, percentile_disc, etc.
       * String: string_agg, listagg, group_concat, etc.
       * Other: first, last, any_value, mode, median, etc.
-    
+
     The logic is: COUNT_IF evaluates the condition per row, ARRAY_AGG creates a single-element
     array, other count functions return 1 for a single row, and other aggregations return the column value.
-    
+
     Args:
         constraint_expr: The constraint expression to transform.
         source_tables: Set of source table names in the query.
-        
+
     Returns:
         A new expression with aggregations replaced by columns.
     """
@@ -1223,21 +1485,19 @@ def transform_aggregations_to_columns(
             # This preserves complex expressions like CASE WHEN, function calls, etc.
             if hasattr(node, "this") and node.this:
                 expr_sql = node.this.sql()
-                expr_copy = sqlglot.parse_one(expr_sql, read="duckdb")
-                return expr_copy
+                return sqlglot.parse_one(expr_sql, read="duckdb")
             return exp.Literal(this="1", is_string=False)
         return node
 
-    transformed = transformed.transform(replace_agg, copy=True)
-    return transformed
+    return transformed.transform(replace_agg, copy=True)
 
 
 def get_policy_identifier(policy: AggregateDFCPolicy) -> str:
     """Generate a unique identifier for a policy for temp column naming.
-    
+
     Args:
         policy: The AggregateDFCPolicy instance.
-        
+
     Returns:
         A string identifier derived from the policy.
     """
@@ -1251,17 +1511,17 @@ def get_policy_identifier(policy: AggregateDFCPolicy) -> str:
 def _extract_source_aggregates_from_constraint(
     constraint_expr: exp.Expression,
     source_table: str
-) -> List[exp.AggFunc]:
+) -> list[exp.AggFunc]:
     """Extract innermost source aggregate expressions from a constraint.
-    
+
     For nested aggregates like max(sum(foo.amount)), extracts the innermost
     aggregate (sum(foo.amount)) that directly contains the source column.
     The outer aggregate (max) will be applied during finalize.
-    
+
     Args:
         constraint_expr: The parsed constraint expression.
         source_table: The source table name.
-        
+
     Returns:
         List of innermost aggregate function expressions that reference the source table.
     """
@@ -1315,14 +1575,14 @@ def _find_outer_aggregate_for_inner(
     inner_agg_sql: str
 ) -> Optional[str]:
     """Find the outer aggregate function name that wraps an inner aggregate.
-    
+
     For nested aggregates like max(sum(foo.amount)), if inner_agg_sql is
     "sum(foo.amount)", returns "MAX".
-    
+
     Args:
         constraint_expr: The parsed constraint expression.
         inner_agg_sql: The SQL of the inner aggregate expression.
-        
+
     Returns:
         The outer aggregate function name (e.g., "MAX", "MIN") or None if not nested.
     """
@@ -1349,14 +1609,14 @@ def _extract_sink_expressions_from_constraint(
     constraint_expr: exp.Expression,
     sink_table: str,
     sink_to_output_mapping: Optional[dict[str, str]] = None
-) -> List[exp.Expression]:
+) -> list[exp.Expression]:
     """Extract all sink column/expression references from a constraint.
-    
+
     Args:
         constraint_expr: The parsed constraint expression.
         sink_table: The sink table name.
         sink_to_output_mapping: Optional mapping from sink column names to SELECT output column names.
-        
+
     Returns:
         List of expressions that reference the sink table (columns or aggregates).
     """
@@ -1461,10 +1721,10 @@ def _add_temp_column_to_select(
     parsed: exp.Select,
     expr: exp.Expression,
     column_name: str,
-    source_tables: Optional[Set[str]] = None
+    source_tables: Optional[set[str]] = None
 ) -> None:
     """Add a temp column to a SELECT statement.
-    
+
     Args:
         parsed: The parsed SELECT statement to modify.
         expr: The expression to add as a column.
@@ -1524,7 +1784,6 @@ def _add_temp_column_to_select(
                 # Build mapping from output column names to their expressions
                 output_col_to_expr = {}
                 for expr in parsed.expressions:
-                    output_col_name = None
                     if isinstance(expr, exp.Alias):
                         alias_name = get_column_name(expr.alias).lower()
                         output_col_to_expr[alias_name] = expr.this
@@ -1594,7 +1853,7 @@ def _add_temp_column_to_select(
     # If it's a Filter-wrapped aggregate (for aggregation queries), ensure filter columns are accessible
     if isinstance(expr_copy, exp.Filter):
         # Extract columns from the filter condition
-        filter_columns = list(expr_copy.find_all(exp.Column))
+        list(expr_copy.find_all(exp.Column))
         # Ensure these columns are accessible in the SELECT context
         if source_tables:
             ensure_columns_accessible(parsed, expr_copy, source_tables)
@@ -1612,15 +1871,15 @@ def _add_temp_column_to_select(
 def apply_aggregate_policy_constraints_to_aggregation(
     parsed: exp.Select,
     policies: list[AggregateDFCPolicy],
-    source_tables: Set[str],
+    source_tables: set[str],
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None
 ) -> None:
     """Apply aggregate policy constraints to an aggregation query.
-    
+
     Adds temp columns for source aggregates (inner aggregates) and sink expressions.
     These temp columns will be used during finalize to compute outer aggregates.
-    
+
     Args:
         parsed: The parsed SELECT statement to modify.
         policies: List of aggregate policies to apply.
@@ -1664,18 +1923,515 @@ def apply_aggregate_policy_constraints_to_aggregation(
                 temp_col_counter += 1
 
 
+def rewrite_exists_subqueries_as_joins(
+    parsed: exp.Select,
+    policies: list[DFCPolicy],
+    source_tables: set[str]
+) -> None:
+    """Rewrite EXISTS subqueries as JOINs when a policy applies to a table only in the EXISTS clause.
+
+    When a policy exists on a table that's only referenced in an EXISTS subquery, we can't
+    apply the policy in a HAVING clause because the table isn't accessible there. Instead,
+    we rewrite the EXISTS as a JOIN with a subquery that groups by the join key.
+
+    Example:
+        Original: SELECT * FROM orders WHERE EXISTS (SELECT * FROM lineitem WHERE l_orderkey = o_orderkey)
+        Rewritten: SELECT * FROM orders JOIN (SELECT l_orderkey FROM lineitem GROUP BY l_orderkey) AS sub
+                   ON o_orderkey = l_orderkey
+
+    Args:
+        parsed: The parsed SELECT statement to modify.
+        policies: List of policies that might apply.
+        source_tables: Set of source table names in the main FROM clause.
+    """
+    logger.debug(f"rewrite_exists_subqueries_as_joins called with {len(policies)} policies, source_tables={source_tables}")
+
+    if not policies:
+        logger.debug("No policies provided, returning early")
+        return
+
+    # Find all EXISTS subqueries in WHERE clauses
+    where_expr = parsed.args.get("where")
+    logger.debug(f"WHERE expr: {where_expr}")
+    if not where_expr:
+        logger.debug("No WHERE clause found, returning early")
+        return
+
+    # Find all Exists expressions in the WHERE clause
+    exists_exprs = list(where_expr.find_all(exp.Exists))
+    logger.debug(f"Found {len(exists_exprs)} EXISTS expressions")
+    if not exists_exprs:
+        logger.debug("No EXISTS expressions found, returning early")
+        return
+
+    # Get tables in the main FROM clause (not including subqueries)
+    # We need to extract only from the main FROM, not from subqueries
+    main_from_expr = parsed.args.get("from_") or parsed.args.get("from")
+    main_from_tables = set()
+    if main_from_expr:
+        for table in main_from_expr.find_all(exp.Table):
+            # Skip tables that are inside subqueries
+            # Check if this table is inside a Subquery node
+            is_in_subquery = False
+            current = table
+            while hasattr(current, "parent"):
+                if isinstance(current.parent, exp.Subquery):
+                    is_in_subquery = True
+                    break
+                current = current.parent
+            if not is_in_subquery:
+                table_name = table.this.name if hasattr(table.this, "name") else str(table.this)
+                main_from_tables.add(table_name.lower())
+        # Also check JOINs in main FROM
+        joins = main_from_expr.args.get("joins", [])
+        for join in joins:
+            for table in join.find_all(exp.Table):
+                table_name = table.this.name if hasattr(table.this, "name") else str(table.this)
+                main_from_tables.add(table_name.lower())
+    logger.debug(f"Main FROM tables (excluding subqueries): {main_from_tables}")
+
+    for exists_expr in exists_exprs:
+        logger.debug(f"Processing EXISTS expression: {exists_expr}")
+        # Get the subquery from EXISTS
+        subquery = exists_expr.this
+        logger.debug(f"Subquery type: {type(subquery)}, value: {subquery}")
+        if not isinstance(subquery, exp.Select):
+            logger.debug("Subquery is not a Select, skipping")
+            continue
+
+        # Get tables in the EXISTS subquery
+        subquery_tables = _get_source_tables_from_select(subquery)
+        logger.debug(f"Subquery tables: {subquery_tables}")
+
+        # Check if any policy applies to a table that's only in the subquery
+        needs_rewrite = False
+        policy_table = None
+        for policy in policies:
+            if policy.source:
+                policy_source = policy.source.lower()
+                logger.debug(f"Checking policy with source: {policy_source}, in subquery_tables: {policy_source in subquery_tables}, in main_from_tables: {policy_source in main_from_tables}")
+                if policy_source in subquery_tables and policy_source not in main_from_tables:
+                    needs_rewrite = True
+                    policy_table = policy_source
+                    logger.debug(f"Found policy that needs rewrite: {policy_table}")
+                    break
+
+        if not needs_rewrite:
+            logger.debug("No policy found that requires rewrite, skipping this EXISTS")
+            continue
+
+        # Extract the join condition from the subquery WHERE clause
+        subquery_where = subquery.args.get("where") or (subquery.where if hasattr(subquery, "where") else None)
+        logger.debug(f"Subquery WHERE: {subquery_where}")
+        if not subquery_where:
+            logger.debug("No WHERE clause in subquery, skipping")
+            continue
+
+        # Find equality conditions that connect the outer table to the subquery table
+        # Look for patterns like: outer_table.col = subquery_table.col
+        # In EXISTS subqueries, columns may not be table-qualified, so we need to check
+        # which columns belong to the subquery's FROM clause vs outer query columns
+        join_conditions = []
+
+        # Get the table from the subquery's FROM clause (should be the policy table)
+        # FROM is stored as "from_" in args
+        subquery_from = subquery.args.get("from_") or subquery.args.get("from")
+        logger.debug(f"Subquery FROM: {subquery_from}")
+        subquery_table_name = None
+        if subquery_from:
+            tables = list(subquery_from.find_all(exp.Table))
+            logger.debug(f"Found {len(tables)} tables in subquery_from")
+            if tables:
+                table_expr = tables[0]
+                if hasattr(table_expr.this, "name"):
+                    subquery_table_name = table_expr.this.name.lower()
+                else:
+                    subquery_table_name = str(table_expr.this).lower()
+                logger.debug(f"Extracted table name from FROM: {subquery_table_name}")
+
+        # Also try finding tables directly in the subquery
+        if not subquery_table_name:
+            tables = list(subquery.find_all(exp.Table))
+            logger.debug(f"Found {len(tables)} tables directly in subquery")
+            if tables:
+                table_expr = tables[0]
+                if hasattr(table_expr.this, "name"):
+                    subquery_table_name = table_expr.this.name.lower()
+                else:
+                    subquery_table_name = str(table_expr.this).lower()
+                logger.debug(f"Extracted table name directly: {subquery_table_name}")
+
+        # If we couldn't extract table name or it doesn't match policy table, skip
+        logger.debug(f"Subquery table name: {subquery_table_name}, policy table: {policy_table}")
+        if not subquery_table_name or subquery_table_name != policy_table:
+            logger.debug(f"Skipping: table name mismatch or missing (subquery_table_name={subquery_table_name}, policy_table={policy_table})")
+            continue
+
+        eq_conditions = list(subquery_where.find_all(exp.EQ))
+        logger.debug(f"Found {len(eq_conditions)} EQ conditions in subquery WHERE")
+        for condition in eq_conditions:
+            left = condition.left
+            right = condition.right
+            logger.debug(f"Processing EQ condition: {left} = {right}")
+
+            # Check if both sides are columns
+            if not (isinstance(left, exp.Column) and isinstance(right, exp.Column)):
+                logger.debug("Condition is not two columns, skipping")
+                continue
+
+            left_table = get_table_name_from_column(left)
+            right_table = get_table_name_from_column(right)
+            left_col_name = get_column_name(left).lower()
+            right_col_name = get_column_name(right).lower()
+
+            # Determine which column is from the policy table (subquery) and which is from outer query
+            # Strategy:
+            # 1. If a column has explicit table qualifier matching policy_table, it's from subquery
+            # 2. If a column is unqualified, check if it could be from the subquery table
+            #    (we'll use a heuristic: if column name starts with table prefix like 'l_' for lineitem)
+            # 3. Otherwise, assume it's from outer query (correlated column)
+
+            # Check if left is from subquery
+            left_is_subquery = False
+            if left_table and left_table.lower() == policy_table:
+                left_is_subquery = True
+            elif not left_table:
+                # Unqualified column - check if it matches policy table pattern
+                # For TPC-H: lineitem columns start with 'l_', orders with 'o_'
+                # Use first letter of table name + underscore as heuristic
+                table_prefix = policy_table[0] + "_"
+                if left_col_name.startswith(table_prefix):
+                    left_is_subquery = True
+
+            # Check if right is from subquery
+            right_is_subquery = False
+            if right_table and right_table.lower() == policy_table:
+                right_is_subquery = True
+            elif not right_table:
+                table_prefix = policy_table[0] + "_"
+                if right_col_name.startswith(table_prefix):
+                    right_is_subquery = True
+
+            # One should be from subquery, one from outer
+            if left_is_subquery and not right_is_subquery:
+                # left is from subquery (policy table), right is from outer
+                # Join condition: outer.col = subquery.col
+                logger.debug(f"Adding join condition: outer={right}, subquery={left}")
+                join_conditions.append((right, left))
+            elif right_is_subquery and not left_is_subquery:
+                # right is from subquery (policy table), left is from outer
+                # Join condition: outer.col = subquery.col
+                logger.debug(f"Adding join condition: outer={left}, subquery={right}")
+                join_conditions.append((left, right))
+            else:
+                logger.debug(f"Could not determine join condition (left_is_subquery={left_is_subquery}, right_is_subquery={right_is_subquery})")
+
+        logger.debug(f"Found {len(join_conditions)} join conditions")
+        if not join_conditions:
+            logger.debug("No join conditions found, skipping")
+            continue
+
+        # Use the first join condition found
+        outer_col, subquery_col = join_conditions[0]
+        logger.debug(f"Using join condition: outer_col={outer_col}, subquery_col={subquery_col}")
+
+        # Get the subquery WHERE conditions (excluding the join condition)
+        # We need to keep other WHERE conditions from the subquery
+        # Extract from the WHERE clause's 'this' attribute, not using find_all which gets nested conditions
+        other_where_conditions = []
+        logger.debug("Extracting other WHERE conditions from subquery")
+        where_expr_content = subquery_where.this if hasattr(subquery_where, "this") else subquery_where
+
+        def extract_conditions(expr, conditions_list):
+            """Recursively extract conditions from AND expressions, skipping the join condition."""
+            if isinstance(expr, exp.And):
+                extract_conditions(expr.this, conditions_list)
+                extract_conditions(expr.expression, conditions_list)
+            elif isinstance(expr, exp.EQ):
+                # Check if this is the join condition
+                if isinstance(expr.left, exp.Column) and isinstance(expr.right, exp.Column):
+                    left_table = get_table_name_from_column(expr.left)
+                    right_table = get_table_name_from_column(expr.right)
+                    left_col_name = get_column_name(expr.left).lower()
+                    right_col_name = get_column_name(expr.right).lower()
+
+                    # Check if this matches our join condition
+                    is_join_condition = False
+                    if left_table and left_table.lower() == policy_table:
+                        # Check if right column matches outer column
+                        if right_col_name == get_column_name(outer_col).lower():
+                            is_join_condition = True
+                    elif right_table and right_table.lower() == policy_table:
+                        # Check if left column matches outer column
+                        if left_col_name == get_column_name(outer_col).lower():
+                            is_join_condition = True
+                    elif not left_table and not right_table:
+                        # Unqualified columns - use heuristic
+                        table_prefix = policy_table[0] + "_"
+                        if (left_col_name.startswith(table_prefix) and right_col_name == get_column_name(outer_col).lower()) or \
+                           (right_col_name.startswith(table_prefix) and left_col_name == get_column_name(outer_col).lower()):
+                            is_join_condition = True
+
+                    if not is_join_condition:
+                        conditions_list.append(expr)
+                else:
+                    conditions_list.append(expr)
+            else:
+                # Other condition types (GT, LT, etc.)
+                conditions_list.append(expr)
+
+        extract_conditions(where_expr_content, other_where_conditions)
+        logger.debug(f"Extracted {len(other_where_conditions)} other WHERE conditions")
+
+        # Create a new subquery that groups by the join key
+        # SELECT join_key, [aggregations from policies] FROM policy_table WHERE [other conditions] GROUP BY join_key
+        join_key_col = subquery_col
+        if isinstance(join_key_col, exp.Column):
+            # Get just the column name without table qualifier for GROUP BY
+            join_key_name = get_column_name(join_key_col)
+            join_key_identifier = exp.Identifier(this=join_key_name)
+        else:
+            join_key_identifier = join_key_col
+
+        # Build the new subquery SELECT list - start with join key
+        subquery_select = [join_key_col]
+
+        # Extract aggregations from policies that reference the policy table
+        # These need to be computed in the subquery and then referenced in the main query
+        # Maps (policy_table, agg_sql) -> alias_name for later constraint replacement
+        aggregation_aliases = {}
+        subquery_alias_name = "exists_subquery"  # Will be used when creating the JOIN
+
+        for policy in policies:
+            if policy.source and policy.source.lower() == policy_table:
+                # Parse the constraint to find aggregations
+                constraint_expr = policy._constraint_parsed
+                # Find all aggregations that reference the policy table
+                for agg_func in constraint_expr.find_all(exp.AggFunc):
+                    # Check if this aggregation references the policy table
+                    agg_columns = list(agg_func.find_all(exp.Column))
+                    references_policy_table = False
+                    for col in agg_columns:
+                        col_table = get_table_name_from_column(col)
+                        if col_table and col_table.lower() == policy_table:
+                            references_policy_table = True
+                            break
+
+                    if references_policy_table:
+                        # Create a copy of the aggregation, but replace table references
+                        # with unqualified columns (since we're in the subquery)
+                        agg_sql = agg_func.sql()
+                        # Parse it fresh to avoid mutability issues
+                        agg_copy = sqlglot.parse_one(agg_sql, read="duckdb")
+                        # Remove table qualifiers from columns in the aggregation
+                        for col in agg_copy.find_all(exp.Column):
+                            col_table = get_table_name_from_column(col)
+                            if col_table and col_table.lower() == policy_table:
+                                # Remove table qualifier
+                                col.set("table", None)
+
+                        # Create alias for this aggregation
+                        agg_alias_name = f"agg_{len(aggregation_aliases)}"
+                        agg_alias = exp.Alias(
+                            this=agg_copy,
+                            alias=exp.Identifier(this=agg_alias_name)
+                        )
+                        subquery_select.append(agg_alias)
+                        # Store mapping: (table, original_agg_sql) -> (subquery_alias, agg_alias)
+                        aggregation_aliases[(policy_table, agg_sql)] = (subquery_alias_name, agg_alias_name)
+                        logger.debug(f"Added aggregation to subquery: {agg_sql} AS {agg_alias_name}")
+
+        # Build the new subquery
+        logger.debug(f"Building new subquery with policy_table={policy_table}, join_key={join_key_name}, {len(aggregation_aliases)} aggregations")
+        # Create the table expression
+        table_expr = exp.Table(this=exp.Identifier(this=policy_table))
+        # Create the FROM clause - sqlglot uses 'this' for the main table, not 'expressions'
+        from_clause = exp.From(this=table_expr)
+        new_subquery = exp.Select(
+            expressions=subquery_select,
+            from_=from_clause,
+            group=exp.Group(expressions=[join_key_identifier])
+        )
+        logger.debug(f"New subquery: {new_subquery.sql(pretty=True)}")
+        logger.debug(f"New subquery FROM: {new_subquery.args.get('from_')}")
+
+        # Add other WHERE conditions if any
+        if other_where_conditions:
+            logger.debug(f"Adding {len(other_where_conditions)} other WHERE conditions to subquery")
+            # Combine conditions with AND
+            if len(other_where_conditions) == 1:
+                new_subquery.set("where", exp.Where(this=other_where_conditions[0]))
+            else:
+                combined_where = other_where_conditions[0]
+                for cond in other_where_conditions[1:]:
+                    combined_where = exp.And(this=combined_where, expression=cond)
+                new_subquery.set("where", exp.Where(this=combined_where))
+            logger.debug(f"Subquery with WHERE: {new_subquery.sql(pretty=True)}")
+
+        # Create a JOIN with the new subquery
+        subquery_alias_name = "exists_subquery"
+        subquery_alias = exp.TableAlias(this=exp.Identifier(this=subquery_alias_name))
+        subquery_node = exp.Subquery(this=new_subquery, alias=subquery_alias)
+
+        # Store aggregation aliases in the subquery node's metadata for later use
+        # This allows policy application to replace aggregations with subquery references
+        if not hasattr(subquery_node, "meta"):
+            subquery_node.meta = {}
+        subquery_node.meta["aggregation_aliases"] = aggregation_aliases
+        subquery_node.meta["policy_table"] = policy_table
+
+        # Create the JOIN condition: outer_table.col = subquery.join_key
+        join_condition = exp.EQ(this=outer_col, expression=exp.Column(
+            this=exp.Identifier(this=get_column_name(join_key_col)),
+            table=exp.Identifier(this="exists_subquery")
+        ))
+
+        # Add the JOIN to the FROM clause
+        join_expr = exp.Join(
+            this=subquery_node,
+            kind="INNER",
+            on=join_condition
+        )
+
+        # JOINs are stored at the SELECT level, not in the FROM clause
+        existing_joins = parsed.args.get("joins", [])
+        if not isinstance(existing_joins, list):
+            existing_joins = []
+        logger.debug(f"Adding JOIN to SELECT, current joins: {len(existing_joins)}")
+        parsed.set("joins", [*existing_joins, join_expr])
+        logger.debug(f"Total JOINs after adding: {len(parsed.args.get('joins', []))}")
+
+        # Remove the EXISTS condition from WHERE
+        # For complex WHERE clauses with AND, we need to rebuild the WHERE clause
+        # without the EXISTS part
+        logger.debug("Removing EXISTS from WHERE clause")
+        where_conditions = []
+
+        def collect_conditions(expr):
+            """Recursively collect conditions from AND expressions."""
+            if isinstance(expr, exp.And):
+                collect_conditions(expr.this)
+                collect_conditions(expr.expression)
+            elif expr != exists_expr:
+                where_conditions.append(expr)
+
+        if isinstance(where_expr.this, exp.And):
+            collect_conditions(where_expr.this)
+        elif where_expr.this != exists_expr:
+            where_conditions.append(where_expr.this)
+
+        logger.debug(f"Collected {len(where_conditions)} WHERE conditions after removing EXISTS")
+
+        # Rebuild WHERE clause
+        if where_conditions:
+            if len(where_conditions) == 1:
+                parsed.set("where", exp.Where(this=where_conditions[0]))
+            else:
+                # Combine with AND
+                combined = where_conditions[0]
+                for cond in where_conditions[1:]:
+                    combined = exp.And(this=combined, expression=cond)
+                parsed.set("where", exp.Where(this=combined))
+            logger.debug("Rebuilt WHERE clause")
+        else:
+            # No conditions left - remove WHERE clause entirely
+            logger.debug("No WHERE conditions left, removing WHERE clause")
+            parsed.set("where", None)
+
+        logger.debug(f"Rewrite complete. Final query: {parsed.sql(pretty=True)[:200]}...")
+
+
+def _get_source_tables_from_select(select_expr: exp.Select) -> set[str]:
+    """Extract source table names from a SELECT expression.
+
+    Args:
+        select_expr: The SELECT expression to extract tables from.
+
+    Returns:
+        Set of table names (lowercase).
+    """
+    tables = set()
+    # FROM is stored as "from_" in args
+    from_expr = select_expr.args.get("from_") or select_expr.args.get("from")
+    logger.debug(f"_get_source_tables_from_select: from_expr={from_expr}")
+    if from_expr:
+        for table in from_expr.find_all(exp.Table):
+            table_name = table.this.name if hasattr(table.this, "name") else str(table.this)
+            tables.add(table_name.lower())
+            logger.debug(f"Found table in FROM: {table_name}")
+        # Also check JOINs
+        joins = from_expr.args.get("joins", [])
+        for join in joins:
+            for table in join.find_all(exp.Table):
+                table_name = table.this.name if hasattr(table.this, "name") else str(table.this)
+                tables.add(table_name.lower())
+                logger.debug(f"Found table in JOIN: {table_name}")
+    else:
+        # Try finding tables directly in the SELECT
+        for table in select_expr.find_all(exp.Table):
+            table_name = table.this.name if hasattr(table.this, "name") else str(table.this)
+            tables.add(table_name.lower())
+            logger.debug(f"Found table directly in SELECT: {table_name}")
+    logger.debug(f"_get_source_tables_from_select returning: {tables}")
+    return tables
+
+
+def _replace_expression_in_tree(root: exp.Expression, old_expr: exp.Expression, new_expr: exp.Expression, visited: Optional[set] = None) -> bool:
+    """Replace an expression in a tree with a new expression.
+
+    Args:
+        root: The root expression to search in.
+        old_expr: The expression to replace.
+        new_expr: The expression to replace it with.
+        visited: Set of visited expressions to prevent infinite loops.
+
+    Returns:
+        True if replacement was successful, False otherwise.
+    """
+    if visited is None:
+        visited = set()
+
+    # Prevent infinite loops
+    if id(root) in visited:
+        return False
+    visited.add(id(root))
+
+    if root == old_expr:
+        # Can't replace root directly, need to handle at parent level
+        return False
+
+    # Check children
+    for key, value in root.args.items():
+        if value == old_expr:
+            root.set(key, new_expr)
+            return True
+        if isinstance(value, exp.Expression):
+            if _replace_expression_in_tree(value, old_expr, new_expr, visited):
+                return True
+        elif isinstance(value, list):
+            for i, item in enumerate(value):
+                if item == old_expr:
+                    value[i] = new_expr
+                    return True
+                if isinstance(item, exp.Expression):
+                    if _replace_expression_in_tree(item, old_expr, new_expr, visited):
+                        return True
+
+    return False
+
+
 def apply_aggregate_policy_constraints_to_scan(
     parsed: exp.Select,
     policies: list[AggregateDFCPolicy],
-    source_tables: Set[str],
+    source_tables: set[str],
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None
 ) -> None:
     """Apply aggregate policy constraints to a scan (non-aggregation) query.
-    
+
     Adds temp columns for source aggregates (inner aggregates computed per row/group)
     and sink expressions. Source columns still need inner aggregation even in scan queries.
-    
+
     Args:
         parsed: The parsed SELECT statement to modify.
         policies: List of aggregate policies to apply.
