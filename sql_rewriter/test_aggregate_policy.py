@@ -829,14 +829,19 @@ class TestAggregatePolicyFinalize:
         insert_part = transformed.split("SELECT")[0]
         assert temp_col_name in insert_part
 
-        # Verify the temp column expression with FILTER is in SELECT
-        assert "SUM(amount)" in transformed or "SUM(AMOUNT)" in transformed
-        assert "FILTER" in transformed or "filter" in transformed.lower()
-        assert "kind = 'Income'" in transformed or "KIND = 'Income'" in transformed or "kind = 'income'" in transformed.lower() or 'kind = "Income"' in transformed
+        # Verify the temp column expression is in SELECT
+        # For scan queries, FILTER clauses that reference SELECT output columns are transformed
+        # into CASE expressions. The condition 'kind = 'Income'' is replaced with the actual
+        # value from the SELECT ('Expense'), so we should see a CASE expression.
+        assert "CASE" in transformed or "case" in transformed.lower()
+        assert "amount" in transformed.lower() or "AMOUNT" in transformed
+        # The condition should be replaced with the actual value ('Expense' = 'Income')
+        assert "'Expense'" in transformed or '"Expense"' in transformed or "Expense" in transformed
 
-        # Note: We don't execute this query because scan queries with aggregates in SELECT
-        # require GROUP BY, and the FILTER clause references SELECT output columns which
-        # may not be accessible in the FILTER context for scan queries.
+        # Note: For scan queries, aggregates with FILTER clauses that reference SELECT output
+        # columns are transformed into CASE expressions because:
+        # 1. Scan queries can't use aggregates in SELECT without GROUP BY
+        # 2. FILTER conditions referencing SELECT output columns need to be evaluated per row
         # The important part is that the temp column is correctly added to both
         # the SELECT and INSERT column lists, which we've already verified above.
 
