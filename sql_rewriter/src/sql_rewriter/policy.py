@@ -1,11 +1,11 @@
 """Data Flow Control Policy definitions."""
 
+from enum import Enum
 import re
-import duckdb
+from typing import Optional, Set
+
 import sqlglot
 from sqlglot import exp
-from enum import Enum
-from typing import Optional, Set
 
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 
@@ -85,87 +85,87 @@ class DFCPolicy:
         """
         if not policy_str or not policy_str.strip():
             raise ValueError("Policy text is empty")
-        
+
         # Normalize whitespace: replace all whitespace sequences with single spaces
-        normalized = re.sub(r'\s+', ' ', policy_str.strip())
-        
+        normalized = re.sub(r"\s+", " ", policy_str.strip())
+
         source = None
         sink = None
         constraint = None
         on_fail = None
         description = None
-        
+
         # Find positions of all keywords (case-insensitive)
         # Handle "ON FAIL" as a special case since it's two words
         keyword_positions = []
-        
+
         # Find single-word keywords
-        for keyword in ['SOURCE', 'SINK', 'CONSTRAINT', 'DESCRIPTION']:
-            pattern = r'\b' + re.escape(keyword) + r'\b'
+        for keyword in ["SOURCE", "SINK", "CONSTRAINT", "DESCRIPTION"]:
+            pattern = r"\b" + re.escape(keyword) + r"\b"
             for match in re.finditer(pattern, normalized, re.IGNORECASE):
                 keyword_positions.append((match.start(), keyword.upper()))
-        
+
         # Find "ON FAIL" (two words)
-        for match in re.finditer(r'\bON\s+FAIL\b', normalized, re.IGNORECASE):
-            keyword_positions.append((match.start(), 'ON FAIL'))
-        
+        for match in re.finditer(r"\bON\s+FAIL\b", normalized, re.IGNORECASE):
+            keyword_positions.append((match.start(), "ON FAIL"))
+
         # Sort by position
         keyword_positions.sort()
-        
+
         # Extract values between keywords
         for i, (pos, keyword) in enumerate(keyword_positions):
             # Find the start of the value (after the keyword and whitespace)
-            if keyword == 'ON FAIL':
+            if keyword == "ON FAIL":
                 value_start = pos + 7  # "ON FAIL" is 7 characters
             else:
                 value_start = pos + len(keyword)
             # Skip whitespace after keyword
-            while value_start < len(normalized) and normalized[value_start] == ' ':
+            while value_start < len(normalized) and normalized[value_start] == " ":
                 value_start += 1
-            
+
             # Find the end of the value (start of next keyword or end of string)
             if i + 1 < len(keyword_positions):
                 value_end = keyword_positions[i + 1][0]
                 # Back up to remove trailing whitespace
-                while value_end > value_start and normalized[value_end - 1] == ' ':
+                while value_end > value_start and normalized[value_end - 1] == " ":
                     value_end -= 1
             else:
                 value_end = len(normalized)
-            
+
             value = normalized[value_start:value_end].strip()
-            
-            if keyword == 'SOURCE':
-                if value and value.upper() != 'NONE':
+
+            if keyword == "SOURCE":
+                if value and value.upper() != "NONE":
                     source = value
                 else:
                     source = None
-            elif keyword == 'SINK':
-                if value and value.upper() != 'NONE':
+            elif keyword == "SINK":
+                if value and value.upper() != "NONE":
                     sink = value
                 else:
                     sink = None
-            elif keyword == 'CONSTRAINT':
+            elif keyword == "CONSTRAINT":
                 constraint = value
-            elif keyword == 'ON FAIL':
+            elif keyword == "ON FAIL":
                 try:
                     on_fail = Resolution(value.upper())
                 except ValueError:
                     raise ValueError(
                         f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'INVALIDATE', or 'LLM'"
                     )
-            elif keyword == 'DESCRIPTION':
+            elif keyword == "DESCRIPTION":
                 description = value if value else None
-        
+
         # Validate required fields
         if constraint is None:
             raise ValueError("CONSTRAINT is required but not found in policy text")
-        
+
         if on_fail is None:
             raise ValueError("ON FAIL is required but not found in policy text")
-        
+
         if source is None and sink is None:
             raise ValueError("Either SOURCE or SINK must be provided")
-        
+
         # Create and return the policy
         return cls(
             constraint=constraint,
@@ -189,7 +189,7 @@ class DFCPolicy:
 
         if isinstance(self._constraint_parsed, exp.Select):
             raise ValueError("Constraint must be an expression, not a SELECT statement")
-        
+
         try:
             if self.source and self.sink:
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source} s, {self.sink} t"
@@ -247,18 +247,17 @@ class DFCPolicy:
             constraint_parsed = sqlglot.parse_one(self.constraint, read="duckdb")
             if isinstance(constraint_parsed, exp.Select):
                 raise ValueError("Constraint must be an expression, not a SELECT statement")
-            
+
             try:
                 test_query = f"SELECT {self.constraint} AS test"
                 parsed = sqlglot.parse_one(test_query, read="duckdb")
                 if not isinstance(parsed, exp.Select):
                     raise ValueError("Constraint must be a valid SQL expression")
-                
+
                 # The first expression is an Alias, and we want the 'this' attribute
-                if parsed.expressions and hasattr(parsed.expressions[0], 'this'):
+                if parsed.expressions and hasattr(parsed.expressions[0], "this"):
                     return parsed.expressions[0].this
-                else:
-                    return constraint_parsed
+                return constraint_parsed
             except sqlglot.errors.ParseError:
                 return constraint_parsed
         except sqlglot.errors.ParseError as e:
@@ -282,7 +281,7 @@ class DFCPolicy:
             for column in columns
             if not column.table
         ]
-        
+
         if unqualified_columns:
             raise ValueError(
                 f"All columns in constraints must be qualified with table names. "
@@ -301,9 +300,9 @@ class DFCPolicy:
         """
         if not self.source:
             return set()
-        
+
         needed_columns = set()
-        
+
         # Extract columns from aggregations (these will become the columns after transformation)
         for agg_func in self._constraint_parsed.find_all(exp.AggFunc):
             columns = list(agg_func.find_all(exp.Column))
@@ -312,40 +311,40 @@ class DFCPolicy:
                 if table_name == self.source.lower():
                     col_name = get_column_name(column).lower()
                     needed_columns.add(col_name)
-        
+
         # Also extract any non-aggregated source columns
         for column in self._constraint_parsed.find_all(exp.Column):
             # Skip columns that are inside aggregations (already handled above)
             if column.find_ancestor(exp.AggFunc) is not None:
                 continue
-            
+
             table_name = get_table_name_from_column(column)
             if table_name == self.source.lower():
                 col_name = get_column_name(column).lower()
                 needed_columns.add(col_name)
-        
+
         return needed_columns
 
     def _validate_aggregation_rules(self) -> None:
         """Validate aggregation rules: aggregations only reference source, and all source columns are aggregated."""
         aggregate_funcs = list(self._constraint_parsed.find_all(exp.AggFunc))
         all_columns = list(self._constraint_parsed.find_all(exp.Column))
-        
+
         if aggregate_funcs:
             if not self.source:
                 raise ValueError(
                     "Aggregations in constraints can only reference the source table, "
                     "but no source table is provided"
                 )
-            
+
             for agg_func in aggregate_funcs:
                 columns = list(agg_func.find_all(exp.Column))
-                
+
                 for column in columns:
                     table_name = get_table_name_from_column(column)
                     if table_name is None:
                         continue
-                    
+
                     if self.sink and table_name == self.sink.lower():
                         raise ValueError(
                             f"Aggregation '{agg_func.sql()}' references sink table '{self.sink}', "
@@ -356,21 +355,21 @@ class DFCPolicy:
                             f"Aggregation '{agg_func.sql()}' references table '{table_name}', "
                             f"but aggregations can only reference the source table '{self.source}'"
                         )
-        
+
         if self.source:
             source_columns = [
                 column
                 for column in all_columns
                 if get_table_name_from_column(column) == self.source.lower()
             ]
-            
+
             if source_columns:
                 unaggregated_source_columns = [
                     f"{self.source}.{get_column_name(column)}"
                     for column in source_columns
                     if column.find_ancestor(exp.AggFunc) is None
                 ]
-                
+
                 if unaggregated_source_columns:
                     raise ValueError(
                         f"All columns from source table '{self.source}' must be aggregated. "
@@ -488,95 +487,95 @@ class AggregateDFCPolicy:
         """
         if not policy_str or not policy_str.strip():
             raise ValueError("Policy text is empty")
-        
+
         # Normalize whitespace: replace all whitespace sequences with single spaces
-        normalized = re.sub(r'\s+', ' ', policy_str.strip())
-        
+        normalized = re.sub(r"\s+", " ", policy_str.strip())
+
         # Check for AGGREGATE keyword at the start (case-insensitive)
-        if not re.match(r'\bAGGREGATE\b', normalized, re.IGNORECASE):
+        if not re.match(r"\bAGGREGATE\b", normalized, re.IGNORECASE):
             raise ValueError(
                 "AggregateDFCPolicy requires 'AGGREGATE' keyword at the start of the policy string"
             )
-        
+
         # Remove AGGREGATE keyword from the start only
-        normalized = re.sub(r'^\s*\bAGGREGATE\b\s+', '', normalized, flags=re.IGNORECASE).strip()
-        
+        normalized = re.sub(r"^\s*\bAGGREGATE\b\s+", "", normalized, flags=re.IGNORECASE).strip()
+
         source = None
         sink = None
         constraint = None
         on_fail = None
         description = None
-        
+
         # Find positions of all keywords (case-insensitive)
         keyword_positions = []
-        
+
         # Find single-word keywords
-        for keyword in ['SOURCE', 'SINK', 'CONSTRAINT', 'DESCRIPTION']:
-            pattern = r'\b' + re.escape(keyword) + r'\b'
+        for keyword in ["SOURCE", "SINK", "CONSTRAINT", "DESCRIPTION"]:
+            pattern = r"\b" + re.escape(keyword) + r"\b"
             for match in re.finditer(pattern, normalized, re.IGNORECASE):
                 keyword_positions.append((match.start(), keyword.upper()))
-        
+
         # Find "ON FAIL" (two words)
-        for match in re.finditer(r'\bON\s+FAIL\b', normalized, re.IGNORECASE):
-            keyword_positions.append((match.start(), 'ON FAIL'))
-        
+        for match in re.finditer(r"\bON\s+FAIL\b", normalized, re.IGNORECASE):
+            keyword_positions.append((match.start(), "ON FAIL"))
+
         # Sort by position
         keyword_positions.sort()
-        
+
         # Extract values between keywords
         for i, (pos, keyword) in enumerate(keyword_positions):
             # Find the start of the value (after the keyword and whitespace)
-            if keyword == 'ON FAIL':
+            if keyword == "ON FAIL":
                 value_start = pos + 7  # "ON FAIL" is 7 characters
             else:
                 value_start = pos + len(keyword)
             # Skip whitespace after keyword
-            while value_start < len(normalized) and normalized[value_start] == ' ':
+            while value_start < len(normalized) and normalized[value_start] == " ":
                 value_start += 1
-            
+
             # Find the end of the value (start of next keyword or end of string)
             if i + 1 < len(keyword_positions):
                 value_end = keyword_positions[i + 1][0]
                 # Back up to remove trailing whitespace
-                while value_end > value_start and normalized[value_end - 1] == ' ':
+                while value_end > value_start and normalized[value_end - 1] == " ":
                     value_end -= 1
             else:
                 value_end = len(normalized)
-            
+
             value = normalized[value_start:value_end].strip()
-            
-            if keyword == 'SOURCE':
-                if value and value.upper() != 'NONE':
+
+            if keyword == "SOURCE":
+                if value and value.upper() != "NONE":
                     source = value
                 else:
                     source = None
-            elif keyword == 'SINK':
-                if value and value.upper() != 'NONE':
+            elif keyword == "SINK":
+                if value and value.upper() != "NONE":
                     sink = value
                 else:
                     sink = None
-            elif keyword == 'CONSTRAINT':
+            elif keyword == "CONSTRAINT":
                 constraint = value
-            elif keyword == 'ON FAIL':
+            elif keyword == "ON FAIL":
                 try:
                     on_fail = Resolution(value.upper())
                 except ValueError:
                     raise ValueError(
                         f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'INVALIDATE', or 'LLM'"
                     )
-            elif keyword == 'DESCRIPTION':
+            elif keyword == "DESCRIPTION":
                 description = value if value else None
-        
+
         # Validate required fields
         if constraint is None:
             raise ValueError("CONSTRAINT is required but not found in policy text")
-        
+
         if on_fail is None:
             raise ValueError("ON FAIL is required but not found in policy text")
-        
+
         if source is None and sink is None:
             raise ValueError("Either SOURCE or SINK must be provided")
-        
+
         # Create and return the policy
         return cls(
             constraint=constraint,
@@ -600,7 +599,7 @@ class AggregateDFCPolicy:
 
         if isinstance(self._constraint_parsed, exp.Select):
             raise ValueError("Constraint must be an expression, not a SELECT statement")
-        
+
         try:
             if self.source and self.sink:
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source} s, {self.sink} t"
@@ -657,18 +656,17 @@ class AggregateDFCPolicy:
             constraint_parsed = sqlglot.parse_one(self.constraint, read="duckdb")
             if isinstance(constraint_parsed, exp.Select):
                 raise ValueError("Constraint must be an expression, not a SELECT statement")
-            
+
             try:
                 test_query = f"SELECT {self.constraint} AS test"
                 parsed = sqlglot.parse_one(test_query, read="duckdb")
                 if not isinstance(parsed, exp.Select):
                     raise ValueError("Constraint must be a valid SQL expression")
-                
+
                 # The first expression is an Alias, and we want the 'this' attribute
-                if parsed.expressions and hasattr(parsed.expressions[0], 'this'):
+                if parsed.expressions and hasattr(parsed.expressions[0], "this"):
                     return parsed.expressions[0].this
-                else:
-                    return constraint_parsed
+                return constraint_parsed
             except sqlglot.errors.ParseError:
                 return constraint_parsed
         except sqlglot.errors.ParseError as e:
@@ -694,31 +692,31 @@ class AggregateDFCPolicy:
         """
         columns = list(self._constraint_parsed.find_all(exp.Column))
         unqualified_columns = []
-        
+
         for column in columns:
             if not column.table:
                 col_name = get_column_name(column).lower()
-                
+
                 # Check if this column is inside a FILTER clause
                 # FILTER clauses have their own WHERE context
                 if column.find_ancestor(exp.Filter) is not None:
                     # Column is inside a FILTER clause - allow unqualified
                     continue
-                
+
                 # Check if this column is the direct argument of an aggregate function
                 # AND it matches the sink table name (as a shorthand)
                 parent = column.parent
                 if isinstance(parent, exp.AggFunc):
                     # Check if this column is the 'this' field (direct argument)
-                    if hasattr(parent, 'this') and parent.this == column:
+                    if hasattr(parent, "this") and parent.this == column:
                         # Check if it matches the sink table name
                         if self.sink and col_name == self.sink.lower():
                             # This is a shorthand for the sink table - allow unqualified
                             continue
-                
+
                 # Otherwise, it's an unqualified column that should be flagged
                 unqualified_columns.append(col_name)
-        
+
         if unqualified_columns:
             raise ValueError(
                 f"All columns in constraints must be qualified with table names. "
@@ -733,9 +731,9 @@ class AggregateDFCPolicy:
         """
         if not self.source:
             return set()
-        
+
         needed_columns = set()
-        
+
         # Extract columns from aggregations
         for agg_func in self._constraint_parsed.find_all(exp.AggFunc):
             columns = list(agg_func.find_all(exp.Column))
@@ -744,25 +742,25 @@ class AggregateDFCPolicy:
                 if table_name == self.source.lower():
                     col_name = get_column_name(column).lower()
                     needed_columns.add(col_name)
-        
+
         # Also extract any non-aggregated source columns
         for column in self._constraint_parsed.find_all(exp.Column):
             # Skip columns that are inside aggregations (already handled above)
             if column.find_ancestor(exp.AggFunc) is not None:
                 continue
-            
+
             table_name = get_table_name_from_column(column)
             if table_name == self.source.lower():
                 col_name = get_column_name(column).lower()
                 needed_columns.add(col_name)
-        
+
         return needed_columns
 
     def _validate_aggregation_rules(self) -> None:
         """Validate aggregation rules: source columns must be aggregated, sink columns can be aggregated or not."""
         aggregate_funcs = list(self._constraint_parsed.find_all(exp.AggFunc))
         all_columns = list(self._constraint_parsed.find_all(exp.Column))
-        
+
         # Source columns must be aggregated
         if self.source:
             source_columns = [
@@ -770,14 +768,14 @@ class AggregateDFCPolicy:
                 for column in all_columns
                 if get_table_name_from_column(column) == self.source.lower()
             ]
-            
+
             if source_columns:
                 unaggregated_source_columns = [
                     f"{self.source}.{get_column_name(column)}"
                     for column in source_columns
                     if column.find_ancestor(exp.AggFunc) is None
                 ]
-                
+
                 if unaggregated_source_columns:
                     raise ValueError(
                         f"All columns from source table '{self.source}' must be aggregated. "

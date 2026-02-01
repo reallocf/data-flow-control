@@ -1,6 +1,7 @@
 """Tests for DFCPolicy."""
 
 import pytest
+
 from sql_rewriter.policy import DFCPolicy, Resolution
 
 
@@ -688,25 +689,26 @@ def test_get_table_name_from_column_handles_all_types():
     with different table types (Identifier, str) and returns None for unqualified columns.
     The function also has a fallback for unexpected types to prevent silent validation skips.
     """
-    from sql_rewriter.sqlglot_utils import get_table_name_from_column
     from sqlglot import exp, parse_one
-    
+
+    from sql_rewriter.sqlglot_utils import get_table_name_from_column
+
     query1 = parse_one("SELECT users.age FROM users", read="duckdb")
     col1 = query1.expressions[0]
     table_name1 = get_table_name_from_column(col1)
     assert table_name1 == "users"
-    
+
     col2 = exp.Column(
         this=exp.Identifier(this="age"),
         table=exp.Identifier(this="users")
     )
     table_name2 = get_table_name_from_column(col2)
     assert table_name2 == "users"
-    
+
     col3 = exp.Column(this=exp.Identifier(this="age"))
     table_name3 = get_table_name_from_column(col3)
     assert table_name3 is None
-    
+
     # This would cause silent validation skips
     assert table_name1 is not None
     assert table_name2 is not None

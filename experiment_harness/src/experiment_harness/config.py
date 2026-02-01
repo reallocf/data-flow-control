@@ -19,7 +19,7 @@ class ExperimentConfig:
         output_filename: Base filename for CSV output (default: "results.csv")
         verbose: Enable verbose logging (default: False)
     """
-    
+
     num_executions: int = 1
     num_warmup_runs: int = 0
     setup_steps: List[Callable[[], None]] = field(default_factory=list)
@@ -29,7 +29,7 @@ class ExperimentConfig:
     output_dir: str = "./results"
     output_filename: str = "results.csv"
     verbose: bool = False
-    
+
     def __post_init__(self):
         """Validate configuration values."""
         if self.num_executions < 1:

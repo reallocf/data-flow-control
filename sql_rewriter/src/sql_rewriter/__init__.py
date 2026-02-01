@@ -1,6 +1,6 @@
 """SQL rewriter for intercepting and transforming queries."""
 
+from .policy import AggregateDFCPolicy, DFCPolicy, Resolution
 from .rewriter import SQLRewriter
-from .policy import DFCPolicy, AggregateDFCPolicy, Resolution
 
-__all__ = ["SQLRewriter", "DFCPolicy", "AggregateDFCPolicy", "Resolution"]
+__all__ = ["AggregateDFCPolicy", "DFCPolicy", "Resolution", "SQLRewriter"]

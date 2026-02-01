@@ -1,8 +1,9 @@
 """Metrics collection utilities for experiments."""
 
-import time
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Generator
+import time
+from typing import Any, Dict
 
 
 @contextmanager
@@ -23,7 +24,7 @@ def time_execution() -> Generator[Dict[str, float], None, None]:
         yield timing
     finally:
         end = time.perf_counter()
-        timing['duration_ms'] = (end - start) * 1000.0
+        timing["duration_ms"] = (end - start) * 1000.0
 
 
 def collect_memory_usage() -> Dict[str, float]:
@@ -34,11 +35,12 @@ def collect_memory_usage() -> Dict[str, float]:
         Returns empty dict if psutil is not available.
     """
     try:
-        import psutil
         import os
+
+        import psutil
         process = psutil.Process(os.getpid())
         memory_info = process.memory_info()
-        return {'memory_mb': memory_info.rss / (1024 * 1024)}
+        return {"memory_mb": memory_info.rss / (1024 * 1024)}
     except ImportError:
         return {}
 
@@ -54,6 +56,6 @@ def count_query_results(cursor: Any) -> Dict[str, int]:
     """
     try:
         rows = cursor.fetchall()
-        return {'rows_returned': len(rows)}
+        return {"rows_returned": len(rows)}
     except Exception:
-        return {'rows_returned': 0}
+        return {"rows_returned": 0}

@@ -1,7 +1,8 @@
 """Utility functions for working with sqlglot expressions."""
 
-from sqlglot import exp
 from typing import Optional
+
+from sqlglot import exp
 
 
 def get_column_name(column: exp.Column) -> str:
@@ -15,10 +16,9 @@ def get_column_name(column: exp.Column) -> str:
     """
     if hasattr(column, "alias_or_name"):
         return column.alias_or_name
-    elif hasattr(column, "name"):
+    if hasattr(column, "name"):
         return column.name
-    else:
-        return str(column)
+    return str(column)
 
 
 def get_table_name_from_column(column: exp.Column) -> Optional[str]:
@@ -34,10 +34,9 @@ def get_table_name_from_column(column: exp.Column) -> Optional[str]:
         return None
     if isinstance(column.table, exp.Identifier):
         return column.table.name.lower()
-    elif isinstance(column.table, str):
+    if isinstance(column.table, str):
         return column.table.lower()
-    else:
-        # Fallback for any other type - convert to string and lowercase
-        # This ensures we don't silently skip validation for unexpected types
-        return str(column.table).lower()
+    # Fallback for any other type - convert to string and lowercase
+    # This ensures we don't silently skip validation for unexpected types
+    return str(column.table).lower()
 

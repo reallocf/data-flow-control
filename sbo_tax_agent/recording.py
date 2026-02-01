@@ -26,11 +26,10 @@ Usage:
         )
 """
 
-import os
-import json
 from datetime import datetime
-from typing import Optional, Dict, Any
-from pathlib import Path
+import json
+import os
+from typing import Any, Dict, Optional
 
 
 class LLMRecorder:
@@ -46,7 +45,7 @@ class LLMRecorder:
         #          session_records/session_20260117_100205/agent_loop/
         #          session_records/session_20260117_100205/llm_resolution/
     """
-    
+
     def __init__(self, base_dir: Optional[str] = None):
         """Initialize the recorder.
         
@@ -57,13 +56,13 @@ class LLMRecorder:
         self.base_dir = base_dir
         self.sequence_counter = 0
         self.session_start_time = datetime.now()
-        
+
         if self.base_dir:
             # Create base directory with session timestamp
             timestamp = self.session_start_time.strftime("%Y%m%d_%H%M%S")
             self.session_dir = os.path.join(self.base_dir, f"session_{timestamp}")
             os.makedirs(self.session_dir, exist_ok=True)
-            
+
             # Create subdirectories
             self.agent_loop_dir = os.path.join(self.session_dir, "agent_loop")
             self.llm_resolution_dir = os.path.join(self.session_dir, "llm_resolution")
@@ -73,20 +72,20 @@ class LLMRecorder:
             self.session_dir = None
             self.agent_loop_dir = None
             self.llm_resolution_dir = None
-    
+
     def is_enabled(self) -> bool:
         """Check if recording is enabled."""
         return self.base_dir is not None
-    
+
     def _get_next_sequence(self) -> int:
         """Get next sequence number."""
         self.sequence_counter += 1
         return self.sequence_counter
-    
+
     def _get_timestamp(self) -> str:
         """Get current timestamp string."""
         return datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    
+
     def record_agent_loop_request(
         self,
         transaction_id: Optional[Any] = None,
@@ -105,15 +104,15 @@ class LLMRecorder:
         """
         if not self.is_enabled():
             return None
-        
+
         seq = self._get_next_sequence()
         timestamp = self._get_timestamp()
-        
+
         # Create filename
         txn_str = f"txn_{transaction_id}_" if transaction_id is not None else ""
         filename = f"{seq:04d}_{timestamp}_{txn_str}iteration_{iteration}_request.json"
         filepath = os.path.join(self.agent_loop_dir, filename)
-        
+
         # Save request
         data = {
             "type": "agent_loop_request",
@@ -123,12 +122,12 @@ class LLMRecorder:
             "iteration": iteration,
             "request": request_body
         }
-        
-        with open(filepath, 'w') as f:
+
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
-        
+
         return filepath
-    
+
     def record_agent_loop_response(
         self,
         transaction_id: Optional[Any] = None,
@@ -147,15 +146,15 @@ class LLMRecorder:
         """
         if not self.is_enabled():
             return None
-        
+
         seq = self._get_next_sequence()
         timestamp = self._get_timestamp()
-        
+
         # Create filename
         txn_str = f"txn_{transaction_id}_" if transaction_id is not None else ""
         filename = f"{seq:04d}_{timestamp}_{txn_str}iteration_{iteration}_response.json"
         filepath = os.path.join(self.agent_loop_dir, filename)
-        
+
         # Save response
         data = {
             "type": "agent_loop_response",
@@ -165,12 +164,12 @@ class LLMRecorder:
             "iteration": iteration,
             "response": response_body
         }
-        
-        with open(filepath, 'w') as f:
+
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
-        
+
         return filepath
-    
+
     def record_llm_resolution_request(
         self,
         constraint: str,
@@ -191,14 +190,14 @@ class LLMRecorder:
         """
         if not self.is_enabled():
             return None
-        
+
         seq = self._get_next_sequence()
         timestamp = self._get_timestamp()
-        
+
         # Create filename
         filename = f"{seq:04d}_{timestamp}_llm_resolution_request.json"
         filepath = os.path.join(self.llm_resolution_dir, filename)
-        
+
         # Save request
         data = {
             "type": "llm_resolution_request",
@@ -209,12 +208,12 @@ class LLMRecorder:
             "row_data": row_data,
             "request": request_body
         }
-        
-        with open(filepath, 'w') as f:
+
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
-        
+
         return filepath
-    
+
     def record_llm_resolution_response(
         self,
         constraint: str,
@@ -235,14 +234,14 @@ class LLMRecorder:
         """
         if not self.is_enabled():
             return None
-        
+
         seq = self._get_next_sequence()
         timestamp = self._get_timestamp()
-        
+
         # Create filename
         filename = f"{seq:04d}_{timestamp}_llm_resolution_response.json"
         filepath = os.path.join(self.llm_resolution_dir, filename)
-        
+
         # Save response
         data = {
             "type": "llm_resolution_response",
@@ -253,8 +252,8 @@ class LLMRecorder:
             "response": response_body,
             "fixed_row_data": fixed_row_data
         }
-        
-        with open(filepath, 'w') as f:
+
+        with open(filepath, "w") as f:
             json.dump(data, f, indent=2)
-        
+
         return filepath

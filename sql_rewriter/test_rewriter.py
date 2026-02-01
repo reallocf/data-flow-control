@@ -1,31 +1,32 @@
 """Tests for the SQL rewriter."""
 
-import pytest
-import tempfile
 import os
+import tempfile
+
 import duckdb
-import sqlglot
-from sqlglot import parse_one, exp
-from sql_rewriter import SQLRewriter, DFCPolicy, AggregateDFCPolicy, Resolution
+import pytest
+from sqlglot import exp, parse_one
+
+from sql_rewriter import AggregateDFCPolicy, DFCPolicy, Resolution, SQLRewriter
 
 
 @pytest.fixture
 def rewriter():
     """Create a SQLRewriter instance with test data."""
     rewriter = SQLRewriter()
-    
+
     # Set up test table "foo" with data
     rewriter.execute("CREATE TABLE foo (id INTEGER, name VARCHAR)")
     rewriter.execute("INSERT INTO foo VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Charlie')")
     rewriter.execute("ALTER TABLE foo ADD COLUMN bar VARCHAR")
     rewriter.execute("UPDATE foo SET bar = 'value' || id::VARCHAR")
-    
+
     # Set up test table "baz" for testing non-transformed queries
     rewriter.execute("CREATE TABLE baz (x INTEGER, y VARCHAR)")
     rewriter.execute("INSERT INTO baz VALUES (10, 'test')")
-    
+
     yield rewriter
-    
+
     rewriter.close()
 
 
@@ -43,7 +44,7 @@ def test_execute_method_works(rewriter):
     cursor = rewriter.execute("SELECT id FROM foo LIMIT 1")
     result = cursor.fetchone()
     assert result is not None
-    
+
     # Aggregate queries should work without transformation
     cursor = rewriter.execute("SELECT COUNT(*) FROM foo")
     result = cursor.fetchone()
@@ -56,7 +57,7 @@ def test_fetchone_method_works(rewriter):
     # Should return one row with 2 columns (id, name)
     assert result is not None
     assert len(result) == 2
-    assert result == (1, 'Alice')
+    assert result == (1, "Alice")
 
 
 def test_aggregate_queries_not_transformed(rewriter):
@@ -64,7 +65,7 @@ def test_aggregate_queries_not_transformed(rewriter):
     # COUNT(*) should work without adding 'bar' column
     result = rewriter.fetchall("SELECT COUNT(*) FROM foo")
     assert result == [(3,)]
-    
+
     # SUM query should also work
     result = rewriter.fetchall("SELECT SUM(id) FROM foo")
     assert result == [(6,)]  # 1 + 2 + 3 = 6
@@ -177,7 +178,7 @@ def test_register_policy_rejects_column_from_wrong_table(rewriter):
     )
     # This should work since all columns are from source or sink
     rewriter.register_policy(policy)
-    
+
     # But if we reference a column from a different table, it should fail
     rewriter2 = SQLRewriter()
     try:
@@ -219,10 +220,10 @@ def test_register_policy_stores_policies(rewriter):
         constraint="baz.x > 5",
         on_fail=Resolution.KILL,
     )
-    
+
     rewriter.register_policy(policy1)
     rewriter.register_policy(policy2)
-    
+
     # Policies should be stored
     assert len(rewriter._policies) == 2
     assert policy1 in rewriter._policies
@@ -242,14 +243,14 @@ def test_register_policy_with_description(rewriter):
         constraint="baz.x > 5",
         on_fail=Resolution.KILL,
     )
-    
+
     rewriter.register_policy(policy_with_description)
     rewriter.register_policy(policy_without_description)
-    
+
     # Retrieve policies using public API
     policies = rewriter.get_dfc_policies()
     assert len(policies) == 2
-    
+
     # Find the policy with description
     policy_with_desc = next((p for p in policies if p.description == "Test policy description"), None)
     assert policy_with_desc is not None
@@ -257,7 +258,7 @@ def test_register_policy_with_description(rewriter):
     assert policy_with_desc.source == "foo"
     assert policy_with_desc.constraint == "max(foo.id) >= 1"
     assert policy_with_desc.on_fail == Resolution.REMOVE
-    
+
     # Find the policy without description
     policy_without_desc = next((p for p in policies if p.description is None), None)
     assert policy_without_desc is not None
@@ -293,12 +294,12 @@ def test_transform_query_non_select_statements(rewriter):
     insert_query = "INSERT INTO baz VALUES (20, 'new')"
     transformed = rewriter.transform_query(insert_query)
     assert transformed == "INSERT INTO baz\nVALUES\n  (20, 'new')"
-    
+
     # UPDATE statement
     update_query = "UPDATE baz SET y = 'updated' WHERE x = 10"
     transformed = rewriter.transform_query(update_query)
     assert transformed == "UPDATE baz SET y = 'updated'\nWHERE\n  x = 10"
-    
+
     # CREATE statement
     create_query = "CREATE TABLE test_table (col INTEGER)"
     transformed = rewriter.transform_query(create_query)
@@ -319,11 +320,11 @@ def test_transform_query_case_insensitive_table_name(rewriter):
     query1 = "SELECT id FROM FOO"
     transformed1 = rewriter.transform_query(query1)
     assert transformed1 == "SELECT\n  id\nFROM FOO"
-    
+
     query2 = "SELECT id FROM Foo"
     transformed2 = rewriter.transform_query(query2)
     assert transformed2 == "SELECT\n  id\nFROM Foo"
-    
+
     query3 = "SELECT id FROM foo"
     transformed3 = rewriter.transform_query(query3)
     assert transformed3 == "SELECT\n  id\nFROM foo"
@@ -350,7 +351,7 @@ def test_register_policy_with_different_case_table_name(rewriter):
     """
     # Create table with lowercase name to match _table_exists behavior
     rewriter.execute("CREATE TABLE testtable (col INTEGER)")
-    
+
     policy = DFCPolicy(
         source="testtable",  # Use lowercase to match
         constraint="max(testtable.col) > 0",
@@ -363,7 +364,7 @@ def test_register_policy_with_different_case_table_name(rewriter):
 def test_register_policy_case_insensitive_column_names(rewriter):
     """Test that register_policy handles case-insensitive column names."""
     rewriter.execute("CREATE TABLE test (ColName INTEGER)")
-    
+
     policy = DFCPolicy(
         source="test",
         constraint="max(test.colname) > 0",  # lowercase column name
@@ -385,10 +386,10 @@ def test_register_policy_multiple_policies_same_table(rewriter):
         constraint="min(foo.id) <= 10",
         on_fail=Resolution.KILL,
     )
-    
+
     rewriter.register_policy(policy1)
     rewriter.register_policy(policy2)
-    
+
     assert len(rewriter._policies) == 2
 
 
@@ -399,10 +400,10 @@ def test_register_policy_same_policy_twice(rewriter):
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
-    
+
     rewriter.register_policy(policy)
     rewriter.register_policy(policy)  # Register again
-    
+
     assert len(rewriter._policies) == 2
     assert rewriter._policies.count(policy) == 2
 
@@ -415,7 +416,7 @@ def test_table_exists_with_lowercase_table(rewriter):
     So it works correctly with lowercase table names.
     """
     rewriter.execute("CREATE TABLE testtable (x INTEGER)")
-    
+
     # _table_exists converts input to lowercase and compares
     assert rewriter._table_exists("testtable")
     assert rewriter._table_exists("TestTable")  # Input converted to lowercase
@@ -430,7 +431,7 @@ def test_get_table_columns_with_lowercase_table(rewriter):
     So it works correctly with lowercase table names.
     """
     rewriter.execute("CREATE TABLE testtable (ColName INTEGER, AnotherCol VARCHAR)")
-    
+
     # _get_table_columns converts input to lowercase and returns lowercase column names
     columns = rewriter._get_table_columns("testtable")
     assert "colname" in columns
@@ -441,7 +442,7 @@ def test_register_policy_with_empty_table(rewriter):
     """Test registering a policy with an empty table (no rows, but has columns)."""
     rewriter.execute("CREATE TABLE empty_table (id INTEGER)")
     # Table exists but has no rows
-    
+
     policy = DFCPolicy(
         source="empty_table",
         constraint="COUNT(*) >= 0",  # COUNT(*) works even on empty tables
@@ -472,17 +473,17 @@ def test_register_policy_rejects_unqualified_column_during_registration(rewriter
 
 def test_execute_with_database_file():
     """Test that SQLRewriter works with a database file."""
-    import tempfile
     import os
-    
+    import tempfile
+
     # Create a temporary file path
-    fd, db_path = tempfile.mkstemp(suffix='.duckdb')
+    fd, db_path = tempfile.mkstemp(suffix=".duckdb")
     os.close(fd)  # Close the file descriptor so DuckDB can use it
-    
+
     # Remove the file so DuckDB can create it fresh
     if os.path.exists(db_path):
         os.unlink(db_path)
-    
+
     try:
         # First connection - create table and insert data
         conn1 = duckdb.connect(db_path)
@@ -492,7 +493,7 @@ def test_execute_with_database_file():
         result = rewriter1.fetchall("SELECT * FROM test")
         assert result == [(1,)]
         rewriter1.close()  # Explicitly close to flush to disk
-        
+
         # Reopen and verify data persists
         conn2 = duckdb.connect(db_path)
         rewriter2 = SQLRewriter(conn=conn2)
@@ -508,10 +509,10 @@ def test_transform_query_preserves_query_structure(rewriter):
     """Test that transform_query preserves the overall query structure."""
     query = "SELECT id, name FROM foo WHERE id > 1 ORDER BY id"
     transformed = rewriter.transform_query(query)
-    
+
     # Should still have WHERE and ORDER BY
     assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  id > 1\nORDER BY\n  id"
-    
+
     # Should execute correctly
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 2  # id > 1 excludes id=1
@@ -525,7 +526,7 @@ def test_register_policy_with_quoted_identifiers(rewriter):
     """
     # Use underscores instead of hyphens for valid identifiers
     rewriter.execute('CREATE TABLE "test_table" ("col_name" INTEGER)')
-    
+
     # Use unquoted names (DuckDB stores them in lowercase in information_schema)
     policy = DFCPolicy(
         source="test_table",
@@ -545,12 +546,12 @@ def test_policy_applied_to_aggregation_query(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     # Execute an aggregation query over the source table
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
     result = rewriter.conn.execute(transformed).fetchall()
-    
+
     # The query should have been transformed to include HAVING clause
     # Since max(foo.id) = 3 (from test data), and constraint is >= 1, it should pass
     assert len(result) == 1
@@ -566,15 +567,15 @@ def test_policy_filters_aggregation_query(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     # Execute an aggregation query
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
     # Check that HAVING clause was added (each policy is wrapped in parentheses)
     assert transformed == "SELECT\n  MAX(foo.id)\nFROM foo\nHAVING\n  (\n    MAX(foo.id) > 10\n  )"
-    
+
     result = rewriter.conn.execute(transformed).fetchall()
-    
+
     # The constraint max(foo.id) > 10 should filter out the result
     # Since max(id) = 3, which is not > 10, the result should be empty
     assert len(result) == 0
@@ -590,13 +591,13 @@ def test_policy_kill_resolution_aborts_aggregation_query_when_constraint_fails(r
         on_fail=Resolution.KILL,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have HAVING with CASE WHEN and KILL() in ELSE clause
     assert transformed == "SELECT\n  MAX(foo.id)\nFROM foo\nHAVING\n  (\n    CASE WHEN MAX(foo.id) > 10 THEN true ELSE KILL() END\n  )"
-    
+
     # Query should abort when executed because constraint fails
     import duckdb
     with pytest.raises(duckdb.InvalidInputException) as exc_info:
@@ -615,13 +616,13 @@ def test_policy_kill_resolution_allows_aggregation_when_constraint_passes(rewrit
         on_fail=Resolution.KILL,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have HAVING with CASE WHEN (constraint passes, so no KILL)
     assert transformed == "SELECT\n  MAX(foo.id)\nFROM foo\nHAVING\n  (\n    CASE WHEN MAX(foo.id) >= 1 THEN true ELSE KILL() END\n  )"
-    
+
     # Query should succeed because constraint passes
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 1
@@ -636,14 +637,14 @@ def test_policy_invalidate_resolution_adds_column_to_aggregation(rewriter):
         on_fail=Resolution.INVALIDATE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have 'valid' column in SELECT, not HAVING clause
     # valid = (MAX(foo.id) > 1) (wrapped in parentheses like REMOVE)
     assert transformed == "SELECT\n  MAX(foo.id),\n  (\n    MAX(foo.id) > 1\n  ) AS valid\nFROM foo"
-    
+
     # Execute and check results
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 1
@@ -660,14 +661,14 @@ def test_policy_invalidate_resolution_adds_column_to_scan(rewriter):
         on_fail=Resolution.INVALIDATE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id, name FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have 'valid' column in SELECT, not WHERE clause
     # valid = (foo.id > 1) (wrapped in parentheses like REMOVE)
     assert transformed == "SELECT\n  id,\n  name,\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo"
-    
+
     # Execute and check results
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3  # All rows should be returned
@@ -695,14 +696,14 @@ def test_policy_invalidate_resolution_combines_multiple_policies(rewriter):
     )
     rewriter.register_policy(policy1)
     rewriter.register_policy(policy2)
-    
+
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have 'valid' column with combined constraints
     # valid = MAX(foo.id) > 1 AND MAX(foo.id) < 10
     assert transformed == "SELECT\n  MAX(foo.id),\n  (\n    MAX(foo.id) > 1\n  ) AND (\n    MAX(foo.id) < 10\n  ) AS valid\nFROM foo"
-    
+
     # Execute and check results
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 1
@@ -725,14 +726,14 @@ def test_policy_invalidate_resolution_with_other_resolutions(rewriter):
     )
     rewriter.register_policy(policy1)
     rewriter.register_policy(policy2)
-    
+
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have both HAVING clause (from REMOVE) and 'valid' column (from INVALIDATE)
     # valid = (MAX(foo.id) < 10) (wrapped in parentheses)
     assert transformed == "SELECT\n  MAX(foo.id),\n  (\n    MAX(foo.id) < 10\n  ) AS valid\nFROM foo\nHAVING\n  (\n    MAX(foo.id) > 1\n  )"
-    
+
     # Execute and check results
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 1
@@ -749,10 +750,10 @@ def test_policy_invalidate_resolution_false_when_constraint_fails(rewriter):
         on_fail=Resolution.INVALIDATE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Execute and check results
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 1
@@ -765,14 +766,14 @@ def test_invalidate_policy_with_sink_requires_valid_column(rewriter):
     """Test that INVALIDATE policy with sink table requires a boolean 'valid' column."""
     # Create a sink table without 'valid' column
     rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-    
+
     policy = DFCPolicy(
         source="foo",
         sink="reports",
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
-    
+
     with pytest.raises(ValueError, match="must have a boolean column named 'valid'"):
         rewriter.register_policy(policy)
 
@@ -781,14 +782,14 @@ def test_invalidate_policy_with_sink_requires_boolean_valid_column(rewriter):
     """Test that INVALIDATE policy with sink table requires 'valid' column to be boolean."""
     # Create a sink table with 'valid' column but wrong type
     rewriter.execute("CREATE TABLE reports (id INTEGER, valid INTEGER)")
-    
+
     policy = DFCPolicy(
         source="foo",
         sink="reports",
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
-    
+
     with pytest.raises(ValueError, match="must be of type BOOLEAN"):
         rewriter.register_policy(policy)
 
@@ -797,14 +798,14 @@ def test_invalidate_policy_with_sink_accepts_boolean_valid_column(rewriter):
     """Test that INVALIDATE policy with sink table accepts boolean 'valid' column."""
     # Create a sink table with boolean 'valid' column
     rewriter.execute("CREATE TABLE reports (id INTEGER, valid BOOLEAN)")
-    
+
     policy = DFCPolicy(
         source="foo",
         sink="reports",
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
-    
+
     # Should not raise an error
     rewriter.register_policy(policy)
 
@@ -817,7 +818,7 @@ def test_invalidate_policy_without_sink_does_not_require_valid_column(rewriter):
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
-    
+
     # Should not raise an error
     rewriter.register_policy(policy)
 
@@ -830,11 +831,11 @@ def test_policy_applied_to_multiple_aggregations(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT max(foo.id), min(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
     result = rewriter.conn.execute(transformed).fetchall()
-    
+
     # Should return results since both constraints pass (max=3, min=1)
     assert len(result) == 1
     assert result[0][0] == 3  # max
@@ -849,13 +850,13 @@ def test_policy_applied_to_non_aggregation_via_where(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     # Non-aggregation query should have WHERE clause added (not HAVING)
     query = "SELECT id, name FROM foo"
     transformed = rewriter.transform_query(query)
     # Should have WHERE clause, not HAVING
     assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  (\n    foo.id >= 1\n  )"
-    
+
     # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
@@ -869,14 +870,14 @@ def test_policy_not_applied_to_different_source(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     # Query over different table should not have policy applied
     query = "SELECT max(baz.x) FROM baz"
     transformed = rewriter.transform_query(query)
     # Should not have HAVING clause (policy doesn't apply to baz table)
     assert transformed == "SELECT\n  MAX(baz.x)\nFROM baz"
     result = rewriter.conn.execute(transformed).fetchall()
-    
+
     # Should return result without HAVING clause
     assert len(result) == 1
     assert result[0][0] == 10
@@ -890,13 +891,13 @@ def test_policy_applied_to_scan_query(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     # Non-aggregation query should have WHERE clause added
     query = "SELECT id, name FROM foo"
     transformed = rewriter.transform_query(query)
     # Should have WHERE clause with transformed constraint (max(id) -> id)
     assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  (\n    foo.id >= 1\n  )"
-    
+
     # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
@@ -910,14 +911,14 @@ def test_policy_filters_scan_query(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     # Non-aggregation query
     query = "SELECT id, name FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have WHERE clause
     assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  (\n    foo.id > 10\n  )"
-    
+
     # Should filter out all rows since id > 10 is false for all (max id is 3)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 0
@@ -931,14 +932,14 @@ def test_policy_scan_with_count(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # COUNT(*) > 0 should become 1 > 0 (always true)
     # The WHERE clause should be added even if it's always true
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    1 > 0\n  )"
-    
+
     # Should return all rows (constraint is always true)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
@@ -952,13 +953,13 @@ def test_policy_scan_with_count_distinct(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # COUNT(DISTINCT id) > 0 should become 1 > 0 (always true)
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    1 > 0\n  )"
-    
+
     # Should return all rows
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
@@ -972,13 +973,13 @@ def test_policy_scan_with_approx_count_distinct(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # APPROX_COUNT_DISTINCT(id) > 0 should become 1 > 0 (always true)
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    1 > 0\n  )"
-    
+
     # Should return all rows
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
@@ -992,13 +993,13 @@ def test_policy_scan_with_count_if(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # COUNT_IF(id > 2) > 0 should become CASE WHEN id > 2 THEN 1 ELSE 0 END > 0
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    CASE WHEN foo.id > 2 THEN 1 ELSE 0 END > 0\n  )"
-    
+
     # Should return rows where id > 2 (id values 3)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 1
@@ -1013,14 +1014,14 @@ def test_policy_scan_with_count_if_false(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # COUNT_IF(id > 10) > 0 should become CASE WHEN id > 10 THEN 1 ELSE 0 END > 0
     # Since max id is 3, this should filter out all rows
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    CASE WHEN foo.id > 10 THEN 1 ELSE 0 END > 0\n  )"
-    
+
     # Should return no rows (no id > 10)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 0
@@ -1034,13 +1035,13 @@ def test_policy_scan_with_array_agg(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # array_agg(id) = ARRAY[2] should become [foo.id] = [2] (DuckDB uses square brackets)
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    [foo.id] = [2]\n  )"
-    
+
     # Should return rows where id = 2
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 1
@@ -1055,14 +1056,14 @@ def test_policy_scan_with_array_agg_comparison(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # array_agg(id) != ARRAY[999] should become [foo.id] <> [999]
     # This should be true for all rows (no id = 999)
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    [foo.id] <> [999]\n  )"
-    
+
     # Should return all rows
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
@@ -1076,13 +1077,13 @@ def test_policy_scan_with_min(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id, name FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # min(id) <= 2 should become id <= 2
     assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  (\n    foo.id <= 2\n  )"
-    
+
     # Should return rows where id <= 2 (id values 1 and 2)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 2
@@ -1097,13 +1098,13 @@ def test_policy_scan_with_complex_constraint(rewriter):
         on_fail=Resolution.REMOVE,
     )
     rewriter.register_policy(policy)
-    
+
     query = "SELECT id FROM foo"
     transformed = rewriter.transform_query(query)
-    
+
     # Should have WHERE with both conditions transformed
     assert transformed == "SELECT\n  id\nFROM foo\nWHERE\n  (\n    foo.id > 1 AND foo.id < 10\n  )"
-    
+
     # Should return rows where id > 1 AND id < 10 (id values 2 and 3)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 2
@@ -1122,15 +1123,15 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should drop id=1 (Alice), keep id=2 (Bob) and id=3 (Charlie)
         assert len(result) == 2
-        assert result[0] == (2, 'Bob')
-        assert result[1] == (3, 'Charlie')
+        assert result[0] == (2, "Bob")
+        assert result[1] == (3, "Charlie")
         # Verify id=1 is not in results
         ids = [row[0] for row in result]
         assert 1 not in ids
@@ -1144,15 +1145,15 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should drop id=3 (Charlie), keep id=1 (Alice) and id=2 (Bob)
         assert len(result) == 2
-        assert result[0] == (1, 'Alice')
-        assert result[1] == (2, 'Bob')
+        assert result[0] == (1, "Alice")
+        assert result[1] == (2, "Bob")
         # Verify id=3 is not in results
         ids = [row[0] for row in result]
         assert 3 not in ids
@@ -1166,14 +1167,14 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should only keep id=2 (Bob)
         assert len(result) == 1
-        assert result[0] == (2, 'Bob')
+        assert result[0] == (2, "Bob")
         # Verify other ids are not in results
         ids = [row[0] for row in result]
         assert 1 not in ids
@@ -1188,15 +1189,15 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should drop id=2 (Bob), keep id=1 (Alice) and id=3 (Charlie)
         assert len(result) == 2
-        assert result[0] == (1, 'Alice')
-        assert result[1] == (3, 'Charlie')
+        assert result[0] == (1, "Alice")
+        assert result[1] == (3, "Charlie")
         # Verify id=2 is not in results
         ids = [row[0] for row in result]
         assert 2 not in ids
@@ -1211,14 +1212,14 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should only keep id=2 (Bob)
         assert len(result) == 1
-        assert result[0] == (2, 'Bob')
+        assert result[0] == (2, "Bob")
         # Verify other ids are not in results
         ids = [row[0] for row in result]
         assert 1 not in ids
@@ -1234,15 +1235,15 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should drop id=2 (Bob), keep id=1 (Alice) and id=3 (Charlie)
         assert len(result) == 2
-        assert result[0] == (1, 'Alice')
-        assert result[1] == (3, 'Charlie')
+        assert result[0] == (1, "Alice")
+        assert result[1] == (3, "Charlie")
         # Verify id=2 is not in results
         ids = [row[0] for row in result]
         assert 2 not in ids
@@ -1256,11 +1257,11 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should drop all rows
         assert len(result) == 0
         assert result == []
@@ -1274,16 +1275,16 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should keep all rows
         assert len(result) == 3
-        assert result[0] == (1, 'Alice')
-        assert result[1] == (2, 'Bob')
-        assert result[2] == (3, 'Charlie')
+        assert result[0] == (1, "Alice")
+        assert result[1] == (2, "Bob")
+        assert result[2] == (3, "Charlie")
 
     def test_policy_drops_rows_with_count_if(self, rewriter):
         """Test that COUNT_IF constraint drops specific rows."""
@@ -1295,14 +1296,14 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should only keep id=3 (Charlie)
         assert len(result) == 1
-        assert result[0] == (3, 'Charlie')
+        assert result[0] == (3, "Charlie")
         # Verify other ids are not in results
         ids = [row[0] for row in result]
         assert 1 not in ids
@@ -1317,12 +1318,12 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Group by query - each group should be evaluated separately
         query = "SELECT id, COUNT(*) FROM foo GROUP BY id ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Since the policy constraint is max(id) > 10, and max(id) = 3,
         # the HAVING clause will filter out all groups
         # But wait - for GROUP BY queries, the constraint applies to the group
@@ -1330,7 +1331,7 @@ class TestPolicyRowDropping:
         query = "SELECT MAX(id) FROM foo"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # The aggregation result should be dropped because max(id) = 3, not > 10
         assert len(result) == 0
         assert result == []
@@ -1345,13 +1346,13 @@ class TestPolicyRowDropping:
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
-        
+
         # Should have CASE WHEN with KILL() in ELSE clause
         assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  (\n    CASE WHEN foo.id > 10 THEN true ELSE KILL() END\n  )\nORDER BY\n  id"
-        
+
         # Query should abort when executed because constraint fails for all rows
         import duckdb
         with pytest.raises(duckdb.InvalidInputException) as exc_info:
@@ -1369,19 +1370,19 @@ class TestPolicyRowDropping:
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
-        
+
         # Should have CASE WHEN with KILL() in ELSE clause (constraint passes)
         assert transformed == "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  (\n    CASE WHEN foo.id >= 1 THEN true ELSE KILL() END\n  )\nORDER BY\n  id"
-        
+
         # Query should succeed because constraint passes for all rows
         result = rewriter.conn.execute(transformed).fetchall()
         assert len(result) == 3
-        assert result[0] == (1, 'Alice')
-        assert result[1] == (2, 'Bob')
-        assert result[2] == (3, 'Charlie')
+        assert result[0] == (1, "Alice")
+        assert result[1] == (2, "Bob")
+        assert result[2] == (3, "Charlie")
 
     def test_policy_drops_rows_with_string_comparison(self, rewriter):
         """Test that a policy drops rows based on string column values."""
@@ -1394,17 +1395,17 @@ class TestPolicyRowDropping:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, name FROM foo ORDER BY id"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should drop id=1 (Alice), keep id=2 (Bob) and id=3 (Charlie)
         assert len(result) == 2
-        assert result[0] == (2, 'Bob')
-        assert result[1] == (3, 'Charlie')
+        assert result[0] == (2, "Bob")
+        assert result[1] == (3, "Charlie")
         names = [row[1] for row in result]
-        assert 'Alice' not in names
+        assert "Alice" not in names
 
 
 class TestGetSourceTables:
@@ -1416,7 +1417,7 @@ class TestGetSourceTables:
         parsed = rewriter.transform_query(query)
         # Should extract both foo and baz
         # This is tested indirectly through transform_query behavior
-        
+
     def test_get_source_tables_with_left_join(self, rewriter):
         """Test that _get_source_tables works with LEFT JOIN."""
         query = "SELECT * FROM foo LEFT JOIN baz ON foo.id = baz.x"
@@ -1484,7 +1485,7 @@ class TestFindMatchingPolicies:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Query with lowercase table name should still match
         query = "SELECT max(foo.id) FROM foo"
         transformed = rewriter.transform_query(query)
@@ -1499,7 +1500,7 @@ class TestFindMatchingPolicies:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Empty source_tables should return no matches
         matching = rewriter._find_matching_policies(set())
         assert len(matching) == 0
@@ -1518,7 +1519,7 @@ class TestFindMatchingPolicies:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         # Query with both tables
         matching = rewriter._find_matching_policies({"foo", "baz"})
         assert len(matching) == 2
@@ -1531,7 +1532,7 @@ class TestFindMatchingPolicies:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Should not match queries on foo
         matching = rewriter._find_matching_policies({"foo"})
         assert len(matching) == 0
@@ -1574,7 +1575,7 @@ class TestTransformQueryEdgeCases:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Even if rewrite rules fail, should return original or transformed query
         query = "SELECT id FROM foo"
         transformed = rewriter.transform_query(query)
@@ -1603,7 +1604,7 @@ class TestContextManagerAdditional:
                 raise ValueError("Test exception")
         except ValueError:
             pass
-        
+
         # Connection should be closed, so creating a new rewriter should work
         with SQLRewriter() as rw2:
             rw2.execute("CREATE TABLE test2 (x INTEGER)")
@@ -1611,10 +1612,9 @@ class TestContextManagerAdditional:
 
     def test_context_manager_nested(self):
         """Test that nested context managers work correctly."""
-        with SQLRewriter() as rw1:
-            with SQLRewriter() as rw2:
-                rw1.execute("CREATE TABLE test1 (x INTEGER)")
-                rw2.execute("CREATE TABLE test2 (x INTEGER)")
+        with SQLRewriter() as rw1, SQLRewriter() as rw2:
+            rw1.execute("CREATE TABLE test1 (x INTEGER)")
+            rw2.execute("CREATE TABLE test2 (x INTEGER)")
                 # Both should work independently
 
 
@@ -1629,11 +1629,11 @@ class TestTableExistsAdditional:
 
     def test_table_exists_with_special_characters(self, rewriter):
         """Test that _table_exists handles special characters in table names."""
-        rewriter.execute("CREATE TABLE \"test-table\" (x INTEGER)")
+        rewriter.execute('CREATE TABLE "test-table" (x INTEGER)')
         # Should work with quoted identifiers - lowercase lookup should find it
         assert rewriter._table_exists("test-table") is True
         # Clean up
-        rewriter.execute("DROP TABLE \"test-table\"")
+        rewriter.execute('DROP TABLE "test-table"')
 
 
 class TestGetTableColumnsAdditional:
@@ -1690,16 +1690,16 @@ class TestRegisterPolicyEdgeCases:
             constraint="max(foo.id) > baz.x",
             on_fail=Resolution.REMOVE,
         )
-        
+
         # Test that _get_column_table_type correctly identifies source and sink columns
         constraint_parsed = parse_one("max(foo.id) > baz.x", read="duckdb")
         columns = list(constraint_parsed.find_all(exp.Column))
-        
+
         # Should identify source column (inside aggregation)
         if columns:
             table_type1 = rewriter._get_column_table_type(columns[0], policy)
             assert table_type1 in ("source", "sink", None)
-        
+
         # Should identify sink column
         if len(columns) > 1:
             table_type2 = rewriter._get_column_table_type(columns[1], policy)
@@ -1739,20 +1739,20 @@ class TestDatabaseFileAdditional:
 
     def test_database_file_persistence(self):
         """Test that database file persists data."""
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.duckdb') as f:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".duckdb") as f:
             db_path = f.name
-        
+
         try:
             # Ensure file doesn't exist before creating
             if os.path.exists(db_path):
                 os.unlink(db_path)
-            
+
             # Create rewriter with file
             conn = duckdb.connect(db_path)
             with SQLRewriter(conn=conn) as rw:
                 rw.execute("CREATE TABLE test (x INTEGER)")
                 rw.execute("INSERT INTO test VALUES (1), (2), (3)")
-            
+
             # Reopen and verify data persists
             conn2 = duckdb.connect(db_path)
             with SQLRewriter(conn=conn2) as rw2:
@@ -1775,7 +1775,7 @@ class TestJoinTypes:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT foo.id FROM foo RIGHT JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
@@ -1791,7 +1791,7 @@ class TestJoinTypes:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT foo.id FROM foo FULL OUTER JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
@@ -1807,7 +1807,7 @@ class TestJoinTypes:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT foo.id FROM foo CROSS JOIN baz"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
@@ -1824,7 +1824,7 @@ class TestJoinTypes:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT foo.id FROM foo RIGHT JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
         # Should work without error
@@ -1839,7 +1839,7 @@ class TestJoinTypes:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT foo.id FROM foo FULL OUTER JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
         # Should work without error
@@ -1866,7 +1866,7 @@ class TestDistinctQueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT DISTINCT id FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause
@@ -1882,7 +1882,7 @@ class TestDistinctQueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT DISTINCT id, name FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
@@ -1898,7 +1898,7 @@ class TestDistinctQueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT DISTINCT COUNT(*) FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have HAVING clause from policy (aggregation query)
@@ -1918,7 +1918,7 @@ class TestExistsSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE EXISTS (SELECT 1 FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -1934,7 +1934,7 @@ class TestExistsSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE EXISTS (SELECT 1 FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -1950,7 +1950,7 @@ class TestExistsSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE NOT EXISTS (SELECT 1 FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -1970,7 +1970,7 @@ class TestInSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE id IN (SELECT x FROM baz)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -1986,7 +1986,7 @@ class TestInSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE id IN (SELECT x FROM baz)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -2002,7 +2002,7 @@ class TestInSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE id NOT IN (SELECT x FROM baz WHERE x > 100)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -2019,7 +2019,7 @@ class TestInSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE id IN (1, 2, 3)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -2040,7 +2040,7 @@ class TestCorrelatedSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, (SELECT COUNT(*) FROM baz WHERE baz.x = foo.id) AS count FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (wrapped in parentheses)
@@ -2060,7 +2060,7 @@ class TestCorrelatedSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE id = (SELECT x FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -2076,7 +2076,7 @@ class TestCorrelatedSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo WHERE id = (SELECT x FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
@@ -2092,7 +2092,7 @@ class TestCorrelatedSubqueries:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id, (SELECT MAX(x) FROM baz WHERE baz.x > foo.id) AS max_val FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (wrapped in parentheses)
@@ -2119,12 +2119,12 @@ class TestSubqueryWithMissingColumns:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Query with subquery that references foo but only selects 'name', not 'id'
         # The policy needs 'id' to evaluate max(foo.id) > 1
         # This tests that the rewriter handles subqueries appropriately when
         # columns needed for policy evaluation are not in the subquery's SELECT list.
-        # 
+        #
         # The key test: the subquery SELECTs 'name' but the policy needs 'id'.
         # The rewriter should ensure the policy can be evaluated, either by:
         # 1. Adding 'id' to the subquery's SELECT list, or
@@ -2135,17 +2135,17 @@ class TestSubqueryWithMissingColumns:
         # but ensures the policy can be evaluated correctly.
         query = "SELECT sub.name FROM (SELECT id, name FROM foo) AS sub"
         transformed = rewriter.transform_query(query)
-        
+
         # The policy should be applied at the subquery level where 'id' is accessible
         # Policy max(foo.id) > 1 means id > 1, so id=1 (Alice) should be filtered out
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Should get 2 rows (Bob and Charlie), with id=1 filtered out
         assert len(result) == 2
         names = [row[0] for row in result]
-        assert 'Bob' in names
-        assert 'Charlie' in names
-        assert 'Alice' not in names  # id=1 should be filtered out
+        assert "Bob" in names
+        assert "Charlie" in names
+        assert "Alice" not in names  # id=1 should be filtered out
 
     def test_subquery_missing_policy_column_in_select_list(self, rewriter):
         """Test that subqueries without necessary columns in SELECT list are handled correctly.
@@ -2162,27 +2162,27 @@ class TestSubqueryWithMissingColumns:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Subquery that references foo but only selects 'name', not 'id'
         # The policy needs 'id' to evaluate max(foo.id) > 1
         # This is the key test case: subquery doesn't select all necessary columns
         query = "SELECT sub.name FROM (SELECT name FROM foo) AS sub"
         transformed = rewriter.transform_query(query)
-        
+
         # The transformation should complete without infinite loops
         # The rewriter should add 'id' to the subquery's SELECT list
         # The rewriter should add 'id' to the subquery's SELECT list
         assert transformed == "SELECT\n  sub.name\nFROM (\n  SELECT\n    name,\n    foo.id\n  FROM foo\n) AS sub\nWHERE\n  (\n    sub.id > 1\n  )"
-        
+
         # Execute the query - should work if rewriter handles subqueries correctly
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Policy filters id > 1, so we should get 2 rows (Bob and Charlie)
         assert len(result) == 2
         names = [row[0] for row in result]
-        assert 'Bob' in names
-        assert 'Charlie' in names
-        assert 'Alice' not in names  # id=1 should be filtered out
+        assert "Bob" in names
+        assert "Charlie" in names
+        assert "Alice" not in names  # id=1 should be filtered out
 
     def test_cte_missing_policy_column(self, rewriter):
         """Test that CTEs without necessary columns in SELECT list are handled correctly.
@@ -2199,7 +2199,7 @@ class TestSubqueryWithMissingColumns:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # CTE that references foo but only selects 'name', not 'id'
         # The policy needs 'id' to evaluate max(foo.id) > 1
         # This is the key test case: CTE doesn't select all necessary columns
@@ -2208,20 +2208,20 @@ class TestSubqueryWithMissingColumns:
         SELECT cte.name FROM cte
         """
         transformed = rewriter.transform_query(query)
-        
+
         # The transformation should complete without infinite loops
         # The rewriter should add 'id' to the CTE's SELECT list
         assert transformed == "WITH cte AS (\n  SELECT\n    name,\n    foo.id\n  FROM foo\n)\nSELECT\n  cte.name\nFROM cte\nWHERE\n  (\n    cte.id > 1\n  )"
-        
+
         # Execute the query - should work if rewriter handles CTEs correctly
         result = rewriter.conn.execute(transformed).fetchall()
-        
+
         # Policy filters id > 1, so we should get 2 rows (Bob and Charlie)
         assert len(result) == 2
         names = [row[0] for row in result]
-        assert 'Bob' in names
-        assert 'Charlie' in names
-        assert 'Alice' not in names  # id=1 should be filtered out
+        assert "Bob" in names
+        assert "Charlie" in names
+        assert "Alice" not in names  # id=1 should be filtered out
 
     def test_cte_missing_policy_column_with_aggregation(self, rewriter):
         """Test CTE missing policy column in aggregation query."""
@@ -2232,14 +2232,14 @@ class TestSubqueryWithMissingColumns:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Aggregation query with CTE that doesn't select 'id'
         query = """
         WITH cte AS (SELECT name FROM foo)
         SELECT COUNT(*) FROM cte
         """
         transformed = rewriter.transform_query(query)
-        
+
         # Should execute successfully with policy applied
         result = rewriter.conn.execute(transformed).fetchall()
         # Policy constraint is max(foo.id) > 1, and max(id) = 3 > 1, so all 3 rows remain
@@ -2255,11 +2255,11 @@ class TestSubqueryWithMissingColumns:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Aggregation query with subquery that doesn't select 'id'
         query = "SELECT COUNT(*) FROM (SELECT name FROM foo) AS sub"
         transformed = rewriter.transform_query(query)
-        
+
         # Should execute successfully with policy applied
         result = rewriter.conn.execute(transformed).fetchall()
         # Policy constraint is max(foo.id) > 1, and max(id) = 3 > 1, so all 3 rows remain
@@ -2275,11 +2275,11 @@ class TestSubqueryWithMissingColumns:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Subquery that selects neither id nor name
         query = "SELECT * FROM (SELECT bar FROM foo) AS sub"
         transformed = rewriter.transform_query(query)
-        
+
         # Should execute successfully with policy applied
         # Policy: id > 1 AND name < 'Z'
         # All rows have id > 1 (id values are 1, 2, 3, so 2 and 3 pass)
@@ -2300,7 +2300,7 @@ class TestUnionAll:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo UNION ALL SELECT x FROM baz"
         transformed = rewriter.transform_query(query)
         # Note: UNION queries are parsed as Union expressions, not Select,
@@ -2319,7 +2319,7 @@ class TestUnionAll:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "SELECT id FROM foo UNION ALL SELECT x FROM baz"
         transformed = rewriter.transform_query(query)
         # Note: UNION queries are parsed as Union expressions, not Select,
@@ -2338,17 +2338,17 @@ class TestUnionAll:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         rewriter.execute("CREATE TABLE test (val INTEGER)")
         rewriter.execute("INSERT INTO test VALUES (100), (200)")
-        
+
         query = "SELECT id FROM foo UNION ALL SELECT x FROM baz UNION ALL SELECT val FROM test"
         transformed = rewriter.transform_query(query)
         result = rewriter.conn.execute(transformed).fetchall()
         # Note: Policies may not be applied to UNION queries
         assert result is not None
         assert len(result) >= 1
-        
+
         # Clean up
         rewriter.execute("DROP TABLE test")
 
@@ -2364,7 +2364,7 @@ class TestMultipleCTEs:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = """
         WITH cte1 AS (SELECT id FROM foo WHERE id > 1),
              cte2 AS (SELECT x FROM baz WHERE x > 5)
@@ -2383,7 +2383,7 @@ class TestMultipleCTEs:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = """
         WITH cte1 AS (SELECT id FROM foo WHERE id > 1),
              cte2 AS (SELECT x FROM baz)
@@ -2402,7 +2402,7 @@ class TestMultipleCTEs:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = """
         WITH cte1 AS (SELECT id FROM foo),
              cte2 AS (SELECT id FROM cte1 WHERE id > 1)
@@ -2432,7 +2432,7 @@ class TestMultipleCTEs:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = """
         WITH cte1 AS (SELECT id FROM foo),
              cte2 AS (SELECT x FROM baz)
@@ -2457,7 +2457,7 @@ class TestInsertStatements:
         """Test INSERT with sink-only policy using KILL resolution."""
         # Create a sink table
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-        
+
         # Register sink-only policy
         policy = DFCPolicy(
             sink="reports",
@@ -2465,12 +2465,12 @@ class TestInsertStatements:
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         # INSERT that violates policy should be transformed with KILL
         query = "INSERT INTO reports SELECT 1, 'pending' FROM foo WHERE id = 1"
         transformed = rewriter.transform_query(query)
         assert transformed == "INSERT INTO reports\nSELECT\n  1,\n  'pending'\nFROM foo\nWHERE\n  (\n    id = 1\n  )\n  AND (\n    CASE WHEN reports.status = 'approved' THEN true ELSE KILL() END\n  )"
-        
+
         # INSERT that satisfies policy
         query2 = "INSERT INTO reports SELECT 1, 'approved' FROM foo WHERE id = 1"
         transformed2 = rewriter.transform_query(query2)
@@ -2480,14 +2480,14 @@ class TestInsertStatements:
     def test_insert_with_sink_only_policy_remove(self, rewriter):
         """Test INSERT with sink-only policy using REMOVE resolution."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO reports SELECT id, 'pending' FROM foo"
         transformed = rewriter.transform_query(query)
         # REMOVE should add WHERE clause to filter out violating rows (wrapped in parentheses)
@@ -2496,7 +2496,7 @@ class TestInsertStatements:
     def test_insert_with_source_and_sink_policy(self, rewriter):
         """Test INSERT with policy that has both source and sink."""
         rewriter.execute("CREATE TABLE analytics (user_id INTEGER, total INTEGER)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="analytics",
@@ -2504,7 +2504,7 @@ class TestInsertStatements:
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         # INSERT with matching source table
         query = "INSERT INTO analytics SELECT id, id * 10 FROM foo"
         transformed = rewriter.transform_query(query)
@@ -2514,14 +2514,14 @@ class TestInsertStatements:
     def test_insert_with_column_list(self, rewriter):
         """Test INSERT with explicit column list."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, value INTEGER)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO reports (id, status, value) SELECT id, 'pending', id * 10 FROM foo"
         transformed = rewriter.transform_query(query)
         # Should handle column list correctly (KILL wraps in CASE WHEN)
@@ -2531,14 +2531,14 @@ class TestInsertStatements:
     def test_insert_with_values(self, rewriter):
         """Test INSERT ... VALUES statement."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO reports VALUES (1, 'pending')"
         transformed = rewriter.transform_query(query)
         # VALUES inserts don't have SELECT, so policies may not apply
@@ -2548,7 +2548,7 @@ class TestInsertStatements:
     def test_insert_with_aggregation_in_select(self, rewriter):
         """Test INSERT with aggregation in SELECT."""
         rewriter.execute("CREATE TABLE analytics (max_id INTEGER, count_val INTEGER)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="analytics",
@@ -2556,7 +2556,7 @@ class TestInsertStatements:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO analytics SELECT MAX(id), COUNT(*) FROM foo"
         transformed = rewriter.transform_query(query)
         # Should handle aggregations correctly (uses HAVING clause)
@@ -2565,7 +2565,7 @@ class TestInsertStatements:
     def test_insert_with_subquery(self, rewriter):
         """Test INSERT with subquery in SELECT."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, name VARCHAR)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="reports",
@@ -2573,7 +2573,7 @@ class TestInsertStatements:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO reports SELECT id, name FROM (SELECT id, name FROM foo WHERE id > 1) AS sub"
         transformed = rewriter.transform_query(query)
         # Should handle subqueries correctly (adds WHERE clause to outer query)
@@ -2582,7 +2582,7 @@ class TestInsertStatements:
     def test_insert_with_cte(self, rewriter):
         """Test INSERT with CTE in SELECT."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, name VARCHAR)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="reports",
@@ -2590,7 +2590,7 @@ class TestInsertStatements:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = """
         WITH filtered AS (SELECT id, name FROM foo WHERE id > 1)
         INSERT INTO reports SELECT id, name FROM filtered
@@ -2602,14 +2602,14 @@ class TestInsertStatements:
     def test_insert_sink_table_extraction(self, rewriter):
         """Test that sink table is correctly extracted from various INSERT formats."""
         rewriter.execute("CREATE TABLE test_sink (x INTEGER)")
-        
+
         # Test different INSERT formats
         queries = [
             "INSERT INTO test_sink SELECT * FROM foo",
             "INSERT INTO test_sink (x) SELECT id FROM foo",
             "INSERT INTO test_sink VALUES (1)",
         ]
-        
+
         for query in queries:
             parsed = parse_one(query, read="duckdb")
             sink_table = rewriter._get_sink_table(parsed)
@@ -2625,19 +2625,19 @@ class TestInsertStatements:
     def test_insert_matching_policy_sink_only(self, rewriter):
         """Test that INSERT statements match sink-only policies."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO reports SELECT 1, 'pending' FROM foo"
         parsed = parse_one(query, read="duckdb")
         sink_table = rewriter._get_sink_table(parsed)
         source_tables = rewriter._get_insert_source_tables(parsed)
-        
+
         matching = rewriter._find_matching_policies(source_tables, sink_table)
         assert len(matching) == 1
         assert matching[0] == policy
@@ -2645,7 +2645,7 @@ class TestInsertStatements:
     def test_insert_matching_policy_source_and_sink(self, rewriter):
         """Test that INSERT statements match policies with both source and sink."""
         rewriter.execute("CREATE TABLE analytics (user_id INTEGER)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="analytics",
@@ -2653,12 +2653,12 @@ class TestInsertStatements:
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO analytics SELECT id FROM foo"
         parsed = parse_one(query, read="duckdb")
         sink_table = rewriter._get_sink_table(parsed)
         source_tables = rewriter._get_insert_source_tables(parsed)
-        
+
         matching = rewriter._find_matching_policies(source_tables, sink_table)
         assert len(matching) == 1
         assert matching[0] == policy
@@ -2667,19 +2667,19 @@ class TestInsertStatements:
         """Test that INSERT doesn't match policy with different sink table."""
         rewriter.execute("CREATE TABLE reports (id INTEGER)")
         rewriter.execute("CREATE TABLE other_table (id INTEGER)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.id > 0",
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO other_table SELECT id FROM foo"
         parsed = parse_one(query, read="duckdb")
         sink_table = rewriter._get_sink_table(parsed)
         source_tables = rewriter._get_insert_source_tables(parsed)
-        
+
         matching = rewriter._find_matching_policies(source_tables, sink_table)
         assert len(matching) == 0
 
@@ -2691,12 +2691,12 @@ class TestInsertStatements:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO baz SELECT x FROM baz"
         parsed = parse_one(query, read="duckdb")
         sink_table = rewriter._get_sink_table(parsed)
         source_tables = rewriter._get_insert_source_tables(parsed)
-        
+
         matching = rewriter._find_matching_policies(source_tables, sink_table)
         # Source-only policies don't match INSERT statements
         assert len(matching) == 0
@@ -2708,14 +2708,14 @@ class TestInsertStatements:
         # Also create the table without schema for policy validation
         # CR csummers: This CREATE hides a bug, but not important right now
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO test_schema.reports SELECT id, 'pending' FROM foo"
         transformed = rewriter.transform_query(query)
         # Should handle schema-qualified names (KILL wraps in CASE WHEN, wrapped in parentheses)
@@ -2724,7 +2724,7 @@ class TestInsertStatements:
     def test_insert_multiple_policies_same_sink(self, rewriter):
         """Test INSERT matching multiple policies for the same sink."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, value INTEGER)")
-        
+
         policy1 = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
@@ -2737,19 +2737,19 @@ class TestInsertStatements:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         query = "INSERT INTO reports SELECT id, 'pending', id * 10 FROM foo"
         parsed = parse_one(query, read="duckdb")
         sink_table = rewriter._get_sink_table(parsed)
         source_tables = rewriter._get_insert_source_tables(parsed)
-        
+
         matching = rewriter._find_matching_policies(source_tables, sink_table)
         assert len(matching) == 2
 
     def test_insert_with_join_in_select(self, rewriter):
         """Test INSERT with JOIN in SELECT."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, name VARCHAR, other_val INTEGER)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="reports",
@@ -2757,7 +2757,7 @@ class TestInsertStatements:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO reports SELECT f.id, f.name, b.x FROM foo f JOIN baz b ON f.id = b.x"
         transformed = rewriter.transform_query(query)
         # Should handle JOINs correctly (adds WHERE clause)
@@ -2766,7 +2766,7 @@ class TestInsertStatements:
     def test_insert_multiple_policies_with_source_and_sink(self, rewriter):
         """Test INSERT with multiple policies, both having source and sink."""
         rewriter.execute("CREATE TABLE analytics (user_id INTEGER, total INTEGER, status VARCHAR)")
-        
+
         # Two policies, both with source and sink
         policy1 = DFCPolicy(
             source="foo",
@@ -2782,16 +2782,16 @@ class TestInsertStatements:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         query = "INSERT INTO analytics SELECT id, id * 10, 'active' FROM foo"
         transformed = rewriter.transform_query(query)
-        
+
         # Both policies should be applied, constraints combined with AND
         # max(foo.id) > 1 becomes foo.id > 1
         # min(foo.id) < 10 becomes foo.id < 10
         # Both constraints should be wrapped in parentheses
         assert transformed == "INSERT INTO analytics\nSELECT\n  id,\n  id * 10,\n  'active'\nFROM foo\nWHERE\n  (\n    foo.id > 1\n  ) AND (\n    foo.id < 10\n  )"
-        
+
         # Verify both policies are matched
         parsed = parse_one(query, read="duckdb")
         sink_table = rewriter._get_sink_table(parsed)
@@ -2804,18 +2804,18 @@ class TestInsertStatements:
     def test_insert_column_mapping(self, rewriter):
         """Test INSERT column mapping for sink table columns."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
         )
         rewriter.register_policy(policy)
-        
+
         query = "INSERT INTO reports (id, status) SELECT id, 'pending' FROM foo"
         parsed = parse_one(query, read="duckdb")
         select_expr = parsed.find(exp.Select)
-        
+
         if select_expr:
             mapping = rewriter._get_insert_column_mapping(parsed, select_expr)
             # Should map sink columns to SELECT output
@@ -2824,14 +2824,14 @@ class TestInsertStatements:
     def test_insert_execution_with_policy(self, rewriter):
         """Test that INSERT execution works with policies applied."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
-        
+
         policy = DFCPolicy(
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Insert that satisfies policy
         query = "INSERT INTO reports SELECT id, 'approved' FROM foo WHERE id = 1"
         # Should execute without error (though may filter rows)
@@ -2848,7 +2848,7 @@ class TestInsertStatements:
         """Test that INSERT with INVALIDATE policy adds 'valid' column to column list."""
         # Create a sink table with boolean 'valid' column
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, valid BOOLEAN)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="reports",
@@ -2856,20 +2856,20 @@ class TestInsertStatements:
             on_fail=Resolution.INVALIDATE,
         )
         rewriter.register_policy(policy)
-        
+
         # INSERT with explicit column list
         query = "INSERT INTO reports (id, status) SELECT id, 'pending' FROM foo"
         transformed = rewriter.transform_query(query)
-        
+
         # Should have 'valid' column added to the column list
         # The SELECT outputs get aliased to match sink column names
         assert transformed == "INSERT INTO reports (\n  id,\n  status,\n  valid\n)\nSELECT\n  id,\n  'pending' AS status,\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo"
-    
+
     def test_insert_with_invalidate_policy_preserves_existing_valid_column(self, rewriter):
         """Test that INSERT with INVALIDATE policy doesn't duplicate 'valid' if already present."""
         # Create a sink table with boolean 'valid' column
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, valid BOOLEAN)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="reports",
@@ -2877,19 +2877,19 @@ class TestInsertStatements:
             on_fail=Resolution.INVALIDATE,
         )
         rewriter.register_policy(policy)
-        
+
         # INSERT with explicit column list that already includes 'valid'
         query = "INSERT INTO reports (id, status, valid) SELECT id, 'pending', true FROM foo"
         transformed = rewriter.transform_query(query)
-        
+
         # Should replace the user's 'valid' value (true) with the constraint result
         assert transformed == "INSERT INTO reports (\n  id,\n  status,\n  valid\n)\nSELECT\n  id,\n  'pending' AS status,\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo"
-    
+
     def test_insert_with_invalidate_policy_no_column_list(self, rewriter):
         """Test that INSERT without explicit column list works with INVALIDATE policy."""
         # Create a sink table with boolean 'valid' column
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, valid BOOLEAN)")
-        
+
         policy = DFCPolicy(
             source="foo",
             sink="reports",
@@ -2897,11 +2897,11 @@ class TestInsertStatements:
             on_fail=Resolution.INVALIDATE,
         )
         rewriter.register_policy(policy)
-        
+
         # INSERT without explicit column list
         query = "INSERT INTO reports SELECT id, 'pending' FROM foo"
         transformed = rewriter.transform_query(query)
-        
+
         # Should add 'valid' column to SELECT output
         # Note: Without explicit column list, we rely on positional mapping
         assert transformed == "INSERT INTO reports\nSELECT\n  id,\n  'pending',\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo"
@@ -2915,11 +2915,11 @@ class TestInsertStatements:
         # Create source table
         rewriter.execute("CREATE TABLE bank_txn (txn_id INTEGER, amount DECIMAL, category VARCHAR)")
         rewriter.execute("INSERT INTO bank_txn VALUES (6, 100.0, 'meal'), (7, 200.0, 'office')")
-        
+
         # Create sink table (needed for policy registration, but the key test is that
         # constraints reference SELECT output values, not table columns)
         rewriter.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DECIMAL, kind VARCHAR, business_use_pct DECIMAL)")
-        
+
         # Register policy with both source and sink constraints
         # Use aggregations for source columns (they'll be transformed to columns for scan queries)
         policy1 = DFCPolicy(
@@ -2943,7 +2943,7 @@ class TestInsertStatements:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy3)
-        
+
         # INSERT with explicit column list
         query = """INSERT INTO irs_form (
   txn_id,
@@ -2953,9 +2953,9 @@ class TestInsertStatements:
 )
 SELECT txn_id, ABS(amount), 'Expense', 0.0 
 FROM bank_txn WHERE txn_id = 6"""
-        
+
         transformed = rewriter.transform_query(query)
-        
+
         # Expected: SELECT outputs should be aliased to match sink column names
         # irs_form.txn_id should become txn_id (the SELECT output alias)
         # irs_form.business_use_pct should become business_use_pct (the SELECT output alias)
@@ -2987,13 +2987,13 @@ WHERE
   AND (
     1 = 1
   )"""
-        
+
         assert transformed == expected
 
 
 class TestDeletePolicy:
     """Tests for delete_policy functionality."""
-    
+
     def test_delete_policy_by_all_fields(self, rewriter):
         """Test deleting a policy by matching all fields."""
         policy = DFCPolicy(
@@ -3004,9 +3004,9 @@ class TestDeletePolicy:
             description="Test policy"
         )
         rewriter.register_policy(policy)
-        
+
         assert len(rewriter.get_dfc_policies()) == 1
-        
+
         # Delete by all fields
         deleted = rewriter.delete_policy(
             source="foo",
@@ -3015,10 +3015,10 @@ class TestDeletePolicy:
             on_fail=Resolution.REMOVE,
             description="Test policy"
         )
-        
+
         assert deleted is True
         assert len(rewriter.get_dfc_policies()) == 0
-    
+
     def test_delete_policy_by_source_and_constraint(self, rewriter):
         """Test deleting a policy by matching source and constraint only."""
         policy1 = DFCPolicy(
@@ -3033,20 +3033,20 @@ class TestDeletePolicy:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         assert len(rewriter.get_dfc_policies()) == 2
-        
+
         # Delete by source and constraint
         deleted = rewriter.delete_policy(
             source="foo",
             constraint="max(foo.id) > 1"
         )
-        
+
         assert deleted is True
         policies = rewriter.get_dfc_policies()
         assert len(policies) == 1
         assert policies[0].constraint == "max(foo.id) < 10"
-    
+
     def test_delete_policy_by_sink_only(self, rewriter):
         """Test deleting a policy by matching sink only."""
         policy1 = DFCPolicy(
@@ -3061,20 +3061,20 @@ class TestDeletePolicy:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         assert len(rewriter.get_dfc_policies()) == 2
-        
+
         # Delete by sink and constraint
         deleted = rewriter.delete_policy(
             sink="baz",
             constraint="baz.x > 5"
         )
-        
+
         assert deleted is True
         policies = rewriter.get_dfc_policies()
         assert len(policies) == 1
         assert policies[0].constraint == "baz.x < 20"
-    
+
     def test_delete_policy_by_constraint_only(self, rewriter):
         """Test deleting a policy by matching constraint only."""
         policy1 = DFCPolicy(
@@ -3089,17 +3089,17 @@ class TestDeletePolicy:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         assert len(rewriter.get_dfc_policies()) == 2
-        
+
         # Delete by constraint only
         deleted = rewriter.delete_policy(constraint="max(foo.id) > 1")
-        
+
         assert deleted is True
         policies = rewriter.get_dfc_policies()
         assert len(policies) == 1
         assert policies[0].constraint == "max(baz.x) > 5"
-    
+
     def test_delete_policy_with_description(self, rewriter):
         """Test deleting a policy that includes a description."""
         policy1 = DFCPolicy(
@@ -3116,21 +3116,21 @@ class TestDeletePolicy:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         assert len(rewriter.get_dfc_policies()) == 2
-        
+
         # Delete by description
         deleted = rewriter.delete_policy(
             source="foo",
             constraint="max(foo.id) > 1",
             description="First policy"
         )
-        
+
         assert deleted is True
         policies = rewriter.get_dfc_policies()
         assert len(policies) == 1
         assert policies[0].description == "Second policy"
-    
+
     def test_delete_policy_without_description_matches_any(self, rewriter):
         """Test that not providing description matches policies with or without description."""
         policy1 = DFCPolicy(
@@ -3146,20 +3146,20 @@ class TestDeletePolicy:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         assert len(rewriter.get_dfc_policies()) == 2
-        
+
         # Delete without description should match policy with description
         deleted = rewriter.delete_policy(
             source="foo",
             constraint="max(foo.id) > 1"
         )
-        
+
         assert deleted is True
         policies = rewriter.get_dfc_policies()
         assert len(policies) == 1
         assert policies[0].constraint == "max(foo.id) < 10"
-    
+
     def test_delete_policy_by_on_fail(self, rewriter):
         """Test deleting a policy by matching on_fail resolution."""
         policy1 = DFCPolicy(
@@ -3174,21 +3174,21 @@ class TestDeletePolicy:
         )
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         assert len(rewriter.get_dfc_policies()) == 2
-        
+
         # Delete by on_fail
         deleted = rewriter.delete_policy(
             source="foo",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE
         )
-        
+
         assert deleted is True
         policies = rewriter.get_dfc_policies()
         assert len(policies) == 1
         assert policies[0].on_fail == Resolution.KILL
-    
+
     def test_delete_policy_not_found_returns_false(self, rewriter):
         """Test that deleting a non-existent policy returns False."""
         policy = DFCPolicy(
@@ -3197,21 +3197,21 @@ class TestDeletePolicy:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Try to delete a different policy
         deleted = rewriter.delete_policy(
             source="foo",
             constraint="max(foo.id) > 100"  # Different constraint
         )
-        
+
         assert deleted is False
         assert len(rewriter.get_dfc_policies()) == 1
-    
+
     def test_delete_policy_requires_at_least_one_identifier(self, rewriter):
         """Test that delete_policy requires at least one of source, sink, or constraint."""
         with pytest.raises(ValueError, match="At least one of source, sink, or constraint must be provided"):
             rewriter.delete_policy()
-    
+
     def test_delete_policy_case_sensitive_matching(self, rewriter):
         """Test that delete_policy matches are case-sensitive for table names."""
         policy = DFCPolicy(
@@ -3220,16 +3220,16 @@ class TestDeletePolicy:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Try to delete with different case (should not match)
         deleted = rewriter.delete_policy(
             source="FOO",  # Different case
             constraint="max(foo.id) > 1"
         )
-        
+
         assert deleted is False
         assert len(rewriter.get_dfc_policies()) == 1
-    
+
     def test_delete_policy_multiple_policies_same_source(self, rewriter):
         """Test deleting one of multiple policies with the same source."""
         policy1 = DFCPolicy(
@@ -3250,15 +3250,15 @@ class TestDeletePolicy:
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
         rewriter.register_policy(policy3)
-        
+
         assert len(rewriter.get_dfc_policies()) == 3
-        
+
         # Delete middle policy
         deleted = rewriter.delete_policy(
             source="foo",
             constraint="max(foo.name) = 'Alice'"
         )
-        
+
         assert deleted is True
         policies = rewriter.get_dfc_policies()
         assert len(policies) == 2
@@ -3266,7 +3266,7 @@ class TestDeletePolicy:
         assert "max(foo.id) > 1" in constraints
         assert "max(foo.id) < 10" in constraints
         assert "max(foo.name) = 'Alice'" not in constraints
-    
+
     def test_delete_policy_with_source_and_sink(self, rewriter):
         """Test deleting a policy that has both source and sink."""
         policy = DFCPolicy(
@@ -3276,19 +3276,19 @@ class TestDeletePolicy:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         assert len(rewriter.get_dfc_policies()) == 1
-        
+
         # Delete by source, sink, and constraint
         deleted = rewriter.delete_policy(
             source="foo",
             sink="baz",
             constraint="min(foo.id) = baz.x"
         )
-        
+
         assert deleted is True
         assert len(rewriter.get_dfc_policies()) == 0
-    
+
     def test_delete_policy_with_empty_constraint_matches_any(self, rewriter):
         """Test that empty constraint string matches any constraint."""
         policy = DFCPolicy(
@@ -3297,13 +3297,13 @@ class TestDeletePolicy:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Delete with empty constraint should match any constraint
         deleted = rewriter.delete_policy(source="foo", constraint="")
-        
+
         assert deleted is True
         assert len(rewriter.get_dfc_policies()) == 0
-    
+
     def test_delete_policy_verifies_policy_no_longer_applies(self, rewriter):
         """Test that after deleting a policy, it no longer affects queries."""
         policy = DFCPolicy(
@@ -3312,18 +3312,18 @@ class TestDeletePolicy:
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
-        
+
         # Query should be transformed with policy
         transformed = rewriter.transform_query("SELECT * FROM foo")
         assert transformed == "SELECT\n  *\nFROM foo\nWHERE\n  (\n    foo.id > 1\n  )"
-        
+
         # Delete the policy
         deleted = rewriter.delete_policy(
             source="foo",
             constraint="max(foo.id) > 1"
         )
         assert deleted is True
-        
+
         # Query should no longer be transformed - should be unchanged
         transformed = rewriter.transform_query("SELECT * FROM foo")
         assert transformed == "SELECT\n  *\nFROM foo"
@@ -3341,7 +3341,7 @@ class TestAggregateDFCPolicyIntegration:
             on_fail=Resolution.INVALIDATE,
         )
         rewriter.register_policy(policy)
-        
+
         aggregate_policies = rewriter.get_aggregate_policies()
         assert len(aggregate_policies) == 1
         assert aggregate_policies[0] == policy
@@ -3359,13 +3359,13 @@ class TestAggregateDFCPolicyIntegration:
             constraint="sum(foo.id) > 100",
             on_fail=Resolution.INVALIDATE,
         )
-        
+
         rewriter.register_policy(regular_policy)
         rewriter.register_policy(aggregate_policy)
-        
+
         regular_policies = rewriter.get_dfc_policies()
         aggregate_policies = rewriter.get_aggregate_policies()
-        
+
         assert len(regular_policies) == 1
         assert len(aggregate_policies) == 1
         assert regular_policies[0] == regular_policy
@@ -3375,13 +3375,13 @@ class TestAggregateDFCPolicyIntegration:
         """Test that aggregate policy adds temp columns to both SELECT and INSERT column list."""
         # Create sink table (aggregate policies don't require 'valid' column)
         rewriter.execute("CREATE TABLE IF NOT EXISTS reports (id INTEGER, value DOUBLE)")
-        
+
         # Add amount column for the aggregate
         rewriter.execute("ALTER TABLE foo ADD COLUMN IF NOT EXISTS amount DOUBLE")
         rewriter.execute("UPDATE foo SET amount = id * 10.0")
-        
+
         from sql_rewriter.rewrite_rule import get_policy_identifier
-        
+
         policy = AggregateDFCPolicy(
             source="foo",
             sink="reports",
@@ -3390,27 +3390,27 @@ class TestAggregateDFCPolicyIntegration:
         )
         policy_id = get_policy_identifier(policy)
         rewriter.register_policy(policy)
-        
+
         # Use an aggregation query
         query = "INSERT INTO reports (id, value) SELECT id, sum(amount) FROM foo GROUP BY id"
         transformed = rewriter.transform_query(query)
-        
+
         # Verify temp column is in SELECT (for sink expression)
         temp_col_name = f"_{policy_id}_tmp1"
         assert temp_col_name in transformed, f"Temp column {temp_col_name} not found in transformed query:\n{transformed}"
-        
+
         # Verify temp column is in INSERT column list
         # The INSERT should have: INSERT INTO reports (id, value, _policy_xxx_tmp1)
         insert_part = transformed.split("SELECT")[0]
         assert temp_col_name in insert_part, f"Temp column {temp_col_name} not in INSERT column list:\n{insert_part}"
-        
+
         # Verify the temp column expression is in SELECT (should be SUM(value) for sink)
         assert "SUM(value)" in transformed or "SUM(VALUE)" in transformed
 
     def test_aggregate_policy_finalize_with_no_data(self, rewriter):
         """Test finalize_aggregate_policies with no data in sink table."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
-        
+
         policy = AggregateDFCPolicy(
             source="foo",
             sink="reports",
@@ -3418,7 +3418,7 @@ class TestAggregateDFCPolicyIntegration:
             on_fail=Resolution.INVALIDATE,
         )
         rewriter.register_policy(policy)
-        
+
         violations = rewriter.finalize_aggregate_policies("reports")
         assert isinstance(violations, dict)
         # Should have entry for policy but no violation (no data yet)
@@ -3435,13 +3435,13 @@ class TestAggregateDFCPolicyIntegration:
                 _policy_test123_tmp1 DOUBLE
             )
         """)
-        
+
         # Insert data with temp column
         rewriter.execute("""
             INSERT INTO reports (id, value, valid, _policy_test123_tmp1)
             VALUES (1, 10.0, true, 100.0), (2, 20.0, true, 200.0)
         """)
-        
+
         policy = AggregateDFCPolicy(
             source="foo",
             sink="reports",
@@ -3449,7 +3449,7 @@ class TestAggregateDFCPolicyIntegration:
             on_fail=Resolution.INVALIDATE,
         )
         rewriter.register_policy(policy)
-        
+
         violations = rewriter.finalize_aggregate_policies("reports")
         assert isinstance(violations, dict)
 
@@ -3465,7 +3465,7 @@ class TestAggregateDFCPolicyIntegration:
     def test_aggregate_policy_allows_sink_aggregation(self, rewriter):
         """Test that aggregate policies allow sink aggregations."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
-        
+
         policy = AggregateDFCPolicy(
             source="foo",
             sink="reports",
@@ -3473,7 +3473,7 @@ class TestAggregateDFCPolicyIntegration:
             on_fail=Resolution.INVALIDATE,
         )
         rewriter.register_policy(policy)
-        
+
         aggregate_policies = rewriter.get_aggregate_policies()
         assert len(aggregate_policies) == 1
 
@@ -3489,7 +3489,7 @@ class TestAggregateDFCPolicyIntegration:
     def test_multiple_aggregate_policies(self, rewriter):
         """Test handling multiple aggregate policies."""
         rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
-        
+
         policy1 = AggregateDFCPolicy(
             source="foo",
             sink="reports",
@@ -3502,10 +3502,10 @@ class TestAggregateDFCPolicyIntegration:
             constraint="max(foo.id) > 5",
             on_fail=Resolution.INVALIDATE,
         )
-        
+
         rewriter.register_policy(policy1)
         rewriter.register_policy(policy2)
-        
+
         aggregate_policies = rewriter.get_aggregate_policies()
         assert len(aggregate_policies) == 2
 
@@ -3519,6 +3519,6 @@ class TestAggregateDFCPolicyIntegration:
             description="Test aggregate policy",
         )
         rewriter.register_policy(policy)
-        
+
         aggregate_policies = rewriter.get_aggregate_policies()
         assert aggregate_policies[0].description == "Test aggregate policy"

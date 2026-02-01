@@ -30,10 +30,13 @@ Examples:
     streamlit run app.py -- --record new_sessions --replay session_records/session_20260117_100205
 """
 
-import sys
 import argparse
+import sys
+
 import streamlit as st
+
 import db
+
 
 # Parse command-line arguments
 # Streamlit passes custom arguments after --, e.g., streamlit run app.py -- --tax-return path/to/file.csv
@@ -51,60 +54,60 @@ def parse_args():
             - delay: Delay in milliseconds for replayed responses (optional, default: 0)
     """
     parser = argparse.ArgumentParser(
-        description='SBO Tax Agent with optional data file loading'
+        description="SBO Tax Agent with optional data file loading"
     )
     parser.add_argument(
-        '--bank-txn',
-        dest='bank_txn',
+        "--bank-txn",
+        dest="bank_txn",
         type=str,
-        help='Path to bank_txn CSV file'
+        help="Path to bank_txn CSV file"
     )
     parser.add_argument(
-        '--tax-return',
-        dest='tax_return',
+        "--tax-return",
+        dest="tax_return",
         type=str,
-        help='Path to tax_return CSV file'
+        help="Path to tax_return CSV file"
     )
     parser.add_argument(
-        '--form-1099-k',
-        dest='form_1099_k',
+        "--form-1099-k",
+        dest="form_1099_k",
         type=str,
-        help='Path to form_1099_k CSV file'
+        help="Path to form_1099_k CSV file"
     )
     parser.add_argument(
-        '--policies',
-        dest='policies',
+        "--policies",
+        dest="policies",
         type=str,
-        help='Path to policies CSV file'
+        help="Path to policies CSV file"
     )
     parser.add_argument(
-        '--record',
-        dest='record',
+        "--record",
+        dest="record",
         type=str,
-        help='Directory to record LLM responses to files'
+        help="Directory to record LLM responses to files"
     )
     parser.add_argument(
-        '--replay',
-        dest='replay',
+        "--replay",
+        dest="replay",
         type=str,
-        help='Session recording directory to replay (returns recorded responses instead of calling LLM)'
+        help="Session recording directory to replay (returns recorded responses instead of calling LLM)"
     )
     parser.add_argument(
-        '--delay',
-        dest='delay',
+        "--delay",
+        dest="delay",
         type=int,
         default=0,
-        help='Delay in milliseconds before returning replayed LLM responses (only applies when --replay is used)'
+        help="Delay in milliseconds before returning replayed LLM responses (only applies when --replay is used)"
     )
-    
+
     # Find arguments after -- separator (Streamlit convention)
-    if '--' in sys.argv:
-        idx = sys.argv.index('--')
+    if "--" in sys.argv:
+        idx = sys.argv.index("--")
         args_to_parse = sys.argv[idx + 1:]
     else:
         # If no -- separator, try parsing all args (argparse will ignore unknown ones)
         args_to_parse = sys.argv[1:]
-    
+
     # Use parse_known_args to ignore any arguments we don't recognize
     # (in case Streamlit or other tools add their own)
     # Wrap in try-except to handle any parsing errors gracefully
@@ -113,7 +116,7 @@ def parse_args():
     except SystemExit:
         # argparse calls sys.exit() on error, catch it and return defaults
         args = argparse.Namespace(tax_return=None, form_1099_k=None, bank_txn=None, policies=None, record=None, replay=None, delay=0)
-    
+
     return args
 
 # Parse arguments
@@ -151,7 +154,7 @@ try:
         policies_path=args.policies
     )
 except Exception as e:
-    st.error(f"Failed to initialize database: {str(e)}")
+    st.error(f"Failed to initialize database: {e!s}")
     st.info("Make sure you've built the DuckDB library by running 'make' in the extended_duckdb directory.")
     st.stop()
 

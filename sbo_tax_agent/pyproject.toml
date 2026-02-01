@@ -20,11 +20,17 @@ sql-rewriter = { path = "../sql_rewriter", editable = true }
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "ruff>=0.1.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["sbo_tax_agent"]
@@ -36,3 +42,69 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 norecursedirs = [".venv", "__pycache__"]
 
+[tool.ruff]
+# Exclude common directories
+exclude = [
+    ".venv",
+    "__pycache__",
+    ".git",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+# Line length
+line-length = 100
+
+# Target Python version
+target-version = "py39"
+
+[tool.ruff.lint]
+# Opinionated linting based on Python best practices
+# Enable comprehensive rule sets
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes (includes F401 for unused imports)
+    "I",   # isort (import sorting)
+    "N",   # pep8-naming
+    "UP",  # pyupgrade (modernize Python syntax)
+    "B",   # flake8-bugbear (common bugs)
+    "C4",  # flake8-comprehensions (better comprehensions)
+    "SIM", # flake8-simplify (simplify code)
+    "ARG", # flake8-unused-arguments
+    "PIE", # flake8-pie (misc lints)
+    "PT",  # flake8-pytest-style
+    "RET", # flake8-return
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "Q",   # flake8-quotes
+    "RUF", # Ruff-specific rules
+]
+
+# Ignore specific rules if needed (add here)
+ignore = [
+    "E501",  # Line too long (handled by line-length)
+    "B008",  # Do not perform function calls in argument defaults (sometimes needed)
+    "PT011", # pytest.raises without match (can be too strict)
+]
+# Import sorting configuration
+[tool.ruff.lint.isort]
+known-first-party = ["sbo_tax_agent"]
+force-sort-within-sections = true
+split-on-trailing-comma = true
+
+# Naming conventions
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["classmethod", "pytest.fixture"]
+staticmethod-decorators = ["staticmethod"]
+
+# Type checking imports
+[tool.ruff.lint.flake8-type-checking]
+strict = false
+
+# Quote style
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+docstring-quotes = "double"

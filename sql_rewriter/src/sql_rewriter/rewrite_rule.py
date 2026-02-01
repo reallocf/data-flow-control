@@ -1,11 +1,12 @@
 """Rewrite rules for applying DFC policies to SQL queries."""
 
+import json
+from typing import List, Optional, Set
+
 import sqlglot
 from sqlglot import exp
-from typing import Set, List, Optional
-import json
 
-from .policy import DFCPolicy, AggregateDFCPolicy, Resolution
+from .policy import AggregateDFCPolicy, DFCPolicy, Resolution
 from .sqlglot_utils import get_column_name, get_table_name_from_column
 
 
@@ -51,10 +52,10 @@ def _extract_columns_from_constraint(
     """
     columns = []
     seen = set()
-    
+
     for column in constraint_expr.find_all(exp.Column):
         table_name = get_table_name_from_column(column)
-        
+
         # Handle source table columns
         if table_name and table_name in source_tables:
             # Create a unique key for the column
@@ -73,7 +74,7 @@ def _extract_columns_from_constraint(
                         columns.append(expr.this)
                     elif isinstance(expr, exp.Column):
                         columns.append(expr)
-        
+
         # Handle sink table columns - map to SELECT output columns
         elif table_name and sink_table and table_name == sink_table and sink_to_output_mapping:
             col_name = get_column_name(column).lower()
@@ -87,7 +88,7 @@ def _extract_columns_from_constraint(
                         this=exp.Identifier(this=output_col_name, quoted=False)
                     )
                     columns.append(output_col)
-    
+
     return columns
 
 
@@ -123,7 +124,7 @@ def _wrap_llm_constraint(
     """
     columns = []
     column_names = []
-    
+
     # First, extract source table columns from the constraint and add them to the UDF call
     # These columns are needed for the UDF but should NOT be added to the SELECT output
     # (they'll be available in the filter child for constraint evaluation, but not in SELECT)
@@ -135,14 +136,14 @@ def _wrap_llm_constraint(
                 # Only consider tables in FROM/JOIN clauses, not in column references
                 if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                     actual_source_tables.add(table.name.lower())
-            
+
             # Also check subqueries and CTEs for source tables
             for subquery in parsed.find_all(exp.Subquery):
                 if isinstance(subquery.this, exp.Select):
                     for table in subquery.this.find_all(exp.Table):
                         if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                             actual_source_tables.add(table.name.lower())
-        
+
         # Extract source table columns from constraint and add to UDF call
         # These will be passed to the UDF and written to the stream, but NOT added to SELECT
         # NOTE: Even if the source table is not in the query's FROM clause (e.g., no FROM clause),
@@ -158,11 +159,11 @@ def _wrap_llm_constraint(
                 # If no FROM clause (actual_source_tables is empty), still include source columns
                 if actual_source_tables and table_name.lower() not in actual_source_tables:
                     continue  # Skip if FROM clause exists but table is not in it
-                
+
                 column_name = get_column_name(column)
                 # Check if we already have this column (don't duplicate)
                 already_included = any(
-                    isinstance(c, exp.Column) and 
+                    isinstance(c, exp.Column) and
                     get_table_name_from_column(c) and
                     get_table_name_from_column(c).lower() == table_name.lower() and
                     get_column_name(c).lower() == column_name.lower()
@@ -174,7 +175,7 @@ def _wrap_llm_constraint(
                     # 1. The filter is applied to the table scan, so category is available from the table scan
                     # 2. Adding it to SELECT would make the SELECT have 5 columns, but INSERT expects 4
                     # 3. The UDF can access category from the filter child (table scan) via the column reference
-                    
+
                     # Add to UDF call arguments (this makes it available to the UDF)
                     col_expr = exp.Column(
                         this=exp.Identifier(this=column_name, quoted=False),
@@ -182,7 +183,7 @@ def _wrap_llm_constraint(
                     )
                     columns.append(col_expr)
                     column_names.append(f"{table_name}.{column_name}")
-    
+
     # Now extract all columns from the SELECT output
     # These are the columns that will be in the final SELECT output (for INSERT)
     if parsed:
@@ -191,9 +192,9 @@ def _wrap_llm_constraint(
             # These are internal tracking columns and shouldn't be passed to the LLM UDF
             if isinstance(expr, exp.Alias):
                 alias_name = get_column_name(expr.alias).lower()
-                if alias_name.startswith('_policy_') and '_tmp' in alias_name:
+                if alias_name.startswith("_policy_") and "_tmp" in alias_name:
                     continue  # Skip aggregate policy temp columns
-            
+
             col_name = None
             table_name = None
             if isinstance(expr, exp.Alias):
@@ -222,13 +223,13 @@ def _wrap_llm_constraint(
                 # For now, skip these - they're not typically needed for LLM fixing
                 # If needed, we could generate a position-based name like "col0", "col1", etc.
                 pass
-            
+
             # Include all columns from SELECT for the UDF call
             # This includes source table columns (like "category") needed for constraints
             if col_name:
                 # Check if we already have this column (don't duplicate)
                 already_included = any(
-                    isinstance(c, exp.Column) and 
+                    isinstance(c, exp.Column) and
                     get_column_name(c).lower() == col_name.lower()
                     for c in columns
                 )
@@ -266,17 +267,17 @@ def _wrap_llm_constraint(
                             )
                             columns.append(output_col)
                             column_names.append(output_col_name)
-        
+
         # For INSERT statements, also include specific columns: txn_id, amount, kind, business_use_pct
         if sink_table and sink_to_output_mapping:
             # HACK -- hard coded
-            additional_columns = ['txn_id', 'amount', 'kind', 'business_use_pct']
+            additional_columns = ["txn_id", "amount", "kind", "business_use_pct"]
             for col_name in additional_columns:
                 if col_name in sink_to_output_mapping:
                     output_col_name = sink_to_output_mapping[col_name]
                     # Check if we already have this column (don't duplicate)
                     already_included = any(
-                        isinstance(col, exp.Column) and 
+                        isinstance(col, exp.Column) and
                         get_column_name(col).lower() == output_col_name.lower()
                         for col in columns
                     )
@@ -288,28 +289,28 @@ def _wrap_llm_constraint(
                         columns.append(output_col)
                         # Add column name in same order as column is added
                         column_names.append(output_col_name)
-    
+
     # Ensure column_names matches columns exactly (same order and count)
     # This is critical for the UDF to receive values in the correct order
     assert len(column_names) == len(columns), (
         f"Column names count ({len(column_names)}) must match columns count ({len(columns)})"
     )
-    
+
     # Build the address_violating_rows function call
     # Order: columns, constraint, description, column_names_json, stream_endpoint (stream_endpoint is last for async_rewrite)
     # Escape policy constraint and description for SQL string literals
     constraint_str = policy.constraint.replace("'", "''")
     description_str = (policy.description or "").replace("'", "''")
-    
+
     # Create JSON string of column names
     column_names_json = json.dumps(column_names)
     # Escape single quotes in JSON string for SQL
     column_names_json_escaped = column_names_json.replace("'", "''")
-    
+
     constraint_literal = exp.Literal(this=f"'{constraint_str}'", is_string=True)
     description_literal = exp.Literal(this=f"'{description_str}'", is_string=True)
     column_names_literal = exp.Literal(this=f"'{column_names_json_escaped}'", is_string=True)
-    
+
     # stream_endpoint is last (for async_rewrite to find it easily)
     # Pass path directly without escaping (file paths don't contain quotes)
     # This matches db_example.py which uses f-string interpolation: '{stream_path}'
@@ -317,12 +318,12 @@ def _wrap_llm_constraint(
         stream_endpoint = exp.Literal(this=stream_file_path, is_string=True)
     else:
         stream_endpoint = exp.Literal(this="", is_string=True)
-    
+
     # Create function call with columns, constraint, description, column_names_json, stream_endpoint
     # address_violating_rows(col1, col2, ..., constraint, description, column_names_json, stream_endpoint)
     expressions = columns + [constraint_literal, description_literal, column_names_literal, stream_endpoint]
     address_call = exp.Anonymous(this="address_violating_rows", expressions=expressions)
-    
+
     return exp.Case(
         ifs=[exp.If(
             this=constraint_expr,
@@ -350,9 +351,9 @@ def _add_clause_to_select(
         clause_class: The clause class (exp.Having or exp.Where).
     """
     existing_clause_expr = None
-    if hasattr(parsed, 'args') and clause_name in parsed.args:
+    if hasattr(parsed, "args") and clause_name in parsed.args:
         existing_clause_expr = parsed.args[clause_name]
-    
+
     if existing_clause_expr:
         existing_expr = existing_clause_expr.this if isinstance(existing_clause_expr, clause_class) else existing_clause_expr
         # Wrap both expressions in parentheses to ensure proper operator precedence
@@ -388,23 +389,23 @@ def _add_invalidate_column_to_select(
     # Create a fresh copy of the constraint expression to avoid mutability issues
     constraint_sql = constraint_expr.sql()
     constraint_copy = sqlglot.parse_one(constraint_sql, read="duckdb")
-    
+
     # Check if 'valid' column already exists
     existing_valid_expr = None
     for expr in parsed.expressions:
         if isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "valid":
             existing_valid_expr = expr.this
             break
-        elif isinstance(expr, exp.Column) and get_column_name(expr).lower() == "valid":
+        if isinstance(expr, exp.Column) and get_column_name(expr).lower() == "valid":
             # If there's an unaliased 'valid' column, we'll replace it
             existing_valid_expr = expr
             break
-    
+
     if existing_valid_expr and not replace_existing:
         # Create a fresh copy of existing expression to avoid mutability issues
         existing_sql = existing_valid_expr.sql()
         existing_copy = sqlglot.parse_one(existing_sql, read="duckdb")
-        
+
         # Combine existing and new constraint with AND
         # Both must pass for valid=true
         wrapped_existing = existing_copy if isinstance(existing_copy, exp.Paren) else exp.Paren(this=existing_copy)
@@ -415,24 +416,24 @@ def _add_invalidate_column_to_select(
         # Wrap the constraint in parentheses for consistency with REMOVE
         wrapped_new = exp.Paren(this=constraint_copy)
         valid_expr = wrapped_new
-    
+
     # Create the aliased column
     valid_alias = exp.Alias(
         this=valid_expr,
         alias=exp.Identifier(this="valid", quoted=False)
     )
-    
+
     # Remove existing 'valid' column if it exists (modify list in place)
     expressions_to_remove = []
     for i, expr in enumerate(parsed.expressions):
         if (isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "valid") or \
            (isinstance(expr, exp.Column) and get_column_name(expr).lower() == "valid"):
             expressions_to_remove.append(i)
-    
+
     # Remove in reverse order to maintain indices
     for i in reversed(expressions_to_remove):
         parsed.expressions.pop(i)
-    
+
     # Add the new 'valid' column to the SELECT list
     parsed.expressions.append(valid_alias)
 
@@ -462,7 +463,7 @@ def apply_policy_constraints_to_aggregation(
     """
     # Build mapping from source tables to subquery/CTE aliases
     table_mapping = _get_source_table_to_alias_mapping(parsed, source_tables)
-    
+
     for policy in policies:
         # Check if policy requires source but source is not present
         # If policy has both source and sink, source must be present in the query
@@ -472,20 +473,20 @@ def apply_policy_constraints_to_aggregation(
             constraint_expr = exp.Literal(this="false", is_string=False)
         else:
             constraint_expr = sqlglot.parse_one(policy.constraint, read="duckdb")
-            
+
             # Replace sink table references with SELECT output column references if needed
             if sink_table and sink_to_output_mapping:
                 constraint_expr = _replace_sink_table_references_in_constraint(
                     constraint_expr, sink_table, sink_to_output_mapping
                 )
-            
+
             # Replace table references with subquery/CTE aliases if needed
             constraint_expr = _replace_table_references_in_constraint(
                 constraint_expr, table_mapping
             )
-            
+
             ensure_columns_accessible(parsed, constraint_expr, source_tables)
-        
+
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
@@ -525,7 +526,6 @@ def ensure_columns_accessible(
     # Policy constraints require aggregated source columns, which are always
     # accessible in HAVING clauses. No action needed for now.
     # Future enhancement: check non-aggregated columns and ensure they're in SELECT/GROUP BY
-    pass
 
 
 def _get_subqueries_in_from(parsed: exp.Select) -> List[tuple[exp.Subquery, str]]:
@@ -538,7 +538,7 @@ def _get_subqueries_in_from(parsed: exp.Select) -> List[tuple[exp.Subquery, str]
         List of tuples (subquery, alias) where alias is the subquery alias (lowercase).
     """
     subqueries = []
-    
+
     # Find all Subquery nodes and check if they're in FROM/JOIN clauses
     all_subqueries = list(parsed.find_all(exp.Subquery))
     for subquery in all_subqueries:
@@ -547,13 +547,13 @@ def _get_subqueries_in_from(parsed: exp.Select) -> List[tuple[exp.Subquery, str]
         join_ancestor = subquery.find_ancestor(exp.Join)
         if from_ancestor or join_ancestor:
             alias = None
-            
+
             # Try to get alias from the From.this if it's a Subquery
-            if from_ancestor and hasattr(from_ancestor, 'this'):
+            if from_ancestor and hasattr(from_ancestor, "this"):
                 from_table = from_ancestor.this
                 if isinstance(from_table, exp.Subquery):
                     # The From.this is directly the Subquery, get alias from Subquery
-                    if hasattr(from_table, 'alias') and from_table.alias:
+                    if hasattr(from_table, "alias") and from_table.alias:
                         if isinstance(from_table.alias, exp.Identifier):
                             alias = from_table.alias.name.lower()
                         elif isinstance(from_table.alias, str):
@@ -562,33 +562,33 @@ def _get_subqueries_in_from(parsed: exp.Select) -> List[tuple[exp.Subquery, str]
                             alias = str(from_table.alias).lower()
                 elif isinstance(from_table, exp.Table):
                     # The From.this is a Table containing the subquery
-                    if hasattr(from_table, 'alias') and from_table.alias:
+                    if hasattr(from_table, "alias") and from_table.alias:
                         if isinstance(from_table.alias, exp.Identifier):
                             alias = from_table.alias.name.lower()
                         elif isinstance(from_table.alias, str):
                             alias = from_table.alias.lower()
                         else:
                             alias = str(from_table.alias).lower()
-                    if not alias and hasattr(from_table, 'name') and from_table.name:
+                    if not alias and hasattr(from_table, "name") and from_table.name:
                         alias = from_table.name.lower()
-            
+
             # Fallback: try finding via Table ancestor
             if not alias:
                 table_ancestor = subquery.find_ancestor(exp.Table)
                 if table_ancestor:
-                    if hasattr(table_ancestor, 'alias') and table_ancestor.alias:
+                    if hasattr(table_ancestor, "alias") and table_ancestor.alias:
                         if isinstance(table_ancestor.alias, exp.Identifier):
                             alias = table_ancestor.alias.name.lower()
                         elif isinstance(table_ancestor.alias, str):
                             alias = table_ancestor.alias.lower()
                         else:
                             alias = str(table_ancestor.alias).lower()
-                    if not alias and hasattr(table_ancestor, 'name') and table_ancestor.name:
+                    if not alias and hasattr(table_ancestor, "name") and table_ancestor.name:
                         alias = table_ancestor.name.lower()
-            
+
             if alias:
                 subqueries.append((subquery, alias))
-    
+
     return subqueries
 
 
@@ -631,30 +631,30 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     """
     if not isinstance(subquery.this, exp.Select):
         return
-    
+
     select_expr = subquery.this
     selected = _get_selected_columns(subquery)
-    
+
     # Check if column is already selected (by name or alias)
     if column_name.lower() in selected:
         return
-    
+
     # Check if SELECT * is used - in that case, we can't safely add columns
     # because we don't know what columns are actually selected
     has_star = any(isinstance(expr, exp.Star) for expr in select_expr.expressions)
     if has_star:
         # Can't safely add columns when SELECT * is used
         return
-    
+
     # Get the table alias if one exists
     table_ref = _get_table_alias_in_subquery(subquery, table_name)
-    
+
     # Create a column expression with table qualification
     col_expr = exp.Column(
         this=exp.Identifier(this=column_name, quoted=False),
         table=exp.Identifier(this=table_ref, quoted=False)
     )
-    
+
     # Add the column to the SELECT list
     select_expr.expressions.append(col_expr)
 
@@ -670,23 +670,23 @@ def _get_ctes(parsed: exp.Select) -> List[tuple[exp.CTE, str]]:
     """
     ctes = []
     # Find WITH clause - access via args dictionary
-    with_clause = parsed.args.get('with_') if hasattr(parsed, 'args') else None
+    with_clause = parsed.args.get("with_") if hasattr(parsed, "args") else None
     if not with_clause:
         # Fallback: try accessing as attribute
-        with_clause = getattr(parsed, 'with_', None)
+        with_clause = getattr(parsed, "with_", None)
         # If it's a method, try calling it (though it shouldn't be)
         if callable(with_clause):
             with_clause = None
-    
-    if with_clause and hasattr(with_clause, 'expressions'):
+
+    if with_clause and hasattr(with_clause, "expressions"):
         for cte in with_clause.expressions:
             if isinstance(cte, exp.CTE):
                 # Get the CTE alias - in sqlglot, CTE.this is the SELECT, and alias is in cte.alias
                 alias = None
                 # Check the alias attribute (TableAlias)
-                if hasattr(cte, 'alias') and cte.alias:
+                if hasattr(cte, "alias") and cte.alias:
                     # The alias is a TableAlias, and its 'this' is the Identifier
-                    if hasattr(cte.alias, 'this'):
+                    if hasattr(cte.alias, "this"):
                         alias_obj = cte.alias.this
                         if isinstance(alias_obj, exp.Identifier):
                             alias = alias_obj.name.lower()
@@ -701,7 +701,7 @@ def _get_ctes(parsed: exp.Select) -> List[tuple[exp.CTE, str]]:
                     else:
                         alias = str(cte.alias).lower()
                 # Fallback: check CTE.this if it's an Identifier (older sqlglot versions)
-                if not alias and hasattr(cte, 'this') and cte.this:
+                if not alias and hasattr(cte, "this") and cte.this:
                     if isinstance(cte.this, exp.Identifier):
                         alias = cte.this.name.lower()
                     elif isinstance(cte.this, str):
@@ -771,36 +771,36 @@ def _add_column_to_cte(cte: exp.CTE, table_name: str, column_name: str) -> None:
         column_name: The column name to add.
     """
     # In sqlglot, CTE.this is the SELECT expression
-    cte_select = cte.this if hasattr(cte, 'this') and isinstance(cte.this, exp.Select) else None
+    cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
     if not cte_select:
         # Fallback: check expression attribute
-        cte_select = cte.expression if hasattr(cte, 'expression') else None
+        cte_select = cte.expression if hasattr(cte, "expression") else None
     if not isinstance(cte_select, exp.Select):
         return
-    
+
     select_expr = cte_select
     selected = _get_selected_columns_from_select(select_expr)
-    
+
     # Check if column is already selected (by name or alias)
     if column_name.lower() in selected:
         return
-    
+
     # Check if SELECT * is used - in that case, we can't safely add columns
     # because we don't know what columns are actually selected
     has_star = any(isinstance(expr, exp.Star) for expr in select_expr.expressions)
     if has_star:
         # Can't safely add columns when SELECT * is used
         return
-    
+
     # Get the table alias if one exists
     table_ref = _get_table_alias_in_select(select_expr, table_name)
-    
+
     # Create a column expression with table qualification
     col_expr = exp.Column(
         this=exp.Identifier(this=column_name, quoted=False),
         table=exp.Identifier(this=table_ref, quoted=False)
     )
-    
+
     # Add the column to the SELECT list
     select_expr.expressions.append(col_expr)
 
@@ -825,12 +825,12 @@ def _replace_sink_table_references_in_constraint(
     """
     if not sink_to_output_mapping:
         return constraint_expr
-    
+
     def replace_sink_column(node):
         if isinstance(node, exp.Column):
             table_name = get_table_name_from_column(node)
             col_name = get_column_name(node).lower()
-            
+
             # Check if this is a qualified sink table column (e.g., irs_form.amount)
             if table_name and table_name == sink_table:
                 if col_name in sink_to_output_mapping:
@@ -852,18 +852,17 @@ def _replace_sink_table_references_in_constraint(
                         this=exp.Identifier(this=output_col_name, quoted=False)
                     )
                 # If multiple columns, try to use a common one like 'amount' or the first one
-                elif 'amount' in sink_to_output_mapping:
+                if "amount" in sink_to_output_mapping:
                     return exp.Column(
-                        this=exp.Identifier(this=sink_to_output_mapping['amount'], quoted=False)
+                        this=exp.Identifier(this=sink_to_output_mapping["amount"], quoted=False)
                     )
-                else:
-                    # Use the first column in the mapping
-                    output_col_name = list(sink_to_output_mapping.values())[0]
-                    return exp.Column(
-                        this=exp.Identifier(this=output_col_name, quoted=False)
-                    )
+                # Use the first column in the mapping
+                output_col_name = list(sink_to_output_mapping.values())[0]
+                return exp.Column(
+                    this=exp.Identifier(this=output_col_name, quoted=False)
+                )
         return node
-    
+
     # Transform the expression, replacing all sink column references
     transformed = constraint_expr.transform(replace_sink_column, copy=True)
     return transformed
@@ -884,75 +883,75 @@ def _get_source_table_to_alias_mapping(
         Only includes mappings for source tables that are in subqueries/CTEs, not in the main query.
     """
     mapping = {}
-    
+
     # Get CTE aliases to exclude them from main_query_tables
     cte_aliases = {alias for _, alias in _get_ctes(parsed)}
-    
+
     # Check which source tables are in the main query's FROM/JOIN (not in subqueries/CTEs)
     # We need to find actual table names, not subquery/CTE aliases
     main_query_tables = set()
     # Get the main query's FROM clause
-    if hasattr(parsed, 'from') and parsed.from_:
+    if hasattr(parsed, "from") and parsed.from_:
         # Find all tables directly in the main FROM clause
         for table in parsed.from_.find_all(exp.Table):
             # Exclude tables that are subqueries (they have Subquery as 'this')
-            if not (hasattr(table, 'this') and isinstance(table.this, exp.Subquery)):
+            if not (hasattr(table, "this") and isinstance(table.this, exp.Subquery)):
                 # Also exclude if this table is inside a subquery or CTE
-                if (not table.find_ancestor(exp.Subquery) and 
+                if (not table.find_ancestor(exp.Subquery) and
                     not table.find_ancestor(exp.CTE)):
                     # Exclude CTE aliases (they're not source tables)
                     if table.name.lower() not in cte_aliases:
                         main_query_tables.add(table.name.lower())
         # Also check JOINs directly in the main query
         for join in parsed.find_all(exp.Join):
-            if (not join.find_ancestor(exp.Subquery) and 
+            if (not join.find_ancestor(exp.Subquery) and
                 not join.find_ancestor(exp.CTE)):
                 for table in join.find_all(exp.Table):
                     # Exclude subquery tables
-                    if not (hasattr(table, 'this') and isinstance(table.this, exp.Subquery)):
+                    if not (hasattr(table, "this") and isinstance(table.this, exp.Subquery)):
                         # Exclude CTE aliases (they're not source tables)
                         if table.name.lower() not in cte_aliases:
                             main_query_tables.add(table.name.lower())
-    
+
     # Find all subqueries in FROM clauses
     subqueries = _get_subqueries_in_from(parsed)
     for subquery, subquery_alias in subqueries:
         if not isinstance(subquery.this, exp.Select):
             continue
-        
+
         # Find which source tables are referenced in this subquery
         subquery_tables = set()
         for table in subquery.this.find_all(exp.Table):
             if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                 subquery_tables.add(table.name.lower())
-        
+
         # Map source tables that are in this subquery but not in main query
         for source_table in source_tables:
             if source_table in subquery_tables and source_table not in main_query_tables:
                 mapping[source_table] = subquery_alias
-    
+
     # Find all CTEs
     ctes = _get_ctes(parsed)
     for cte, cte_alias in ctes:
         # In sqlglot, CTE.this is the SELECT expression
-        cte_select = cte.this if hasattr(cte, 'this') and isinstance(cte.this, exp.Select) else None
+        cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
         if not cte_select:
             # Fallback: check expression attribute
-            cte_select = cte.expression if hasattr(cte, 'expression') else None
+            cte_select = cte.expression if hasattr(cte, "expression") else None
         if not isinstance(cte_select, exp.Select):
             continue
-        
+
         # Find which source tables are referenced in this CTE
         cte_tables = set()
         for table in cte_select.find_all(exp.Table):
             if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                 cte_tables.add(table.name.lower())
-        
+
         # Map source tables that are in this CTE but not in main query
         for source_table in source_tables:
             if source_table in cte_tables and source_table not in main_query_tables:
                 mapping[source_table] = cte_alias
-    
+
     return mapping
 
 
@@ -975,7 +974,7 @@ def _replace_table_references_in_constraint(
     """
     if not table_mapping:
         return constraint_expr
-    
+
     def replace_table(node):
         if isinstance(node, exp.Column):
             table_name = get_table_name_from_column(node)
@@ -988,7 +987,7 @@ def _replace_table_references_in_constraint(
                 )
                 return new_column
         return node
-    
+
     # Transform the expression, replacing all column table references
     # This works for columns both inside and outside aggregation functions
     transformed = constraint_expr.transform(replace_table, copy=True)
@@ -1013,62 +1012,62 @@ def ensure_subqueries_have_constraint_columns(
     """
     # Find all subqueries in FROM clauses
     subqueries = _get_subqueries_in_from(parsed)
-    
+
     for subquery, subquery_alias in subqueries:
         if not isinstance(subquery.this, exp.Select):
             continue
-        
+
         # Find which source tables are referenced in this subquery
         subquery_tables = set()
         for table in subquery.this.find_all(exp.Table):
             if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                 subquery_tables.add(table.name.lower())
-        
+
         # Check if this subquery references any source tables
         referenced_source_tables = subquery_tables & source_tables
         if not referenced_source_tables:
             continue
-        
+
         # For each source table referenced in the subquery, check each policy
         for source_table in referenced_source_tables:
             for policy in policies:
                 if policy.source and policy.source.lower() == source_table:
                     # Use pre-calculated columns needed from the policy
                     needed_columns = policy._source_columns_needed
-                    
+
                     # Add missing columns to the subquery's SELECT list
                     for col_name in needed_columns:
                         _add_column_to_subquery(subquery, source_table, col_name)
-    
+
     # Find all CTEs
     ctes = _get_ctes(parsed)
-    
+
     for cte, cte_alias in ctes:
         # Check if CTE has a SELECT expression
-        cte_select = cte.this if hasattr(cte, 'this') and isinstance(cte.this, exp.Select) else None
+        cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
         if not cte_select:
-            cte_select = cte.expression if hasattr(cte, 'expression') else None
+            cte_select = cte.expression if hasattr(cte, "expression") else None
         if not isinstance(cte_select, exp.Select):
             continue
-        
+
         # Find which source tables are referenced in this CTE
         cte_tables = set()
         for table in cte_select.find_all(exp.Table):
             if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                 cte_tables.add(table.name.lower())
-        
+
         # Check if this CTE references any source tables
         referenced_source_tables = cte_tables & source_tables
         if not referenced_source_tables:
             continue
-        
+
         # For each source table referenced in the CTE, check each policy
         for source_table in referenced_source_tables:
             for policy in policies:
                 if policy.source and policy.source.lower() == source_table:
                     # Use pre-calculated columns needed from the policy
                     needed_columns = policy._source_columns_needed
-                    
+
                     # Add missing columns to the CTE's SELECT list
                     for col_name in needed_columns:
                         _add_column_to_cte(cte, source_table, col_name)
@@ -1101,7 +1100,7 @@ def apply_policy_constraints_to_scan(
     """
     # Build mapping from source tables to subquery/CTE aliases
     table_mapping = _get_source_table_to_alias_mapping(parsed, source_tables)
-    
+
     for policy in policies:
         # Check if policy requires source but source is not present
         # If policy has both source and sink, source must be present in the query
@@ -1113,18 +1112,18 @@ def apply_policy_constraints_to_scan(
             constraint_expr = transform_aggregations_to_columns(
                 policy._constraint_parsed, source_tables
             )
-            
+
             # Replace sink table references with SELECT output column references if needed
             if sink_table and sink_to_output_mapping:
                 constraint_expr = _replace_sink_table_references_in_constraint(
                     constraint_expr, sink_table, sink_to_output_mapping
                 )
-            
+
             # Replace table references with subquery/CTE aliases if needed
             constraint_expr = _replace_table_references_in_constraint(
                 constraint_expr, table_mapping
             )
-        
+
         if policy.on_fail == Resolution.KILL:
             constraint_expr = _wrap_kill_constraint(constraint_expr)
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
@@ -1175,16 +1174,16 @@ def transform_aggregations_to_columns(
     """
     constraint_sql = constraint_expr.sql()
     transformed = sqlglot.parse_one(constraint_sql, read="duckdb")
-    
+
     def replace_agg(node):
         if isinstance(node, exp.AggFunc):
-            agg_name = node.sql_name().upper() if hasattr(node, 'sql_name') else str(node).upper()
+            agg_name = node.sql_name().upper() if hasattr(node, "sql_name") else str(node).upper()
             agg_class = node.__class__.__name__.upper()
-            
+
             columns = list(node.find_all(exp.Column))
-            
-            if agg_name in ('COUNT_IF', 'COUNTIF'):
-                condition = node.this if hasattr(node, 'this') and node.this else None
+
+            if agg_name in ("COUNT_IF", "COUNTIF"):
+                condition = node.this if hasattr(node, "this") and node.this else None
                 if condition:
                     condition_sql = condition.sql()
                     condition_copy = sqlglot.parse_one(condition_sql, read="duckdb")
@@ -1195,44 +1194,40 @@ def transform_aggregations_to_columns(
                         )],
                         default=exp.Literal(this="0", is_string=False)
                     )
-                else:
-                    return exp.Literal(this="1", is_string=False)
-            
+                return exp.Literal(this="1", is_string=False)
+
             count_like_sql_names = {
-                'COUNT', 'COUNT_STAR',
-                'APPROX_DISTINCT',  # APPROX_COUNT_DISTINCT is parsed as APPROX_DISTINCT
-                'REGR_COUNT',
+                "COUNT", "COUNT_STAR",
+                "APPROX_DISTINCT",  # APPROX_COUNT_DISTINCT is parsed as APPROX_DISTINCT
+                "REGR_COUNT",
             }
-            
+
             is_count_with_distinct = (
-                agg_name == 'COUNT' and 
-                hasattr(node, 'distinct') and 
+                agg_name == "COUNT" and
+                hasattr(node, "distinct") and
                 node.distinct
             )
-            
+
             if agg_name in count_like_sql_names or is_count_with_distinct:
                 return exp.Literal(this="1", is_string=False)
-            
+
             # Note: 'list' in DuckDB is not parsed as AggFunc by sqlglot, so we only handle array_agg
-            if agg_name == 'ARRAY_AGG' or agg_class == 'ARRAYAGG':
+            if agg_name == "ARRAY_AGG" or agg_class == "ARRAYAGG":
                 if columns:
                     col = columns[0]
                     col_sql = col.sql()
                     col_copy = sqlglot.parse_one(col_sql, read="duckdb")
                     return exp.Array(expressions=[col_copy])
-                else:
-                    return exp.Array(expressions=[exp.Literal(this="NULL", is_string=False)])
-            
-            else:
-                # This preserves complex expressions like CASE WHEN, function calls, etc.
-                if hasattr(node, 'this') and node.this:
-                    expr_sql = node.this.sql()
-                    expr_copy = sqlglot.parse_one(expr_sql, read="duckdb")
-                    return expr_copy
-                else:
-                    return exp.Literal(this="1", is_string=False)
+                return exp.Array(expressions=[exp.Literal(this="NULL", is_string=False)])
+
+            # This preserves complex expressions like CASE WHEN, function calls, etc.
+            if hasattr(node, "this") and node.this:
+                expr_sql = node.this.sql()
+                expr_copy = sqlglot.parse_one(expr_sql, read="duckdb")
+                return expr_copy
+            return exp.Literal(this="1", is_string=False)
         return node
-    
+
     transformed = transformed.transform(replace_agg, copy=True)
     return transformed
 
@@ -1272,7 +1267,7 @@ def _extract_source_aggregates_from_constraint(
     """
     aggregates = []
     seen = set()
-    
+
     for agg_func in constraint_expr.find_all(exp.AggFunc):
         # Check if this aggregate references the source table directly
         columns = list(agg_func.find_all(exp.Column))
@@ -1282,19 +1277,19 @@ def _extract_source_aggregates_from_constraint(
             if table_name == source_table.lower():
                 has_source_column = True
                 break
-        
+
         if not has_source_column:
             continue
-        
+
         # Check if this aggregate is nested inside another aggregate
         # by checking if its parent is an AggFunc
         parent = agg_func.parent
         is_nested = isinstance(parent, exp.AggFunc)
-        
+
         # Check if this aggregate wraps another aggregate (it's an outer aggregate)
         # In sqlglot, nested aggregates have the inner aggregate as the 'this' attribute
-        has_nested_agg = hasattr(agg_func, 'this') and isinstance(agg_func.this, exp.AggFunc)
-        
+        has_nested_agg = hasattr(agg_func, "this") and isinstance(agg_func.this, exp.AggFunc)
+
         if is_nested and not has_nested_agg:
             # This is nested inside another aggregate and doesn't wrap another aggregate
             # So it's the innermost one we want
@@ -1311,7 +1306,7 @@ def _extract_source_aggregates_from_constraint(
                 seen.add(agg_sql)
                 agg_copy = sqlglot.parse_one(agg_sql, read="duckdb")
                 aggregates.append(agg_copy)
-    
+
     return aggregates
 
 
@@ -1335,19 +1330,18 @@ def _find_outer_aggregate_for_inner(
     for agg_func in constraint_expr.find_all(exp.AggFunc):
         # Check if this aggregate wraps the inner aggregate
         # In sqlglot, nested aggregates have the inner aggregate as the 'this' attribute
-        if hasattr(agg_func, 'this') and isinstance(agg_func.this, exp.AggFunc):
+        if hasattr(agg_func, "this") and isinstance(agg_func.this, exp.AggFunc):
             # Check if the inner aggregate matches
             inner_agg_in_expr = agg_func.this
             if inner_agg_in_expr.sql().upper() == inner_agg_sql.upper():
                 # This aggregate wraps the inner one - return its function name
                 # The function name is the class name (Max, Min, etc.) or sql_name()
-                if hasattr(agg_func, 'sql_name'):
+                if hasattr(agg_func, "sql_name"):
                     return agg_func.sql_name().upper()
-                else:
-                    # Use class name (Max -> MAX, Min -> MIN, etc.)
-                    class_name = type(agg_func).__name__
-                    return class_name.upper()
-    
+                # Use class name (Max -> MAX, Min -> MIN, etc.)
+                class_name = type(agg_func).__name__
+                return class_name.upper()
+
     return None
 
 
@@ -1368,20 +1362,20 @@ def _extract_sink_expressions_from_constraint(
     """
     expressions = []
     seen = set()
-    
+
     # First, find all aggregate functions that reference the sink table
     # This handles cases like sum(irs_form) where irs_form is unqualified
     for agg_func in constraint_expr.find_all(exp.AggFunc):
         # Check if this aggregate references the sink table
         references_sink = False
-        
+
         # Check the direct argument to the aggregate (agg_func.this)
-        if hasattr(agg_func, 'this'):
+        if hasattr(agg_func, "this"):
             this_expr = agg_func.this
             if isinstance(this_expr, exp.Column):
                 table_name = get_table_name_from_column(this_expr)
                 col_name = get_column_name(this_expr).lower()
-                
+
                 # Check if column references sink table (qualified or unqualified match)
                 if table_name == sink_table.lower():
                     references_sink = True
@@ -1390,7 +1384,7 @@ def _extract_sink_expressions_from_constraint(
                     # The direct argument to an aggregate is never inside a FILTER clause
                     # (FILTER is a separate attribute of the aggregate, not a parent of 'this')
                     references_sink = True
-        
+
         # Also check other columns in the aggregate (for cases where sink table is referenced elsewhere)
         if not references_sink:
             columns = list(agg_func.find_all(exp.Column))
@@ -1401,7 +1395,7 @@ def _extract_sink_expressions_from_constraint(
                     if column.find_ancestor(exp.Filter) is None:
                         references_sink = True
                         break
-        
+
         if references_sink:
             # Extract the whole aggregate (including FILTER clause if present)
             # If the aggregate is wrapped in a FILTER, extract the Filter node instead
@@ -1420,7 +1414,7 @@ def _extract_sink_expressions_from_constraint(
                     seen.add(agg_sql)
                     agg_copy = sqlglot.parse_one(agg_sql, read="duckdb")
                     expressions.append(agg_copy)
-    
+
     # Also find non-aggregate columns that reference the sink table
     # Skip columns that are already part of aggregates we extracted (including those in FILTER clauses)
     for column in constraint_expr.find_all(exp.Column):
@@ -1438,11 +1432,11 @@ def _extract_sink_expressions_from_constraint(
                         continue
                 if agg_sql in seen:
                     continue
-            
+
             # Skip columns inside FILTER clauses - they're part of the filter condition, not standalone expressions
             if column.find_ancestor(exp.Filter) is not None:
                 continue
-            
+
             # This is a regular sink column (not in an aggregate)
             col_sql = column.sql()
             if sink_to_output_mapping:
@@ -1454,12 +1448,12 @@ def _extract_sink_expressions_from_constraint(
                         this=exp.Identifier(this=output_col_name, quoted=False)
                     )
                     col_sql = col_expr.sql()
-            
+
             if col_sql not in seen:
                 seen.add(col_sql)
                 col_copy = sqlglot.parse_one(col_sql, read="duckdb")
                 expressions.append(col_copy)
-    
+
     return expressions
 
 
@@ -1480,18 +1474,18 @@ def _add_temp_column_to_select(
     # Create a fresh copy of the expression to avoid mutability issues
     expr_sql = expr.sql()
     expr_copy = sqlglot.parse_one(expr_sql, read="duckdb")
-    
+
     # Check if this is a scan query (no GROUP BY, no aggregations in main SELECT)
     # For scan queries, FILTER clauses in aggregates can't reference SELECT output columns
     # We need to convert FILTER to CASE expression
-    has_group_by = parsed.args.get('group') is not None
+    has_group_by = parsed.args.get("group") is not None
     is_scan_query = not has_group_by and not any(
-        isinstance(e, exp.AggFunc) or 
+        isinstance(e, exp.AggFunc) or
         (isinstance(e, exp.Alias) and isinstance(e.this, exp.AggFunc))
         for e in parsed.expressions
         if not isinstance(e, exp.Alias) or not isinstance(e.this, exp.Subquery)
     )
-    
+
     # If it's a scan query and we have a Filter-wrapped aggregate, handle it specially
     # For scan queries, we can't use aggregates in SELECT without GROUP BY
     # We also can't reference SELECT output columns in the condition
@@ -1500,11 +1494,11 @@ def _add_temp_column_to_select(
         agg_func = expr_copy.this
         if isinstance(agg_func, exp.AggFunc):
             where_expr = expr_copy.expression  # This is a Where expression
-            condition = where_expr.this if hasattr(where_expr, 'this') else where_expr
-            
+            condition = where_expr.this if hasattr(where_expr, "this") else where_expr
+
             # Get the aggregate argument (e.g., 'amount' from SUM(amount))
-            agg_arg = agg_func.this if hasattr(agg_func, 'this') else exp.Literal(this="1", is_string=False)
-            
+            agg_arg = agg_func.this if hasattr(agg_func, "this") else exp.Literal(this="1", is_string=False)
+
             # Check if condition references SELECT output columns (unqualified columns that are in SELECT)
             # Get all SELECT output column names (aliases or column names)
             select_output_cols = set()
@@ -1519,12 +1513,12 @@ def _add_temp_column_to_select(
                 elif isinstance(expr, exp.Column):
                     col_name = get_column_name(expr).lower()
                     select_output_cols.add(col_name)
-            
+
             # Check if condition references any SELECT output columns
-            condition_cols = [get_column_name(col).lower() for col in condition.find_all(exp.Column) 
+            condition_cols = [get_column_name(col).lower() for col in condition.find_all(exp.Column)
                              if not get_table_name_from_column(col)]  # Unqualified columns
             references_select_output = any(col in select_output_cols for col in condition_cols)
-            
+
             if references_select_output:
                 # Replace SELECT output column references with their actual values/expressions
                 # Build mapping from output column names to their expressions
@@ -1541,7 +1535,7 @@ def _add_temp_column_to_select(
                     elif isinstance(expr, exp.Column):
                         col_name = get_column_name(expr).lower()
                         output_col_to_expr[col_name] = expr
-                
+
                 # Replace column references in condition with their actual expressions
                 def replace_output_col_refs(node):
                     if isinstance(node, exp.Column):
@@ -1551,12 +1545,12 @@ def _add_temp_column_to_select(
                         if not table_name and col_name in output_col_to_expr:
                             # Replace with the actual expression/value
                             replacement = output_col_to_expr[col_name]
-                            
+
                             # If replacement is a Literal, use it directly
                             if isinstance(replacement, exp.Literal):
                                 # Create a fresh copy
                                 return exp.Literal(this=replacement.this, is_string=replacement.is_string)
-                            
+
                             # If replacement is a Column that's actually a quoted string literal,
                             # extract the value and create a proper Literal
                             if isinstance(replacement, exp.Column):
@@ -1564,10 +1558,10 @@ def _add_temp_column_to_select(
                                 col_identifier = replacement.this
                                 if isinstance(col_identifier, exp.Identifier):
                                     # Extract the name (which might be the string value)
-                                    str_value = col_identifier.name if hasattr(col_identifier, 'name') else str(col_identifier)
+                                    str_value = col_identifier.name if hasattr(col_identifier, "name") else str(col_identifier)
                                     # Create a proper string literal
                                     return exp.Literal(this=str_value, is_string=True)
-                            
+
                             # For other expression types, create a fresh copy
                             replacement_sql = replacement.sql()
                             # Parse as an expression (not a full statement)
@@ -1578,10 +1572,10 @@ def _add_temp_column_to_select(
                                 return parsed_replacement.this
                             return parsed_replacement
                     return node
-                
+
                 # Transform the condition to replace output column references
                 condition_replaced = condition.transform(replace_output_col_refs, copy=True)
-                
+
                 # Now use the replaced condition in CASE expression
                 case_expr = exp.Case(
                     ifs=[exp.If(this=condition_replaced, true=agg_arg)],
@@ -1595,7 +1589,7 @@ def _add_temp_column_to_select(
                     default=exp.Literal(this="0", is_string=False)
                 )
                 expr_copy = case_expr
-    
+
     # Check if expression references columns that need to be accessible
     # If it's a Filter-wrapped aggregate (for aggregation queries), ensure filter columns are accessible
     if isinstance(expr_copy, exp.Filter):
@@ -1604,13 +1598,13 @@ def _add_temp_column_to_select(
         # Ensure these columns are accessible in the SELECT context
         if source_tables:
             ensure_columns_accessible(parsed, expr_copy, source_tables)
-    
+
     # Create alias
     alias = exp.Alias(
         this=expr_copy,
         alias=exp.Identifier(this=column_name, quoted=False)
     )
-    
+
     # Add to SELECT list
     parsed.expressions.append(alias)
 
@@ -1637,18 +1631,18 @@ def apply_aggregate_policy_constraints_to_aggregation(
     for policy in policies:
         policy_id = get_policy_identifier(policy)
         temp_col_counter = 1
-        
+
         # Extract and add source aggregates
         if policy.source and policy.source.lower() in source_tables:
             source_aggregates = _extract_source_aggregates_from_constraint(
                 policy._constraint_parsed, policy.source
             )
-            
+
             for agg_expr in source_aggregates:
                 temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
                 _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
                 temp_col_counter += 1
-        
+
         # Extract and add sink expressions
         if policy.sink and sink_table and policy.sink.lower() == sink_table.lower():
             # Extract sink expressions BEFORE replacement (they need to reference the sink table)
@@ -1656,7 +1650,7 @@ def apply_aggregate_policy_constraints_to_aggregation(
             sink_expressions = _extract_sink_expressions_from_constraint(
                 constraint_expr_orig, sink_table, sink_to_output_mapping
             )
-            
+
             for sink_expr in sink_expressions:
                 # Replace sink table references in the expression (including FILTER clauses)
                 # This is needed because sink table columns need to reference SELECT output columns
@@ -1664,7 +1658,7 @@ def apply_aggregate_policy_constraints_to_aggregation(
                     sink_expr = _replace_sink_table_references_in_constraint(
                         sink_expr, sink_table, sink_to_output_mapping
                     )
-                
+
                 temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
                 _add_temp_column_to_select(parsed, sink_expr, temp_col_name, source_tables)
                 temp_col_counter += 1
@@ -1692,18 +1686,18 @@ def apply_aggregate_policy_constraints_to_scan(
     for policy in policies:
         policy_id = get_policy_identifier(policy)
         temp_col_counter = 1
-        
+
         # Extract and add source aggregates (still need inner aggregation in scan queries)
         if policy.source and policy.source.lower() in source_tables:
             source_aggregates = _extract_source_aggregates_from_constraint(
                 policy._constraint_parsed, policy.source
             )
-            
+
             for agg_expr in source_aggregates:
                 temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
                 _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
                 temp_col_counter += 1
-        
+
         # Extract and add sink expressions
         if policy.sink and sink_table and policy.sink.lower() == sink_table.lower():
             # Extract sink expressions BEFORE replacement (they need to reference the sink table)
@@ -1711,7 +1705,7 @@ def apply_aggregate_policy_constraints_to_scan(
             sink_expressions = _extract_sink_expressions_from_constraint(
                 constraint_expr_orig, sink_table, sink_to_output_mapping
             )
-            
+
             for sink_expr in sink_expressions:
                 # Replace sink table references in the expression (including FILTER clauses)
                 # This is needed because sink table columns need to reference SELECT output columns
@@ -1719,7 +1713,7 @@ def apply_aggregate_policy_constraints_to_scan(
                     sink_expr = _replace_sink_table_references_in_constraint(
                         sink_expr, sink_table, sink_to_output_mapping
                     )
-                
+
                 temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
                 _add_temp_column_to_select(parsed, sink_expr, temp_col_name, source_tables)
                 temp_col_counter += 1

@@ -4,10 +4,11 @@ Create Policies page for SBO Tax Agent.
 Allows defining data flow control policies.
 """
 
-import streamlit as st
-from sql_rewriter import DFCPolicy, AggregateDFCPolicy
-import db
 import pandas as pd
+from sql_rewriter import AggregateDFCPolicy, DFCPolicy
+import streamlit as st
+
+import db
 
 st.set_page_config(
     page_title="Create Policies - SBO Tax Agent",
@@ -20,7 +21,7 @@ st.header("Create Policies")
 try:
     rewriter = db.get_db_connection()
 except Exception as e:
-    st.error(f"Failed to connect to database: {str(e)}")
+    st.error(f"Failed to connect to database: {e!s}")
     st.stop()
 
 
@@ -28,9 +29,9 @@ except Exception as e:
 st.subheader("Registered Policies")
 
 # Initialize session state for editing
-if 'editing_policy_index' not in st.session_state:
+if "editing_policy_index" not in st.session_state:
     st.session_state.editing_policy_index = None
-if 'editing_policy_text' not in st.session_state:
+if "editing_policy_text" not in st.session_state:
     st.session_state.editing_policy_text = ""
 
 # Get the list of registered policies (both regular and aggregate)
@@ -40,9 +41,9 @@ aggregate_policies = rewriter.get_aggregate_policies()
 # Combine all policies into a single list with type information
 all_policies = []
 for policy in regular_policies:
-    all_policies.append(('regular', policy))
+    all_policies.append(("regular", policy))
 for policy in aggregate_policies:
-    all_policies.append(('aggregate', policy))
+    all_policies.append(("aggregate", policy))
 
 def build_policy_text(policy, include_description=False):
     """Build policy string from policy object.
@@ -63,7 +64,7 @@ def build_policy_text(policy, include_description=False):
     parts.append(f"ON FAIL {policy.on_fail.value}")
     if include_description and policy.description:
         parts.append(f"DESCRIPTION {policy.description}")
-    return ' '.join(parts)
+    return " ".join(parts)
 
 if not all_policies:
     st.info("No policies registered yet. Create a policy using the form below.")
@@ -72,7 +73,7 @@ else:
     for idx, (policy_type, policy) in enumerate(all_policies):
         # Build policy string for display (without description, shown separately)
         policy_text = build_policy_text(policy, include_description=False)
-        
+
         # Check if this policy is being edited
         if st.session_state.editing_policy_index == idx:
             # Show editable text area
@@ -82,34 +83,34 @@ else:
                 key=f"edit_text_{idx}",
                 height=100
             )
-            
+
             col1, col2 = st.columns([1, 10])
             with col1:
                 if st.button("✓", key=f"confirm_{idx}"):
                     try:
                         # Parse the new policy - determine type from the text
                         edited_text_normalized = edited_text.strip().upper()
-                        is_aggregate = edited_text_normalized.startswith('AGGREGATE') or ' AGGREGATE ' in edited_text_normalized
-                        
+                        is_aggregate = edited_text_normalized.startswith("AGGREGATE") or " AGGREGATE " in edited_text_normalized
+
                         if is_aggregate:
                             new_policy = AggregateDFCPolicy.from_policy_str(edited_text)
                         else:
                             new_policy = DFCPolicy.from_policy_str(edited_text)
-                        
+
                         # Get all current policies before making changes
                         all_regular = rewriter.get_dfc_policies()
                         all_aggregate = rewriter.get_aggregate_policies()
-                        
+
                         # Build list of all policies with their types
                         all_current = []
                         for p in all_regular:
-                            all_current.append(('regular', p))
+                            all_current.append(("regular", p))
                         for p in all_aggregate:
-                            all_current.append(('aggregate', p))
-                        
+                            all_current.append(("aggregate", p))
+
                         # Get policies that come after the one we're editing
                         policies_after = all_current[idx + 1:] if idx + 1 < len(all_current) else []
-                        
+
                         # Delete policies from the end backwards to avoid index shifting issues
                         # First delete all policies that come after (in reverse order)
                         for p_type, p in reversed(policies_after):
@@ -120,7 +121,7 @@ else:
                                 on_fail=p.on_fail,
                                 description=p.description
                             )
-                        
+
                         # Delete the old policy
                         deleted = rewriter.delete_policy(
                             source=policy.source,
@@ -129,27 +130,27 @@ else:
                             on_fail=policy.on_fail,
                             description=policy.description
                         )
-                        
+
                         if not deleted:
                             st.error("Failed to delete old policy")
                         else:
                             # Register the new policy (this puts it at the end, which is position idx now)
                             rewriter.register_policy(new_policy)
-                            
+
                             # Re-register the policies that came after (in original order)
                             for p_type, p in policies_after:
                                 rewriter.register_policy(p)
-                            
+
                             st.session_state.editing_policy_index = None
                             st.session_state.editing_policy_text = ""
                             st.success("Policy updated successfully!")
                             st.rerun()
-                            
+
                     except ValueError as e:
-                        st.error(f"Parsing error: {str(e)}")
+                        st.error(f"Parsing error: {e!s}")
                     except Exception as e:
-                        st.error(f"Error updating policy: {str(e)}")
-            
+                        st.error(f"Error updating policy: {e!s}")
+
             with col2:
                 if st.button("✗", key=f"cancel_{idx}"):
                     st.session_state.editing_policy_index = None
@@ -163,7 +164,7 @@ else:
                     st.session_state.editing_policy_index = idx
                     st.session_state.editing_policy_text = build_policy_text(policy, include_description=True)
                     st.rerun()
-            
+
             with col2:
                 # Display policy with description if available
                 if policy.description:
@@ -210,17 +211,17 @@ if st.button("Create Policy"):
                 policy = AggregateDFCPolicy.from_policy_str(policy_text)
             else:
                 policy = DFCPolicy.from_policy_str(policy_text)
-            
+
             # Register the policy (this will validate against database)
             rewriter.register_policy(policy)
-            
+
             st.success("Policy created and registered successfully!")
             st.rerun()
-            
+
         except ValueError as e:
-            st.error(f"Parsing error: {str(e)}")
+            st.error(f"Parsing error: {e!s}")
         except Exception as e:
-            st.error(f"Unexpected error: {str(e)}")
+            st.error(f"Unexpected error: {e!s}")
 
 # Display database schema
 st.subheader("Database Schema")
@@ -238,9 +239,9 @@ try:
             AND table_name != 'agent_logs'
         ORDER BY table_name, ordinal_position
     """
-    
+
     result = rewriter.conn.execute(schema_query).fetchall()
-    
+
     if result:
         # Group columns by table
         schema_data = {}
@@ -248,7 +249,7 @@ try:
             if table_name not in schema_data:
                 schema_data[table_name] = []
             schema_data[table_name].append(f"{column_name} ({data_type})")
-        
+
         # Create dataframe with table names and their columns
         df_data = []
         for table_name in sorted(schema_data.keys()):
@@ -257,11 +258,11 @@ try:
                 "Table": table_name,
                 "Columns": columns_str
             })
-        
+
         df = pd.DataFrame(df_data)
-        st.dataframe(df, width='stretch', hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
     else:
         st.info("No tables found in the database.")
 except Exception as e:
-    st.warning(f"Could not load database schema: {str(e)}")
+    st.warning(f"Could not load database schema: {e!s}")
 

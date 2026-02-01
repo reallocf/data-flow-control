@@ -3,13 +3,15 @@
 Example script demonstrating violating row handling with bank transaction data.
 """
 
-import duckdb
 import os
-import tempfile
 from pathlib import Path
+import tempfile
+
+import duckdb
 
 # Import local DuckDB setup (must be before duckdb import)
 import use_local_duckdb
+
 use_local_duckdb.setup_local_duckdb()
 
 # Get project root to find extension and data files
