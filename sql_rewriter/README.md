@@ -28,6 +28,15 @@ To install with development dependencies (including pytest):
 uv sync --extra dev
 ```
 
+## Linting and Tests
+
+Run from the `sql_rewriter` directory.
+
+```bash
+python3 -m ruff check .
+uv run pytest
+```
+
 ### Using Local DuckDB Build
 
 If you want to use a locally built DuckDB from the `extended_duckdb` submodule (which includes custom extensions), you have several options:
@@ -387,4 +396,3 @@ The rewriter uses `sqlglot` for SQL parsing and transformation. Key areas for ex
 - Additional aggregation transformations in `transform_aggregations_to_columns()`
 - New policy validation rules in `DFCPolicy._validate()`
 - Support for more SQL features (window functions, recursive CTEs, etc.)
-

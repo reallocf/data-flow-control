@@ -3,15 +3,15 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 import time
-from typing import Any, Dict
+from typing import Any
 
 
 @contextmanager
-def time_execution() -> Generator[Dict[str, float], None, None]:
+def time_execution() -> Generator[dict[str, float], None, None]:
     """Context manager for timing code execution.
-    
+
     Yields a dictionary with 'duration_ms' key containing execution time in milliseconds.
-    
+
     Example:
         with time_execution() as timing:
             # code to time
@@ -27,9 +27,9 @@ def time_execution() -> Generator[Dict[str, float], None, None]:
         timing["duration_ms"] = (end - start) * 1000.0
 
 
-def collect_memory_usage() -> Dict[str, float]:
+def collect_memory_usage() -> dict[str, float]:
     """Collect current memory usage.
-    
+
     Returns:
         Dictionary with 'memory_mb' key containing memory usage in MB.
         Returns empty dict if psutil is not available.
@@ -45,12 +45,12 @@ def collect_memory_usage() -> Dict[str, float]:
         return {}
 
 
-def count_query_results(cursor: Any) -> Dict[str, int]:
+def count_query_results(cursor: Any) -> dict[str, int]:
     """Count rows returned by a database query cursor.
-    
+
     Args:
         cursor: Database cursor with query results
-        
+
     Returns:
         Dictionary with 'rows_returned' key containing row count.
     """

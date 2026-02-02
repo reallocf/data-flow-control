@@ -8,6 +8,7 @@ Wraps the connection with SQLRewriter for policy enforcement.
 Uses a global shared DuckDB instance that persists across all Streamlit sessions.
 """
 
+import contextlib
 import os
 from pathlib import Path
 import threading
@@ -45,17 +46,17 @@ _db_lock = threading.Lock()
 
 def get_db_connection(tax_return_path=None, form_1099_k_path=None, bank_txn_path=None, policies_path=None):
     """Get or create the global shared DuckDB connection for the app.
-    
+
     Uses a single in-memory database instance that persists across all Streamlit sessions.
     The connection is wrapped with SQLRewriter for policy enforcement.
     Thread-safe initialization ensures only one connection is created.
-    
+
     Args:
         tax_return_path: Optional path to tax_return CSV file to load on initialization
         form_1099_k_path: Optional path to form_1099_k CSV file to load on initialization
         bank_txn_path: Optional path to bank_txn CSV file to load on initialization
         policies_path: Optional path to policies CSV file to load on initialization
-    
+
     Returns:
         SQLRewriter: The SQLRewriter instance wrapping the DuckDB connection
     """
@@ -130,13 +131,13 @@ def get_db_connection(tax_return_path=None, form_1099_k_path=None, bank_txn_path
 
 def initialize_tables(conn):
     """Initialize all database tables.
-    
+
     Creates the following tables:
     1. tax_return - One row per (person, tax year) return
     2. bank_txn - Raw transactions (bank + credit card)
     3. form_1099_k - 1099-Ks (raw), one row per reported amount
     4. irs_form - Transaction-level Schedule C staging for human review
-    
+
     Args:
         conn: DuckDB connection
     """
@@ -191,7 +192,7 @@ def initialize_tables(conn):
 
 def load_dataframe_to_table(rewriter, df, table_name):
     """Load a pandas DataFrame into a DuckDB table, replacing existing data.
-    
+
     Args:
         rewriter: SQLRewriter instance
         df: pandas DataFrame to load
@@ -209,19 +210,17 @@ def load_dataframe_to_table(rewriter, df, table_name):
         rewriter.conn.execute(f"INSERT INTO {table_name} SELECT * FROM {temp_view_name}")
     finally:
         # Always unregister the temporary view
-        try:
+        with contextlib.suppress(BaseException):
             rewriter.conn.unregister(temp_view_name)
-        except:
-            pass  # Ignore if unregister fails
 
 
 def get_table_row_count(rewriter, table_name):
     """Get the number of rows in a table.
-    
+
     Args:
         rewriter: SQLRewriter instance
         table_name: Name of the table
-        
+
     Returns:
         int: Number of rows in the table
     """
@@ -231,18 +230,18 @@ def get_table_row_count(rewriter, table_name):
 
 def load_data_from_files(rewriter, tax_return_path=None, form_1099_k_path=None, bank_txn_path=None):
     """Load CSV files into database tables with schema validation.
-    
+
     Validates schemas match expected table schemas and fails hard on any errors.
-    
+
     Args:
         rewriter: SQLRewriter instance
         tax_return_path: Optional path to tax_return CSV file
         form_1099_k_path: Optional path to form_1099_k CSV file
         bank_txn_path: Optional path to bank_txn CSV file
-    
+
     Returns:
         dict: Dictionary with keys 'tax_return', 'form_1099_k', 'bank_txn' containing loaded DataFrames
-    
+
     Raises:
         FileNotFoundError: If a provided file path doesn't exist
         ValueError: If schema validation fails
@@ -304,16 +303,16 @@ def load_data_from_files(rewriter, tax_return_path=None, form_1099_k_path=None, 
 
 def load_policies_from_file(rewriter, policies_path):
     """Load policies from a CSV file and register them.
-    
+
     The CSV file should have a 'policy' column with policy statements
     in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
     Optionally, the CSV can have a separate 'description' column that will be used if DESCRIPTION
     is not present in the policy string.
-    
+
     Args:
         rewriter: SQLRewriter instance
         policies_path: Path to policies CSV file
-    
+
     Raises:
         FileNotFoundError: If the file doesn't exist
         ValueError: If the CSV format is invalid or policies cannot be parsed
@@ -361,8 +360,8 @@ def load_policies_from_file(rewriter, policies_path):
             except Exception as e:
                 raise Exception(f"Failed to register policy at row {idx + 2} in {policies_path}: {e!s}") from e
 
-    except pd.errors.EmptyDataError:
-        raise ValueError(f"Policies file {policies_path} is empty")
+    except pd.errors.EmptyDataError as e:
+        raise ValueError(f"Policies file {policies_path} is empty") from e
     except Exception as e:
         if isinstance(e, (FileNotFoundError, ValueError)):
             raise
@@ -371,7 +370,7 @@ def load_policies_from_file(rewriter, policies_path):
 
 def save_agent_logs(rewriter, txn_id, logs):
     """Save agent interaction logs for a transaction to the database.
-    
+
     Args:
         rewriter: SQLRewriter instance
         txn_id: Transaction ID (will be converted to int)
@@ -401,10 +400,10 @@ def save_agent_logs(rewriter, txn_id, logs):
 
 def load_agent_logs(rewriter):
     """Load all agent interaction logs from the database.
-    
+
     Args:
         rewriter: SQLRewriter instance
-        
+
     Returns:
         dict: Dictionary mapping txn_id (as int) to list of log strings
     """
@@ -413,7 +412,7 @@ def load_agent_logs(rewriter):
     ).fetchall()
 
     logs_dict = {}
-    for txn_id, log_line, log_order in result:
+    for txn_id, log_line, _log_order in result:
         # Ensure txn_id is int for consistency
         txn_id_int = int(txn_id) if txn_id is not None else 0
         if txn_id_int not in logs_dict:
@@ -421,4 +420,3 @@ def load_agent_logs(rewriter):
         logs_dict[txn_id_int].append(log_line)
 
     return logs_dict
-

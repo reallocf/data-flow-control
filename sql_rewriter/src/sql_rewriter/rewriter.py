@@ -22,8 +22,8 @@ from .rewrite_rule import (
     apply_policy_constraints_to_scan,
     ensure_subqueries_have_constraint_columns,
     get_policy_identifier,
-    rewrite_in_subqueries_as_joins,
     rewrite_exists_subqueries_as_joins,
+    rewrite_in_subqueries_as_joins,
     wrap_query_with_limit_in_cte_for_remove_policy,
 )
 from .sqlglot_utils import get_column_name, get_table_name_from_column
@@ -73,9 +73,8 @@ class SQLRewriter:
 
         # Stream file for LLM-fixed rows
         if stream_file_path is None:
-            stream_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt")
-            self._stream_file_path = stream_file.name
-            stream_file.close()
+            with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as stream_file:
+                self._stream_file_path = stream_file.name
         else:
             self._stream_file_path = stream_file_path
 
@@ -214,19 +213,23 @@ class SQLRewriter:
                         )
 
                         insert_has_valid = False
-                        if hasattr(parsed, "this") and isinstance(parsed.this, exp.Schema):
-                            if hasattr(parsed.this, "expressions") and parsed.this.expressions:
-                                for col in parsed.this.expressions:
-                                    col_name = None
-                                    if isinstance(col, exp.Identifier):
-                                        col_name = col.name.lower()
-                                    elif isinstance(col, exp.Column):
-                                        col_name = get_column_name(col).lower()
-                                    elif isinstance(col, str):
-                                        col_name = col.lower()
-                                    if col_name == "valid":
-                                        insert_has_valid = True
-                                        break
+                        if (
+                            hasattr(parsed, "this")
+                            and isinstance(parsed.this, exp.Schema)
+                            and hasattr(parsed.this, "expressions")
+                            and parsed.this.expressions
+                        ):
+                            for col in parsed.this.expressions:
+                                col_name = None
+                                if isinstance(col, exp.Identifier):
+                                    col_name = col.name.lower()
+                                elif isinstance(col, exp.Column):
+                                    col_name = get_column_name(col).lower()
+                                elif isinstance(col, str):
+                                    col_name = col.lower()
+                                if col_name == "valid":
+                                    insert_has_valid = True
+                                    break
 
                         if self._has_aggregations(select_expr):
                             apply_policy_constraints_to_aggregation(
@@ -362,7 +365,7 @@ class SQLRewriter:
             ).fetchall()
             return {row[0].lower() for row in result}
         except Exception as e:
-            raise ValueError(f"Failed to get columns for table '{table_name}': {e}")
+            raise ValueError(f"Failed to get columns for table '{table_name}': {e}") from e
 
     def _create_aggregate_function(self, func_name: str, expressions: list[exp.Expression]) -> exp.AggFunc:
         """Create an aggregate function expression using the proper sqlglot class.
@@ -439,7 +442,7 @@ class SQLRewriter:
             ).fetchone()
             return result[0].upper() if result else None
         except Exception as e:
-            raise ValueError(f"Failed to get column type for '{table_name}.{column_name}': {e}")
+            raise ValueError(f"Failed to get column type for '{table_name}.{column_name}': {e}") from e
 
     def _validate_table_exists(self, table_name: str, table_type: str) -> None:
         """Validate that a table exists in the database.
@@ -561,10 +564,14 @@ class SQLRewriter:
 
                 # 2. Columns that are direct arguments to aggregate functions AND match sink table name
                 parent = column.parent
-                if isinstance(parent, exp.AggFunc):
-                    if hasattr(parent, "this") and parent.this == column:
-                        if policy.sink and col_name == policy.sink.lower():
-                            continue
+                if (
+                    isinstance(parent, exp.AggFunc)
+                    and hasattr(parent, "this")
+                    and parent.this == column
+                    and policy.sink
+                    and col_name == policy.sink.lower()
+                ):
+                    continue
 
                 # Otherwise, it's an unqualified column that should be flagged
                 raise ValueError(
@@ -791,7 +798,7 @@ class SQLRewriter:
                             break
 
                 # Replace expressions in the tree
-                def replace_node(node):
+                def replace_node(node, expr_replacement_map=expr_replacement_map):
                     """Replace nodes that are in the replacement map."""
                     if node in expr_replacement_map:
                         return expr_replacement_map[node]
@@ -924,10 +931,13 @@ class SQLRewriter:
             - Table.name is always a string (not an Identifier)
             """
             # Handle Schema objects (when INSERT has column list: INSERT INTO table (col1, col2))
-            if isinstance(table_expr, exp.Schema):
+            if (
+                isinstance(table_expr, exp.Schema)
+                and hasattr(table_expr, "this")
+                and isinstance(table_expr.this, exp.Table)
+            ):
                 # Schema.this contains the Table
-                if hasattr(table_expr, "this") and isinstance(table_expr.this, exp.Table):
-                    return _extract_table_name(table_expr.this)
+                return _extract_table_name(table_expr.this)
 
             # Handle Table expressions
             if isinstance(table_expr, exp.Table):
@@ -1009,15 +1019,19 @@ class SQLRewriter:
         insert_columns = []
 
         # When INSERT has column list, parsed.this is a Schema and columns are in Schema.expressions
-        if hasattr(insert_parsed, "this") and isinstance(insert_parsed.this, exp.Schema):
-            if hasattr(insert_parsed.this, "expressions") and insert_parsed.this.expressions:
-                for col in insert_parsed.this.expressions:
-                    if isinstance(col, exp.Identifier):
-                        insert_columns.append(col.name.lower())
-                    elif isinstance(col, exp.Column):
-                        insert_columns.append(get_column_name(col).lower())
-                    elif isinstance(col, str):
-                        insert_columns.append(col.lower())
+        if (
+            hasattr(insert_parsed, "this")
+            and isinstance(insert_parsed.this, exp.Schema)
+            and hasattr(insert_parsed.this, "expressions")
+            and insert_parsed.this.expressions
+        ):
+            for col in insert_parsed.this.expressions:
+                if isinstance(col, exp.Identifier):
+                    insert_columns.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    insert_columns.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    insert_columns.append(col.lower())
 
         # Check for columns attribute (common in sqlglot)
         if not insert_columns and hasattr(insert_parsed, "columns") and insert_parsed.columns:
@@ -1089,23 +1103,27 @@ class SQLRewriter:
         """
         # Check if INSERT has an explicit column list
         # When INSERT has column list, parsed.this is a Schema and columns are in Schema.expressions
-        if hasattr(insert_parsed, "this") and isinstance(insert_parsed.this, exp.Schema):
-            if hasattr(insert_parsed.this, "expressions") and insert_parsed.this.expressions:
-                # Check if 'valid' is already in the column list
-                column_names = []
-                for col in insert_parsed.this.expressions:
-                    if isinstance(col, exp.Identifier):
-                        column_names.append(col.name.lower())
-                    elif isinstance(col, exp.Column):
-                        column_names.append(get_column_name(col).lower())
-                    elif isinstance(col, str):
-                        column_names.append(col.lower())
+        if (
+            hasattr(insert_parsed, "this")
+            and isinstance(insert_parsed.this, exp.Schema)
+            and hasattr(insert_parsed.this, "expressions")
+            and insert_parsed.this.expressions
+        ):
+            # Check if 'valid' is already in the column list
+            column_names = []
+            for col in insert_parsed.this.expressions:
+                if isinstance(col, exp.Identifier):
+                    column_names.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    column_names.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    column_names.append(col.lower())
 
-                # Add 'valid' column if not already present
-                if "valid" not in column_names:
-                    valid_identifier = exp.Identifier(this="valid", quoted=False)
-                    insert_parsed.this.expressions.append(valid_identifier)
-                return
+            # Add 'valid' column if not already present
+            if "valid" not in column_names:
+                valid_identifier = exp.Identifier(this="valid", quoted=False)
+                insert_parsed.this.expressions.append(valid_identifier)
+            return
 
         # Check for columns attribute (common in sqlglot)
         if hasattr(insert_parsed, "columns") and insert_parsed.columns:
@@ -1128,7 +1146,7 @@ class SQLRewriter:
     def _add_aggregate_temp_columns_to_insert(
         self,
         insert_parsed: exp.Insert,
-        policies: list[AggregateDFCPolicy],
+        _policies: list[AggregateDFCPolicy],
         select_parsed: exp.Select
     ) -> None:
         """Add aggregate policy temp columns to INSERT column list.
@@ -1148,32 +1166,35 @@ class SQLRewriter:
             if isinstance(expr, exp.Alias):
                 alias_name = get_column_name(expr.alias).lower()
                 # Check if this is a temp column (starts with _policy_ and ends with _tmpN)
-                if alias_name.startswith("_policy_") and "_tmp" in alias_name:
-                    if alias_name not in seen:
-                        temp_column_names.append(alias_name)
-                        seen.add(alias_name)
+                if alias_name.startswith("_policy_") and "_tmp" in alias_name and alias_name not in seen:
+                    temp_column_names.append(alias_name)
+                    seen.add(alias_name)
 
         if not temp_column_names:
             return
 
         # Check if INSERT has an explicit column list
-        if hasattr(insert_parsed, "this") and isinstance(insert_parsed.this, exp.Schema):
-            if hasattr(insert_parsed.this, "expressions") and insert_parsed.this.expressions:
-                # Get existing column names
-                existing_columns = []
-                for col in insert_parsed.this.expressions:
-                    if isinstance(col, exp.Identifier):
-                        existing_columns.append(col.name.lower())
-                    elif isinstance(col, exp.Column):
-                        existing_columns.append(get_column_name(col).lower())
-                    elif isinstance(col, str):
-                        existing_columns.append(col.lower())
+        if (
+            hasattr(insert_parsed, "this")
+            and isinstance(insert_parsed.this, exp.Schema)
+            and hasattr(insert_parsed.this, "expressions")
+            and insert_parsed.this.expressions
+        ):
+            # Get existing column names
+            existing_columns = []
+            for col in insert_parsed.this.expressions:
+                if isinstance(col, exp.Identifier):
+                    existing_columns.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    existing_columns.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    existing_columns.append(col.lower())
 
-                # Add temp columns that aren't already present
-                for temp_col in temp_column_names:
-                    if temp_col not in existing_columns:
-                        temp_identifier = exp.Identifier(this=temp_col, quoted=False)
-                        insert_parsed.this.expressions.append(temp_identifier)
+            # Add temp columns that aren't already present
+            for temp_col in temp_column_names:
+                if temp_col not in existing_columns:
+                    temp_identifier = exp.Identifier(this=temp_col, quoted=False)
+                    insert_parsed.this.expressions.append(temp_identifier)
 
         # Also check for columns attribute (common in sqlglot)
         if hasattr(insert_parsed, "columns") and insert_parsed.columns:
@@ -1195,15 +1216,19 @@ class SQLRewriter:
         insert_columns = []
 
         # When INSERT has column list, parsed.this is a Schema and columns are in Schema.expressions
-        if hasattr(insert_parsed, "this") and isinstance(insert_parsed.this, exp.Schema):
-            if hasattr(insert_parsed.this, "expressions") and insert_parsed.this.expressions:
-                for col in insert_parsed.this.expressions:
-                    if isinstance(col, exp.Identifier):
-                        insert_columns.append(col.name.lower())
-                    elif isinstance(col, exp.Column):
-                        insert_columns.append(get_column_name(col).lower())
-                    elif isinstance(col, str):
-                        insert_columns.append(col.lower())
+        if (
+            hasattr(insert_parsed, "this")
+            and isinstance(insert_parsed.this, exp.Schema)
+            and hasattr(insert_parsed.this, "expressions")
+            and insert_parsed.this.expressions
+        ):
+            for col in insert_parsed.this.expressions:
+                if isinstance(col, exp.Identifier):
+                    insert_columns.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    insert_columns.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    insert_columns.append(col.lower())
 
         # Check for columns attribute (common in sqlglot)
         if not insert_columns and hasattr(insert_parsed, "columns") and insert_parsed.columns:
@@ -1338,10 +1363,9 @@ class SQLRewriter:
                 # Policy has only sink: query must be INSERT INTO sink
                 if sink_table is not None and policy_sink == sink_table:
                     matching.append(policy)
-            elif policy_source:
+            elif policy_source and source_tables and policy_source in source_tables:
                 # Policy has only source: query must be SELECT ... FROM source
-                if source_tables and policy_source in source_tables:
-                    matching.append(policy)
+                matching.append(policy)
 
         return matching
 
@@ -1374,10 +1398,9 @@ class SQLRewriter:
                 # Policy has only sink: query must be INSERT INTO sink
                 if sink_table is not None and policy_sink == sink_table:
                     matching.append(policy)
-            elif policy_source:
+            elif policy_source and source_tables and policy_source in source_tables:
                 # Policy has only source: query must be SELECT ... FROM source
-                if source_tables and policy_source in source_tables:
-                    matching.append(policy)
+                matching.append(policy)
 
         return matching
 
@@ -1687,9 +1710,8 @@ Return only the JSON object (or null), no additional text or explanation."""
 
         This clears any existing stream entries and ensures a fresh file for new runs.
         """
-        stream_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt")
-        self._stream_file_path = stream_file.name
-        stream_file.close()
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as stream_file:
+            self._stream_file_path = stream_file.name
 
     def close(self) -> None:
         """Close the DuckDB connection."""

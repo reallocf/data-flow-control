@@ -16,7 +16,7 @@ Each file includes:
 
 Usage:
     from recording import LLMRecorder
-    
+
     recorder = LLMRecorder(base_dir="session_records")
     if recorder.is_enabled():
         recorder.record_agent_loop_request(
@@ -29,16 +29,16 @@ Usage:
 from datetime import datetime
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 class LLMRecorder:
     """Records LLM responses to files with timestamps and sequence numbers.
-    
+
     Creates organized session directories with timestamped subdirectories for
     agent loop messages and LLM resolution responses. Each recorded file includes
     metadata like sequence numbers, timestamps, transaction IDs, and full request/response data.
-    
+
     Example:
         recorder = LLMRecorder(base_dir="session_records")
         # Creates: session_records/session_20260117_100205/
@@ -48,7 +48,7 @@ class LLMRecorder:
 
     def __init__(self, base_dir: Optional[str] = None):
         """Initialize the recorder.
-        
+
         Args:
             base_dir: Base directory for recordings. If None, recording is disabled.
                      Creates a timestamped session subdirectory on initialization.
@@ -90,15 +90,15 @@ class LLMRecorder:
         self,
         transaction_id: Optional[Any] = None,
         iteration: int = 1,
-        request_body: Optional[Dict[str, Any]] = None
+        request_body: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         """Record an agent loop request.
-        
+
         Args:
             transaction_id: Transaction ID being processed
             iteration: Iteration number in the agent loop
             request_body: Request body sent to Bedrock
-            
+
         Returns:
             Path to saved file, or None if recording disabled
         """
@@ -132,15 +132,15 @@ class LLMRecorder:
         self,
         transaction_id: Optional[Any] = None,
         iteration: int = 1,
-        response_body: Optional[Dict[str, Any]] = None
+        response_body: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         """Record an agent loop response.
-        
+
         Args:
             transaction_id: Transaction ID being processed
             iteration: Iteration number in the agent loop
             response_body: Response body received from Bedrock
-            
+
         Returns:
             Path to saved file, or None if recording disabled
         """
@@ -174,17 +174,17 @@ class LLMRecorder:
         self,
         constraint: str,
         description: Optional[str] = None,
-        row_data: Optional[Dict[str, Any]] = None,
-        request_body: Optional[Dict[str, Any]] = None
+        row_data: Optional[dict[str, Any]] = None,
+        request_body: Optional[dict[str, Any]] = None
     ) -> Optional[str]:
         """Record an LLM resolution request.
-        
+
         Args:
             constraint: Policy constraint that was violated
             description: Optional policy description
             row_data: Row data that violated the constraint
             request_body: Request body sent to Bedrock
-            
+
         Returns:
             Path to saved file, or None if recording disabled
         """
@@ -218,17 +218,17 @@ class LLMRecorder:
         self,
         constraint: str,
         description: Optional[str] = None,
-        response_body: Optional[Dict[str, Any]] = None,
+        response_body: Optional[dict[str, Any]] = None,
         fixed_row_data: Optional[Any] = None
     ) -> Optional[str]:
         """Record an LLM resolution response.
-        
+
         Args:
             constraint: Policy constraint that was violated
             description: Optional policy description
             response_body: Response body received from Bedrock
             fixed_row_data: Fixed row data returned by LLM (if any)
-            
+
         Returns:
             Path to saved file, or None if recording disabled
         """

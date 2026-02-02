@@ -16,7 +16,7 @@ The replay manager:
 
 Usage:
     from replay import ReplayManager
-    
+
     replay_manager = ReplayManager(session_dir="session_records/session_20260117_100205", delay_ms=500)
     if replay_manager.is_enabled():
         response = replay_manager.get_agent_loop_response(
@@ -29,18 +29,18 @@ Usage:
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class ReplayManager:
     """Manages replaying recorded LLM responses from a session directory.
-    
+
     Loads all recorded requests and responses from a session directory and provides
     methods to retrieve recorded responses for incoming requests. Uses intelligent
     matching to find the correct response for each request, with fallback mechanisms
     for robustness. Can apply optional delays before returning responses to simulate
     network latency for demos.
-    
+
     Example:
         replay_manager = ReplayManager(session_dir="session_records/session_20260117_100205", delay_ms=500)
         # Loads all files from:
@@ -51,9 +51,9 @@ class ReplayManager:
 
     def __init__(self, session_dir: str, delay_ms: int = 0):
         """Initialize the replay manager.
-        
+
         Args:
-            session_dir: Path to the session recording directory (e.g., 
+            session_dir: Path to the session recording directory (e.g.,
                         "session_records/session_20260117_100205")
             delay_ms: Optional delay in milliseconds to apply before returning responses.
                      Useful for demos to simulate network latency. Default: 0 (no delay).
@@ -64,14 +64,14 @@ class ReplayManager:
         self.llm_resolution_dir = os.path.join(session_dir, "llm_resolution")
 
         # Load all recorded files
-        self.agent_loop_requests: List[Dict[str, Any]] = []
-        self.agent_loop_responses: List[Dict[str, Any]] = []
-        self.llm_resolution_requests: List[Dict[str, Any]] = []
-        self.llm_resolution_responses: List[Dict[str, Any]] = []
+        self.agent_loop_requests: list[dict[str, Any]] = []
+        self.agent_loop_responses: list[dict[str, Any]] = []
+        self.llm_resolution_requests: list[dict[str, Any]] = []
+        self.llm_resolution_responses: list[dict[str, Any]] = []
 
         # Index for quick lookup
-        self.agent_loop_index: Dict[str, Dict[str, Any]] = {}
-        self.llm_resolution_index: Dict[str, Dict[str, Any]] = {}
+        self.agent_loop_index: dict[str, dict[str, Any]] = {}
+        self.llm_resolution_index: dict[str, dict[str, Any]] = {}
 
         # Counters for sequential replay
         self.agent_loop_counter = 0
@@ -187,18 +187,18 @@ class ReplayManager:
         self,
         transaction_id: Optional[Any],
         iteration: int,
-        request_body: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        _request_body: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
         """Get recorded agent loop response for a request.
-        
+
         Args:
             transaction_id: Transaction ID being processed
             iteration: Iteration number in the agent loop
             request_body: Request body sent to Bedrock
-            
+
         Returns:
             Recorded response body, or None if not found
-            
+
         Note:
             If delay_ms > 0, applies a delay before returning the response to simulate
             network latency. This only applies when replaying (not for actual LLM calls).
@@ -232,20 +232,20 @@ class ReplayManager:
         self,
         constraint: str,
         description: Optional[str],
-        row_data: Dict[str, Any],
-        request_body: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        row_data: dict[str, Any],
+        _request_body: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
         """Get recorded LLM resolution response for a request.
-        
+
         Args:
             constraint: Policy constraint that was violated
             description: Optional policy description
             row_data: Row data that violated the constraint
             request_body: Request body sent to Bedrock
-            
+
         Returns:
             Recorded response body, or None if not found
-            
+
         Note:
             If delay_ms > 0, applies a delay before returning the response to simulate
             network latency. This only applies when replaying (not for actual LLM calls).

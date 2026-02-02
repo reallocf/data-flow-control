@@ -7,7 +7,7 @@ from sql_rewriter.policy import DFCPolicy, Resolution
 
 def test_policy_with_source_only_rejects_unaggregated():
     """Test that policies with source table reject unaggregated source columns."""
-    with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+    with pytest.raises(ValueError, match=r"All columns from source table.*must be aggregated"):
         DFCPolicy(
             source="users",
             constraint="users.age >= 18",
@@ -296,7 +296,7 @@ def test_policy_aggregation_over_source_only():
 
 def test_policy_aggregation_rejects_sink():
     """Test that aggregations over sink table are rejected."""
-    with pytest.raises(ValueError, match="Aggregation.*references sink table"):
+    with pytest.raises(ValueError, match=r"Aggregation.*references sink table"):
         DFCPolicy(
             source="users",
             sink="reports",
@@ -415,7 +415,7 @@ def test_policy_table_name_extraction_rejects_aggregation_over_sink():
     This validates that column.table is correctly extracted in aggregation checks,
     ensuring aggregations over sink tables are rejected.
     """
-    with pytest.raises(ValueError, match="Aggregation.*references sink table"):
+    with pytest.raises(ValueError, match=r"Aggregation.*references sink table"):
         DFCPolicy(
             source="users",
             sink="reports",
@@ -430,7 +430,7 @@ def test_policy_table_name_extraction_rejects_unaggregated_source_with_sink():
     This validates that column.table is correctly extracted in source column checks,
     ensuring unaggregated source columns are rejected when sink is also present.
     """
-    with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+    with pytest.raises(ValueError, match=r"All columns from source table.*must be aggregated"):
         DFCPolicy(
             source="users",
             sink="reports",
@@ -445,7 +445,7 @@ def test_policy_table_name_extraction_rejects_multiple_unaggregated_source_colum
     This validates that column.table is correctly extracted for all source columns,
     ensuring all unaggregated source columns are identified.
     """
-    with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+    with pytest.raises(ValueError, match=r"All columns from source table.*must be aggregated"):
         DFCPolicy(
             source="users",
             constraint="users.age > 18 AND users.status = 'active'",
@@ -594,7 +594,7 @@ def test_policy_equality_same_sink_different_source():
 
 def test_policy_aggregation_rejects_third_table():
     """Test that aggregation over a table that's neither source nor sink is rejected."""
-    with pytest.raises(ValueError, match="Aggregation.*references table"):
+    with pytest.raises(ValueError, match=r"Aggregation.*references table"):
         DFCPolicy(
             source="users",
             sink="orders",
@@ -712,4 +712,3 @@ def test_get_table_name_from_column_handles_all_types():
     # This would cause silent validation skips
     assert table_name1 is not None
     assert table_name2 is not None
-

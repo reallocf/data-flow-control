@@ -30,6 +30,8 @@ pip install --upgrade pip
 echo "Installing local dependencies..."
 pip install -e ../sql_rewriter
 pip install -e ../experiment_harness
+# Avoid pulling standard DuckDB from PyPI; dependencies are already installed above.
+pip install -e . --no-deps
 
 # Install other dependencies
 echo "Installing other dependencies..."

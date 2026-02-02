@@ -3,6 +3,7 @@
 Example script demonstrating violating row handling with bank transaction data.
 """
 
+import contextlib
 import os
 from pathlib import Path
 import tempfile
@@ -73,15 +74,14 @@ con.execute(f"""
 """)
 
 # Create a temporary file for the stream (initially empty)
-stream_file = tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt")
-stream_path = stream_file.name
-stream_file.close()
+with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as stream_file:
+    stream_path = stream_file.name
 
 # Define & register the Python UDF
 def address_violating_rows(
     description: str,
     category: str,
-    amount: float,
+    _amount: float,
     txn_id: int,
     stream_endpoint: str,
 ) -> bool:
@@ -118,7 +118,5 @@ print("Results:")
 print(df)
 
 # Cleanup
-try:
+with contextlib.suppress(BaseException):
     os.unlink(stream_path)
-except:
-    pass

@@ -4,11 +4,12 @@ Helper module to configure DuckDB to use the locally built library from extended
 Usage:
     import use_local_duckdb
     import duckdb
-    
+
     # Now duckdb will use the local build
     conn = duckdb.connect()
 """
 
+import contextlib
 import os
 from pathlib import Path
 
@@ -50,9 +51,5 @@ def setup_local_duckdb():
     return lib_file
 
 # Auto-setup when imported
-try:
+with contextlib.suppress(FileNotFoundError):
     setup_local_duckdb()
-except FileNotFoundError:
-    # Silently fail if library doesn't exist yet - user can call setup_local_duckdb() manually
-    pass
-

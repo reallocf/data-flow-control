@@ -115,10 +115,7 @@ class DFCPolicy:
         # Extract values between keywords
         for i, (pos, keyword) in enumerate(keyword_positions):
             # Find the start of the value (after the keyword and whitespace)
-            if keyword == "ON FAIL":
-                value_start = pos + 7  # "ON FAIL" is 7 characters
-            else:
-                value_start = pos + len(keyword)
+            value_start = pos + 7 if keyword == "ON FAIL" else pos + len(keyword)
             # Skip whitespace after keyword
             while value_start < len(normalized) and normalized[value_start] == " ":
                 value_start += 1
@@ -143,10 +140,10 @@ class DFCPolicy:
             elif keyword == "ON FAIL":
                 try:
                     on_fail = Resolution(value.upper())
-                except ValueError:
+                except ValueError as e:
                     raise ValueError(
                         f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'INVALIDATE', or 'LLM'"
-                    )
+                    ) from e
             elif keyword == "DESCRIPTION":
                 description = value if value else None
 
@@ -197,7 +194,7 @@ class DFCPolicy:
             raise ValueError(
                 f"Constraint '{self.constraint}' cannot be evaluated with "
                 f"source={self.source}, sink={self.sink}: {e}"
-            )
+            ) from e
 
         self._validate_column_qualification()
         self._validate_aggregation_rules()
@@ -221,12 +218,11 @@ class DFCPolicy:
             if not tables:
                 raise ValueError(f"{table_type} '{table_name}' does not reference a valid table")
         except sqlglot.errors.ParseError as e:
-            raise ValueError(f"Invalid {table_type.lower()} table name '{table_name}': {e}")
+            raise ValueError(f"Invalid {table_type.lower()} table name '{table_name}': {e}") from e
         except Exception as e:
             if "Invalid" not in str(e):
-                raise ValueError(f"Invalid {table_type.lower()} table '{table_name}': {e}")
+                raise ValueError(f"Invalid {table_type.lower()} table '{table_name}': {e}") from e
             raise
-
 
     def _parse_constraint(self) -> exp.Expression:
         """Parse the constraint SQL expression.
@@ -257,13 +253,13 @@ class DFCPolicy:
         except sqlglot.errors.ParseError as e:
             constraint_upper = self.constraint.strip().upper()
             if constraint_upper.startswith("SELECT"):
-                raise ValueError("Constraint must be an expression, not a SELECT statement")
-            raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
+                raise ValueError("Constraint must be an expression, not a SELECT statement") from e
+            raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}") from e
         except Exception as e:
             if "Constraint" in str(e) or "must be an expression" in str(e):
                 raise
             if "Invalid" not in str(e):
-                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
+                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}") from e
             raise
 
 
@@ -519,10 +515,7 @@ class AggregateDFCPolicy:
         # Extract values between keywords
         for i, (pos, keyword) in enumerate(keyword_positions):
             # Find the start of the value (after the keyword and whitespace)
-            if keyword == "ON FAIL":
-                value_start = pos + 7  # "ON FAIL" is 7 characters
-            else:
-                value_start = pos + len(keyword)
+            value_start = pos + 7 if keyword == "ON FAIL" else pos + len(keyword)
             # Skip whitespace after keyword
             while value_start < len(normalized) and normalized[value_start] == " ":
                 value_start += 1
@@ -547,10 +540,10 @@ class AggregateDFCPolicy:
             elif keyword == "ON FAIL":
                 try:
                     on_fail = Resolution(value.upper())
-                except ValueError:
+                except ValueError as e:
                     raise ValueError(
                         f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'INVALIDATE', or 'LLM'"
-                    )
+                    ) from e
             elif keyword == "DESCRIPTION":
                 description = value if value else None
 
@@ -601,7 +594,7 @@ class AggregateDFCPolicy:
             raise ValueError(
                 f"Constraint '{self.constraint}' cannot be evaluated with "
                 f"source={self.source}, sink={self.sink}: {e}"
-            )
+            ) from e
 
         self._validate_column_qualification()
         self._validate_aggregation_rules()
@@ -625,10 +618,10 @@ class AggregateDFCPolicy:
             if not tables:
                 raise ValueError(f"{table_type} '{table_name}' does not reference a valid table")
         except sqlglot.errors.ParseError as e:
-            raise ValueError(f"Invalid {table_type.lower()} table name '{table_name}': {e}")
+            raise ValueError(f"Invalid {table_type.lower()} table name '{table_name}': {e}") from e
         except Exception as e:
             if "Invalid" not in str(e):
-                raise ValueError(f"Invalid {table_type.lower()} table '{table_name}': {e}")
+                raise ValueError(f"Invalid {table_type.lower()} table '{table_name}': {e}") from e
             raise
 
     def _parse_constraint(self) -> exp.Expression:
@@ -660,13 +653,13 @@ class AggregateDFCPolicy:
         except sqlglot.errors.ParseError as e:
             constraint_upper = self.constraint.strip().upper()
             if constraint_upper.startswith("SELECT"):
-                raise ValueError("Constraint must be an expression, not a SELECT statement")
-            raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
+                raise ValueError("Constraint must be an expression, not a SELECT statement") from e
+            raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}") from e
         except Exception as e:
             if "Constraint" in str(e) or "must be an expression" in str(e):
                 raise
             if "Invalid" not in str(e):
-                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}")
+                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}") from e
             raise
 
     def _validate_column_qualification(self) -> None:
@@ -694,13 +687,15 @@ class AggregateDFCPolicy:
                 # Check if this column is the direct argument of an aggregate function
                 # AND it matches the sink table name (as a shorthand)
                 parent = column.parent
-                if isinstance(parent, exp.AggFunc):
-                    # Check if this column is the 'this' field (direct argument)
-                    if hasattr(parent, "this") and parent.this == column:
-                        # Check if it matches the sink table name
-                        if self.sink and col_name == self.sink.lower():
-                            # This is a shorthand for the sink table - allow unqualified
-                            continue
+                if (
+                    isinstance(parent, exp.AggFunc)
+                    and hasattr(parent, "this")
+                    and parent.this == column
+                    and self.sink
+                    and col_name == self.sink.lower()
+                ):
+                    # This is a shorthand for the sink table - allow unqualified
+                    continue
 
                 # Otherwise, it's an unqualified column that should be flagged
                 unqualified_columns.append(col_name)
@@ -808,4 +803,3 @@ class AggregateDFCPolicy:
             and self.on_fail == other.on_fail
             and self.description == other.description
         )
-

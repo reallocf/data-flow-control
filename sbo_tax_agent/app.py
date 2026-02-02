@@ -16,16 +16,16 @@ Command-Line Arguments:
 Examples:
     # Run with data files
     streamlit run app.py -- --tax-return data/tax_return.csv --bank-txn data/bank_txn.csv
-    
+
     # Record LLM interactions
     streamlit run app.py -- --record session_records
-    
+
     # Replay a previous session
     streamlit run app.py -- --replay session_records/session_20260117_100205
-    
+
     # Replay with delay to simulate network latency (useful for demos)
     streamlit run app.py -- --replay session_records/session_20260117_100205 --delay 500
-    
+
     # Record while replaying (useful for testing)
     streamlit run app.py -- --record new_sessions --replay session_records/session_20260117_100205
 """
@@ -42,7 +42,7 @@ import db
 # Streamlit passes custom arguments after --, e.g., streamlit run app.py -- --tax-return path/to/file.csv
 def parse_args():
     """Parse command-line arguments for data file paths and LLM recording/replay.
-    
+
     Returns:
         argparse.Namespace: Parsed arguments with the following attributes:
             - tax_return: Path to tax_return CSV file (optional)

@@ -170,6 +170,16 @@ Or use the wrapper script that handles both:
 ./scripts/run_microbenchmarks_with_smokedduck.sh
 ```
 
+## Linting and Tests
+
+Run from the `vldb_2026_big_paper_experiments` directory using the local venv.
+
+```bash
+.venv/bin/python -m ruff check src/ tests/
+source setup_local_smokedduck.sh
+.venv/bin/python -m pytest
+```
+
 ## Results
 
 Results are exported to CSV in the `results/` directory. Each row contains:

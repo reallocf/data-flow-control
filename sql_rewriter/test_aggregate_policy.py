@@ -110,7 +110,7 @@ class TestAggregateDFCPolicyCreation:
 
     def test_aggregate_policy_source_must_be_aggregated(self):
         """Test that source columns must be aggregated in aggregate policies."""
-        with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+    with pytest.raises(ValueError, match=r"All columns from source table.*must be aggregated"):
             AggregateDFCPolicy(
                 source="users",
                 constraint="users.amount > 100",

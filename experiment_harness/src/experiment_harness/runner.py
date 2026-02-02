@@ -15,7 +15,7 @@ class ExperimentRunner:
 
     def __init__(self, strategy: ExperimentStrategy, config: ExperimentConfig):
         """Initialize experiment runner.
-        
+
         Args:
             strategy: Experiment strategy to execute
             config: Experiment configuration
@@ -27,7 +27,7 @@ class ExperimentRunner:
 
     def run(self) -> ResultCollector:
         """Run the experiment according to configuration.
-        
+
         Returns:
             ResultCollector with all collected results
         """
@@ -130,7 +130,7 @@ class ExperimentRunner:
 
     def _create_database_connection(self) -> duckdb.DuckDBPyConnection:
         """Create database connection from configuration.
-        
+
         Returns:
             DuckDB connection
         """
@@ -161,7 +161,7 @@ class ExperimentRunner:
 
     def _apply_db_settings(self, conn: duckdb.DuckDBPyConnection) -> None:
         """Apply DuckDB settings to database connection.
-        
+
         Args:
             conn: DuckDB connection
         """

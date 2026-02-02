@@ -5,13 +5,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 import statistics
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 
 @dataclass
 class ExperimentResult:
     """Result from a single experiment execution.
-    
+
     Attributes:
         duration_ms: Execution duration in milliseconds
         custom_metrics: Dictionary of custom metric names to values
@@ -20,7 +20,7 @@ class ExperimentResult:
     """
 
     duration_ms: float
-    custom_metrics: Dict[str, Any] = field(default_factory=dict)
+    custom_metrics: dict[str, Any] = field(default_factory=dict)
     timestamp: Optional[datetime] = None
     error: Optional[str] = None
 
@@ -35,28 +35,28 @@ class ResultCollector:
 
     def __init__(self, output_dir: str, output_filename: str):
         """Initialize result collector.
-        
+
         Args:
             output_dir: Directory for CSV output
             output_filename: Base filename for CSV output
         """
         self.output_dir = Path(output_dir)
         self.output_filename = output_filename
-        self.results: List[ExperimentResult] = []
-        self.metric_names: Set[str] = set()
+        self.results: list[ExperimentResult] = []
+        self.metric_names: set[str] = set()
 
     def add_result(self, result: ExperimentResult) -> None:
         """Add a result to the collection.
-        
+
         Args:
             result: Experiment result to add
         """
         self.results.append(result)
         self.metric_names.update(result.custom_metrics.keys())
 
-    def get_all_metric_names(self) -> List[str]:
+    def get_all_metric_names(self) -> list[str]:
         """Get sorted list of all metric names collected.
-        
+
         Returns:
             Sorted list of metric name strings
         """
@@ -64,7 +64,7 @@ class ResultCollector:
 
     def export_to_csv(self) -> str:
         """Export results to CSV file.
-        
+
         Returns:
             Path to the created CSV file
         """
@@ -74,7 +74,7 @@ class ResultCollector:
         metric_names = self.get_all_metric_names()
 
         with open(csv_path, "w", newline="") as f:
-            fieldnames = ["execution_number", "timestamp", "duration_ms", "error"] + metric_names
+            fieldnames = ["execution_number", "timestamp", "duration_ms", "error", *metric_names]
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
 
@@ -91,16 +91,16 @@ class ResultCollector:
 
         return str(csv_path)
 
-    def _calculate_summary(self, metric_names: List[str]) -> Dict[str, Any]:
+    def _calculate_summary(self, metric_names: list[str]) -> dict[str, Any]:
         """Calculate summary statistics for numeric metrics.
-        
+
         Args:
             metric_names: List of metric names to calculate statistics for
-            
+
         Returns:
             Dictionary with summary statistics (mean, median, stddev, min, max)
         """
-        summary: Dict[str, Any] = {
+        summary: dict[str, Any] = {
             "execution_number": "summary",
             "timestamp": "",
             "duration_ms": "",

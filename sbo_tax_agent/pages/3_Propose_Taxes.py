@@ -110,7 +110,7 @@ with col1:
     st.subheader("Bank Transactions")
     try:
         bank_txn_query = """
-            SELECT * FROM bank_txn 
+            SELECT * FROM bank_txn
             ORDER BY txn_id
         """
         bank_txn_result = rewriter.execute(bank_txn_query)
@@ -131,7 +131,7 @@ with col2:
     st.subheader("Tax Form")
     try:
         irs_form_query = """
-            SELECT * FROM irs_form 
+            SELECT * FROM irs_form
             ORDER BY txn_id
         """
         irs_form_result = rewriter.execute(irs_form_query)
@@ -174,7 +174,11 @@ with col2:
 
             if columns_to_drop:
                 # Store invalid mask before dropping columns
-                invalid_rows = irs_form_df["valid"] == False if has_valid_column else pd.Series([False] * len(irs_form_df), index=irs_form_df.index)
+                invalid_rows = (
+                    ~irs_form_df["valid"]
+                    if has_valid_column
+                    else pd.Series([False] * len(irs_form_df), index=irs_form_df.index)
+                )
                 # Drop the columns from display
                 display_df = irs_form_df.drop(columns=columns_to_drop)
 
@@ -185,7 +189,7 @@ with col2:
                 # and add subtle background tint for aggregate violations
                 def highlight_invalid(row):
                     styles = []
-                    for col in display_df.columns:
+                    for _col in display_df.columns:
                         style = ""
                         if has_valid_column and invalid_rows.loc[row.name]:
                             # Strong red background for invalid rows (takes priority)
@@ -240,7 +244,7 @@ if st.button("Propose Taxes", type="primary", disabled=button_disabled):
 
             # Get all transactions
             transactions_query = """
-                SELECT * FROM bank_txn 
+                SELECT * FROM bank_txn
                 ORDER BY txn_id
             """
             transactions_result = rewriter.execute(transactions_query)

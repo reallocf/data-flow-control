@@ -16,8 +16,17 @@ A reusable framework for running experiments using the Strategy design pattern. 
 This project uses `uv` for dependency management. To install:
 
 ```bash
-    cd experiment_harness
+cd experiment_harness
 uv sync
+```
+
+## Linting and Tests
+
+Run from the `experiment_harness` directory.
+
+```bash
+python3 -m ruff check .
+uv run --group dev python -m pytest
 ```
 
 ## Quick Start

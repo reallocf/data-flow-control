@@ -118,6 +118,14 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 
 **Run rewriter tests after any changes** - Rewriter tests can be run with `uv run pytest` and should be run after making any Rewriter changes to ensure functionality is preserved.
 
+**Always run tests from the project directory** - `pytest` and virtual environments are project-local. `cd` into the specific project (e.g., `sql_rewriter`, `experiment_harness`, `sbo_tax_agent`). For `vldb_2026_big_paper_experiments`, use the local venv: `.venv/bin/python -m pytest`.
+
+**Project test commands**:
+- `sql_rewriter`: `uv run pytest`
+- `experiment_harness`: `uv run --group dev python -m pytest`
+- `sbo_tax_agent`: no tests currently
+- `vldb_2026_big_paper_experiments`: `source setup_local_smokedduck.sh && .venv/bin/python -m pytest`
+
 ### Test Assertions
 
 **Assert full strings, not partial matches** - When comparing strings in tests, always assert full strings instead of looking for partial string matches. This ensures tests are precise and catch unintended changes:
@@ -136,15 +144,15 @@ assert "SELECT" in result
 
 1. **Linting with Ruff** - Run Ruff to check for code style issues, unused imports, and other linting problems:
    ```bash
-   # For the main project (if Ruff is configured)
+   # sql_rewriter / experiment_harness / sbo_tax_agent
    python3 -m ruff check .
-   
-   # For vldb_2026_big_paper_experiments
-   cd vldb_2026_big_paper_experiments
-   python3 -m ruff check src/ tests/
-   
+
+   # vldb_2026_big_paper_experiments (uses local venv)
+   .venv/bin/python -m ruff check src/ tests/
+
    # Auto-fix issues where possible
-   python3 -m ruff check src/ tests/ --fix
+   python3 -m ruff check . --fix
+   .venv/bin/python -m ruff check src/ tests/ --fix
    ```
    
    Ruff will catch:

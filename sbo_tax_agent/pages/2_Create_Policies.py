@@ -47,7 +47,7 @@ for policy in aggregate_policies:
 
 def build_policy_text(policy, include_description=False):
     """Build policy string from policy object.
-    
+
     Args:
         policy: The DFCPolicy or AggregateDFCPolicy object
         include_description: If True, include DESCRIPTION in the output (for editing)
@@ -70,7 +70,7 @@ if not all_policies:
     st.info("No policies registered yet. Create a policy using the form below.")
 else:
     # Display all policies together
-    for idx, (policy_type, policy) in enumerate(all_policies):
+    for idx, (_policy_type, policy) in enumerate(all_policies):
         # Build policy string for display (without description, shown separately)
         policy_text = build_policy_text(policy, include_description=False)
 
@@ -113,7 +113,7 @@ else:
 
                         # Delete policies from the end backwards to avoid index shifting issues
                         # First delete all policies that come after (in reverse order)
-                        for p_type, p in reversed(policies_after):
+                        for _p_type, p in reversed(policies_after):
                             rewriter.delete_policy(
                                 source=p.source,
                                 sink=p.sink,
@@ -138,7 +138,7 @@ else:
                             rewriter.register_policy(new_policy)
 
                             # Re-register the policies that came after (in original order)
-                            for p_type, p in policies_after:
+                            for _p_type, p in policies_after:
                                 rewriter.register_policy(p)
 
                             st.session_state.editing_policy_index = None
@@ -229,7 +229,7 @@ st.subheader("Database Schema")
 try:
     # Query all tables and their columns from information_schema
     schema_query = """
-        SELECT 
+        SELECT
             table_name,
             column_name,
             data_type,
@@ -245,7 +245,7 @@ try:
     if result:
         # Group columns by table
         schema_data = {}
-        for table_name, column_name, data_type, ordinal_position in result:
+        for table_name, column_name, data_type, _ordinal_position in result:
             if table_name not in schema_data:
                 schema_data[table_name] = []
             schema_data[table_name].append(f"{column_name} ({data_type})")
@@ -265,4 +265,3 @@ try:
         st.info("No tables found in the database.")
 except Exception as e:
     st.warning(f"Could not load database schema: {e!s}")
-

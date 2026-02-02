@@ -31,7 +31,7 @@ class SimpleExperiment(ExperimentStrategy):
             }
         )
 
-    def teardown(self, context):
+    def teardown(self, _context):
         self.teardown_called = True
 
     def get_metrics(self):
@@ -145,7 +145,7 @@ def test_csv_export():
         )
 
         runner = ExperimentRunner(strategy, config)
-        collector = runner.run()
+        runner.run()
 
         csv_path = Path(tmpdir) / "test_results.csv"
         assert csv_path.exists()

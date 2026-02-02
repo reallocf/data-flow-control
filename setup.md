@@ -59,7 +59,11 @@ Test the installation using the local DuckDB build:
 
 Test the installation:
 
-    uv run pytest
+    uv run --group dev python -m pytest
+
+Linting:
+
+    python3 -m ruff check .
 
 ---
 
@@ -197,6 +201,24 @@ Or with the local DuckDB wrapper:
     ./uv_with_local_duckdb.sh run streamlit run app.py
 
 The app will open at:
+
+---
+
+## 6. `vldb_2026_big_paper_experiments`
+
+This project uses a local venv and SmokedDuck.
+
+    cd vldb_2026_big_paper_experiments
+    ./setup_venv.sh
+
+Linting:
+
+    .venv/bin/python -m ruff check src/ tests/
+
+Tests (requires SmokedDuck env vars):
+
+    source setup_local_smokedduck.sh
+    .venv/bin/python -m pytest
 
     http://localhost:8501
 

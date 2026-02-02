@@ -63,7 +63,8 @@ def test_aggregate_queries_not_transformed(rewriter):
     assert result == [(6,)]  # 1 + 2 + 3 = 6
 
 
-def test_context_manager(rewriter):
+@pytest.mark.usefixtures("rewriter")
+def test_context_manager():
     """Test that SQLRewriter works as a context manager."""
     with SQLRewriter() as rw:
         rw.execute("CREATE TABLE test (x INTEGER)")
@@ -1682,7 +1683,7 @@ class TestExecuteMethodsAdditional:
     def test_execute_with_error_handling(self, rewriter):
         """Test that execute handles SQL errors."""
         # Should raise DuckDB error for invalid SQL
-        with pytest.raises(Exception):  # DuckDB raises various exceptions
+        with pytest.raises(duckdb.Error):
             rewriter.execute("SELECT * FROM nonexistent_table")
 
 
@@ -3656,7 +3657,8 @@ class TestAggregateDFCPolicyIntegration:
         violations = rewriter.finalize_aggregate_policies("reports")
         assert isinstance(violations, dict)
 
-    def test_aggregate_policy_only_supports_invalidate(self, rewriter):
+    @pytest.mark.usefixtures("rewriter")
+    def test_aggregate_policy_only_supports_invalidate(self):
         """Test that aggregate policy registration rejects non-INVALIDATE resolutions."""
         with pytest.raises(ValueError, match="currently only supports INVALIDATE resolution"):
             AggregateDFCPolicy(
@@ -3680,9 +3682,10 @@ class TestAggregateDFCPolicyIntegration:
         aggregate_policies = rewriter.get_aggregate_policies()
         assert len(aggregate_policies) == 1
 
-    def test_aggregate_policy_source_must_be_aggregated(self, rewriter):
+    @pytest.mark.usefixtures("rewriter")
+    def test_aggregate_policy_source_must_be_aggregated(self):
         """Test that aggregate policies require source columns to be aggregated."""
-        with pytest.raises(ValueError, match="All columns from source table.*must be aggregated"):
+        with pytest.raises(ValueError, match=r"All columns from source table.*must be aggregated"):
             AggregateDFCPolicy(
                 source="foo",
                 constraint="foo.id > 100",

@@ -1,13 +1,13 @@
 """Configuration classes for experiment execution."""
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 
 @dataclass
 class ExperimentConfig:
     """Configuration for experiment execution.
-    
+
     Attributes:
         num_executions: Number of experiment runs to execute (default: 1)
         num_warmup_runs: Number of warm-up runs to discard (default: 0)
@@ -23,11 +23,11 @@ class ExperimentConfig:
 
     num_executions: int = 1
     num_warmup_runs: int = 0
-    setup_steps: List[Callable[[], None]] = field(default_factory=list)
-    teardown_steps: List[Callable[[], None]] = field(default_factory=list)
-    database_config: Optional[Dict[str, Any]] = None
-    db_settings: Optional[Dict[str, Any]] = None
-    strategy_config: Optional[Dict[str, Any]] = None
+    setup_steps: list[Callable[[], None]] = field(default_factory=list)
+    teardown_steps: list[Callable[[], None]] = field(default_factory=list)
+    database_config: Optional[dict[str, Any]] = None
+    db_settings: Optional[dict[str, Any]] = None
+    strategy_config: Optional[dict[str, Any]] = None
     output_dir: str = "./results"
     output_filename: str = "results.csv"
     verbose: bool = False

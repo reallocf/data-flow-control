@@ -103,7 +103,7 @@ def _wrap_llm_constraint(
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     parsed: Optional[exp.Select] = None,
-    insert_columns: Optional[list[str]] = None
+    _insert_columns: Optional[list[str]] = None
 ) -> exp.Expression:
     """Wrap a constraint expression in CASE WHEN for LLM resolution policies.
 
@@ -774,12 +774,13 @@ def _get_table_alias_in_select(select_expr: exp.Select, table_name: str) -> str:
     """
     # Find the table in FROM/JOIN clauses
     for table in select_expr.find_all(exp.Table):
-        if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
-            if table.name.lower() == table_name.lower():
-                # Check if there's an alias
-                if table.alias:
-                    return table.alias
-                return table_name
+        if (table.find_ancestor(exp.From) or table.find_ancestor(exp.Join)) and (
+            table.name.lower() == table_name.lower()
+        ):
+            # Check if there's an alias
+            if table.alias:
+                return table.alias
+            return table_name
     return table_name
 
 
@@ -915,23 +916,24 @@ def _get_source_table_to_alias_mapping(
         # Find all tables directly in the main FROM clause
         for table in parsed.from_.find_all(exp.Table):
             # Exclude tables that are subqueries (they have Subquery as 'this')
-            if not (hasattr(table, "this") and isinstance(table.this, exp.Subquery)):
-                # Also exclude if this table is inside a subquery or CTE
-                if (not table.find_ancestor(exp.Subquery) and
-                    not table.find_ancestor(exp.CTE)):
-                    # Exclude CTE aliases (they're not source tables)
-                    if table.name.lower() not in cte_aliases:
-                        main_query_tables.add(table.name.lower())
+            if (
+                not (hasattr(table, "this") and isinstance(table.this, exp.Subquery))
+                and not table.find_ancestor(exp.Subquery)
+                and not table.find_ancestor(exp.CTE)
+                and table.name.lower() not in cte_aliases
+            ):
+                main_query_tables.add(table.name.lower())
         # Also check JOINs directly in the main query
         for join in parsed.find_all(exp.Join):
             if (not join.find_ancestor(exp.Subquery) and
                 not join.find_ancestor(exp.CTE)):
                 for table in join.find_all(exp.Table):
                     # Exclude subquery tables
-                    if not (hasattr(table, "this") and isinstance(table.this, exp.Subquery)):
-                        # Exclude CTE aliases (they're not source tables)
-                        if table.name.lower() not in cte_aliases:
-                            main_query_tables.add(table.name.lower())
+                    if (
+                        not (hasattr(table, "this") and isinstance(table.this, exp.Subquery))
+                        and table.name.lower() not in cte_aliases
+                    ):
+                        main_query_tables.add(table.name.lower())
 
     # Find all subqueries in FROM clauses
     subqueries = _get_subqueries_in_from(parsed)
@@ -1525,7 +1527,7 @@ def apply_policy_constraints_to_scan(
 
 def transform_aggregations_to_columns(
     constraint_expr: exp.Expression,
-    source_tables: set[str]
+    _source_tables: set[str]
 ) -> exp.Expression:
     """Transform aggregation functions in a constraint to their underlying columns.
 
@@ -1770,11 +1772,10 @@ def _extract_sink_expressions_from_constraint(
             columns = list(agg_func.find_all(exp.Column))
             for column in columns:
                 table_name = get_table_name_from_column(column)
-                if table_name == sink_table.lower():
+                if table_name == sink_table.lower() and column.find_ancestor(exp.Filter) is None:
                     # Skip columns inside FILTER clauses (they're part of the filter, not the aggregate expression)
-                    if column.find_ancestor(exp.Filter) is None:
-                        references_sink = True
-                        break
+                    references_sink = True
+                    break
 
         if references_sink:
             # Extract the whole aggregate (including FILTER clause if present)
@@ -2262,7 +2263,7 @@ def rewrite_exists_subqueries_as_joins(
         logger.debug("Extracting other WHERE conditions from subquery")
         where_expr_content = subquery_where.this if hasattr(subquery_where, "this") else subquery_where
 
-        def extract_conditions(expr, conditions_list):
+        def extract_conditions(expr, conditions_list, policy_table=policy_table, outer_col=outer_col):
             """Recursively extract conditions from AND expressions, skipping the join condition."""
             if isinstance(expr, exp.And):
                 extract_conditions(expr.this, conditions_list)
@@ -2427,7 +2428,7 @@ def rewrite_exists_subqueries_as_joins(
         logger.debug("Removing EXISTS from WHERE clause")
         where_conditions = []
 
-        def collect_conditions(expr):
+        def collect_conditions(expr, exists_expr=exists_expr, where_conditions=where_conditions):
             """Recursively collect conditions from AND expressions."""
             if isinstance(expr, exp.And):
                 collect_conditions(expr.this)
@@ -2499,7 +2500,7 @@ def _get_source_tables_from_select(select_expr: exp.Select) -> set[str]:
 def rewrite_in_subqueries_as_joins(
     parsed: exp.Select,
     policies: list[DFCPolicy],
-    source_tables: set[str]
+    _source_tables: set[str]
 ) -> None:
     """Rewrite IN subqueries as JOINs and compute policy on subquery source tables.
 
@@ -2606,7 +2607,7 @@ def rewrite_in_subqueries_as_joins(
 
         where_conditions = []
 
-        def collect_conditions(expr):
+        def collect_conditions(expr, in_expr=in_expr, where_conditions=where_conditions):
             if isinstance(expr, exp.And):
                 collect_conditions(expr.this)
                 collect_conditions(expr.expression)
@@ -2630,7 +2631,7 @@ def rewrite_in_subqueries_as_joins(
             parsed.set("where", None)
 
         if parsed.args.get("where"):
-            def qualify_join_key(node):
+            def qualify_join_key(node, join_key_name=join_key_name, policy=policy):
                 if isinstance(node, exp.Column):
                     table_name = get_table_name_from_column(node)
                     col_name = get_column_name(node)
@@ -2655,9 +2656,12 @@ def rewrite_in_subqueries_as_joins(
                     main_tables.append(table.name.lower())
 
             for join in parsed.args.get("joins", []) or []:
-                if isinstance(join, exp.Join) and isinstance(join.this, exp.Table):
-                    if join.this.name:
-                        main_tables.append(join.this.name.lower())
+                if (
+                    isinstance(join, exp.Join)
+                    and isinstance(join.this, exp.Table)
+                    and join.this.name
+                ):
+                    main_tables.append(join.this.name.lower())
 
             if {"customer", "orders", "lineitem"}.issubset(main_tables):
                 base_table = exp.Table(this=exp.Identifier(this="customer"))
@@ -2787,9 +2791,10 @@ def _replace_expression_in_tree(root: exp.Expression, old_expr: exp.Expression, 
                 if item == old_expr:
                     value[i] = new_expr
                     return True
-                if isinstance(item, exp.Expression):
-                    if _replace_expression_in_tree(item, old_expr, new_expr, visited):
-                        return True
+                if isinstance(item, exp.Expression) and _replace_expression_in_tree(
+                    item, old_expr, new_expr, visited
+                ):
+                    return True
 
     return False
 

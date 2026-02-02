@@ -128,7 +128,6 @@ def check_environment():
 
     has_credentials = False
     has_bearer_token = False
-    has_region = False
 
     # Check for bearer token
     if os.environ.get("AWS_BEARER_TOKEN_BEDROCK"):
@@ -146,7 +145,6 @@ def check_environment():
     # Check for region
     region = os.environ.get("AWS_REGION")
     if region:
-        has_region = True
         print(f"  ✓ AWS_REGION is set: {region}")
     else:
         print("  ⚠ AWS_REGION not set, will use default: us-east-1")
@@ -194,4 +192,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

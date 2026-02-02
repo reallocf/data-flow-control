@@ -16,6 +16,16 @@ To install with development dependencies (including pytest):
 uv sync --extra dev
 ```
 
+## Linting and Tests
+
+Run from the `sbo_tax_agent` directory.
+
+```bash
+python3 -m ruff check .
+```
+
+There are no automated tests in this project yet.
+
 ## Using Local DuckDB Build
 
 If you want to use a locally built DuckDB from the `extended_duckdb` submodule (which includes custom extensions), you have several options:
@@ -297,4 +307,3 @@ Run tests (if you have any):
 ```bash
 uv run pytest
 ```
-

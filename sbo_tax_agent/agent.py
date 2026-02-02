@@ -8,7 +8,7 @@ and generate IRS Form review entries.
 from collections.abc import Iterator
 import json
 import os
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -20,12 +20,12 @@ BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 def format_value_for_prompt(value):
     """Format a value for inclusion in a prompt string.
-    
+
     Handles dates, None values, and other types.
-    
+
     Args:
         value: Value to format
-        
+
     Returns:
         str: Formatted value
     """
@@ -38,52 +38,48 @@ def format_value_for_prompt(value):
 
 def create_bedrock_client():
     """Initialize boto3 Bedrock Runtime client.
-    
+
     Supports authentication via:
     - AWS_BEARER_TOKEN_BEDROCK environment variable (bearer token)
     - Standard AWS credentials (access key/secret key, IAM role, etc.)
-    
+
     Returns:
         boto3.client: Bedrock Runtime client
-        
+
     Raises:
         Exception: If client creation fails
     """
     try:
         region = os.environ.get("AWS_REGION", "us-east-2")
 
-        # Check if bearer token is provided
-        bearer_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
-
         # boto3 will automatically use AWS_BEARER_TOKEN_BEDROCK if set
         # No special configuration needed - boto3 checks this env var automatically
-        client = boto3.client(
+        return boto3.client(
             service_name="bedrock-runtime",
             region_name=region
         )
-        return client
     except Exception as e:
-        raise Exception(f"Failed to create Bedrock client: {e!s}")
+        raise Exception(f"Failed to create Bedrock client: {e!s}") from e
 
 
 def create_db_tool(rewriter):
     """Create a function tool that allows the agent to execute SQL queries.
-    
+
     The tool accepts SQL queries and executes them through the SQLRewriter
     to respect DFC policies. Returns results in a structured format.
-    
+
     Args:
         rewriter: SQLRewriter instance
-        
+
     Returns:
         function: Database tool function
     """
     def db_tool(sql_query: str) -> str:
         """Execute a SQL query and return results.
-        
+
         Args:
             sql_query: SQL query to execute (SELECT, INSERT, UPDATE, DELETE)
-            
+
         Returns:
             str: JSON string with query results or error message
         """
@@ -111,7 +107,7 @@ def create_db_tool(rewriter):
                             "success": False,
                             "error": "INSERT statements must include a SELECT statement. Use INSERT INTO table (columns...) SELECT ... FROM ... WHERE ... format."
                         }, indent=2)
-            except Exception:
+            except Exception as e:
                 # If parsing fails, continue with execution (let rewriter handle it)
                 print(f"Parsing failed: {e}")
 
@@ -159,13 +155,13 @@ def create_db_tool(rewriter):
     return db_tool
 
 
-def build_agent_prompt(transaction: Dict[str, Any], tax_return_info: Dict[str, Any]) -> str:
+def build_agent_prompt(transaction: dict[str, Any], tax_return_info: dict[str, Any]) -> str:
     """Build the fixed prompt for the agent.
-    
+
     Args:
         transaction: Dictionary with transaction details
         tax_return_info: Dictionary with tax return information
-        
+
     Returns:
         str: Formatted prompt string
     """
@@ -173,7 +169,7 @@ def build_agent_prompt(transaction: Dict[str, Any], tax_return_info: Dict[str, A
     amount = transaction.get("amount", 0)
     txn_id = transaction.get("txn_id")
 
-    prompt = f"""You are a tax agent analyzing bank transactions to identify business expenses and income.
+    return f"""You are a tax agent analyzing bank transactions to identify business expenses and income.
 
 TAX RETURN CONTEXT:
 - Business Name: {format_value_for_prompt(tax_return_info.get('business_name'))}
@@ -217,23 +213,21 @@ You have access to a database tool. Use it to:
 
 Analyze this transaction and take appropriate action."""
 
-    return prompt
-
 
 def process_transaction_with_agent(
     bedrock_client,
     rewriter,
-    transaction: Dict[str, Any],
-    tax_return_info: Dict[str, Any],
+    transaction: dict[str, Any],
+    tax_return_info: dict[str, Any],
     recorder=None,
     replay_manager=None
-) -> Tuple[bool, str, list]:
+) -> tuple[bool, str, list]:
     """Process a single transaction with the agent.
-    
+
     Uses AWS Bedrock to analyze a bank transaction and determine if it's a business
     expense or income. The agent can query the database and insert entries into the
     irs_form table. Supports recording and replaying LLM interactions.
-    
+
     Args:
         bedrock_client: Boto3 Bedrock Runtime client (used if replay_manager is None or
                        no recorded response is found)
@@ -243,13 +237,13 @@ def process_transaction_with_agent(
         recorder: Optional LLMRecorder instance for recording LLM requests/responses
         replay_manager: Optional ReplayManager instance for replaying recorded responses
                        instead of calling the LLM
-        
+
     Returns:
-        Tuple[bool, str, list]: 
+        Tuple[bool, str, list]:
             - success: True if an irs_form entry was created, False otherwise
             - message: Human-readable message describing the result
             - logs: List of log strings from the agent interaction
-        
+
     Note:
         If replay_manager is provided and enabled, the function will attempt to use
         recorded responses instead of calling Bedrock. If no recorded response is found,
@@ -440,7 +434,7 @@ def process_transaction_with_agent(
             # Add assistant's tool use to messages
             assistant_message = {
                 "role": "assistant",
-                "content": [tool_use for tool_use in tool_uses]
+                "content": list(tool_uses)
             }
             messages.append(assistant_message)
             log("[MESSAGE STREAM] Added assistant message with tool uses")
@@ -547,12 +541,12 @@ def process_transaction_with_agent(
         return False, error_msg, logs
 
 
-def run_agentic_loop(rewriter) -> Iterator[Dict[str, Any]]:
+def run_agentic_loop(rewriter) -> Iterator[dict[str, Any]]:
     """Run the agentic loop to process all transactions for a tax return.
-    
+
     Args:
         rewriter: SQLRewriter instance
-        
+
     Yields:
         Dict with progress information: {
             'transaction_index': int,
@@ -584,7 +578,7 @@ def run_agentic_loop(rewriter) -> Iterator[Dict[str, Any]]:
 
         # Get all transactions
         transactions_query = """
-            SELECT * FROM bank_txn 
+            SELECT * FROM bank_txn
             ORDER BY txn_id
         """
         transactions_result = rewriter.execute(transactions_query)
@@ -628,4 +622,3 @@ def run_agentic_loop(rewriter) -> Iterator[Dict[str, Any]]:
             "error": f"Error in agentic loop: {e!s}",
             "success": False
         }
-
