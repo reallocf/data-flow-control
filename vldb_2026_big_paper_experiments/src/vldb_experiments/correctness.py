@@ -44,14 +44,14 @@ def normalize_results(results: list[tuple[Any, ...]]) -> list[tuple[Any, ...]]:
 def compare_results(
     dfc_results: list[tuple[Any, ...]],
     logical_results: list[tuple[Any, ...]],
-    physical_results: list[tuple[Any, ...]]
+    physical_results: Optional[list[tuple[Any, ...]]] = None
 ) -> tuple[bool, Optional[str]]:
-    """Compare results from all three policy-enabled approaches.
+    """Compare results from policy-enabled approaches.
 
     Args:
         dfc_results: Results from DFC (SQLRewriter) approach
         logical_results: Results from Logical baseline
-        physical_results: Results from Physical baseline
+        physical_results: Optional results from Physical baseline
 
     Returns:
         Tuple of (match, error_message)
@@ -59,24 +59,25 @@ def compare_results(
     # Normalize all result sets
     norm_dfc = normalize_results(dfc_results)
     norm_logical = normalize_results(logical_results)
-    norm_physical = normalize_results(physical_results)
 
     # Check row counts
     if len(norm_dfc) != len(norm_logical):
         return False, f"Row count mismatch: dfc={len(norm_dfc)}, logical={len(norm_logical)}"
-
-    if len(norm_dfc) != len(norm_physical):
-        return False, f"Row count mismatch: dfc={len(norm_dfc)}, physical={len(norm_physical)}"
 
     # Compare dfc vs logical
     for i, (d_row, l_row) in enumerate(zip(norm_dfc, norm_logical)):
         if not rows_equal(d_row, l_row):
             return False, f"Row {i} mismatch between dfc and logical: {d_row} != {l_row}"
 
-    # Compare dfc vs physical
-    for i, (d_row, p_row) in enumerate(zip(norm_dfc, norm_physical)):
-        if not rows_equal(d_row, p_row):
-            return False, f"Row {i} mismatch between dfc and physical: {d_row} != {p_row}"
+    if physical_results is not None:
+        norm_physical = normalize_results(physical_results)
+        if len(norm_dfc) != len(norm_physical):
+            return False, f"Row count mismatch: dfc={len(norm_dfc)}, physical={len(norm_physical)}"
+
+        # Compare dfc vs physical
+        for i, (d_row, p_row) in enumerate(zip(norm_dfc, norm_physical)):
+            if not rows_equal(d_row, p_row):
+                return False, f"Row {i} mismatch between dfc and physical: {d_row} != {p_row}"
 
     return True, None
 

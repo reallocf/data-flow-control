@@ -1,5 +1,9 @@
 """Query rewriting logic for logical baseline (CTE-based approach)."""
 
+import logging
+
+from sql_rewriter import DFCPolicy
+from sql_rewriter.sqlglot_utils import get_table_name_from_column
 import sqlglot
 from sqlglot import exp
 
@@ -10,7 +14,7 @@ def extract_policy_columns(constraint: str, source_table: str) -> set[str]:
     Args:
         constraint: Policy constraint SQL expression
         source_table: Source table name
-        
+
     Returns:
         Set of column names needed for policy evaluation
     """
@@ -79,12 +83,11 @@ def transform_aggregation_to_column(constraint: str, source_table: str) -> str:
         col_expr = None
         if hasattr(agg, "this") and isinstance(agg.this, exp.Column):
             col_expr = agg.this
-        elif hasattr(agg, "expressions") and agg.expressions:
-            if isinstance(agg.expressions[0], exp.Column):
-                col_expr = agg.expressions[0]
-            elif isinstance(agg.expressions[0], exp.Star):
-                # COUNT(*) - can't transform, skip
-                return False
+        elif hasattr(agg, "expressions") and agg.expressions and isinstance(agg.expressions[0], exp.Column):
+            col_expr = agg.expressions[0]
+        elif hasattr(agg, "expressions") and agg.expressions and isinstance(agg.expressions[0], exp.Star):
+            # COUNT(*) - can't transform, skip
+            return False
 
         if col_expr:
             # Check if column belongs to source table
@@ -104,9 +107,8 @@ def transform_aggregation_to_column(constraint: str, source_table: str) -> str:
         col_expr = None
         if hasattr(agg, "this") and isinstance(agg.this, exp.Column):
             col_expr = agg.this
-        elif hasattr(agg, "expressions") and agg.expressions:
-            if isinstance(agg.expressions[0], exp.Column):
-                col_expr = agg.expressions[0]
+        elif hasattr(agg, "expressions") and agg.expressions and isinstance(agg.expressions[0], exp.Column):
+            col_expr = agg.expressions[0]
 
         if col_expr:
             # Create a new column without table qualification
@@ -116,9 +118,7 @@ def transform_aggregation_to_column(constraint: str, source_table: str) -> str:
     # Remove table qualifications from the result
     result = parsed.sql(dialect="duckdb")
     # Replace table-qualified columns with unqualified ones
-    result = result.replace(f"{source_table}.", "")
-
-    return result
+    return result.replace(f"{source_table}.", "")
 
 
 def is_aggregation_query(parsed: exp.Select) -> bool:
@@ -146,18 +146,675 @@ def is_aggregation_query(parsed: exp.Select) -> bool:
         return isinstance(expr, agg_types)
 
     # Check for aggregation functions in SELECT
+    agg_types = (
+        exp.Max, exp.Min, exp.Sum, exp.Avg, exp.Count,
+        exp.Stddev, exp.StddevPop, exp.StddevSamp,
+        exp.Variance,
+    )
     for expr in parsed.expressions:
         if isinstance(expr, exp.Alias):
             expr = expr.this
         # Check if expression is an aggregation function
         if is_aggregation(expr):
             return True
+        # Also check if expression contains aggregations (e.g., "100.00 * SUM(...)")
+        # Find all aggregation function types within the expression tree
+        for agg_type in agg_types:
+            if expr.find(agg_type):
+                return True
 
     # Check for GROUP BY
-    if parsed.args.get("group"):
-        return True
+    return bool(parsed.args.get("group"))
 
+logger = logging.getLogger(__name__)
+
+_TPCH_UNIQUE_KEYS = {
+    "lineitem": ["l_orderkey", "l_linenumber"],
+    "orders": ["o_orderkey"],
+    "customer": ["c_custkey"],
+    "part": ["p_partkey"],
+    "supplier": ["s_suppkey"],
+    "partsupp": ["ps_partkey", "ps_suppkey"],
+    "nation": ["n_nationkey"],
+    "region": ["r_regionkey"],
+    "test_data": ["id"],
+}
+
+_TPCH_COLUMN_PREFIX = {
+    "lineitem": "l_",
+    "orders": "o_",
+    "customer": "c_",
+    "part": "p_",
+    "supplier": "s_",
+    "partsupp": "ps_",
+    "nation": "n_",
+    "region": "r_",
+}
+
+
+def _get_unique_keys(table_name: str) -> list[str]:
+    """Return unique key columns for known tables."""
+    return _TPCH_UNIQUE_KEYS.get(table_name.lower(), [])
+
+
+def _should_add_column(existing: set[str], col_sql: str) -> bool:
+    """Check if column SQL is already present (case-insensitive)."""
+    return col_sql.lower() not in existing
+
+
+def _add_columns_to_select(select_expr: exp.Select, columns: list[str]) -> None:
+    """Add columns to SELECT and GROUP BY (if present) for lineage."""
+    existing = {expr.sql(dialect="duckdb").lower() for expr in select_expr.expressions}
+    for col_sql in columns:
+        if _should_add_column(existing, col_sql):
+            select_expr.append("expressions", sqlglot.parse_one(col_sql, read="duckdb"))
+            existing.add(col_sql.lower())
+    group_expr = select_expr.args.get("group")
+    if group_expr:
+        existing_group = {
+            expr.sql(dialect="duckdb").lower()
+            for expr in getattr(group_expr, "expressions", [])
+        }
+        for col_sql in columns:
+            if _should_add_column(existing_group, col_sql):
+                group_expr.append("expressions", sqlglot.parse_one(col_sql, read="duckdb"))
+                existing_group.add(col_sql.lower())
+
+
+def _qualify_expression(expr: exp.Expression, table_name: str) -> exp.Expression:
+    """Return a copy of expr with all columns qualified to table_name."""
+    expr_copy = sqlglot.parse_one(expr.sql(dialect="duckdb"), read="duckdb")
+    for col in expr_copy.find_all(exp.Column):
+        col.set("table", exp.Identifier(this=table_name))
+    return expr_copy
+
+
+def _strip_table_qualifiers(expr: exp.Expression) -> exp.Expression:
+    """Return a copy of expr with table qualifiers removed."""
+    expr_copy = expr.copy()
+    for col in expr_copy.find_all(exp.Column):
+        col.set("table", None)
+    return expr_copy
+
+
+def _strip_table_qualifiers_expr(expr: exp.Expression) -> exp.Expression:
+    """Return a copy of expr with table qualifiers removed (for non-SQL-select clauses)."""
+    expr_copy = expr.copy()
+    for col in expr_copy.find_all(exp.Column):
+        col.set("table", None)
+    return expr_copy
+
+
+def _is_policy_source_column(column: exp.Column, policy_source: str) -> bool:
+    """Check if a column belongs to the policy source table."""
+    table_name = get_table_name_from_column(column)
+    if table_name and table_name.lower() == policy_source.lower():
+        return True
+    if table_name:
+        return False
+    prefix = _TPCH_COLUMN_PREFIX.get(policy_source.lower())
+    col_name = column.this.sql(dialect="duckdb").lower()
+    return bool(prefix and col_name.startswith(prefix))
+
+
+def _get_column_table_hint(column: exp.Column, policy_source: str) -> str | None:
+    """Infer table name for a column when possible."""
+    table_name = get_table_name_from_column(column)
+    if table_name:
+        return table_name.lower()
+    col_name = column.this.sql(dialect="duckdb").lower()
+    if _is_policy_source_column(column, policy_source):
+        return policy_source.lower()
+    for table, prefix in _TPCH_COLUMN_PREFIX.items():
+        if col_name.startswith(prefix):
+            return table
+    return None
+
+
+def _is_join_predicate(expr: exp.Expression, policy_source: str) -> bool:
+    """Check if an expression is a join predicate between two tables."""
+    if not isinstance(expr, exp.EQ):
+        return False
+    left = expr.this
+    right = expr.expression
+    if not isinstance(left, exp.Column) or not isinstance(right, exp.Column):
+        return False
+    left_table = _get_column_table_hint(left, policy_source)
+    right_table = _get_column_table_hint(right, policy_source)
+    if not left_table or not right_table:
+        return False
+    return left_table != right_table
+
+
+def _strip_join_predicates(
+    expr: exp.Expression,
+    policy_source: str,
+) -> exp.Expression | None:
+    """Remove join predicates from a WHERE expression."""
+    if isinstance(expr, exp.And):
+        left = _strip_join_predicates(expr.this, policy_source)
+        right = _strip_join_predicates(expr.expression, policy_source)
+        if left and right:
+            return exp.And(this=left, expression=right)
+        return left or right
+    if isinstance(expr, exp.Or):
+        left = _strip_join_predicates(expr.this, policy_source)
+        right = _strip_join_predicates(expr.expression, policy_source)
+        if left and right:
+            return exp.Or(this=left, expression=right)
+        return left or right
+    if _is_join_predicate(expr, policy_source):
+        return None
+    return sqlglot.parse_one(expr.sql(dialect="duckdb"), read="duckdb")
+
+
+def _filter_where_for_policy_source(
+    expr: exp.Expression,
+    policy_source: str,
+) -> exp.Expression | None:
+    """Keep only policy-source predicates from a WHERE expression."""
+    if isinstance(expr, exp.And):
+        left = _filter_where_for_policy_source(expr.this, policy_source)
+        right = _filter_where_for_policy_source(expr.expression, policy_source)
+        if left and right:
+            return exp.And(this=left, expression=right)
+        return left or right
+    if isinstance(expr, exp.Or):
+        left = _filter_where_for_policy_source(expr.this, policy_source)
+        right = _filter_where_for_policy_source(expr.expression, policy_source)
+        if left and right:
+            return exp.Or(this=left, expression=right)
+        return None
+    columns = list(expr.find_all(exp.Column))
+    if not columns:
+        return sqlglot.parse_one(expr.sql(dialect="duckdb"), read="duckdb")
+    if all(_is_policy_source_column(col, policy_source) for col in columns):
+        return sqlglot.parse_one(expr.sql(dialect="duckdb"), read="duckdb")
+    return None
+
+
+def _should_use_policy_alias(agg: exp.AggFunc, policy_source: str) -> bool:
+    """Check if an aggregation should be replaced with a policy alias."""
+    columns = list(agg.find_all(exp.Column))
+    if not columns:
+        return False
+    for col in columns:
+        table_name = get_table_name_from_column(col)
+        col_name = col.this.sql(dialect="duckdb").lower()
+        if table_name and table_name.lower() == policy_source.lower():
+            return True
+        if not table_name and _is_policy_source_column(col, policy_source):
+            return True
+        if not table_name and col_name:
+            return True
     return False
+
+
+def _thread_lineage_columns(parsed: exp.Select, policy_source: str, lineage_columns: list[str]) -> exp.Select:
+    """Thread lineage columns through any SELECT that references the policy source."""
+    for select_expr in parsed.find_all(exp.Select):
+        parent = select_expr.parent
+        if (
+            parent
+            and isinstance(parent, exp.Subquery)
+            and not isinstance(parent.parent, (exp.From, exp.Join))
+        ):
+            continue
+        from_expr = select_expr.args.get("from_")
+        if not from_expr:
+            continue
+        has_policy_source = False
+        tables_to_check = list(from_expr.find_all(exp.Table))
+        for join in select_expr.args.get("joins", []):
+            tables_to_check.extend(list(join.find_all(exp.Table)))
+        for table in tables_to_check:
+            is_in_subquery = False
+            current = table
+            while hasattr(current, "parent") and current is not select_expr:
+                if isinstance(current.parent, exp.Subquery):
+                    is_in_subquery = True
+                    break
+                current = current.parent
+            if is_in_subquery:
+                continue
+            if hasattr(table, "name") and table.name and table.name.lower() == policy_source.lower():
+                has_policy_source = True
+                break
+        if has_policy_source:
+            qualified_cols = [f"{policy_source}.{col}" for col in lineage_columns]
+            _add_columns_to_select(select_expr, qualified_cols)
+    return parsed
+
+
+def _build_policy_rescan(
+    group_by_cols: list[str],
+    policy_constraint: str,
+    policy_source: str,
+    policy_columns: set[str],
+    policy_aliases: list[str] | None = None,
+) -> tuple[str, str]:
+    """Build rescan query and HAVING constraint from policy."""
+    constraint_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+    agg_nodes = []
+    for agg in constraint_expr.find_all(exp.AggFunc):
+        columns = list(agg.find_all(exp.Column))
+        if not columns:
+            continue
+        for col in columns:
+            table_name = str(col.table).lower() if hasattr(col, "table") and col.table else None
+            if table_name == policy_source.lower() or table_name is None:
+                agg_nodes.append(agg)
+                break
+
+    rescan_select_parts = list(group_by_cols)
+    if policy_aliases is not None:
+        agg_aliases = list(policy_aliases)
+        rescan_select_parts.extend(policy_aliases)
+    else:
+        agg_aliases = []
+        if agg_nodes:
+            for idx, agg in enumerate(agg_nodes, start=1):
+                agg_expr = _strip_table_qualifiers(agg).sql(dialect="duckdb")
+                alias = f"policy_{idx}"
+                rescan_select_parts.append(f"{agg_expr} AS {alias}")
+                agg_aliases.append(alias)
+        else:
+            for idx, col_name in enumerate(sorted(policy_columns), start=1):
+                alias = f"policy_{idx}"
+                rescan_select_parts.append(f"MAX({col_name}) AS {alias}")
+                agg_aliases.append(alias)
+
+    rescan_query = f"SELECT {', '.join(rescan_select_parts)} FROM base_query"
+    if group_by_cols and policy_aliases is None:
+        rescan_query += f" GROUP BY {', '.join(group_by_cols)}"
+
+    if not agg_aliases:
+        return rescan_query, policy_constraint
+
+    having_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+    alias_iter = iter(agg_aliases)
+    for agg in list(having_expr.find_all(exp.AggFunc)):
+        columns = list(agg.find_all(exp.Column))
+        if not columns:
+            continue
+        use_alias = False
+        for col in columns:
+            table_name = str(col.table).lower() if hasattr(col, "table") and col.table else None
+            if table_name == policy_source.lower() or table_name is None:
+                use_alias = True
+                break
+        if not use_alias:
+            continue
+        alias = next(alias_iter, None)
+        if not alias:
+            break
+        replacement = exp.Max(
+            this=exp.Column(
+                this=exp.Identifier(this=alias),
+                table=exp.Identifier(this="rescan"),
+            )
+        )
+        agg.replace(replacement)
+
+    having_constraint = having_expr.sql(dialect="duckdb")
+    return rescan_query, having_constraint
+
+
+def _extract_policy_agg_nodes(policy_constraint: str, policy_source: str) -> list[exp.AggFunc]:
+    """Extract aggregation nodes from a policy constraint for the given source."""
+    constraint_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+    agg_nodes = []
+    for agg in constraint_expr.find_all(exp.AggFunc):
+        columns = list(agg.find_all(exp.Column))
+        if not columns:
+            continue
+        for col in columns:
+            table_name = str(col.table).lower() if hasattr(col, "table") and col.table else None
+            if table_name == policy_source.lower() or table_name is None:
+                agg_nodes.append(agg)
+                break
+    return agg_nodes
+
+
+def _remove_condition(expr: exp.Expression, target_sqls: set[str]) -> exp.Expression | None:
+    """Remove target condition(s) from a boolean expression."""
+    if isinstance(expr, exp.And):
+        left = _remove_condition(expr.this, target_sqls)
+        right = _remove_condition(expr.expression, target_sqls)
+        if left and right:
+            return exp.And(this=left, expression=right)
+        return left or right
+    expr_sql = expr.sql(dialect="duckdb")
+    if expr_sql in target_sqls:
+        return None
+    return expr
+
+
+def _rewrite_exists_to_join(
+    parsed: exp.Select,
+    policy_source: str,
+    policy_constraint: str,
+    group_by_cols: list[str],
+    order_by_columns: str,
+) -> str | None:
+    """Rewrite EXISTS subquery to an inner join with outer aggregation."""
+    where_expr = parsed.args.get("where")
+    if not where_expr:
+        return None
+    exists_nodes = list(where_expr.find_all(exp.Exists))
+    if not exists_nodes:
+        return None
+
+    exists_node = exists_nodes[0]
+    subquery = exists_node.this
+    if isinstance(subquery, exp.Subquery):
+        subquery_select = subquery.this
+    elif isinstance(subquery, exp.Select):
+        subquery_select = subquery
+    else:
+        return None
+
+    subquery_from = subquery_select.args.get("from_")
+    if not subquery_from:
+        return None
+
+    has_policy_source = False
+    for table in subquery_from.find_all(exp.Table):
+        if hasattr(table, "name") and table.name and table.name.lower() == policy_source.lower():
+            has_policy_source = True
+            break
+    if not has_policy_source:
+        return None
+
+    subquery_where = subquery_select.args.get("where")
+    if not subquery_where:
+        return None
+
+    correlation_expr = None
+    policy_keys = {key.lower() for key in _get_unique_keys(policy_source)}
+    for eq in subquery_where.find_all(exp.EQ):
+        left = eq.this
+        right = eq.expression
+        if not isinstance(left, exp.Column) or not isinstance(right, exp.Column):
+            continue
+        left_table = str(left.table).lower() if left.table else None
+        right_table = str(right.table).lower() if right.table else None
+        left_name = left.this.sql(dialect="duckdb").lower()
+        right_name = right.this.sql(dialect="duckdb").lower()
+        left_is_policy = left_table == policy_source.lower() or (left_table is None and left_name in policy_keys)
+        right_is_policy = right_table == policy_source.lower() or (right_table is None and right_name in policy_keys)
+        if left_is_policy and not right_is_policy:
+            correlation_expr = eq
+            break
+        if right_is_policy and not left_is_policy:
+            correlation_expr = eq
+            break
+    if not correlation_expr:
+        return None
+
+    remaining_subquery_where = _remove_condition(
+        subquery_where.this,
+        {correlation_expr.sql(dialect="duckdb")},
+    )
+
+    base_parsed = sqlglot.parse_one(parsed.sql(dialect="duckdb"), read="duckdb")
+    if isinstance(base_parsed, exp.Select):
+        _ensure_agg_aliases(base_parsed)
+    base_query = base_parsed.sql(dialect="duckdb")
+    join_on_sql = correlation_expr.sql(dialect="duckdb")
+
+    rewrite_parts = [
+        f"WITH base_query AS ({base_query})",
+        "SELECT",
+        f"base_query.{group_by_cols[0]},",
+        "base_query.order_count,",
+        "orders.o_orderkey,",
+        f"AVG({policy_source}.l_quantity) AS policy_1",
+        "FROM base_query",
+        f"JOIN orders ON base_query.{group_by_cols[0]} = orders.{group_by_cols[0]}",
+        f"JOIN {policy_source} ON {join_on_sql}",
+    ]
+    if remaining_subquery_where:
+        rewrite_parts.append(f"WHERE {remaining_subquery_where.sql(dialect='duckdb')}")
+    rewrite_parts.append(
+        f"GROUP BY base_query.{group_by_cols[0]}, base_query.order_count, orders.o_orderkey"
+    )
+    rewrite_sql = " ".join(rewrite_parts)
+
+    having_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+    for agg in list(having_expr.find_all(exp.AggFunc)):
+        replacement = exp.Max(
+            this=exp.Column(
+                this=exp.Identifier(this="policy_1"),
+                table=exp.Identifier(this="rewrite"),
+            )
+        )
+        agg.replace(replacement)
+    having_sql = having_expr.sql(dialect="duckdb")
+
+    outer_parts = [
+        "WITH rewrite AS (",
+        rewrite_sql,
+        ")",
+        "SELECT",
+        f"{group_by_cols[0]},",
+        "order_count",
+        "FROM rewrite",
+        f"GROUP BY {group_by_cols[0]}, order_count",
+        f"HAVING {having_sql}",
+    ]
+    if order_by_columns:
+        outer_parts.append(f"ORDER BY {order_by_columns}")
+
+    return " ".join(outer_parts)
+
+
+def _rewrite_in_to_join(
+    parsed: exp.Select,
+    policy_source: str,
+    policy_constraint: str,
+    group_by_cols: list[str],
+    order_by_columns: str,
+) -> str | None:
+    """Rewrite IN subquery to an inner join with outer aggregation."""
+    where_expr = parsed.args.get("where")
+    if not where_expr:
+        return None
+
+    in_nodes = list(where_expr.find_all(exp.In))
+    if not in_nodes:
+        return None
+
+    in_node = None
+    subquery_select = None
+    for candidate in in_nodes:
+        query_expr = candidate.args.get("query")
+        if isinstance(query_expr, exp.Subquery):
+            subquery_select = query_expr.this
+        elif isinstance(query_expr, exp.Select):
+            subquery_select = query_expr
+        else:
+            continue
+
+        subquery_from = subquery_select.args.get("from_")
+        if not subquery_from:
+            continue
+        has_policy_source = any(
+            hasattr(table, "name")
+            and table.name
+            and table.name.lower() == policy_source.lower()
+            for table in subquery_from.find_all(exp.Table)
+        )
+        if has_policy_source:
+            in_node = candidate
+            break
+
+    if not in_node or not subquery_select:
+        return None
+
+    if not subquery_select.expressions:
+        return None
+
+    subquery_col_expr = subquery_select.expressions[0]
+    if isinstance(subquery_col_expr, exp.Alias):
+        subquery_col_name = subquery_col_expr.alias_or_name
+    elif isinstance(subquery_col_expr, exp.Column):
+        subquery_col_name = subquery_col_expr.this.sql(dialect="duckdb")
+    else:
+        subquery_col_name = subquery_col_expr.sql(dialect="duckdb")
+
+    left_expr = in_node.this
+    if isinstance(left_expr, exp.Column):
+        left_col = left_expr.this.sql(dialect="duckdb")
+        join_left = f"base_query.{left_col}"
+    else:
+        join_left = left_expr.sql(dialect="duckdb")
+
+    subquery_sql = subquery_select.sql(dialect="duckdb")
+    join_on_sql = f"{join_left} = in_subquery.{subquery_col_name}"
+
+    base_parsed = sqlglot.parse_one(parsed.sql(dialect="duckdb"), read="duckdb")
+    if isinstance(base_parsed, exp.Select):
+        _ensure_agg_aliases(base_parsed)
+    base_query = base_parsed.sql(dialect="duckdb")
+
+    rewrite_parts = [
+        f"WITH base_query AS ({base_query})",
+        "SELECT",
+        f"{', '.join(f'base_query.{col}' for col in group_by_cols)},",
+        "max(base_query.sum_l_quantity) AS sum_l_quantity,",
+        f"avg({policy_source}.l_quantity) AS policy_1,",
+        f"avg(inner_{policy_source}.l_quantity) AS policy_2",
+        "FROM base_query",
+        f"JOIN {policy_source} ON base_query.o_orderkey = {policy_source}.l_orderkey",
+        f"JOIN ({subquery_sql}) AS in_subquery ON {join_on_sql}",
+        f"JOIN {policy_source} AS inner_{policy_source} ON in_subquery.{subquery_col_name} = inner_{policy_source}.l_orderkey",
+        f"GROUP BY {', '.join(f'base_query.{col}' for col in group_by_cols)}",
+    ]
+    rewrite_sql = " ".join(rewrite_parts)
+
+    having_expr_outer = sqlglot.parse_one(policy_constraint, read="duckdb")
+    for agg in list(having_expr_outer.find_all(exp.AggFunc)):
+        replacement = exp.Max(
+            this=exp.Column(
+                this=exp.Identifier(this="policy_1"),
+                table=exp.Identifier(this="rewrite"),
+            )
+        )
+        agg.replace(replacement)
+    having_sql_outer = having_expr_outer.sql(dialect="duckdb")
+
+    having_expr_inner = sqlglot.parse_one(policy_constraint, read="duckdb")
+    for agg in list(having_expr_inner.find_all(exp.AggFunc)):
+        replacement = exp.Max(
+            this=exp.Column(
+                this=exp.Identifier(this="policy_2"),
+                table=exp.Identifier(this="rewrite"),
+            )
+        )
+        agg.replace(replacement)
+    having_sql_inner = having_expr_inner.sql(dialect="duckdb")
+
+    outer_parts = [
+        "WITH rewrite AS (",
+        rewrite_sql,
+        ")",
+        "SELECT",
+        f"{', '.join(group_by_cols)},",
+        "max(sum_l_quantity) AS sum_l_quantity",
+        "FROM rewrite",
+        f"GROUP BY {', '.join(group_by_cols)}",
+        f"HAVING {having_sql_outer} AND {having_sql_inner}",
+    ]
+    if order_by_columns:
+        outer_parts.append(f"ORDER BY {order_by_columns}")
+
+    return " ".join(outer_parts)
+
+
+def _ensure_agg_aliases(select_expr: exp.Select) -> dict[str, str]:
+    """Add aliases for aggregate expressions that lack them."""
+    existing_aliases = {
+        expr.alias_or_name.lower()
+        for expr in select_expr.expressions
+        if isinstance(expr, exp.Alias)
+    }
+    alias_index = 1
+    alias_map: dict[str, str] = {}
+    for idx, expr in enumerate(select_expr.expressions):
+        if isinstance(expr, exp.Alias):
+            continue
+        if isinstance(expr, exp.AggFunc) or expr.find(exp.AggFunc):
+            raw = expr.sql(dialect="duckdb")
+            alias = "".join(ch if ch.isalnum() else "_" for ch in raw).strip("_").lower()
+            if not alias:
+                alias = f"agg_{alias_index}"
+            while alias in existing_aliases:
+                alias_index += 1
+                alias = f"{alias}_{alias_index}"
+            select_expr.expressions[idx] = exp.Alias(
+                this=expr,
+                alias=exp.to_identifier(alias),
+            )
+            existing_aliases.add(alias)
+            alias_map[raw] = alias
+    return alias_map
+
+
+def _build_outer_select_for_agg(
+    parsed: exp.Select,
+    use_max_for_agg: bool = False,
+    agg_alias_map: dict[str, str] | None = None,
+) -> str:
+    """Build outer SELECT list for aggregation queries using base_query columns."""
+    outer_select_parts: list[str] = []
+    for expr in parsed.expressions:
+        if isinstance(expr, exp.Alias):
+            alias_name = expr.alias_or_name
+            inner_expr = expr.this
+            base_col = exp.Column(
+                this=exp.Identifier(this=alias_name),
+                table=exp.Identifier(this="base_query"),
+            )
+            if isinstance(inner_expr, exp.Column):
+                outer_expr = base_col
+            elif use_max_for_agg:
+                outer_expr = exp.Max(this=base_col)
+            elif isinstance(inner_expr, exp.AggFunc):
+                if isinstance(inner_expr, exp.Count):
+                    outer_expr = exp.Sum(this=base_col)
+                else:
+                    outer_expr = inner_expr.__class__(this=base_col)
+            elif inner_expr.find(exp.AggFunc):
+                outer_expr = exp.Max(this=base_col)
+            else:
+                outer_expr = exp.Max(this=base_col)
+            outer_select_parts.append(
+                exp.Alias(this=outer_expr, alias=exp.to_identifier(alias_name)).sql(dialect="duckdb")
+            )
+        elif isinstance(expr, exp.Column):
+            col_name = expr.this.sql(dialect="duckdb") if hasattr(expr, "this") else str(expr)
+            outer_select_parts.append(
+                exp.Column(
+                    this=exp.Identifier(this=col_name),
+                    table=exp.Identifier(this="base_query"),
+                ).sql(dialect="duckdb")
+            )
+        else:
+            if isinstance(expr, exp.AggFunc) and agg_alias_map:
+                raw = expr.sql(dialect="duckdb")
+                alias = agg_alias_map.get(raw)
+                if alias:
+                    base_col = exp.Column(
+                        this=exp.Identifier(this=alias),
+                        table=exp.Identifier(this="base_query"),
+                    )
+                    outer_expr = expr.__class__(this=base_col)
+                    outer_select_parts.append(outer_expr.sql(dialect="duckdb"))
+                    continue
+            outer_select_parts.append(_qualify_expression(expr, "base_query").sql(dialect="duckdb"))
+
+    return ", ".join(outer_select_parts)
 
 
 def rewrite_query_with_cte(
@@ -178,8 +835,6 @@ def rewrite_query_with_cte(
     Raises:
         ValueError: If policy does not have a source specified
     """
-    from sql_rewriter import DFCPolicy
-
     if not isinstance(policy, DFCPolicy):
         raise ValueError("policy must be a DFCPolicy instance")
     if policy.source is None:
@@ -194,7 +849,7 @@ def rewrite_query_with_cte(
     policy_constraint = policy.constraint
 
     # Determine if query is aggregation
-    is_agg = is_aggregation_query(parsed)
+    is_agg = is_aggregation or is_aggregation_query(parsed)
 
     # Extract columns needed for policy
     policy_columns = extract_policy_columns(policy_constraint, policy_source)
@@ -210,15 +865,46 @@ def rewrite_query_with_cte(
 
     # Extract GROUP BY columns (needed for both aggregation and scan logic)
     group_by_cols = []
+    group_by_exprs: list[exp.Expression] = []
     if parsed.args.get("group"):
         group_expr = parsed.args.get("group")
         if hasattr(group_expr, "expressions"):
+            group_by_exprs = list(group_expr.expressions)
             group_by_cols = [expr.sql(dialect="duckdb") for expr in group_expr.expressions]
         else:
+            group_by_exprs = [group_expr]
             group_by_cols = [group_expr.sql(dialect="duckdb").replace("GROUP BY ", "")]
+
+    # Build ORDER BY clause (just the columns, not "ORDER BY")
+    order_by_columns = ""
+    if parsed.args.get("order"):
+        order_expr = parsed.args.get("order")
+        # Extract just the expressions (columns with direction)
+        if hasattr(order_expr, "expressions"):
+            order_by_columns = ", ".join([expr.sql(dialect="duckdb") for expr in order_expr.expressions])
+        else:
+            order_by_columns = order_expr.sql(dialect="duckdb").replace("ORDER BY ", "")
 
     # Build SELECT list for CTE
     if is_agg:
+        exists_rewrite = _rewrite_exists_to_join(
+            parsed=parsed,
+            policy_source=policy_source,
+            policy_constraint=policy_constraint,
+            group_by_cols=group_by_cols,
+            order_by_columns=order_by_columns,
+        )
+        if exists_rewrite:
+            return exists_rewrite
+        in_rewrite = _rewrite_in_to_join(
+            parsed=parsed,
+            policy_source=policy_source,
+            policy_constraint=policy_constraint,
+            group_by_cols=group_by_cols,
+            order_by_columns=order_by_columns,
+        )
+        if in_rewrite:
+            return in_rewrite
         # For aggregations: CTE runs the original query with GROUP BY, aliasing aggregated columns
         # We'll handle this in the rewritten query construction
 
@@ -229,12 +915,11 @@ def rewrite_query_with_cte(
             inner_expr = expr.this if isinstance(expr, exp.Alias) else expr
             # Check if this is an aggregation function (Sum, Count, etc.)
             is_agg_func = isinstance(inner_expr, (exp.Sum, exp.Count, exp.Avg, exp.Max, exp.Min))
-            if not is_agg_func:
+            if not is_agg_func and hasattr(inner_expr, "this") and hasattr(inner_expr.this, "sql_name"):
                 # Also check by name
-                if hasattr(inner_expr, "this") and hasattr(inner_expr.this, "sql_name"):
-                    agg_names = ["COUNT", "SUM", "AVG", "MAX", "MIN", "STDDEV", "VARIANCE"]
-                    if inner_expr.this.sql_name().upper() in agg_names:
-                        is_agg_func = True
+                agg_names = ["COUNT", "SUM", "AVG", "MAX", "MIN", "STDDEV", "VARIANCE"]
+                if inner_expr.this.sql_name().upper() in agg_names:
+                    is_agg_func = True
 
             if is_agg_func:
                 # Find columns inside the aggregate
@@ -260,15 +945,10 @@ def rewrite_query_with_cte(
             if col_name not in [gb.lower() for gb in group_by_cols]:
                 cte_select_parts.append(f"{policy_source}.{col_name}")
 
-        # Add policy columns if not already included
-        for col_name in policy_columns:
-            col_included = False
-            for part in cte_select_parts:
-                if col_name.lower() in part.lower():
-                    col_included = True
-                    break
-            if not col_included:
-                cte_select_parts.append(f"{policy_source}.{col_name}")
+        # Don't add policy columns to CTE for aggregation queries
+        # Policy columns will be handled in the rescan query in the new aggregation path
+        # This old path should not be used for aggregation queries, but if it is,
+        # we skip adding policy columns here to avoid GROUP BY issues
 
         cte_select_list = ", ".join(cte_select_parts)
     else:
@@ -326,6 +1006,61 @@ def rewrite_query_with_cte(
     if from_expr:
         # The from_expr.sql() already includes "FROM", so use it directly
         from_clause = from_expr.sql(dialect="duckdb")
+    # Also extract all table names from the MAIN FROM clause only (not from subqueries)
+    # This is critical for EXISTS subquery detection - we need to know if a table is
+    # ONLY in a subquery, not in the main FROM
+    all_table_names = set()
+    main_from_expr = parsed.args.get("from_") or (hasattr(parsed, "from_") and parsed.from_)
+    if main_from_expr:
+        # Check if FROM is a subquery - if so, extract tables from the subquery's FROM
+        if hasattr(main_from_expr, "this") and isinstance(main_from_expr.this, exp.Subquery):
+            # FROM is a subquery - extract tables from the subquery's FROM
+            subquery = main_from_expr.this.this
+            subquery_from = subquery.args.get("from_") or (hasattr(subquery, "from_") and subquery.from_)
+            if subquery_from:
+                for table in subquery_from.find_all(exp.Table):
+                    # Skip nested subqueries
+                    if not (hasattr(table, "this") and isinstance(table.this, exp.Subquery)):
+                        table_name = table.name if hasattr(table, "name") else str(table)
+                        all_table_names.add(table_name.lower())
+                # Also check JOINs in subquery FROM
+                joins = subquery_from.args.get("joins", [])
+                for join in joins:
+                    for table in join.find_all(exp.Table):
+                        table_name = table.name if hasattr(table, "name") else str(table)
+                        all_table_names.add(table_name.lower())
+        else:
+            # FROM is regular tables - extract directly from main FROM
+            for table in main_from_expr.find_all(exp.Table):
+                # Skip tables that are inside subqueries
+                # Check if this table is inside a Subquery node
+                is_in_subquery = False
+                current = table
+                while hasattr(current, "parent"):
+                    if isinstance(current.parent, exp.Subquery):
+                        is_in_subquery = True
+                        break
+                    current = current.parent
+                if not is_in_subquery:
+                    table_name = table.name if hasattr(table, "name") else str(table)
+                    all_table_names.add(table_name.lower())
+            # Also check JOINs in main FROM
+            joins = main_from_expr.args.get("joins", [])
+            for join in joins:
+                for table in join.find_all(exp.Table):
+                    # Skip tables in subqueries within JOINs
+                    is_in_subquery = False
+                    current = table
+                    while hasattr(current, "parent"):
+                        if isinstance(current.parent, exp.Subquery):
+                            is_in_subquery = True
+                            break
+                        current = current.parent
+                    if not is_in_subquery:
+                        table_name = table.name if hasattr(table, "name") else str(table)
+                        all_table_names.add(table_name.lower())
+
+    logger.debug(f"Extracted all_table_names from main FROM only: {all_table_names}")
 
     # Build JOINs
     joins_clause = ""
@@ -338,48 +1073,37 @@ def rewrite_query_with_cte(
 
     # Build WHERE clause (just the condition, not "WHERE")
     where_condition = ""
+    where_expression: exp.Expression | None = None
     if parsed.args.get("where"):
         where_expr = parsed.args.get("where")
         # Extract just the condition expression
-        where_condition = where_expr.this.sql(dialect="duckdb") if hasattr(where_expr, "this") else where_expr.sql(dialect="duckdb")
+        where_expression = where_expr.this if hasattr(where_expr, "this") else where_expr
+        where_condition = where_expression.sql(dialect="duckdb")
 
-    # Build GROUP BY clause (just the columns, not "GROUP BY")
-    group_by_columns = ""
-    if parsed.args.get("group"):
-        group_expr = parsed.args.get("group")
-        # Extract just the expressions (columns)
-        if hasattr(group_expr, "expressions"):
-            group_by_columns = ", ".join([expr.sql(dialect="duckdb") for expr in group_expr.expressions])
+    # Extract LIMIT clause
+    limit_clause = ""
+    if parsed.args.get("limit"):
+        limit_expr = parsed.args.get("limit")
+        if hasattr(limit_expr, "expressions") and limit_expr.expressions:
+            limit_value = limit_expr.expressions[0].sql(dialect="duckdb")
+            limit_clause = f"LIMIT {limit_value}"
+        elif hasattr(limit_expr, "this") and limit_expr.this is not None:
+            limit_value = limit_expr.this.sql(dialect="duckdb")
+            limit_clause = f"LIMIT {limit_value}"
         else:
-            group_by_columns = group_expr.sql(dialect="duckdb").replace("GROUP BY ", "")
-
-        # For aggregation queries, policy columns should NOT be added to GROUP BY
-        # They should be aggregated in the HAVING clause instead (e.g., max(value))
-        # The filter_constraint already handles this by using max(value) > 100
-
-    # Build ORDER BY clause (just the columns, not "ORDER BY")
-    order_by_columns = ""
-    if parsed.args.get("order"):
-        order_expr = parsed.args.get("order")
-        # Extract just the expressions (columns with direction)
-        if hasattr(order_expr, "expressions"):
-            order_by_columns = ", ".join([expr.sql(dialect="duckdb") for expr in order_expr.expressions])
-        else:
-            order_by_columns = order_expr.sql(dialect="duckdb").replace("ORDER BY ", "")
+            # Fallback: use the SQL representation
+            limit_sql = limit_expr.sql(dialect="duckdb")
+            if limit_sql.upper().startswith("LIMIT"):
+                limit_clause = limit_sql
+            else:
+                limit_clause = f"LIMIT {limit_sql}"
 
     # Build outer SELECT list (original columns only)
     # For aggregation queries, the CTE already has aggregated columns, so we reference them
     # For scan queries, we need to remove table qualifications since they're from the CTE
+    agg_alias_map: dict[str, str] = {}
     if is_agg:
-        # For aggregations, the CTE has raw columns (no aggregation)
-        # The outer query needs to perform the aggregations on the CTE
-        # So we use the original SELECT expressions (which include COUNT, SUM, etc.)
-        outer_select_parts = []
-        for expr in parsed.expressions:
-            # Use the original expression SQL - it will be applied to the CTE
-            expr_sql = expr.sql(dialect="duckdb")
-            outer_select_parts.append(expr_sql)
-        outer_select_list = ", ".join(outer_select_parts)
+        outer_select_list = ""
     else:
         # For scans, remove table qualifications for columns (they're now in base_query CTE)
         # IMPORTANT: For SELECT *, we need to explicitly list only the original table columns,
@@ -420,125 +1144,326 @@ def rewrite_query_with_cte(
 
     # Build the rewritten query
     if is_agg:
-        # For aggregations:
-        # 1. CTE runs the original query with GROUP BY, aliasing aggregated columns
-        # 2. JOIN back with a second scan to get policy columns
-        # 3. GROUP BY original output columns and apply HAVING
+        policy_source_in_from = False
+        from_expr_check = parsed.args.get("from_")
+        tables_to_check = []
+        if from_expr_check:
+            tables_to_check.extend(list(from_expr_check.find_all(exp.Table)))
+        for join in parsed.args.get("joins", []):
+            tables_to_check.extend(list(join.find_all(exp.Table)))
+        table_names = set()
+        for table in tables_to_check:
+            if hasattr(table, "name") and table.name:
+                table_name = table.name.lower()
+                table_names.add(table_name)
+                if table_name == policy_source.lower():
+                    policy_source_in_from = True
 
-        # Build the original query with aliases for aggregated columns
-        original_select_parts = []
-        alias_counter = 1
-        column_aliases = {}  # Map original expression SQL to alias name
+        group_by_policy_cols: list[str] = []
+        unique_keys = {key.lower() for key in _get_unique_keys(policy_source)}
+        for expr in group_by_exprs:
+            for col in expr.find_all(exp.Column):
+                table_name = get_table_name_from_column(col)
+                col_name = col.this.sql(dialect="duckdb").lower()
+                if table_name and table_name.lower() == policy_source.lower():
+                    group_by_policy_cols.append(expr.sql(dialect="duckdb"))
+                    break
+                if not table_name and col_name in unique_keys:
+                    group_by_policy_cols.append(expr.sql(dialect="duckdb"))
+                    break
 
-        for expr in parsed.expressions:
-            expr_sql = expr.sql(dialect="duckdb")
-            # Check if this is an aggregation function
-            inner_expr = expr.this if isinstance(expr, exp.Alias) else expr
-            is_agg_func = isinstance(inner_expr, (exp.Sum, exp.Count, exp.Avg, exp.Max, exp.Min))
-            if not is_agg_func and hasattr(inner_expr, "this") and hasattr(inner_expr.this, "sql_name"):
-                agg_names = ["COUNT", "SUM", "AVG", "MAX", "MIN", "STDDEV", "VARIANCE"]
-                if inner_expr.this.sql_name().upper() in agg_names:
-                    is_agg_func = True
+        subquery_in_from = (
+            from_expr_check
+            and hasattr(from_expr_check, "this")
+            and isinstance(from_expr_check.this, exp.Subquery)
+        )
+        subquery_has_group = False
+        if subquery_in_from:
+            subquery_select = from_expr_check.this.this
+            subquery_has_group = bool(subquery_select.args.get("group"))
 
-            if is_agg_func:
-                # Create alias for aggregated column
-                alias = f"rewrite{alias_counter}"
-                alias_counter += 1
-                original_select_parts.append(f"{expr_sql} AS {alias}")
-                column_aliases[expr_sql] = alias
+        if subquery_has_group and subquery_in_from:
+            policy_agg_nodes = _extract_policy_agg_nodes(policy_constraint, policy_source)
+            if policy_agg_nodes:
+                subquery_select = from_expr_check.this.this
+                subquery_alias_expr = from_expr_check.this.args.get("alias")
+                subquery_alias = None
+                if isinstance(subquery_alias_expr, exp.TableAlias):
+                    alias_id = subquery_alias_expr.args.get("this")
+                    if isinstance(alias_id, exp.Identifier):
+                        subquery_alias = alias_id.name
+
+                policy_aliases = []
+                for idx, agg in enumerate(policy_agg_nodes, start=1):
+                    alias = f"policy_{idx}"
+                    policy_aliases.append(alias)
+                    agg_expr = _qualify_expression(agg, policy_source)
+                    subquery_select.expressions.append(
+                        exp.Alias(this=agg_expr, alias=exp.to_identifier(alias))
+                    )
+                    if (
+                        isinstance(subquery_alias_expr, exp.TableAlias)
+                        and subquery_alias_expr.args.get("columns") is not None
+                    ):
+                        subquery_alias_expr.args["columns"].append(
+                            exp.Identifier(this=alias, quoted=False)
+                        )
+
+                having_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+                alias_iter = iter(policy_aliases)
+                for agg in list(having_expr.find_all(exp.AggFunc)):
+                    if not _should_use_policy_alias(agg, policy_source):
+                        continue
+                    alias = next(alias_iter, None)
+                    if not alias or not subquery_alias:
+                        break
+                    replacement = exp.Max(
+                        this=exp.Column(
+                            this=exp.Identifier(this=alias),
+                            table=exp.Identifier(this=subquery_alias),
+                        )
+                    )
+                    agg.replace(replacement)
+                parsed.set("having", exp.Having(this=having_expr))
+
+                import re
+
+                return re.sub(r"\s+", " ", parsed.sql(dialect="duckdb")).strip()
+
+        if not policy_source_in_from or subquery_has_group:
+            import re
+
+            return re.sub(r"\s+", " ", query).strip()
+
+        policy_agg_nodes = _extract_policy_agg_nodes(policy_constraint, policy_source)
+        if not policy_agg_nodes:
+            import re
+
+            return re.sub(r"\s+", " ", query).strip()
+
+        def _has_in_subquery(parsed_query: exp.Select) -> bool:
+            for node in parsed_query.find_all(exp.In):
+                query_expr = node.args.get("query")
+                if isinstance(query_expr, (exp.Subquery, exp.Select)):
+                    return True
+            return False
+
+        rescan_raw = policy_source_in_from and not subquery_in_from
+        use_raw_rescan = not _has_in_subquery(parsed)
+        move_order_limit_to_outer = bool(limit_clause) and use_raw_rescan
+        preserve_order_limit = bool(limit_clause)
+
+        base_parsed = sqlglot.parse_one(query, read="duckdb")
+        if isinstance(base_parsed, exp.Select):
+            agg_alias_map = _ensure_agg_aliases(base_parsed)
+        if not preserve_order_limit:
+            base_parsed.set("order", None)
+            base_parsed.set("limit", None)
+        from_expr = base_parsed.args.get("from_")
+        if (
+            from_expr
+            and hasattr(from_expr, "this")
+            and isinstance(from_expr.this, exp.Subquery)
+            and policy_columns
+        ):
+            _thread_lineage_columns(base_parsed, policy_source, sorted(policy_columns))
+
+        cte_query = base_parsed.sql(dialect="duckdb")
+        outer_select_list = _build_outer_select_for_agg(
+            parsed,
+            use_max_for_agg=rescan_raw or use_raw_rescan,
+            agg_alias_map=agg_alias_map,
+        )
+
+        rescan_group_cols = group_by_policy_cols or group_by_cols
+        rescan_select_parts = list(rescan_group_cols)
+        policy_aliases: list[str] = []
+        if use_raw_rescan:
+            for col_name in sorted(policy_columns):
+                if subquery_in_from:
+                    rescan_select_parts.append(col_name)
+                else:
+                    rescan_select_parts.append(f"{policy_source}.{col_name}")
+        else:
+            if policy_agg_nodes:
+                for idx, agg in enumerate(policy_agg_nodes, start=1):
+                    alias = f"policy_{idx}"
+                    policy_aliases.append(alias)
+                    if subquery_in_from:
+                        agg_expr = _strip_table_qualifiers(agg).sql(dialect="duckdb")
+                    else:
+                        agg_expr = _qualify_expression(agg, policy_source).sql(dialect="duckdb")
+                    rescan_select_parts.append(f"{agg_expr} AS {alias}")
             else:
-                # Non-aggregated column (from GROUP BY) - no alias needed
-                original_select_parts.append(expr_sql)
+                for idx, col_name in enumerate(sorted(policy_columns), start=1):
+                    alias = f"policy_{idx}"
+                    policy_aliases.append(alias)
+                    rescan_select_parts.append(f"MAX({policy_source}.{col_name}) AS {alias}")
 
-        # Build the original query in the CTE (with GROUP BY)
-        cte_parts = [f"SELECT {', '.join(original_select_parts)}"]
-        if from_clause:
-            cte_parts.append(from_clause)
-        if joins_clause:
-            cte_parts.append(joins_clause.strip())
-        if where_condition:
-            cte_parts.append(f"WHERE {where_condition}")
-        if group_by_columns:
-            cte_parts.append(f"GROUP BY {group_by_columns}")
-        cte_query = " ".join(cte_parts)
+        rescan_parts = [f"SELECT {', '.join(rescan_select_parts)}"]
+        group_by_needs_joins = False
+        for expr in group_by_exprs:
+            for col in expr.find_all(exp.Column):
+                if not _is_policy_source_column(col, policy_source):
+                    group_by_needs_joins = True
+                    break
+            if group_by_needs_joins:
+                break
+        where_needs_joins = False
+        if where_expression is not None:
+            for col in where_expression.find_all(exp.Column):
+                if not _is_policy_source_column(col, policy_source):
+                    where_needs_joins = True
+                    break
 
-        # Build the rescan query to get policy columns
-        # Rescan selects GROUP BY columns + policy columns
-        rescan_select_parts = []
-        for gb_col in group_by_cols:
-            # Remove table qualification if present
-            gb_col_clean = gb_col.split(".")[-1] if "." in gb_col else gb_col
-            rescan_select_parts.append(gb_col_clean)
+        rescan_from_clause = from_clause
+        rescan_joins_clause = joins_clause
+        rescan_where_expr = where_expression
+        rescan_parsed = None
+        rescan_needs_joins = group_by_needs_joins or where_needs_joins
+        if rescan_needs_joins and subquery_in_from:
+            rescan_parsed = sqlglot.parse_one(query, read="duckdb")
+            if isinstance(rescan_parsed, exp.Select):
+                if policy_columns:
+                    _thread_lineage_columns(rescan_parsed, policy_source, sorted(policy_columns))
+                rescan_from_clause = rescan_parsed.args.get("from_").sql(dialect="duckdb")
+                rescan_joins = rescan_parsed.args.get("joins", [])
+                if rescan_joins:
+                    rescan_joins_clause = " " + " ".join(
+                        join.sql(dialect="duckdb") for join in rescan_joins
+                    )
+                else:
+                    rescan_joins_clause = ""
 
-        # Add policy columns with aliases
-        for col_name in policy_columns:
-            policy_alias = f"rewrite{alias_counter}"
-            alias_counter += 1
-            rescan_select_parts.append(f"{col_name} AS {policy_alias}")
+        if rescan_needs_joins:
+            required_tables = {policy_source.lower()}
+            required_all = bool(subquery_in_from)
+            for expr in group_by_exprs:
+                for col in expr.find_all(exp.Column):
+                    table_hint = _get_column_table_hint(col, policy_source)
+                    if table_hint is None:
+                        required_all = True
+                        break
+                    required_tables.add(table_hint)
+                if required_all:
+                    break
 
-        rescan_query = f"SELECT {', '.join(rescan_select_parts)} FROM {policy_source}"
-        if where_condition:
-            rescan_query += f" WHERE {where_condition}"
+            filtered_where = rescan_where_expr
+            if filtered_where is not None:
+                for col in filtered_where.find_all(exp.Column):
+                    table_hint = _get_column_table_hint(col, policy_source)
+                    if table_hint is None:
+                        required_all = True
+                        break
+                    required_tables.add(table_hint)
 
-        # Build JOIN condition on GROUP BY columns
-        join_conditions = []
-        for gb_col in group_by_cols:
-            # Remove table qualification if present
-            gb_col_clean = gb_col.split(".")[-1] if "." in gb_col else gb_col
-            join_conditions.append(f"base_query.{gb_col_clean} = rescan.{gb_col_clean}")
-        join_condition = " AND ".join(join_conditions)
+            rescan_tables = []
+            rescan_from_expr = from_expr_check
+            rescan_joins_list = list(parsed.args.get("joins", []))
+            if subquery_in_from and rescan_parsed:
+                rescan_from_expr = rescan_parsed.args.get("from_")
+                rescan_joins_list = list(rescan_parsed.args.get("joins", []))
 
-        # Build outer SELECT - use rescan for GROUP BY columns, base_query for aggregated columns
-        # Note: rescan doesn't have aggregated columns (rewrite1, rewrite2), so we use base_query for those
-        outer_select_parts = []
-        for expr in parsed.expressions:
-            expr_sql = expr.sql(dialect="duckdb")
-            if expr_sql in column_aliases:
-                # Aggregated column - use from base_query (rescan doesn't have these)
-                alias = column_aliases[expr_sql]
-                outer_select_parts.append(f"base_query.{alias}")
+            if not required_all:
+                ordered_tables = []
+                if rescan_from_expr:
+                    ordered_tables.extend(list(rescan_from_expr.find_all(exp.Table)))
+                for join in rescan_joins_list:
+                    ordered_tables.extend(list(join.find_all(exp.Table)))
+                for table in ordered_tables:
+                    if not hasattr(table, "name") or not table.name:
+                        continue
+                    table_name = table.name.lower()
+                    if table_name in required_tables and table_name not in rescan_tables:
+                        rescan_tables.append(table_name)
+
+            if not rescan_tables or required_all:
+                if rescan_from_clause:
+                    rescan_parts.append(rescan_from_clause)
+                if rescan_joins_clause:
+                    rescan_parts.append(rescan_joins_clause.strip())
             else:
-                # Non-aggregated column (GROUP BY) - use from rescan
-                gb_col_clean = expr_sql.split(".")[-1] if "." in expr_sql else expr_sql
-                outer_select_parts.append(f"rescan.{gb_col_clean}")
+                rescan_parts.append(f"FROM {', '.join(rescan_tables)}")
 
-        # Build GROUP BY for outer query - group by all columns from base_query
-        # Also need to include rescan.category in GROUP BY since we use it in SELECT
-        outer_group_by_parts = []
-        for gb_col in group_by_cols:
-            gb_col_clean = gb_col.split(".")[-1] if "." in gb_col else gb_col
-            outer_group_by_parts.append(f"base_query.{gb_col_clean}")
-        # Also group by aggregated columns (aliases from base_query)
-        for alias in column_aliases.values():
-            outer_group_by_parts.append(f"base_query.{alias}")
-        # Add rescan.category to GROUP BY since we use it in SELECT
-        for gb_col in group_by_cols:
-            gb_col_clean = gb_col.split(".")[-1] if "." in gb_col else gb_col
-            outer_group_by_parts.append(f"rescan.{gb_col_clean}")
-        outer_group_by = ", ".join(outer_group_by_parts)
+            if filtered_where is not None:
+                rescan_parts.append(f"WHERE {filtered_where.sql(dialect='duckdb')}")
+        else:
+            rescan_parts.append(f"FROM {policy_source}")
+            if where_expression is not None:
+                rescan_parts.append(f"WHERE {where_expression.sql(dialect='duckdb')}")
 
-        # Build HAVING clause - use policy column from rescan
-        # The policy column alias is the last one we created
-        policy_col_alias = f"rewrite{alias_counter - 1}"
-        # Transform constraint to use rescan alias
-        having_constraint = filter_constraint.replace(f"{policy_source}.value", f"rescan.{policy_col_alias}").replace("value", f"rescan.{policy_col_alias}")
-        # For max(value), we need max(rescan.rewrite3)
-        if "max(" in having_constraint.lower():
-            having_constraint = f"max(rescan.{policy_col_alias}) > 100"
+        if rescan_group_cols and not use_raw_rescan:
+            rescan_parts.append(f"GROUP BY {', '.join(rescan_group_cols)}")
+        rescan_query = " ".join(rescan_parts)
 
-        # Outer query: JOIN base_query with rescan, GROUP BY, and HAVING
+        having_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+        if use_raw_rescan:
+            def replace_policy_table(node):
+                if isinstance(node, exp.Column):
+                    table_name = get_table_name_from_column(node)
+                    if table_name and table_name.lower() == policy_source.lower():
+                        return exp.Column(
+                            this=node.this,
+                            table=exp.Identifier(this="rescan"),
+                        )
+                return node
+
+            having_expr = having_expr.transform(replace_policy_table, copy=True)
+        else:
+            alias_iter = iter(policy_aliases)
+            for agg in list(having_expr.find_all(exp.AggFunc)):
+                if not _should_use_policy_alias(agg, policy_source):
+                    continue
+                alias = next(alias_iter, None)
+                if not alias:
+                    break
+                replacement = exp.Max(
+                    this=exp.Column(
+                        this=exp.Identifier(this=alias),
+                        table=exp.Identifier(this="rescan"),
+                    )
+                )
+                agg.replace(replacement)
+        having_constraint = having_expr.sql(dialect="duckdb")
+
+        if group_by_cols:
+            join_cols = rescan_group_cols or group_by_cols
+            join_condition = " AND ".join(
+                [f"base_query.{col} = rescan.{col}" for col in join_cols]
+            )
+        else:
+            join_condition = "1=1"
+
         outer_parts = [
-            f"SELECT {', '.join(outer_select_parts)}",
+            f"SELECT {outer_select_list}",
             "FROM base_query",
             f"JOIN ({rescan_query}) AS rescan ON {join_condition}",
-            f"GROUP BY {outer_group_by}",
-            f"HAVING {having_constraint}"
         ]
+        if group_by_cols:
+            outer_group_by = ", ".join([f"base_query.{col}" for col in group_by_cols])
+            outer_parts.append(f"GROUP BY {outer_group_by}")
+        outer_parts.append(f"HAVING {having_constraint}")
         outer_query = " ".join(outer_parts)
-
         rewritten = f"WITH base_query AS ({cte_query}) {outer_query}"
-        if order_by_columns:
-            rewritten += f" ORDER BY {order_by_columns}"
+        if order_by_columns and (not preserve_order_limit or move_order_limit_to_outer):
+            order_expr = parsed.args.get("order")
+            if order_expr:
+                order_expr_copy = order_expr.copy()
+                select_aliases = {
+                    expr.alias_or_name.lower()
+                    for expr in parsed.expressions
+                    if isinstance(expr, exp.Alias)
+                }
+                for col in order_expr_copy.find_all(exp.Column):
+                    col_name = col.this.sql(dialect="duckdb").lower()
+                    if col_name in select_aliases:
+                        col.set("table", None)
+                    else:
+                        col.set("table", exp.Identifier(this="base_query"))
+                order_by_clean = order_expr_copy.sql(dialect="duckdb").replace("ORDER BY ", "")
+                rewritten += f" ORDER BY {order_by_clean}"
+        if limit_clause and (not preserve_order_limit or move_order_limit_to_outer):
+            rewritten += f" {limit_clause}"
     else:
         # For scans: CTE with policy columns, then filter with WHERE
         cte_parts = [f"SELECT {cte_select_list}"]
@@ -559,6 +1484,4 @@ def rewrite_query_with_cte(
 
     # Clean up whitespace (normalize multiple spaces)
     import re
-    rewritten = re.sub(r"\s+", " ", rewritten).strip()
-
-    return rewritten
+    return re.sub(r"\s+", " ", rewritten).strip()

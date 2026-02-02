@@ -1,22 +1,23 @@
 """Microbenchmark experiment strategy for measuring SQL rewriting performance."""
 
+import contextlib
 import time
 
 import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import SQLRewriter
 
-from ..baselines.logical_baseline import execute_query_logical
-from ..baselines.physical_baseline import execute_query_physical_simple
-from ..correctness import compare_results
-from ..data_setup import (
+from vldb_experiments.baselines.logical_baseline import execute_query_logical
+from vldb_experiments.baselines.physical_baseline import execute_query_physical_simple
+from vldb_experiments.correctness import compare_results
+from vldb_experiments.data_setup import (
     setup_test_data,
     setup_test_data_with_groups,
     setup_test_data_with_join_matches,
 )
-from ..policy_setup import create_test_policy
-from ..query_definitions import get_query_definitions, get_query_order
-from ..variations import generate_variation_parameters
+from vldb_experiments.policy_setup import create_test_policy
+from vldb_experiments.query_definitions import get_query_definitions, get_query_order
+from vldb_experiments.variations import generate_variation_parameters
 
 # SmokedDuck is REQUIRED for physical baseline
 # Only set up when actually needed (lazy import to allow testing without SmokedDuck)
@@ -26,7 +27,7 @@ def _ensure_smokedduck():
     """Ensure SmokedDuck is set up. Called when needed."""
     global _smokedduck_duckdb
     if _smokedduck_duckdb is None:
-        from ..use_local_smokedduck import setup_local_smokedduck
+        from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
         _smokedduck_duckdb = setup_local_smokedduck()
         if _smokedduck_duckdb is None:
             raise ImportError(
@@ -38,7 +39,7 @@ def _ensure_smokedduck():
 
 class MicrobenchmarkStrategy(ExperimentStrategy):
     """Strategy for measuring SQL rewriting performance impact.
-    
+
     This strategy:
     1. Sets up fixed test data
     2. Creates DFC rewriter instance (with policy)
@@ -52,7 +53,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
     def setup(self, context: ExperimentContext) -> None:
         """Set up test data and rewriter instances.
-        
+
         Args:
             context: Experiment context with database connection
         """
@@ -88,16 +89,14 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             try:
                 # Try to commit using SQL
                 conn.execute("COMMIT")
-            except:
+            except Exception:
                 try:
                     # Try Python commit method
                     conn.commit()
-                except:
+                except Exception:
                     # If commit fails, try to rollback and start fresh
-                    try:
+                    with contextlib.suppress(Exception):
                         conn.execute("ROLLBACK")
-                    except:
-                        pass
 
         # Create DFC rewriter (policy will be registered per execution with variations)
         self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
@@ -109,10 +108,10 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
         """Execute microbenchmark for current query with all four approaches.
-        
+
         Args:
             context: Experiment context with current execution number
-            
+
         Returns:
             ExperimentResult with timing and performance metrics for all approaches
         """
@@ -126,7 +125,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         query = queries[query_type]
 
         # Generate variation parameters for this execution
-        # Structure: 4 variations × 5 runs = 20 executions per query type
+        # Structure: 4 variations x 5 runs = 20 executions per query type
         variation_params = generate_variation_parameters(
             query_type=query_type,
             execution_number=context.execution_number,
@@ -134,7 +133,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             num_runs_per_variation=5,
             num_query_types=len(query_order)
         )
-        
+
         # Print execution details for logging
         variation_info = ""
         if query_type in ["SELECT", "WHERE", "ORDER_BY"]:
@@ -171,10 +170,8 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             join_matches = variation_params["join_matches"]
             # Drop and recreate tables with new data
             for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                try:
+                with contextlib.suppress(Exception):
                     conn.execute("DROP TABLE IF EXISTS test_data")
-                except:
-                    pass
                 setup_test_data_with_join_matches(conn, num_rows=1_000_000, join_matches=join_matches)
             # Use default policy for JOIN
             policy = create_test_policy()
@@ -200,10 +197,8 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             num_groups = variation_params["num_groups"]
             # Drop and recreate tables with new data
             for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                try:
+                with contextlib.suppress(Exception):
                     conn.execute("DROP TABLE IF EXISTS test_data")
-                except:
-                    pass
                 setup_test_data_with_groups(conn, num_rows=1_000_000, num_groups=num_groups)
             # Use default policy for GROUP_BY
             policy = create_test_policy()
@@ -273,7 +268,6 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             dfc_error = str(e)
 
         # 2. Run Logical baseline
-        logical_start = time.perf_counter()
         try:
             logical_results, logical_time = execute_query_logical(logical_conn, query, policy)
             logical_rows = len(logical_results)
@@ -285,7 +279,6 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             logical_error = str(e)
 
         # 3. Run Physical baseline (SmokedDuck REQUIRED)
-        physical_start = time.perf_counter()
         try:
             # SmokedDuck is REQUIRED - execute_query_physical_simple will raise if not available
             physical_results, physical_time, physical_error = execute_query_physical_simple(physical_conn, query, policy)
@@ -346,9 +339,9 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             custom_metrics=custom_metrics
         )
 
-    def teardown(self, context: ExperimentContext) -> None:
+    def teardown(self, _context: ExperimentContext) -> None:
         """Clean up resources.
-        
+
         Args:
             context: Experiment context
         """
@@ -358,14 +351,12 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         # Close all connections
         for conn_name in ["no_policy_conn", "dfc_conn", "logical_conn", "physical_conn"]:
             if hasattr(self, conn_name):
-                try:
+                with contextlib.suppress(Exception):
                     getattr(self, conn_name).close()
-                except:
-                    pass
 
     def get_metrics(self) -> list:
         """Return list of custom metric names.
-        
+
         Returns:
             List of metric name strings
         """

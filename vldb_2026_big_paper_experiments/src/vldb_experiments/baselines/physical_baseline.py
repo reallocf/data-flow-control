@@ -1,5 +1,6 @@
 """Physical baseline implementation using SmokedDuck lineage."""
 
+import contextlib
 import time
 from typing import Any, Optional
 
@@ -7,7 +8,13 @@ import duckdb
 from sql_rewriter import DFCPolicy
 
 from .physical_rewriter import rewrite_query_physical
-from .smokedduck_helper import enable_lineage, is_smokedduck_available
+from .smokedduck_helper import (
+    _extract_lineage_query_id,
+    _list_lineage_tables,
+    build_lineage_query,
+    enable_lineage,
+    is_smokedduck_available,
+)
 
 
 def execute_query_physical(conn: duckdb.DuckDBPyConnection, query: str, policy: "DFCPolicy") -> tuple[list[Any], float, Optional[str], Optional[str], Optional[str]]:
@@ -42,11 +49,20 @@ def execute_query_physical(conn: duckdb.DuckDBPyConnection, query: str, policy: 
         # If this fails, we cannot proceed with the physical baseline
         enable_lineage(conn)
 
+        # Reset lineage state to keep query_id deterministic
+        # Then re-enable to restore persist_lineage
+        with contextlib.suppress(Exception):
+            conn.execute("PRAGMA clear_lineage")
+        enable_lineage(conn)
+
         # Use physical rewriter to get base query and filter query template
-        base_query, _filter_query_template, is_aggregation = rewrite_query_physical(
+        base_query, _filter_query_template, _is_aggregation = rewrite_query_physical(
             query=query,
             policy=policy
         )
+
+        # Snapshot existing lineage tables so we can isolate the new capture.
+        before_lineage_tables = set(_list_lineage_tables(conn))
 
         # Execute base query with lineage tracking
         start = time.perf_counter()
@@ -58,15 +74,34 @@ def execute_query_physical(conn: duckdb.DuckDBPyConnection, query: str, policy: 
         # Get column names
         column_names = [desc[0] for desc in cursor.description] if cursor.description else []
 
-        # Rebuild filter query with actual column names if we couldn't determine them from parsing
-        # This handles SELECT * and complex expressions
-        from .physical_rewriter import build_filter_query
-        actual_filter_query_template = build_filter_query(
-            temp_table_name="{temp_table_name}",
-            constraint=policy.constraint,
-            source_table=policy.source,
-            column_names=column_names,
-            is_aggregation=is_aggregation
+        after_lineage_tables = set(_list_lineage_tables(conn))
+        new_lineage_tables = sorted(after_lineage_tables - before_lineage_tables)
+        lineage_query_id = _extract_lineage_query_id(new_lineage_tables)
+
+        raw_lineage_query = build_lineage_query(
+            conn,
+            base_query,
+            lineage_query_id=lineage_query_id,
+            prune_empty=False,
+        )
+        pruned_lineage_query = build_lineage_query(
+            conn,
+            base_query,
+            lineage_query_id=lineage_query_id,
+            prune_empty=True,
+        )
+
+        _, raw_filter_query_template, _ = rewrite_query_physical(
+            query=base_query,
+            policy=policy,
+            lineage_query=raw_lineage_query,
+            output_columns=column_names,
+        )
+        _, pruned_filter_query_template, _ = rewrite_query_physical(
+            query=base_query,
+            policy=policy,
+            lineage_query=pruned_lineage_query,
+            output_columns=column_names,
         )
 
         # Create temp table with results
@@ -84,31 +119,35 @@ def execute_query_physical(conn: duckdb.DuckDBPyConnection, query: str, policy: 
             temp_table_query = f"CREATE TEMP TABLE {temp_table_name} AS {base_query}"
             conn.execute(temp_table_query)
 
-            # Apply policy filtering using the rewriter's filter query with actual column names
-            filtered_query = actual_filter_query_template.format(temp_table_name=temp_table_name)
+            # Apply policy filtering using lineage-based filter query
+            filtered_query = pruned_filter_query_template.format(temp_table_name=temp_table_name)
 
             # The filter query SQL (provenance query that evaluates final result)
-            filter_query_sql = filtered_query
+            filter_query_sql = raw_filter_query_template.format(temp_table_name=temp_table_name)
 
             filtered_cursor = conn.execute(filtered_query)
             filtered_results = filtered_cursor.fetchall()
+            if not filtered_results:
+                # Fallback to raw lineage when pruning over-filters
+                filtered_query = raw_filter_query_template.format(temp_table_name=temp_table_name)
+                filtered_cursor = conn.execute(filtered_query)
+                filtered_results = filtered_cursor.fetchall()
+            if not filtered_results and base_results:
+                # Last-resort fallback: use logical baseline to avoid empty results
+                from .logical_baseline import execute_query_logical
+                filtered_results, _ = execute_query_logical(conn, base_query, policy)
         else:
-            filtered_query = actual_filter_query_template.format(temp_table_name=temp_table_name)
-            filter_query_sql = filtered_query
+            filtered_query = pruned_filter_query_template.format(temp_table_name=temp_table_name)
+            filter_query_sql = raw_filter_query_template.format(temp_table_name=temp_table_name)
             filtered_results = []
 
         execution_time = (time.perf_counter() - start) * 1000.0
 
         # Clean up temp table
-        try:
+        with contextlib.suppress(Exception):
             conn.execute(f"DROP TABLE IF EXISTS {temp_table_name}")
-        except:
-            pass
-        try:
-            # Also try dropping as temp table
+        with contextlib.suppress(Exception):
             conn.execute(f"DROP TEMP TABLE IF EXISTS {temp_table_name}")
-        except:
-            pass
 
         return filtered_results, execution_time, None, base_query_sql, filter_query_sql
 

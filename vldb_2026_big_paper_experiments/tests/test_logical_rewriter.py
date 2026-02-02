@@ -13,7 +13,7 @@ class TestLogicalRewriter:
     """Test cases for logical query rewriting."""
 
     @pytest.fixture
-    def conn(self):
+    def conn(cls):
         """Create a test database connection with test data."""
         conn = duckdb.connect(":memory:")
         setup_test_data(conn, num_rows=1000)
@@ -88,7 +88,7 @@ class TestLogicalRewriter:
 
         # Verify the complete expected SQL
         # Pattern: CTE runs original query with GROUP BY, then JOIN with rescan to get policy columns
-        expected = "WITH base_query AS (SELECT category, COUNT(*) AS rewrite1, SUM(amount) AS rewrite2 FROM test_data GROUP BY category) SELECT rescan.category, base_query.rewrite1, base_query.rewrite2 FROM base_query JOIN (SELECT category, value AS rewrite3 FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category, base_query.rewrite1, base_query.rewrite2, rescan.category HAVING max(rescan.rewrite3) > 100"
+        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount FROM test_data GROUP BY category) SELECT base_query.category, COUNT(base_query.count), SUM(base_query.sum_amount) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 100"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
     def test_order_by_query(self, conn):
@@ -111,7 +111,7 @@ class TestLogicalRewriterWithDifferentPolicies:
     """Test cases for logical rewriter with various policies and queries."""
 
     @pytest.fixture
-    def conn(self):
+    def conn(cls):
         """Create a test database connection with test data."""
         conn = duckdb.connect(":memory:")
         setup_test_data(conn, num_rows=1000)
@@ -155,7 +155,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         assert len(result) > 0, "Rewritten query should return results"
 
         # Verify the complete expected SQL
-        expected = "WITH base_query AS (SELECT category, AVG(amount) AS rewrite1 FROM test_data GROUP BY category) SELECT rescan.category, base_query.rewrite1 FROM base_query JOIN (SELECT category, value AS rewrite2 FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category, base_query.rewrite1, rescan.category HAVING max(rescan.rewrite2) > 100"
+        expected = "WITH base_query AS (SELECT category, AVG(amount) AS avg_amount FROM test_data GROUP BY category) SELECT base_query.category, AVG(base_query.avg_amount) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 100"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
     def test_policy_with_different_comparison_operator(self, conn):
@@ -318,7 +318,7 @@ class TestLogicalRewriterWithDifferentPolicies:
 
         # Verify the complete expected SQL
         # Note: The constraint max(test_data.value) > 50 is applied in the HAVING clause
-        expected = "WITH base_query AS (SELECT category, COUNT(*) AS rewrite1, SUM(amount) AS rewrite2 FROM test_data GROUP BY category) SELECT rescan.category, base_query.rewrite1, base_query.rewrite2 FROM base_query JOIN (SELECT category, value AS rewrite3 FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category, base_query.rewrite1, base_query.rewrite2, rescan.category HAVING max(rescan.rewrite3) > 100"
+        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount FROM test_data GROUP BY category) SELECT base_query.category, COUNT(base_query.count), SUM(base_query.sum_amount) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 50"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
     def test_policy_with_join_and_different_policy_column(self, conn):
@@ -388,7 +388,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         assert len(result[0]) == 6, "Should return 6 columns (category + 5 aggregations)"
 
         # Verify the complete expected SQL
-        expected = "WITH base_query AS (SELECT category, COUNT(*) AS rewrite1, SUM(amount) AS rewrite2, AVG(value) AS rewrite3, MAX(value) AS rewrite4, MIN(value) AS rewrite5 FROM test_data GROUP BY category) SELECT rescan.category, base_query.rewrite1, base_query.rewrite2, base_query.rewrite3, base_query.rewrite4, base_query.rewrite5 FROM base_query JOIN (SELECT category, value AS rewrite6 FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category, base_query.rewrite1, base_query.rewrite2, base_query.rewrite3, base_query.rewrite4, base_query.rewrite5, rescan.category HAVING max(rescan.rewrite6) > 100"
+        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount, AVG(value) AS avg_value, MAX(value) AS max_value, MIN(value) AS min_value FROM test_data GROUP BY category) SELECT base_query.category, COUNT(base_query.count), SUM(base_query.sum_amount), AVG(base_query.avg_value), MAX(base_query.max_value), MIN(base_query.min_value) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 100"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
 

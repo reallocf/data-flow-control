@@ -11,13 +11,13 @@ class ExperimentContext:
 
     execution_number: int = 0
     database_connection: Optional[Any] = None
-    system_config: Optional[Dict[str, Any]] = None
+    strategy_config: Optional[Dict[str, Any]] = None
     shared_state: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Initialize default values."""
-        if self.system_config is None:
-            self.system_config = {}
+        if self.strategy_config is None:
+            self.strategy_config = {}
 
 
 class ExperimentStrategy(ABC):

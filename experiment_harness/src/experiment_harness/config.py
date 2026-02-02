@@ -14,7 +14,8 @@ class ExperimentConfig:
         setup_steps: Optional list of setup functions to run before experiment
         teardown_steps: Optional list of teardown functions to run after experiment
         database_config: Optional database connection parameters
-        system_config: Optional system-level parameters (threads, memory, etc.)
+        db_settings: Optional DuckDB settings to apply via SET
+        strategy_config: Optional config passed directly to strategies
         output_dir: Directory for CSV output (default: "./results")
         output_filename: Base filename for CSV output (default: "results.csv")
         verbose: Enable verbose logging (default: False)
@@ -25,7 +26,8 @@ class ExperimentConfig:
     setup_steps: List[Callable[[], None]] = field(default_factory=list)
     teardown_steps: List[Callable[[], None]] = field(default_factory=list)
     database_config: Optional[Dict[str, Any]] = None
-    system_config: Optional[Dict[str, Any]] = None
+    db_settings: Optional[Dict[str, Any]] = None
+    strategy_config: Optional[Dict[str, Any]] = None
     output_dir: str = "./results"
     output_filename: str = "results.csv"
     verbose: bool = False

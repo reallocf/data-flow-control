@@ -3,6 +3,7 @@
 Excluded queries (non-monotonic):
 - Q02: Minimum Cost Supplier Query
 - Q11: Important Stock Identification Query
+- Q13: Customer Distribution Query
 - Q15: Top Supplier Query
 - Q16: Parts/Supplier Relationship Query
 - Q17: Small-Quantity-Order Revenue Query
@@ -26,14 +27,6 @@ lineitem_policy = DFCPolicy(
     constraint="max(lineitem.l_quantity) >= 1",
     on_fail=Resolution.REMOVE,
 )
-
-order_policy = DFCPolicy(
-    source="orders",
-    sink="customer",
-    constraint="max(orders.o_orderkey) > 0",
-    on_fail=Resolution.REMOVE,
-)
-
 
 @pytest.fixture
 def tpch_rewriter():
@@ -494,34 +487,6 @@ ORDER BY
     assert result is not None
 
 
-def test_tpch_q13(tpch_rewriter):
-    """Test TPC-H Q13: Customer Distribution Query."""
-    query = load_tpch_query(13)
-    tpch_rewriter.register_policy(order_policy)
-    transformed = tpch_rewriter.transform_query(query)
-    expected = """SELECT
-  c_count,
-  COUNT(*) AS custdist
-FROM (
-  SELECT
-    c_custkey,
-    COUNT(o_orderkey)
-  FROM customer
-  LEFT OUTER JOIN orders
-    ON c_custkey = o_custkey AND NOT o_comment LIKE '%special%requests%'
-  GROUP BY
-    c_custkey
-) AS c_orders(c_custkey, c_count)
-GROUP BY
-  c_count
-ORDER BY
-  custdist DESC,
-  c_count DESC"""
-    assert transformed == expected
-    result = tpch_rewriter.conn.execute(transformed).fetchall()
-    assert result is not None
-
-
 def test_tpch_q14(tpch_rewriter):
     """Test TPC-H Q14: Promotion Effect Query."""
     query = load_tpch_query(14)
@@ -566,20 +531,24 @@ def test_tpch_q18(tpch_rewriter):
     o_orderdate,
     o_totalprice,
     SUM(l_quantity) AS sum_l_quantity,
-    MAX(l_quantity) AS dfc
-  FROM customer, orders, lineitem
-  WHERE
-    o_orderkey IN (
-      SELECT
-        l_orderkey
-      FROM lineitem
-      GROUP BY
-        l_orderkey
-      HAVING
-        SUM(l_quantity) > 300
-    )
-    AND c_custkey = o_custkey
-    AND o_orderkey = l_orderkey
+    MAX(l_quantity) AS dfc,
+    MAX(in_subquery.dfc2) AS dfc2
+  FROM customer
+  INNER JOIN orders
+    ON customer.c_custkey = orders.o_custkey
+  INNER JOIN lineitem
+    ON orders.o_orderkey = lineitem.l_orderkey
+  INNER JOIN (
+    SELECT
+      l_orderkey,
+      MAX(l_quantity) AS dfc2
+    FROM lineitem
+    GROUP BY
+      l_orderkey
+    HAVING
+      SUM(l_quantity) > 300
+  ) AS in_subquery
+    ON o_orderkey = in_subquery.l_orderkey
   GROUP BY
     c_name,
     c_custkey,
@@ -600,7 +569,7 @@ SELECT
   sum_l_quantity
 FROM cte
 WHERE
-  dfc >= 1"""
+  dfc >= 1 AND dfc2 >= 1"""
     expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
     transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
     assert transformed_normalized == expected_normalized, (

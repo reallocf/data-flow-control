@@ -7,7 +7,7 @@ it creates DuckDB Python bindings that include lineage functionality.
 Usage:
     import use_local_smokedduck
     import duckdb
-    
+
     # Now duckdb will use the SmokedDuck build (if available)
     conn = duckdb.connect()
     conn.execute("PRAGMA enable_lineage")
@@ -26,14 +26,31 @@ SMOKEDDUCK_DIR = _repo_root.parent / "smokedduck"
 
 def setup_local_smokedduck():
     """Configure environment to use locally built SmokedDuck DuckDB library.
-    
+
     Returns:
         duckdb module from SmokedDuck build
-        
+
     Raises:
         FileNotFoundError: If SmokedDuck directory or build does not exist
         ImportError: If SmokedDuck DuckDB module cannot be imported
     """
+    if "duckdb" in sys.modules:
+        import duckdb
+        test_conn = duckdb.connect(":memory:")
+        try:
+            try:
+                test_conn.execute("PRAGMA enable_lineage")
+                try:
+                    from vldb_experiments.baselines import smokedduck_helper
+                    smokedduck_helper.duckdb = duckdb
+                except Exception:
+                    pass
+                return duckdb
+            except Exception:
+                pass
+        finally:
+            test_conn.close()
+
     if not SMOKEDDUCK_DIR.exists():
         raise FileNotFoundError(
             f"SmokedDuck directory not found at {SMOKEDDUCK_DIR}. "
@@ -78,6 +95,11 @@ def setup_local_smokedduck():
 
     try:
         import duckdb
+        try:
+            from vldb_experiments.baselines import smokedduck_helper
+            smokedduck_helper.duckdb = duckdb
+        except Exception:
+            pass
         # Verify this is SmokedDuck by checking if lineage is supported
         # Lineage support is REQUIRED for the physical baseline
         test_conn = duckdb.connect(":memory:")
@@ -90,7 +112,7 @@ def setup_local_smokedduck():
                     test_conn.execute(pragma)
                     lineage_enabled = True
                     break
-                except:
+                except Exception:
                     continue
 
             test_conn.close()

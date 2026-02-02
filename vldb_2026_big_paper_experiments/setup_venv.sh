@@ -34,6 +34,7 @@ pip install -e ../experiment_harness
 # Install other dependencies
 echo "Installing other dependencies..."
 pip install pandas>=2.0.0
+pip install matplotlib>=3.8.0
 pip install pytest>=8.0.0
 
 # Build and install SmokedDuck

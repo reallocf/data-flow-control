@@ -1,11 +1,9 @@
 """Query definitions for testing different relational operators."""
 
-from typing import Dict, List
 
-
-def get_query_definitions() -> Dict[str, str]:
+def get_query_definitions() -> dict[str, str]:
     """Get query definitions for each core relational operator.
-    
+
     Returns:
         Dictionary mapping operator names to SQL query strings
     """
@@ -19,14 +17,14 @@ def get_query_definitions() -> Dict[str, str]:
         """,
 
         "JOIN": """
-            SELECT test_data.id, other.value 
-            FROM test_data 
+            SELECT test_data.id, other.value
+            FROM test_data
             JOIN test_data other ON test_data.id = other.id
         """,
 
         "GROUP_BY": """
-            SELECT category, COUNT(*), SUM(amount) 
-            FROM test_data 
+            SELECT category, COUNT(*), SUM(amount)
+            FROM test_data
             GROUP BY category
         """,
 
@@ -39,9 +37,9 @@ def get_query_definitions() -> Dict[str, str]:
     return {k: " ".join(v.split()) for k, v in queries.items()}
 
 
-def get_query_order() -> List[str]:
+def get_query_order() -> list[str]:
     """Get the order in which queries should be executed.
-    
+
     Returns:
         List of operator names in execution order
     """

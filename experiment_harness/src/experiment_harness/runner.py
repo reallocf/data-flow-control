@@ -49,12 +49,12 @@ class ExperimentRunner:
             # Create context
             self.context = ExperimentContext(
                 database_connection=db_conn,
-                system_config=self.config.system_config or {}
+                strategy_config=self.config.strategy_config or {}
             )
 
             # Apply system configuration
-            if db_conn and self.config.system_config:
-                self._apply_system_config(db_conn)
+            if db_conn and self.config.db_settings:
+                self._apply_db_settings(db_conn)
 
             # Call strategy setup
             if self.config.verbose:
@@ -159,16 +159,16 @@ class ExperimentRunner:
 
         return conn
 
-    def _apply_system_config(self, conn: duckdb.DuckDBPyConnection) -> None:
-        """Apply system configuration to database connection.
+    def _apply_db_settings(self, conn: duckdb.DuckDBPyConnection) -> None:
+        """Apply DuckDB settings to database connection.
         
         Args:
             conn: DuckDB connection
         """
-        if not self.config.system_config:
+        if not self.config.db_settings:
             return
 
-        for key, value in self.config.system_config.items():
+        for key, value in self.config.db_settings.items():
             try:
                 if isinstance(value, (int, float, str)):
                     conn.execute(f"SET {key} = {value}")

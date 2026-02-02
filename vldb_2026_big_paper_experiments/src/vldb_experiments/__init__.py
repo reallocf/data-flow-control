@@ -4,11 +4,14 @@ from .data_setup import setup_test_data
 from .policy_setup import create_test_policy
 from .query_definitions import get_query_definitions
 from .strategies.microbenchmark_strategy import MicrobenchmarkStrategy
+from .strategies.tpch_strategy import TPCHStrategy, load_tpch_query
 
 __all__ = [
     "MicrobenchmarkStrategy",
+    "TPCHStrategy",
     "create_test_policy",
     "get_query_definitions",
+    "load_tpch_query",
     "setup_test_data",
 ]
 

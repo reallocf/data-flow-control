@@ -224,16 +224,157 @@ def create_all_charts(
     df = load_results(csv_path)
     print(f"Loaded {len(df)} execution results")
 
-    # Get unique query types
-    query_types = df["query_type"].unique()
-    print(f"Found query types: {query_types}")
+    if "query_type" in df.columns:
+        query_types = df["query_type"].unique()
+        print(f"Found query types: {query_types}")
 
-    # Create chart for each query type
-    for query_type in sorted(query_types):
-        print(f"\nCreating chart for {query_type}...")
-        create_operator_chart(query_type, df, output_dir)
+        # Create chart for each query type
+        for query_type in sorted(query_types):
+            print(f"\nCreating chart for {query_type}...")
+            create_operator_chart(query_type, df, output_dir)
+        print(f"\nAll charts saved to {output_dir}/")
+        return
 
-    print(f"\nAll charts saved to {output_dir}/")
+    if {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns):
+        if "tpch_sf" in df.columns:
+            print("\nCreating TPC-H summary charts by scale factor...")
+            create_tpch_summary_charts_by_sf(df, output_dir)
+        else:
+            print("\nCreating TPC-H summary chart...")
+            create_tpch_summary_chart(df, output_dir)
+        print(f"\nAll charts saved to {output_dir}/")
+        return
+
+    print("No supported chart type found for this CSV.")
+    return
+
+
+def create_tpch_summary_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_average_times.png",
+    title_suffix: str = "",
+    plot_mode: str = "average_time",
+) -> Optional[plt.Figure]:
+    """Create a grouped bar chart for TPC-H results by query and approach."""
+    if "query_num" not in df.columns:
+        print("No query_num column found; cannot create TPC-H summary chart.")
+        return None
+
+    grouped = (
+        df.groupby("query_num", as_index=True)[
+            ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms"]
+        ]
+        .mean()
+        .sort_index()
+    )
+    if plot_mode not in {"average_time", "percent_overhead"}:
+        raise ValueError(f"Unsupported plot_mode: {plot_mode}")
+
+    if plot_mode == "percent_overhead":
+        # Compute % overhead relative to no-policy per query.
+        grouped["dfc_overhead_pct"] = (
+            (grouped["dfc_time_ms"] - grouped["no_policy_time_ms"])
+            / grouped["no_policy_time_ms"]
+        ) * 100.0
+        grouped["logical_overhead_pct"] = (
+            (grouped["logical_time_ms"] - grouped["no_policy_time_ms"])
+            / grouped["no_policy_time_ms"]
+        ) * 100.0
+
+    query_nums = grouped.index.astype(int).tolist()
+    x_positions = list(range(len(query_nums)))
+    bar_width = 0.25 if plot_mode == "average_time" else 0.35
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    if plot_mode == "average_time":
+        colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
+        ax.bar(
+            [x - bar_width for x in x_positions],
+            grouped["no_policy_time_ms"],
+            width=bar_width,
+            label="No Policy",
+            color=colors[0],
+        )
+        ax.bar(
+            x_positions,
+            grouped["dfc_time_ms"],
+            width=bar_width,
+            label="DFC",
+            color=colors[1],
+        )
+        ax.bar(
+            [x + bar_width for x in x_positions],
+            grouped["logical_time_ms"],
+            width=bar_width,
+            label="Logical",
+            color=colors[2],
+        )
+        ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+        title = "TPC-H Average Execution Time by Query and Approach"
+    else:
+        colors = ["#ff7f0e", "#2ca02c"]
+        ax.bar(
+            [x - bar_width / 2 for x in x_positions],
+            grouped["dfc_overhead_pct"],
+            width=bar_width,
+            label="DFC",
+            color=colors[0],
+        )
+        ax.bar(
+            [x + bar_width / 2 for x in x_positions],
+            grouped["logical_overhead_pct"],
+            width=bar_width,
+            label="Logical",
+            color=colors[1],
+        )
+        ax.set_ylabel("Overhead vs No Policy (%)", fontsize=12)
+        title = "TPC-H Overhead vs No Policy by Query"
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels([f"Q{q:02d}" for q in query_nums], fontsize=9)
+    ax.set_xlabel("TPC-H Query", fontsize=12)
+    if title_suffix:
+        title = f"{title} ({title_suffix})"
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.legend(loc="best", fontsize=10)
+    ax.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_tpch_summary_charts_by_sf(df: pd.DataFrame, output_dir: str = "./results") -> None:
+    """Create TPC-H summary charts separated by scale factor."""
+    if "tpch_sf" not in df.columns:
+        print("No tpch_sf column found; cannot split charts by scale factor.")
+        return
+
+    for sf in sorted(df["tpch_sf"].dropna().unique()):
+        sf_df = df[df["tpch_sf"] == sf]
+        title_suffix = f"SF={sf}"
+
+        output_filename = f"tpch_average_times_sf{sf}.png"
+        create_tpch_summary_chart(
+            sf_df,
+            output_dir,
+            output_filename,
+            title_suffix,
+            plot_mode="average_time",
+        )
+
+        output_filename = f"tpch_percent_overhead_sf{sf}.png"
+        create_tpch_summary_chart(
+            sf_df,
+            output_dir,
+            output_filename,
+            title_suffix,
+            plot_mode="percent_overhead",
+        )
 
 
 def main():

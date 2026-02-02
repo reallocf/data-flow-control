@@ -1,6 +1,7 @@
 """Variation generation for microbenchmark experiments."""
 
 import random
+from typing import Optional
 
 try:
     import numpy as np
@@ -9,7 +10,7 @@ except ImportError:
     NUMPY_AVAILABLE = False
 
 
-def sample_zipfian(a: float, size: int, min_val: int = 1, max_val: int = None) -> list[int]:
+def sample_zipfian(a: float, size: int, min_val: int = 1, max_val: Optional[int] = None) -> list[int]:
     """Sample from a Zipfian distribution.
 
     Args:
@@ -69,8 +70,7 @@ def get_policy_threshold_for_rows(
 
     threshold = min_val + int((target_rows_removed / total_rows) * value_span)
     # Ensure threshold is in valid range
-    threshold = max(min_val, min(threshold, max_val - 1))
-    return threshold
+    return max(min_val, min(threshold, max_val - 1))
 
 
 def generate_variation_parameters(
@@ -92,7 +92,7 @@ def generate_variation_parameters(
     Returns:
         Dictionary with variation parameters and metrics
     """
-    # Structure: 4 variations × 5 runs = 20 executions per query type
+    # Structure: 4 variations x 5 runs = 20 executions per query type
     # Execution numbers cycle through query types first, then variations, then runs:
     # Execution 1: SELECT, variation 1, run 1
     # Execution 2: WHERE, variation 1, run 1
@@ -104,10 +104,7 @@ def generate_variation_parameters(
     # ...
     # Execution 21: SELECT, variation 2, run 1
     # etc.
-    
-    # Calculate which query type this execution is for (0-indexed)
-    query_type_index = (execution_number - 1) % num_query_types
-    
+
     # Calculate which "round" of query types we're in (0-indexed)
     # Round 0: executions 1-5 (all variation 1, run 1)
     # Round 1: executions 6-10 (all variation 1, run 2)
@@ -117,15 +114,15 @@ def generate_variation_parameters(
     # Round 5: executions 26-30 (all variation 2, run 1)
     # etc.
     round_number = (execution_number - 1) // num_query_types
-    
+
     # Calculate which variation (0-indexed) and which run (0-indexed)
     variation_index = round_number // num_runs_per_variation
     run_index = round_number % num_runs_per_variation
-    
+
     # Ensure variation_index is within bounds
     if variation_index >= num_variations:
         variation_index = variation_index % num_variations
-    
+
     variation_num = variation_index + 1  # 1-indexed for reporting
     run_num = run_index + 1  # 1-indexed for reporting
 

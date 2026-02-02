@@ -178,15 +178,15 @@ def test_database_experiment():
     assert all(r.custom_metrics.get("row_count") == 3 for r in collector.results)
 
 
-def test_system_config():
-    """Test system configuration application."""
+def test_db_settings():
+    """Test DuckDB settings application."""
     strategy = SimpleExperiment()
     config = ExperimentConfig(
         num_executions=1,
         database_config={
             "database": ":memory:",
         },
-        system_config={
+        db_settings={
             "threads": 2,
         },
         verbose=False,

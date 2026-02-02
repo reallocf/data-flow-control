@@ -22,6 +22,7 @@ from .rewrite_rule import (
     apply_policy_constraints_to_scan,
     ensure_subqueries_have_constraint_columns,
     get_policy_identifier,
+    rewrite_in_subqueries_as_joins,
     rewrite_exists_subqueries_as_joins,
     wrap_query_with_limit_in_cte_for_remove_policy,
 )
@@ -137,6 +138,7 @@ class SQLRewriter:
                     )
 
                     if matching_policies:
+                        rewrite_in_subqueries_as_joins(parsed, matching_policies, from_tables)
                         rewrite_exists_subqueries_as_joins(parsed, matching_policies, from_tables)
 
                         from_tables = self._get_source_tables(parsed)
@@ -1700,4 +1702,3 @@ Return only the JSON object (or null), no additional text or explanation."""
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         self.close()
-

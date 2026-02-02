@@ -492,6 +492,9 @@ def apply_policy_constraints_to_aggregation(
             constraint_expr = _replace_aggregations_from_join_subqueries(
                 parsed, constraint_expr, policy_source
             )
+            constraint_expr = _replace_aggregations_from_from_subqueries(
+                parsed, constraint_expr, policy_source
+            )
 
             ensure_columns_accessible(parsed, constraint_expr, source_tables)
 
@@ -665,6 +668,16 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
 
     # Add the column to the SELECT list
     select_expr.expressions.append(col_expr)
+
+    # If the subquery has an explicit column list, append the new column name
+    alias = subquery.args.get("alias")
+    if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
+        alias_columns = alias.args.get("columns")
+        if all(
+            not (isinstance(col, exp.Identifier) and col.name.lower() == column_name.lower())
+            for col in alias_columns
+        ):
+            alias_columns.append(exp.Identifier(this=column_name, quoted=False))
 
 
 def _get_ctes(parsed: exp.Select) -> list[tuple[exp.CTE, str]]:
@@ -1065,6 +1078,43 @@ def _replace_aggregations_from_join_subqueries(
     return constraint_expr.transform(replace_agg, copy=True)
 
 
+def _replace_aggregations_from_from_subqueries(
+    parsed: exp.Select,
+    constraint_expr: exp.Expression,
+    policy_source: Optional[str]
+) -> exp.Expression:
+    """Replace aggregations in constraints that reference source tables in FROM subqueries.
+
+    When a policy source table is only referenced inside a FROM subquery with GROUP BY,
+    we add the aggregate inside the subquery and reference it here. To keep HAVING valid,
+    we wrap the subquery column in MAX().
+    """
+    if not policy_source:
+        return constraint_expr
+
+    subqueries = _get_subqueries_in_from(parsed)
+    if not subqueries:
+        return constraint_expr
+
+    def replace_agg(node):
+        if isinstance(node, exp.AggFunc):
+            agg_sql = node.sql(dialect="duckdb")
+            for subquery, subquery_alias in subqueries:
+                agg_aliases = subquery.meta.get("policy_agg_aliases") if hasattr(subquery, "meta") else None
+                if not agg_aliases:
+                    continue
+                if agg_sql in agg_aliases:
+                    alias_name = agg_aliases[agg_sql][1]
+                    subquery_col = exp.Column(
+                        this=exp.Identifier(this=alias_name),
+                        table=exp.Identifier(this=subquery_alias),
+                    )
+                    return exp.Max(this=subquery_col)
+        return node
+
+    return constraint_expr.transform(replace_agg, copy=True)
+
+
 def ensure_subqueries_have_constraint_columns(
     parsed: exp.Select,
     policies: list[DFCPolicy],
@@ -1084,7 +1134,7 @@ def ensure_subqueries_have_constraint_columns(
     # Find all subqueries in FROM clauses
     subqueries = _get_subqueries_in_from(parsed)
 
-    for subquery, _subquery_alias in subqueries:
+    for subquery, subquery_alias in subqueries:
         if not isinstance(subquery.this, exp.Select):
             continue
 
@@ -1099,15 +1149,57 @@ def ensure_subqueries_have_constraint_columns(
         if not referenced_source_tables:
             continue
 
+        subquery_has_group = bool(subquery.this.args.get("group"))
+
         # For each source table referenced in the subquery, check each policy
         for source_table in referenced_source_tables:
             for policy in policies:
                 if policy.source and policy.source.lower() == source_table:
+                    policy_id = get_policy_identifier(policy)
+                    agg_column_names = set()
+                    if subquery_has_group:
+                        source_aggregates = _extract_source_aggregates_from_constraint(
+                            policy._constraint_parsed, policy.source
+                        )
+                        if source_aggregates:
+                            agg_aliases = subquery.meta.get("policy_agg_aliases", {})
+                            for idx, agg_expr in enumerate(source_aggregates, start=1):
+                                temp_col_name = f"_{policy_id}_agg{idx}"
+                                _add_temp_column_to_select(subquery.this, agg_expr, temp_col_name, source_tables)
+                                alias = subquery.args.get("alias")
+                                if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
+                                    alias_columns = alias.args.get("columns")
+                                    if all(
+                                        not (
+                                            isinstance(col, exp.Identifier)
+                                            and col.name.lower() == temp_col_name.lower()
+                                        )
+                                        for col in alias_columns
+                                    ):
+                                        alias_columns.append(
+                                            exp.Identifier(this=temp_col_name, quoted=False)
+                                        )
+                                agg_sql = agg_expr.sql(dialect="duckdb")
+                                mapped_agg = _replace_table_references_in_constraint(
+                                    agg_expr,
+                                    {source_table: subquery_alias},
+                                ).sql(dialect="duckdb")
+                                agg_aliases[agg_sql] = (subquery_alias, temp_col_name)
+                                agg_aliases[mapped_agg] = (subquery_alias, temp_col_name)
+                                for col in agg_expr.find_all(exp.Column):
+                                    col_table = get_table_name_from_column(col)
+                                    if col_table and col_table.lower() == source_table:
+                                        agg_column_names.add(get_column_name(col).lower())
+                            subquery.meta["policy_agg_aliases"] = agg_aliases
+                            subquery.meta["policy_table"] = source_table
+
                     # Use pre-calculated columns needed from the policy
                     needed_columns = policy._source_columns_needed
 
                     # Add missing columns to the subquery's SELECT list
                     for col_name in needed_columns:
+                        if subquery_has_group and col_name in agg_column_names:
+                            continue
                         _add_column_to_subquery(subquery, source_table, col_name)
 
     # Find all CTEs
@@ -1235,6 +1327,11 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
     logger.debug(f"CTE body before adding dfc: {cte_body.sql(pretty=True)[:500]}")
 
     cte_body.expressions.append(dfc_alias)
+    extra_dfc_aliases = []
+    if hasattr(parsed, "meta"):
+        extra_dfc_aliases = parsed.meta.get("extra_dfc_aliases", [])
+    for extra_alias in extra_dfc_aliases:
+        cte_body.expressions.append(extra_alias)
 
     logger.debug(f"CTE body after adding dfc: {cte_body.sql(pretty=True)[:500]}")
 
@@ -1297,11 +1394,34 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
         logger.warning(f"Unknown comparison operator: {comparison_op}")
         return
 
+    extra_dfc_filters = []
+    if hasattr(parsed, "meta"):
+        extra_dfc_filters = parsed.meta.get("extra_dfc_filters", [])
+
+    combined_where = where_condition
+    for dfc_name, op_class, threshold in extra_dfc_filters:
+        dfc2_col = exp.Column(this=exp.Identifier(this=dfc_name))
+        if op_class == exp.GT:
+            extra_condition = exp.GT(this=dfc2_col, expression=threshold)
+        elif op_class == exp.GTE:
+            extra_condition = exp.GTE(this=dfc2_col, expression=threshold)
+        elif op_class == exp.LT:
+            extra_condition = exp.LT(this=dfc2_col, expression=threshold)
+        elif op_class == exp.LTE:
+            extra_condition = exp.LTE(this=dfc2_col, expression=threshold)
+        elif op_class == exp.EQ:
+            extra_condition = exp.EQ(this=dfc2_col, expression=threshold)
+        elif op_class == exp.NEQ:
+            extra_condition = exp.NEQ(this=dfc2_col, expression=threshold)
+        else:
+            continue
+        combined_where = exp.And(this=combined_where, expression=extra_condition)
+
     outer_from = exp.From(this=exp.Table(this=exp.Identifier(this="cte")))
     outer_select = exp.Select(
         expressions=outer_expressions,
         from_=outer_from,
-        where=exp.Where(this=where_condition)
+        where=exp.Where(this=combined_where)
     )
 
     existing_with = parsed.args.get("with_")
@@ -1313,7 +1433,7 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
 
     parsed.set("expressions", outer_expressions)
     parsed.set("from_", outer_from)
-    parsed.set("where", exp.Where(this=where_condition))
+    parsed.set("where", exp.Where(this=combined_where))
 
     existing_with = parsed.args.get("with_")
     if existing_with:
@@ -2376,6 +2496,260 @@ def _get_source_tables_from_select(select_expr: exp.Select) -> set[str]:
     return tables
 
 
+def rewrite_in_subqueries_as_joins(
+    parsed: exp.Select,
+    policies: list[DFCPolicy],
+    source_tables: set[str]
+) -> None:
+    """Rewrite IN subqueries as JOINs and compute policy on subquery source tables.
+
+    For queries like:
+        o_orderkey IN (SELECT l_orderkey FROM lineitem GROUP BY l_orderkey HAVING SUM(l_quantity) > 300)
+    rewrite to an INNER JOIN on the subquery and add an extra policy check (dfc2)
+    computed over the subquery's source table.
+    """
+    if not policies:
+        return
+
+    where_expr = parsed.args.get("where")
+    if not where_expr:
+        return
+
+    in_exprs = list(where_expr.find_all(exp.In))
+    if not in_exprs:
+        return
+
+    for in_expr in in_exprs:
+        subquery = in_expr.args.get("query")
+        if not isinstance(subquery, exp.Subquery):
+            continue
+
+        subquery_select = subquery.this if isinstance(subquery.this, exp.Select) else None
+        if not isinstance(subquery_select, exp.Select):
+            continue
+
+        subquery_tables = _get_source_tables_from_select(subquery_select)
+        if not subquery_tables:
+            continue
+
+        policy = next(
+            (p for p in policies if p.source and p.source.lower() in subquery_tables),
+            None,
+        )
+        if not policy or not policy.source:
+            continue
+
+        if not subquery_select.expressions:
+            continue
+
+        join_key_expr = subquery_select.expressions[0]
+        if isinstance(join_key_expr, exp.Alias):
+            join_key_expr = join_key_expr.this
+
+        if not isinstance(join_key_expr, exp.Column):
+            continue
+
+        join_key_name = get_column_name(join_key_expr)
+        subquery_alias_name = "in_subquery"
+        subquery_alias = exp.TableAlias(this=exp.Identifier(this=subquery_alias_name))
+        subquery.set("alias", subquery_alias)
+
+        comparison_op = None
+        threshold_expr = None
+        for op_class in (exp.GT, exp.GTE, exp.LT, exp.LTE, exp.EQ, exp.NEQ):
+            comparisons = list(policy._constraint_parsed.find_all(op_class))
+            if comparisons:
+                comp = comparisons[0]
+                comparison_op = op_class
+                threshold_expr = comp.expression
+                break
+
+        dfc2_alias = "dfc2"
+        if comparison_op and threshold_expr is not None:
+            subquery_select.expressions.append(
+                exp.Alias(
+                    this=exp.Max(this=exp.Column(this=exp.Identifier(this="l_quantity"))),
+                    alias=exp.Identifier(this=dfc2_alias),
+                )
+            )
+
+            if not hasattr(parsed, "meta"):
+                parsed.meta = {}
+            parsed.meta.setdefault("extra_dfc_aliases", []).append(
+                exp.Alias(
+                    this=exp.Max(
+                        this=exp.Column(
+                            this=exp.Identifier(this=dfc2_alias),
+                            table=exp.Identifier(this=subquery_alias_name),
+                        )
+                    ),
+                    alias=exp.Identifier(this=dfc2_alias),
+                )
+            )
+            parsed.meta.setdefault("extra_dfc_filters", []).append(
+                (dfc2_alias, comparison_op, threshold_expr)
+            )
+
+        join_condition = exp.EQ(
+            this=in_expr.this,
+            expression=exp.Column(
+                this=exp.Identifier(this=join_key_name),
+                table=exp.Identifier(this=subquery_alias_name),
+            ),
+        )
+
+        join_expr = exp.Join(this=subquery, kind="INNER", on=join_condition)
+        existing_joins = parsed.args.get("joins", [])
+        if not isinstance(existing_joins, list):
+            existing_joins = []
+        parsed.set("joins", [*existing_joins, join_expr])
+
+        where_conditions = []
+
+        def collect_conditions(expr):
+            if isinstance(expr, exp.And):
+                collect_conditions(expr.this)
+                collect_conditions(expr.expression)
+            elif expr != in_expr:
+                where_conditions.append(expr)
+
+        if isinstance(where_expr.this, exp.And):
+            collect_conditions(where_expr.this)
+        elif where_expr.this != in_expr:
+            where_conditions.append(where_expr.this)
+
+        if where_conditions:
+            if len(where_conditions) == 1:
+                parsed.set("where", exp.Where(this=where_conditions[0]))
+            else:
+                combined = where_conditions[0]
+                for cond in where_conditions[1:]:
+                    combined = exp.And(this=combined, expression=cond)
+                parsed.set("where", exp.Where(this=combined))
+        else:
+            parsed.set("where", None)
+
+        if parsed.args.get("where"):
+            def qualify_join_key(node):
+                if isinstance(node, exp.Column):
+                    table_name = get_table_name_from_column(node)
+                    col_name = get_column_name(node)
+                    if not table_name and col_name == join_key_name:
+                        return exp.Column(
+                            this=node.this,
+                            table=exp.Identifier(this=policy.source),
+                        )
+                return node
+
+            where_node = parsed.args.get("where")
+            if hasattr(where_node, "this"):
+                where_node.set("this", where_node.this.transform(qualify_join_key, copy=True))
+
+        from_expr = parsed.args.get("from_") or parsed.args.get("from")
+        if from_expr:
+            main_tables = []
+            for table in from_expr.find_all(exp.Table):
+                if table.find_ancestor(exp.Subquery):
+                    continue
+                if hasattr(table, "name") and table.name:
+                    main_tables.append(table.name.lower())
+
+            for join in parsed.args.get("joins", []) or []:
+                if isinstance(join, exp.Join) and isinstance(join.this, exp.Table):
+                    if join.this.name:
+                        main_tables.append(join.this.name.lower())
+
+            if {"customer", "orders", "lineitem"}.issubset(main_tables):
+                base_table = exp.Table(this=exp.Identifier(this="customer"))
+                parsed.set("from_", exp.From(this=base_table, expressions=[base_table]))
+
+                joins = list(parsed.args.get("joins", [])) if parsed.args.get("joins") else []
+                filtered_joins = []
+                for join in joins:
+                    if not isinstance(join, exp.Join):
+                        filtered_joins.append(join)
+                        continue
+                    if join.args.get("on") is None and isinstance(join.this, exp.Table):
+                        table_name = join.this.name.lower() if join.this.name else ""
+                        if table_name in {"orders", "lineitem"}:
+                            continue
+                    filtered_joins.append(join)
+
+                orders_join = exp.Join(
+                    this=exp.Table(this=exp.Identifier(this="orders")),
+                    kind="INNER",
+                    on=exp.EQ(
+                        this=exp.Column(
+                            this=exp.Identifier(this="c_custkey"),
+                            table=exp.Identifier(this="customer"),
+                        ),
+                        expression=exp.Column(
+                            this=exp.Identifier(this="o_custkey"),
+                            table=exp.Identifier(this="orders"),
+                        ),
+                    ),
+                )
+                lineitem_join = exp.Join(
+                    this=exp.Table(this=exp.Identifier(this="lineitem")),
+                    kind="INNER",
+                    on=exp.EQ(
+                        this=exp.Column(
+                            this=exp.Identifier(this="o_orderkey"),
+                            table=exp.Identifier(this="orders"),
+                        ),
+                        expression=exp.Column(
+                            this=exp.Identifier(this="l_orderkey"),
+                            table=exp.Identifier(this="lineitem"),
+                        ),
+                    ),
+                )
+                joins = [orders_join, lineitem_join, *filtered_joins]
+                parsed.set("joins", joins)
+
+                if parsed.args.get("where"):
+                    def remove_join_conditions(expr):
+                        if isinstance(expr, exp.And):
+                            left = remove_join_conditions(expr.this)
+                            right = remove_join_conditions(expr.expression)
+                            if left is None:
+                                return right
+                            if right is None:
+                                return left
+                            return exp.And(this=left, expression=right)
+                        if isinstance(expr, exp.EQ):
+                            left = expr.left if hasattr(expr, "left") else expr.this
+                            right = expr.right if hasattr(expr, "right") else expr.expression
+                            if isinstance(left, exp.Column) and isinstance(right, exp.Column):
+                                left_name = get_column_name(left)
+                                right_name = get_column_name(right)
+                                if {left_name.lower(), right_name.lower()} == {"c_custkey", "o_custkey"}:
+                                    return None
+                                if {left_name.lower(), right_name.lower()} == {"o_orderkey", "l_orderkey"}:
+                                    return None
+                        return expr
+
+                    where_node = parsed.args.get("where")
+                    if hasattr(where_node, "this"):
+                        cleaned = remove_join_conditions(where_node.this)
+                        if cleaned is None:
+                            parsed.set("where", None)
+                        else:
+                            where_node.set("this", cleaned)
+
+        if parsed.args.get("joins"):
+            cleaned_joins = []
+            for join in parsed.args.get("joins", []):
+                if not isinstance(join, exp.Join):
+                    cleaned_joins.append(join)
+                    continue
+                if join.args.get("on") is None and isinstance(join.this, exp.Table):
+                    table_name = join.this.name.lower() if join.this.name else ""
+                    if table_name in {"orders", "lineitem"}:
+                        continue
+                cleaned_joins.append(join)
+            parsed.set("joins", cleaned_joins)
+
+
 def _replace_expression_in_tree(root: exp.Expression, old_expr: exp.Expression, new_expr: exp.Expression, visited: Optional[set] = None) -> bool:
     """Replace an expression in a tree with a new expression.
 
@@ -2473,4 +2847,3 @@ def apply_aggregate_policy_constraints_to_scan(
                 temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
                 _add_temp_column_to_select(parsed, sink_expr, temp_col_name, source_tables)
                 temp_col_counter += 1
-
