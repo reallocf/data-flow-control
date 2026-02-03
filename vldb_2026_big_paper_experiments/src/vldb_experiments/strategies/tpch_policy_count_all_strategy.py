@@ -7,7 +7,7 @@ import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import SQLRewriter
 
-from vldb_experiments.baselines.logical_baseline import execute_query_logical_multi
+from vldb_experiments.baselines.logical_baseline import rewrite_query_logical_multi
 from vldb_experiments.correctness import compare_results
 from vldb_experiments.strategies.tpch_policy_count_strategy import build_tpch_q01_policies
 from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES, load_tpch_query
@@ -110,28 +110,39 @@ class TPCHPolicyCountAllQueriesStrategy(ExperimentStrategy):
             no_policy_rows = 0
             no_policy_error = str(e)
 
-        dfc_start = time.perf_counter()
+        dfc_rewrite_start = time.perf_counter()
         try:
-            dfc_cursor = self.dfc_rewriter.execute(query)
+            dfc_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
+            dfc_exec_start = time.perf_counter()
+            dfc_cursor = self.dfc_conn.execute(dfc_transformed)
             dfc_results = dfc_cursor.fetchall()
-            dfc_time = (time.perf_counter() - dfc_start) * 1000.0
+            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
+            dfc_time = dfc_rewrite_time + dfc_exec_time
             dfc_rows = len(dfc_results)
             dfc_error = None
         except Exception as e:
+            dfc_rewrite_time = 0.0
+            dfc_exec_time = 0.0
             dfc_time = 0.0
             dfc_results = []
             dfc_rows = 0
             dfc_error = str(e)
 
         try:
-            logical_results, logical_time = execute_query_logical_multi(
-                self.logical_conn,
-                query,
-                policies,
-            )
+            logical_rewrite_start = time.perf_counter()
+            logical_query = rewrite_query_logical_multi(query, policies)
+            logical_rewrite_time = (time.perf_counter() - logical_rewrite_start) * 1000.0
+            logical_exec_start = time.perf_counter()
+            logical_cursor = self.logical_conn.execute(logical_query)
+            logical_results = logical_cursor.fetchall()
+            logical_exec_time = (time.perf_counter() - logical_exec_start) * 1000.0
+            logical_time = logical_rewrite_time + logical_exec_time
             logical_rows = len(logical_results)
             logical_error = None
         except Exception as e:
+            logical_rewrite_time = 0.0
+            logical_exec_time = 0.0
             logical_time = 0.0
             logical_results = []
             logical_rows = 0
@@ -153,8 +164,13 @@ class TPCHPolicyCountAllQueriesStrategy(ExperimentStrategy):
             "tpch_sf": self.scale_factor,
             "policy_count": self.policy_count,
             "no_policy_time_ms": no_policy_time,
+            "no_policy_exec_time_ms": no_policy_time,
             "dfc_time_ms": dfc_time,
+            "dfc_rewrite_time_ms": dfc_rewrite_time,
+            "dfc_exec_time_ms": dfc_exec_time,
             "logical_time_ms": logical_time,
+            "logical_rewrite_time_ms": logical_rewrite_time,
+            "logical_exec_time_ms": logical_exec_time,
             "no_policy_rows": no_policy_rows,
             "dfc_rows": dfc_rows,
             "logical_rows": logical_rows,
@@ -182,8 +198,13 @@ class TPCHPolicyCountAllQueriesStrategy(ExperimentStrategy):
             "tpch_sf",
             "policy_count",
             "no_policy_time_ms",
+            "no_policy_exec_time_ms",
             "dfc_time_ms",
+            "dfc_rewrite_time_ms",
+            "dfc_exec_time_ms",
             "logical_time_ms",
+            "logical_rewrite_time_ms",
+            "logical_exec_time_ms",
             "no_policy_rows",
             "dfc_rows",
             "logical_rows",

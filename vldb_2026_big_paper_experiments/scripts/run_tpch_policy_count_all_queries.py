@@ -30,6 +30,11 @@ def main() -> int:
         default=1000,
         help="Policy count to apply for all queries (default: 1000)",
     )
+    parser.add_argument(
+        "--output-suffix",
+        default="",
+        help="Suffix appended to the output CSV filename (e.g., _breakdown).",
+    )
     args = parser.parse_args()
 
     num_queries = len(TPCH_QUERIES)
@@ -47,7 +52,7 @@ def main() -> int:
         print(f"\n=== Scale factor {scale_factor} ===", flush=True)
 
         db_path = f"./results/tpch_policy_count_all_sf{scale_factor}.db"
-        output_filename = f"tpch_policy_count_all_sf{scale_factor}.csv"
+        output_filename = f"tpch_policy_count_all_sf{scale_factor}{args.output_suffix}.csv"
 
         config = ExperimentConfig(
             num_executions=num_executions,

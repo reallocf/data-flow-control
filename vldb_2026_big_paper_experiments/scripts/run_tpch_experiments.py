@@ -24,6 +24,11 @@ def main():
         default=[1, 10],
         help="TPC-H scale factors to run (default: 1 10)",
     )
+    parser.add_argument(
+        "--output-suffix",
+        default="",
+        help="Suffix appended to the output CSV filename (e.g., _breakdown).",
+    )
     args = parser.parse_args()
 
     # Experiment structure: one execution per query
@@ -56,7 +61,7 @@ def main():
                 "tpch_db_path": db_path,
             },
             output_dir="./results",
-            output_filename=f"tpch_results_sf{scale_factor}.csv",
+            output_filename=f"tpch_results_sf{scale_factor}{args.output_suffix}.csv",
             verbose=True,
         )
 

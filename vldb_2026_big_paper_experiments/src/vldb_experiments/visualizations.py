@@ -243,12 +243,25 @@ def create_operator_chart(
     return fig
 
 
+def _apply_suffix(template: str, suffix: str) -> str:
+    if not suffix:
+        return template
+    if "{suffix}" in template:
+        return template
+    if template.endswith(".png"):
+        return f"{template[:-4]}_{suffix}.png"
+    return f"{template}_{suffix}"
+
+
 def create_all_charts(
     csv_path: str = "./results/microbenchmark_results.csv",
     output_dir: str = "./results",
     tpch_avg_template: str = "tpch_average_times_sf{sf}.png",
     tpch_overhead_template: str = "tpch_percent_overhead_sf{sf}.png",
     operator_template: str = "{query_type}_performance_policy{policy_count}.png",
+    tpch_breakdown_template: str = "tpch_rewrite_exec_breakdown_sf{sf}.png",
+    tpch_exec_only_template: str = "tpch_exec_only_sf{sf}.png",
+    suffix: str = "",
 ) -> None:
     """Create visualizations for all operators.
 
@@ -260,6 +273,12 @@ def create_all_charts(
     print(f"Loading results from {csv_path}...")
     df = load_results(csv_path)
     print(f"Loaded {len(df)} execution results")
+
+    tpch_avg_template = _apply_suffix(tpch_avg_template, suffix)
+    tpch_overhead_template = _apply_suffix(tpch_overhead_template, suffix)
+    operator_template = _apply_suffix(operator_template, suffix)
+    tpch_breakdown_template = _apply_suffix(tpch_breakdown_template, suffix)
+    tpch_exec_only_template = _apply_suffix(tpch_exec_only_template, suffix)
 
     if "query_type" in df.columns:
         query_types = df["query_type"].unique()
@@ -295,6 +314,29 @@ def create_all_charts(
                 avg_template=tpch_avg_template,
                 overhead_template=tpch_overhead_template,
             )
+            if {
+                "no_policy_exec_time_ms",
+                "dfc_rewrite_time_ms",
+                "dfc_exec_time_ms",
+                "logical_rewrite_time_ms",
+                "logical_exec_time_ms",
+            }.issubset(df.columns):
+                for sf in sorted(df["tpch_sf"].dropna().unique()):
+                    sf_df = df[df["tpch_sf"] == sf]
+                    output_filename = tpch_breakdown_template.format(sf=sf)
+                    create_tpch_rewrite_exec_breakdown_chart(
+                        sf_df,
+                        output_dir,
+                        output_filename=output_filename,
+                        title_suffix=f"SF={sf}",
+                    )
+                    output_filename = tpch_exec_only_template.format(sf=sf)
+                    create_tpch_exec_only_chart(
+                        sf_df,
+                        output_dir,
+                        output_filename=output_filename,
+                        title_suffix=f"SF={sf}",
+                    )
         else:
             print("\nCreating TPC-H summary chart...")
             create_tpch_summary_chart(df, output_dir)
@@ -303,7 +345,8 @@ def create_all_charts(
 
     if {"policy_count", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns):
         print("\nCreating policy count line chart...")
-        create_policy_count_chart(df, output_dir)
+        output_filename = _apply_suffix("tpch_q01_policy_count.png", suffix)
+        create_policy_count_chart(df, output_dir, output_filename=output_filename)
         print(f"\nAll charts saved to {output_dir}/")
         return
 
@@ -444,6 +487,192 @@ def create_tpch_summary_charts_by_sf(
         )
 
 
+def create_tpch_rewrite_exec_breakdown_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_rewrite_exec_breakdown_sf{sf}.png",
+    title_suffix: str = "",
+) -> Optional[plt.Figure]:
+    """Create a stacked bar chart for TPC-H rewrite vs exec breakdown."""
+    required_cols = {
+        "query_num",
+        "no_policy_exec_time_ms",
+        "dfc_rewrite_time_ms",
+        "dfc_exec_time_ms",
+        "logical_rewrite_time_ms",
+        "logical_exec_time_ms",
+    }
+    if not required_cols.issubset(df.columns):
+        print("Missing required columns for TPC-H rewrite/exec breakdown chart.")
+        return None
+
+    grouped = (
+        df.groupby("query_num", as_index=True)[
+            [
+                "no_policy_exec_time_ms",
+                "dfc_rewrite_time_ms",
+                "dfc_exec_time_ms",
+                "logical_rewrite_time_ms",
+                "logical_exec_time_ms",
+            ]
+        ]
+        .mean()
+        .sort_index()
+    )
+
+    if grouped.empty:
+        print("No data available for TPC-H rewrite/exec breakdown chart.")
+        return None
+
+    query_nums = grouped.index.astype(int).tolist()
+    x_positions = list(range(len(query_nums)))
+    bar_width = 0.25
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # No policy exec (single bar)
+    ax.bar(
+        [x - bar_width for x in x_positions],
+        grouped["no_policy_exec_time_ms"],
+        width=bar_width,
+        label="No Policy exec",
+        color="#1f77b4",
+    )
+
+    # DFC stacked: rewrite + exec
+    ax.bar(
+        x_positions,
+        grouped["dfc_rewrite_time_ms"],
+        width=bar_width,
+        label="DFC rewrite",
+        color="#ff7f0e",
+    )
+    ax.bar(
+        x_positions,
+        grouped["dfc_exec_time_ms"],
+        width=bar_width,
+        bottom=grouped["dfc_rewrite_time_ms"],
+        label="DFC exec",
+        color="#ffbb78",
+    )
+
+    # Logical stacked: rewrite + exec
+    ax.bar(
+        [x + bar_width for x in x_positions],
+        grouped["logical_rewrite_time_ms"],
+        width=bar_width,
+        label="Logical rewrite",
+        color="#2ca02c",
+    )
+    ax.bar(
+        [x + bar_width for x in x_positions],
+        grouped["logical_exec_time_ms"],
+        width=bar_width,
+        bottom=grouped["logical_rewrite_time_ms"],
+        label="Logical exec",
+        color="#98df8a",
+    )
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels([f"Q{q:02d}" for q in query_nums], fontsize=9)
+    ax.set_xlabel("TPC-H Query", fontsize=12)
+    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+
+    title = "TPC-H Rewrite vs Execution Breakdown"
+    if title_suffix:
+        title = f"{title} ({title_suffix})"
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.legend(loc="best", fontsize=9)
+    ax.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_tpch_exec_only_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_exec_only_sf{sf}.png",
+    title_suffix: str = "",
+) -> Optional[plt.Figure]:
+    """Create a grouped bar chart for TPC-H exec-only times."""
+    required_cols = {
+        "query_num",
+        "no_policy_exec_time_ms",
+        "dfc_exec_time_ms",
+        "logical_exec_time_ms",
+    }
+    if not required_cols.issubset(df.columns):
+        print("Missing required columns for TPC-H exec-only chart.")
+        return None
+
+    grouped = (
+        df.groupby("query_num", as_index=True)[
+            [
+                "no_policy_exec_time_ms",
+                "dfc_exec_time_ms",
+                "logical_exec_time_ms",
+            ]
+        ]
+        .mean()
+        .sort_index()
+    )
+
+    if grouped.empty:
+        print("No data available for TPC-H exec-only chart.")
+        return None
+
+    query_nums = grouped.index.astype(int).tolist()
+    x_positions = list(range(len(query_nums)))
+    bar_width = 0.25
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(
+        [x - bar_width for x in x_positions],
+        grouped["no_policy_exec_time_ms"],
+        width=bar_width,
+        label="No Policy exec",
+        color="#1f77b4",
+    )
+    ax.bar(
+        x_positions,
+        grouped["dfc_exec_time_ms"],
+        width=bar_width,
+        label="DFC exec",
+        color="#ffbb78",
+    )
+    ax.bar(
+        [x + bar_width for x in x_positions],
+        grouped["logical_exec_time_ms"],
+        width=bar_width,
+        label="Logical exec",
+        color="#98df8a",
+    )
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels([f"Q{q:02d}" for q in query_nums], fontsize=9)
+    ax.set_xlabel("TPC-H Query", fontsize=12)
+    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+
+    title = "TPC-H Execution Time (Exec Only)"
+    if title_suffix:
+        title = f"{title} ({title_suffix})"
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.legend(loc="best", fontsize=9)
+    ax.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
 def create_policy_count_chart(
     df: pd.DataFrame,
     output_dir: str = "./results",
@@ -543,6 +772,21 @@ def main():
         help="Filename template for TPC-H overhead charts (use {sf}).",
     )
     parser.add_argument(
+        "--tpch-breakdown-template",
+        default="tpch_rewrite_exec_breakdown_sf{sf}.png",
+        help="Filename template for TPC-H breakdown charts (use {sf}).",
+    )
+    parser.add_argument(
+        "--tpch-exec-only-template",
+        default="tpch_exec_only_sf{sf}.png",
+        help="Filename template for TPC-H exec-only charts (use {sf}).",
+    )
+    parser.add_argument(
+        "--suffix",
+        required=True,
+        help="Suffix appended to all output figures to avoid overwriting.",
+    )
+    parser.add_argument(
         "--operator-template",
         default="{query_type}_performance_policy{policy_count}.png",
         help="Filename template for operator charts (use {query_type}, {policy_count}).",
@@ -558,6 +802,9 @@ def main():
         tpch_avg_template=args.tpch_avg_template,
         tpch_overhead_template=args.tpch_overhead_template,
         operator_template=args.operator_template,
+        tpch_breakdown_template=args.tpch_breakdown_template,
+        tpch_exec_only_template=args.tpch_exec_only_template,
+        suffix=args.suffix,
     )
 
 

@@ -12,6 +12,7 @@ dependencies = [
     "pandas>=2.0.0",
     "numpy>=1.20.0",
     "matplotlib>=3.5.0",
+    "pg8000>=1.31.0",
 ]
 
 [tool.uv.sources]
