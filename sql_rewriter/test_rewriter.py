@@ -3177,16 +3177,13 @@ SELECT
 FROM bank_txn
 WHERE
   (
-    (
-      (
-        txn_id = 6
-      ) AND (
-        bank_txn.txn_id = txn_id
-      )
-    )
-    AND (
-      NOT LOWER(bank_txn.category) = 'meal' OR business_use_pct <= 50.0
-    )
+    NOT LOWER(bank_txn.category) = 'meal' OR business_use_pct <= 50.0
+  )
+  AND (
+    txn_id = 6
+  )
+  AND (
+    bank_txn.txn_id = txn_id
   )
   AND (
     1 = 1

@@ -2,6 +2,7 @@
 
 import logging
 
+from shared_sql_utils import combine_constraints_balanced
 from sql_rewriter import DFCPolicy
 from sql_rewriter.sqlglot_utils import get_table_name_from_column
 import sqlglot
@@ -678,13 +679,35 @@ def _rewrite_in_to_join(
         _ensure_agg_aliases(base_parsed)
     base_query = base_parsed.sql(dialect="duckdb")
 
+    policy_constraint_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+    policy_agg_nodes = [
+        agg for agg in policy_constraint_expr.find_all(exp.AggFunc)
+        if _should_use_policy_alias(agg, policy_source)
+    ]
+    if not policy_agg_nodes:
+        policy_agg_nodes = [
+            sqlglot.parse_one(f"avg({policy_source}.l_quantity)", read="duckdb")
+        ]
+
+    policy_aliases_outer = [f"policy_{idx}" for idx in range(1, len(policy_agg_nodes) + 1)]
+    policy_aliases_inner = [
+        f"policy_{idx + len(policy_agg_nodes)}" for idx in range(1, len(policy_agg_nodes) + 1)
+    ]
+
+    policy_select_parts = []
+    for alias, agg in zip(policy_aliases_outer, policy_agg_nodes):
+        agg_expr = _qualify_expression(agg, policy_source).sql(dialect="duckdb")
+        policy_select_parts.append(f"{agg_expr} AS {alias}")
+    for alias, agg in zip(policy_aliases_inner, policy_agg_nodes):
+        agg_expr = _qualify_expression(agg, f"inner_{policy_source}").sql(dialect="duckdb")
+        policy_select_parts.append(f"{agg_expr} AS {alias}")
+
     rewrite_parts = [
         f"WITH base_query AS ({base_query})",
         "SELECT",
         f"{', '.join(f'base_query.{col}' for col in group_by_cols)},",
         "max(base_query.sum_l_quantity) AS sum_l_quantity,",
-        f"avg({policy_source}.l_quantity) AS policy_1,",
-        f"avg(inner_{policy_source}.l_quantity) AS policy_2",
+        f"{', '.join(policy_select_parts)}",
         "FROM base_query",
         f"JOIN {policy_source} ON base_query.o_orderkey = {policy_source}.l_orderkey",
         f"JOIN ({subquery_sql}) AS in_subquery ON {join_on_sql}",
@@ -694,10 +717,16 @@ def _rewrite_in_to_join(
     rewrite_sql = " ".join(rewrite_parts)
 
     having_expr_outer = sqlglot.parse_one(policy_constraint, read="duckdb")
+    alias_iter_outer = iter(policy_aliases_outer)
     for agg in list(having_expr_outer.find_all(exp.AggFunc)):
+        if not _should_use_policy_alias(agg, policy_source):
+            continue
+        alias = next(alias_iter_outer, None)
+        if not alias:
+            break
         replacement = exp.Max(
             this=exp.Column(
-                this=exp.Identifier(this="policy_1"),
+                this=exp.Identifier(this=alias),
                 table=exp.Identifier(this="rewrite"),
             )
         )
@@ -705,16 +734,26 @@ def _rewrite_in_to_join(
     having_sql_outer = having_expr_outer.sql(dialect="duckdb")
 
     having_expr_inner = sqlglot.parse_one(policy_constraint, read="duckdb")
+    alias_iter_inner = iter(policy_aliases_inner)
     for agg in list(having_expr_inner.find_all(exp.AggFunc)):
+        if not _should_use_policy_alias(agg, policy_source):
+            continue
+        alias = next(alias_iter_inner, None)
+        if not alias:
+            break
         replacement = exp.Max(
             this=exp.Column(
-                this=exp.Identifier(this="policy_2"),
+                this=exp.Identifier(this=alias),
                 table=exp.Identifier(this="rewrite"),
             )
         )
         agg.replace(replacement)
     having_sql_inner = having_expr_inner.sql(dialect="duckdb")
 
+    combined_having = combine_constraints_balanced(
+        [having_sql_outer, having_sql_inner],
+        dialect="duckdb",
+    )
     outer_parts = [
         "WITH rewrite AS (",
         rewrite_sql,
@@ -724,7 +763,7 @@ def _rewrite_in_to_join(
         "max(sum_l_quantity) AS sum_l_quantity",
         "FROM rewrite",
         f"GROUP BY {', '.join(group_by_cols)}",
-        f"HAVING {having_sql_outer} AND {having_sql_inner}",
+        f"HAVING {combined_having}",
     ]
     if order_by_columns:
         outer_parts.append(f"ORDER BY {order_by_columns}")
@@ -809,7 +848,10 @@ def _build_outer_select_for_agg(
                         this=exp.Identifier(this=alias),
                         table=exp.Identifier(this="base_query"),
                     )
-                    outer_expr = expr.__class__(this=base_col)
+                    if use_max_for_agg:
+                        outer_expr = exp.Max(this=base_col)
+                    else:
+                        outer_expr = expr.__class__(this=base_col)
                     outer_select_parts.append(outer_expr.sql(dialect="duckdb"))
                     continue
             outer_select_parts.append(_qualify_expression(expr, "base_query").sql(dialect="duckdb"))

@@ -6,12 +6,18 @@ requires-python = ">=3.9"
 dependencies = [
     "sql-rewriter",
     "experiment-harness",
+    "shared-sql-utils",
     # duckdb is provided by SmokedDuck build - do not install standard DuckDB
     # "duckdb>=1.0.0",
     "pandas>=2.0.0",
     "numpy>=1.20.0",
     "matplotlib>=3.5.0",
 ]
+
+[tool.uv.sources]
+sql-rewriter = { path = "../sql_rewriter", editable = true }
+shared-sql-utils = { path = "../shared_sql_utils", editable = true }
+experiment-harness = { path = "../experiment_harness", editable = true }
 
 [project.optional-dependencies]
 dev = [

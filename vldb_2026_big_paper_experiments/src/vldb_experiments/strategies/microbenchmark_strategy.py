@@ -7,7 +7,10 @@ import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import SQLRewriter
 
-from vldb_experiments.baselines.logical_baseline import execute_query_logical
+from vldb_experiments.baselines.logical_baseline import (
+    rewrite_query_logical,
+    rewrite_query_logical_multi,
+)
 from vldb_experiments.baselines.physical_baseline import execute_query_physical_simple
 from vldb_experiments.correctness import compare_results
 from vldb_experiments.data_setup import (
@@ -15,7 +18,7 @@ from vldb_experiments.data_setup import (
     setup_test_data_with_groups,
     setup_test_data_with_join_matches,
 )
-from vldb_experiments.policy_setup import create_test_policy
+from vldb_experiments.policy_setup import create_test_policies
 from vldb_experiments.query_definitions import get_query_definitions, get_query_order
 from vldb_experiments.variations import generate_variation_parameters
 
@@ -51,15 +54,77 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
     4. Returns metrics including execution time and correctness
     """
 
+    def __init__(
+        self,
+        policy_count: int = 1,
+        num_variations: int = 4,
+        num_runs_per_variation: int = 5,
+        enable_physical: bool | None = None,
+    ) -> None:
+        """Initialize the microbenchmark strategy.
+
+        Args:
+            policy_count: Number of policies to register per run (default: 1)
+            num_variations: Number of variation values per query type (default: 4)
+            num_runs_per_variation: Number of runs per variation (default: 5)
+        """
+        self.policy_count = policy_count
+        self.num_variations = num_variations
+        self.num_runs_per_variation = num_runs_per_variation
+        self.enable_physical_override = enable_physical
+        self._policy_cache: dict[tuple[str, int], list] = {}
+        self._active_policy_signature: tuple[str, int] | None = None
+
+    def _get_policies(self, signature: str, threshold: int | None = None) -> list:
+        cache_key = (signature, self.policy_count)
+        if cache_key in self._policy_cache:
+            return self._policy_cache[cache_key]
+
+        if signature == "threshold":
+            if threshold is None:
+                raise ValueError("threshold is required for threshold policy signature")
+            policies = create_test_policies(
+                threshold=threshold,
+                policy_count=self.policy_count,
+            )
+        else:
+            policies = create_test_policies(policy_count=self.policy_count)
+
+        self._policy_cache[cache_key] = policies
+        return policies
+
+    def _ensure_policies(self, signature: tuple[str, int], policies: list) -> None:
+        if self._active_policy_signature == signature:
+            return
+
+        # Clear any active transaction before mutating policies.
+        with contextlib.suppress(Exception):
+            self.dfc_conn.execute("ROLLBACK")
+
+        existing_policies = self.dfc_rewriter.get_dfc_policies()
+        for old_policy in existing_policies:
+            self.dfc_rewriter.delete_policy(
+                source=old_policy.source,
+                constraint=old_policy.constraint,
+                on_fail=old_policy.on_fail,
+            )
+        for policy in policies:
+            self.dfc_rewriter.register_policy(policy)
+        self._active_policy_signature = signature
+
     def setup(self, context: ExperimentContext) -> None:
         """Set up test data and rewriter instances.
 
         Args:
             context: Experiment context with database connection
         """
-        # Use locally built SmokedDuck DuckDB for physical baseline
-        # SmokedDuck is REQUIRED - ensure it's set up
-        local_duckdb = _ensure_smokedduck()
+        self.enable_physical = (
+            self.enable_physical_override
+            if self.enable_physical_override is not None
+            else self.policy_count <= 1
+        )
+        # Use locally built SmokedDuck DuckDB for physical baseline when enabled.
+        local_duckdb = _ensure_smokedduck() if self.enable_physical else None
 
         # Use the connection from context to set up data
         # But create separate connections for each rewriter to avoid UDF conflicts
@@ -75,17 +140,20 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         self.no_policy_conn = duckdb.connect(":memory:")
         self.dfc_conn = duckdb.connect(":memory:")
         self.logical_conn = duckdb.connect(":memory:")
-        self.physical_conn = local_duckdb.connect(":memory:")
+        self.physical_conn = local_duckdb.connect(":memory:") if local_duckdb else None
 
         # Set up data in each connection
         setup_test_data(self.no_policy_conn, num_rows=1_000_000)
         setup_test_data(self.dfc_conn, num_rows=1_000_000)
         setup_test_data(self.logical_conn, num_rows=1_000_000)
-        setup_test_data(self.physical_conn, num_rows=1_000_000)
+        if self.physical_conn is not None:
+            setup_test_data(self.physical_conn, num_rows=1_000_000)
 
         # Commit any transactions before creating rewriters (needed for SmokedDuck lineage)
         # DuckDB auto-commits, but SmokedDuck lineage may leave transactions open
         for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
+            if conn is None:
+                continue
             try:
                 # Try to commit using SQL
                 conn.execute("COMMIT")
@@ -98,8 +166,9 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                     with contextlib.suppress(Exception):
                         conn.execute("ROLLBACK")
 
-        # Create DFC rewriter (policy will be registered per execution with variations)
+        # Create DFC rewriter (policies will be registered per execution with variations)
         self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
+        self._active_policy_signature = None
 
         # Store queries in shared state
         context.shared_state["queries"] = get_query_definitions()
@@ -129,8 +198,8 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         variation_params = generate_variation_parameters(
             query_type=query_type,
             execution_number=context.execution_number,
-            num_variations=4,
-            num_runs_per_variation=5,
+            num_variations=self.num_variations,
+            num_runs_per_variation=self.num_runs_per_variation,
             num_query_types=len(query_order)
         )
 
@@ -149,95 +218,72 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         logical_conn = self.logical_conn
         physical_conn = self.physical_conn
 
-        # Setup data and policy based on variation type
+        # Setup data and policies based on variation type
         if query_type in ["SELECT", "WHERE", "ORDER_BY"]:
             # Vary policy threshold - no need to regenerate data
             policy_threshold = variation_params["policy_threshold"]
-            policy = create_test_policy(threshold=policy_threshold)
-            # Delete old policy and register new one
-            # Get existing policies to delete them
-            existing_policies = self.dfc_rewriter.get_dfc_policies()
-            for old_policy in existing_policies:
-                self.dfc_rewriter.delete_policy(
-                    source=old_policy.source,
-                    constraint=old_policy.constraint,
-                    on_fail=old_policy.on_fail
-                )
-            self.dfc_rewriter.register_policy(policy)
+            policies = self._get_policies("threshold", threshold=policy_threshold)
+            self._ensure_policies(("threshold", policy_threshold), policies)
 
         elif query_type == "JOIN":
             # Vary join matches - regenerate data
             join_matches = variation_params["join_matches"]
             # Drop and recreate tables with new data
             for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
+                if conn is None:
+                    continue
                 with contextlib.suppress(Exception):
                     conn.execute("DROP TABLE IF EXISTS test_data")
                 setup_test_data_with_join_matches(conn, num_rows=1_000_000, join_matches=join_matches)
-            # Use default policy for JOIN
-            policy = create_test_policy()
+            # Use default policies for JOIN
+            policies = self._get_policies("default")
             # Delete old policies
             try:
-                existing_policies = self.dfc_rewriter.get_dfc_policies()
-                for old_policy in existing_policies:
-                    self.dfc_rewriter.delete_policy(
-                        source=old_policy.source,
-                        constraint=old_policy.constraint,
-                        on_fail=old_policy.on_fail
-                    )
-                self.dfc_rewriter.register_policy(policy)
+                self._ensure_policies(("default", 0), policies)
             except Exception:
                 # If rewriter/connection is broken, recreate it
                 self.dfc_conn = duckdb.connect(":memory:")
                 setup_test_data_with_join_matches(self.dfc_conn, num_rows=1_000_000, join_matches=join_matches)
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self.dfc_rewriter.register_policy(policy)
+                self._active_policy_signature = None
+                self._ensure_policies(("default", 0), policies)
 
         elif query_type == "GROUP_BY":
             # Vary number of groups - regenerate data
             num_groups = variation_params["num_groups"]
             # Drop and recreate tables with new data
             for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
+                if conn is None:
+                    continue
                 with contextlib.suppress(Exception):
                     conn.execute("DROP TABLE IF EXISTS test_data")
                 setup_test_data_with_groups(conn, num_rows=1_000_000, num_groups=num_groups)
-            # Use default policy for GROUP_BY
-            policy = create_test_policy()
+            # Use default policies for GROUP_BY
+            policies = self._get_policies("default")
             # Delete old policies
             try:
-                existing_policies = self.dfc_rewriter.get_dfc_policies()
-                for old_policy in existing_policies:
-                    self.dfc_rewriter.delete_policy(
-                        source=old_policy.source,
-                        constraint=old_policy.constraint,
-                        on_fail=old_policy.on_fail
-                    )
-                self.dfc_rewriter.register_policy(policy)
+                self._ensure_policies(("default", 0), policies)
             except Exception:
                 # If rewriter/connection is broken, recreate it
                 self.dfc_conn = duckdb.connect(":memory:")
                 setup_test_data_with_groups(self.dfc_conn, num_rows=1_000_000, num_groups=num_groups)
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self.dfc_rewriter.register_policy(policy)
+                self._active_policy_signature = None
+                self._ensure_policies(("default", 0), policies)
 
         else:
             # Default policy
-            policy = create_test_policy()
+            policies = self._get_policies("default")
             # Delete old policies
             try:
-                existing_policies = self.dfc_rewriter.get_dfc_policies()
-                for old_policy in existing_policies:
-                    self.dfc_rewriter.delete_policy(
-                        source=old_policy.source,
-                        constraint=old_policy.constraint,
-                        on_fail=old_policy.on_fail
-                    )
-                self.dfc_rewriter.register_policy(policy)
+                self._ensure_policies(("default", 0), policies)
             except Exception:
                 # If rewriter/connection is broken, recreate it
                 self.dfc_conn = duckdb.connect(":memory:")
                 setup_test_data(self.dfc_conn, num_rows=1_000_000)
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self.dfc_rewriter.register_policy(policy)
+                self._active_policy_signature = None
+                self._ensure_policies(("default", 0), policies)
 
         # 0. Run no_policy baseline (original query without any policy)
         no_policy_start = time.perf_counter()
@@ -254,14 +300,20 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             no_policy_error = str(e)
 
         # 1. Run DFC approach (SQLRewriter with policy)
-        dfc_start = time.perf_counter()
+        dfc_rewrite_start = time.perf_counter()
         try:
-            dfc_cursor = self.dfc_rewriter.execute(query)
+            dfc_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
+            dfc_exec_start = time.perf_counter()
+            dfc_cursor = self.dfc_conn.execute(dfc_transformed)
             dfc_results = dfc_cursor.fetchall()
-            dfc_time = (time.perf_counter() - dfc_start) * 1000.0
+            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
+            dfc_time = dfc_rewrite_time + dfc_exec_time
             dfc_rows = len(dfc_results)
             dfc_error = None
         except Exception as e:
+            dfc_rewrite_time = 0.0
+            dfc_exec_time = 0.0
             dfc_time = 0.0
             dfc_results = []
             dfc_rows = 0
@@ -269,10 +321,22 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
         # 2. Run Logical baseline
         try:
-            logical_results, logical_time = execute_query_logical(logical_conn, query, policy)
+            logical_rewrite_start = time.perf_counter()
+            if len(policies) == 1:
+                logical_query = rewrite_query_logical(query, policies[0])
+            else:
+                logical_query = rewrite_query_logical_multi(query, policies)
+            logical_rewrite_time = (time.perf_counter() - logical_rewrite_start) * 1000.0
+            logical_exec_start = time.perf_counter()
+            logical_cursor = logical_conn.execute(logical_query)
+            logical_results = logical_cursor.fetchall()
+            logical_exec_time = (time.perf_counter() - logical_exec_start) * 1000.0
+            logical_time = logical_rewrite_time + logical_exec_time
             logical_rows = len(logical_results)
             logical_error = None
         except Exception as e:
+            logical_rewrite_time = 0.0
+            logical_exec_time = 0.0
             logical_time = 0.0
             logical_results = []
             logical_rows = 0
@@ -280,9 +344,19 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
         # 3. Run Physical baseline (SmokedDuck REQUIRED)
         try:
-            # SmokedDuck is REQUIRED - execute_query_physical_simple will raise if not available
-            physical_results, physical_time, physical_error = execute_query_physical_simple(physical_conn, query, policy)
-            physical_rows = len(physical_results) if physical_results else 0
+            if self.enable_physical and len(policies) == 1:
+                # SmokedDuck is REQUIRED - execute_query_physical_simple will raise if not available
+                physical_results, physical_time, physical_error = execute_query_physical_simple(
+                    physical_conn,
+                    query,
+                    policies[0],
+                )
+                physical_rows = len(physical_results) if physical_results else 0
+            else:
+                physical_results = []
+                physical_time = 0.0
+                physical_error = "skipped_for_multi_policy"
+                physical_rows = 0
         except ImportError:
             # Re-raise ImportError as-is (SmokedDuck is required)
             raise
@@ -292,13 +366,18 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             physical_rows = 0
             physical_error = str(e)
 
-        # Verify correctness (compare DFC, logical, and physical - they should all match)
+        # Verify correctness (compare DFC and logical; include physical when available)
         correctness_match = False
         correctness_error = None
-        if dfc_error is None and logical_error is None and physical_error is None:
-            match, error = compare_results(dfc_results, logical_results, physical_results)
-            correctness_match = match
-            correctness_error = error
+        if dfc_error is None and logical_error is None:
+            if physical_error is None:
+                match, error = compare_results(dfc_results, logical_results, physical_results)
+                correctness_match = match
+                correctness_error = error
+            else:
+                match, error = compare_results(dfc_results, logical_results, dfc_results)
+                correctness_match = match
+                correctness_error = error
         else:
             correctness_error = f"Errors: dfc={dfc_error}, logical={logical_error}, physical={physical_error}"
 
@@ -309,8 +388,13 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         custom_metrics = {
             "query_type": query_type,
             "no_policy_time_ms": no_policy_time,
+            "no_policy_exec_time_ms": no_policy_time,
             "dfc_time_ms": dfc_time,
+            "dfc_rewrite_time_ms": dfc_rewrite_time,
+            "dfc_exec_time_ms": dfc_exec_time,
             "logical_time_ms": logical_time,
+            "logical_rewrite_time_ms": logical_rewrite_time,
+            "logical_exec_time_ms": logical_exec_time,
             "physical_time_ms": physical_time,
             "no_policy_rows": no_policy_rows,
             "dfc_rows": dfc_rows,
@@ -322,6 +406,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "dfc_error": dfc_error or "",
             "logical_error": logical_error or "",
             "physical_error": physical_error or "",
+            "policy_count": len(policies),
             # Variation metrics - always include all, set to None if not applicable
             "variation_type": variation_params.get("variation_type", ""),
             "variation_index": variation_params.get("variation_index", 0),
@@ -363,8 +448,13 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         return [
             "query_type",
             "no_policy_time_ms",
+            "no_policy_exec_time_ms",
             "dfc_time_ms",
+            "dfc_rewrite_time_ms",
+            "dfc_exec_time_ms",
             "logical_time_ms",
+            "logical_rewrite_time_ms",
+            "logical_exec_time_ms",
             "physical_time_ms",
             "no_policy_rows",
             "dfc_rows",
@@ -376,6 +466,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "dfc_error",
             "logical_error",
             "physical_error",
+            "policy_count",
             "variation_type",
             "variation_index",
             "variation_num",

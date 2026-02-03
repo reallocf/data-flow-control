@@ -50,7 +50,7 @@ def create_bedrock_client():
         Exception: If client creation fails
     """
     try:
-        region = os.environ.get("AWS_REGION", "us-east-2")
+        region = os.environ.get("AWS_REGION", "us-east-1")
 
         # boto3 will automatically use AWS_BEARER_TOKEN_BEDROCK if set
         # No special configuration needed - boto3 checks this env var automatically

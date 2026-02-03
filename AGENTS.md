@@ -120,6 +120,11 @@ kill_call = exp.Anonymous(this="kill", expressions=[])
 
 **Always run tests from the project directory** - `pytest` and virtual environments are project-local. `cd` into the specific project (e.g., `sql_rewriter`, `experiment_harness`, `sbo_tax_agent`). For `vldb_2026_big_paper_experiments`, use the local venv: `.venv/bin/python -m pytest`.
 
+### vldb_2026_big_paper_experiments setup notes
+
+- `vldb_2026_big_paper_experiments` now uses local editable `uv` sources for `sql-rewriter`, `experiment-harness`, and `shared-sql-utils` (no `PYTHONPATH` needed).
+- `uv sync` installs standard DuckDB from PyPI, which disables SmokedDuck lineage. For physical baselines, use `setup_venv.sh` + SmokedDuck build or run microbenchmarks with `--disable-physical`.
+
 **Project test commands**:
 - `sql_rewriter`: `uv run pytest`
 - `experiment_harness`: `uv run --group dev python -m pytest`

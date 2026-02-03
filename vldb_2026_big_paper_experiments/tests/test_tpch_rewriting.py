@@ -607,7 +607,7 @@ LOGICAL_EXPECTED_SQL = {
             max(sum_l_quantity) AS sum_l_quantity
         FROM rewrite
         GROUP BY c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice
-        HAVING max(rewrite.policy_1) >= 30 AND max(rewrite.policy_2) >= 30
+        HAVING (max(rewrite.policy_1) >= 30) AND (max(rewrite.policy_2) >= 30)
         ORDER BY o_totalprice DESC, o_orderdate
     """,
     19: """

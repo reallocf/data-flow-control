@@ -26,11 +26,11 @@ vldb_2026_big_paper_experiments/
 
 ## Installation
 
-This project uses a Python virtual environment instead of `uv` because we need to install SmokedDuck (a custom DuckDB build with lineage support) directly from source. `uv`'s dependency resolution would automatically install standard DuckDB, which conflicts with our SmokedDuck requirement.
+This project can be installed with `uv` using local editable sources for `sql-rewriter`, `experiment-harness`, and `shared-sql-utils`. If you need the physical baseline (SmokedDuck lineage), you must ensure the SmokedDuck DuckDB build is installed in the environment; otherwise, use `--disable-physical`.
 
 ### Setup Steps
 
-**Quick setup (recommended):**
+**Quick setup (SmokedDuck physical baseline):**
 ```bash
 cd vldb_2026_big_paper_experiments
 ./setup_venv.sh
@@ -42,7 +42,7 @@ This script will:
 3. Build SmokedDuck with lineage support (if not already built)
 4. Install SmokedDuck Python bindings into the virtual environment
 
-**Manual setup:**
+**Manual setup (SmokedDuck physical baseline):**
 ```bash
 cd vldb_2026_big_paper_experiments
 python3 -m venv .venv
@@ -52,12 +52,21 @@ source .venv/bin/activate  # On macOS/Linux
 pip install --upgrade pip
 pip install -e ../sql_rewriter
 pip install -e ../experiment_harness
+pip install -e ../shared_sql_utils
 pip install pandas>=2.0.0
 pip install pytest>=8.0.0  # For development
 
 # Build and install SmokedDuck
 source setup_local_smokedduck.sh
 ```
+
+**uv setup (logical/DFC only):**
+```bash
+cd vldb_2026_big_paper_experiments
+uv sync
+```
+
+Note: `uv sync` will install standard DuckDB from PyPI. This is fine for logical/DFC baselines but not for SmokedDuck physical baseline.
 
 ## Experiment Design
 
@@ -133,7 +142,7 @@ The `setup_venv.sh` script handles cloning, building, and installing SmokedDuck 
    ```
 5. Install SmokedDuck Python bindings into the virtual environment
 
-**Why not use `uv`?** `uv`'s dependency resolver would automatically install standard DuckDB from PyPI, which conflicts with our SmokedDuck requirement. By using a virtual environment and installing SmokedDuck directly, we have full control over which DuckDB build is used.
+**Why not use `uv` for SmokedDuck?** `uv` installs standard DuckDB from PyPI, which conflicts with SmokedDuck. Use the venv + SmokedDuck build for physical baseline experiments, or run with `--disable-physical`.
 
 ### Using the Local Build
 
@@ -170,6 +179,11 @@ Or use the wrapper script that handles both:
 ./scripts/run_microbenchmarks_with_smokedduck.sh
 ```
 
+If you're not using SmokedDuck (uv install), disable the physical baseline:
+```bash
+python scripts/run_microbenchmarks.py --disable-physical
+```
+
 ## Linting and Tests
 
 Run from the `vldb_2026_big_paper_experiments` directory using the local venv.
@@ -182,27 +196,30 @@ source setup_local_smokedduck.sh
 
 ## Results
 
-Results are exported to CSV in the `results/` directory. Each row contains:
+Results are exported to CSV in the `results/` directory (default: `microbenchmark_results_policy{policy_count}.csv`). Each row contains:
 - `execution_number`: Execution number
 - `timestamp`: When the execution occurred
-- `duration_ms`: Total execution time (baseline + rewritten)
+- `duration_ms`: Total execution time (sum of approaches)
 - `query_type`: Which operator was tested (SELECT, WHERE, JOIN, etc.)
-- `baseline_time_ms`: Execution time without policy
-- `rewritten_time_ms`: Execution time with policy
-- `overhead_pct`: Percentage overhead: `(rewritten - baseline) / baseline * 100`
-- `rows_returned_baseline`: Number of rows returned without policy
-- `rows_returned_rewritten`: Number of rows returned with policy
+- `no_policy_time_ms`: Execution time without policy
+- `dfc_time_ms`: DFC total time (rewrite + exec)
+- `logical_time_ms`: Logical total time (rewrite + exec)
+- `dfc_rewrite_time_ms`, `dfc_exec_time_ms`: DFC rewrite vs execution split
+- `logical_rewrite_time_ms`, `logical_exec_time_ms`: Logical rewrite vs execution split
 
 The CSV also includes summary statistics (mean, median, stddev, min, max) for all numeric metrics.
 
 ## Experiment Configuration
 
 The default configuration runs:
-- 10 executions per query type (50 total executions)
+- 20 executions per query type (100 total executions)
 - 2 warm-up runs (discarded)
-- Results saved to `./results/microbenchmark_results.csv`
+- Results saved to `./results/microbenchmark_results_policy{policy_count}.csv`
 
-You can modify `scripts/run_microbenchmarks.py` to adjust these parameters.
+You can modify `scripts/run_microbenchmarks.py` or pass flags:
+```bash
+python scripts/run_microbenchmarks.py --policy-count 1000 --num-runs-per-variation 5 --warmup-runs 2
+```
 
 ## Analysis
 

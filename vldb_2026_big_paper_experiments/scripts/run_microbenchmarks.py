@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Script to run microbenchmark experiments."""
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -15,11 +16,52 @@ from vldb_experiments.query_definitions import get_query_order
 
 def main():
     """Run microbenchmark experiments."""
+    parser = argparse.ArgumentParser(description="Run microbenchmark experiments.")
+    parser.add_argument(
+        "--policy-count",
+        type=int,
+        default=1,
+        help="Number of policies to register per run.",
+    )
+    parser.add_argument(
+        "--output-filename",
+        default=None,
+        help="CSV filename for results (default: microbenchmark_results_policy{policy_count}.csv).",
+    )
+    parser.add_argument(
+        "--num-variations",
+        type=int,
+        default=4,
+        help="Number of variation values per query type.",
+    )
+    parser.add_argument(
+        "--num-runs-per-variation",
+        type=int,
+        default=5,
+        help="Number of runs per variation value.",
+    )
+    parser.add_argument(
+        "--warmup-runs",
+        type=int,
+        default=2,
+        help="Number of warm-up runs.",
+    )
+    parser.add_argument(
+        "--disable-physical",
+        action="store_true",
+        help="Disable physical (SmokedDuck) baseline.",
+    )
+    args = parser.parse_args()
+
+    output_filename = args.output_filename
+    if output_filename is None:
+        output_filename = f"microbenchmark_results_policy{args.policy_count}.csv"
+
     # Experiment structure: 4 variations × 5 runs = 20 executions per query type
-    num_variations = 4
-    num_runs_per_variation = 5
+    num_variations = args.num_variations
+    num_runs_per_variation = args.num_runs_per_variation
     num_executions_per_query = num_variations * num_runs_per_variation
-    num_warmup_runs = 2
+    num_warmup_runs = args.warmup_runs
     
     # Calculate total executions needed
     num_query_types = len(get_query_order())
@@ -33,6 +75,7 @@ def main():
     print(f"  Total executions: {total_executions}")
     print(f"  Warm-up runs: {num_warmup_runs}")
     print(f"  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
+    print(f"  Policy count: {args.policy_count}")
     print(f"  Variations:")
     print(f"    - SELECT/WHERE/ORDER_BY: Vary policy threshold (zipfian, 4 values)")
     print(f"    - JOIN: Vary join matches (zipfian, 4 values)")
@@ -48,12 +91,17 @@ def main():
             "database": ":memory:",
         },
         output_dir="./results",
-        output_filename="microbenchmark_results.csv",
+        output_filename=output_filename,
         verbose=True,
     )
     
     # Create and run strategy
-    strategy = MicrobenchmarkStrategy()
+    strategy = MicrobenchmarkStrategy(
+        policy_count=args.policy_count,
+        num_variations=num_variations,
+        num_runs_per_variation=num_runs_per_variation,
+        enable_physical=None if not args.disable_physical else False,
+    )
     runner = ExperimentRunner(strategy, config)
     
     print("Starting experiments...")
@@ -89,3 +137,6 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+    output_filename = args.output_filename
+    if output_filename is None:
+        output_filename = f"microbenchmark_results_policy{args.policy_count}.csv"

@@ -22,7 +22,7 @@ def test_bedrock_connection():
     """Test basic Bedrock client creation."""
     print("Testing Bedrock client creation...")
     try:
-        region = os.environ.get("AWS_REGION", "us-east-2")
+        region = os.environ.get("AWS_REGION", "us-east-1")
         bearer_token = os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
 
         if bearer_token:

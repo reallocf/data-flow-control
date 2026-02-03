@@ -48,7 +48,9 @@ def get_variation_x_axis(query_type: str) -> tuple[str, str]:
 def create_operator_chart(
     query_type: str,
     df: pd.DataFrame,
-    output_dir: str = "./results"
+    output_dir: str = "./results",
+    output_template: str = "{query_type}_performance.png",
+    policy_count: int | None = None,
 ) -> Optional[plt.Figure]:
     """Create a performance chart for a specific operator.
 
@@ -85,9 +87,17 @@ def create_operator_chart(
     # Prepare data for plotting
     # We need to melt the time columns into a single column
     time_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms", "physical_time_ms"]
+    breakdown_columns = [
+        "no_policy_exec_time_ms",
+        "dfc_rewrite_time_ms",
+        "dfc_exec_time_ms",
+        "logical_rewrite_time_ms",
+        "logical_exec_time_ms",
+    ]
+    available_breakdown_cols = [col for col in breakdown_columns if col in query_df.columns]
     available_time_cols = [col for col in time_columns if col in query_df.columns]
 
-    if not available_time_cols:
+    if not available_time_cols and not available_breakdown_cols:
         print(f"No time columns found for {query_type}")
         return None
 
@@ -109,12 +119,17 @@ def create_operator_chart(
         except (ValueError, TypeError):
             x_val = float(idx)
 
-        for col in available_time_cols:
+        for col in (available_breakdown_cols or available_time_cols):
             # Map column names directly to approach names
             approach_map = {
                 "no_policy_time_ms": "No Policy",
+                "no_policy_exec_time_ms": "No Policy exec",
                 "dfc_time_ms": "DFC",
+                "dfc_rewrite_time_ms": "DFC rewrite",
+                "dfc_exec_time_ms": "DFC exec",
                 "logical_time_ms": "Logical",
+                "logical_rewrite_time_ms": "Logical rewrite",
+                "logical_exec_time_ms": "Logical exec",
                 "physical_time_ms": "Physical",
             }
             approach = approach_map.get(col, col.replace("_time_ms", "").replace("_", " ").title())
@@ -158,13 +173,29 @@ def create_operator_chart(
     # Define colors for each approach
     colors = {
         "No Policy": "#1f77b4",
+        "No Policy exec": "#1f77b4",
         "DFC": "#ff7f0e",
+        "DFC rewrite": "#ff7f0e",
+        "DFC exec": "#ffbb78",
         "Logical": "#2ca02c",
-        "Physical": "#d62728"
+        "Logical rewrite": "#2ca02c",
+        "Logical exec": "#98df8a",
+        "Physical": "#d62728",
     }
 
     # Plot each approach (using averaged data)
-    for approach in ["No Policy", "DFC", "Logical", "Physical"]:
+    if available_breakdown_cols:
+        approaches = [
+            "No Policy exec",
+            "DFC rewrite",
+            "DFC exec",
+            "Logical rewrite",
+            "Logical exec",
+        ]
+    else:
+        approaches = ["No Policy", "DFC", "Logical", "Physical"]
+
+    for approach in approaches:
         approach_data = plot_df_averaged[plot_df_averaged["Approach"] == approach]
         if len(approach_data) > 0:
             # Sort by x-axis value for clean lines
@@ -201,7 +232,10 @@ def create_operator_chart(
     plt.tight_layout()
 
     # Save chart as PNG
-    output_path = Path(output_dir) / f"{query_type.lower()}_performance.png"
+    output_path = Path(output_dir) / output_template.format(
+        query_type=query_type.lower(),
+        policy_count=policy_count if policy_count is not None else "unknown",
+    )
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
     plt.close(fig)
 
@@ -211,7 +245,10 @@ def create_operator_chart(
 
 def create_all_charts(
     csv_path: str = "./results/microbenchmark_results.csv",
-    output_dir: str = "./results"
+    output_dir: str = "./results",
+    tpch_avg_template: str = "tpch_average_times_sf{sf}.png",
+    tpch_overhead_template: str = "tpch_percent_overhead_sf{sf}.png",
+    operator_template: str = "{query_type}_performance_policy{policy_count}.png",
 ) -> None:
     """Create visualizations for all operators.
 
@@ -227,21 +264,46 @@ def create_all_charts(
     if "query_type" in df.columns:
         query_types = df["query_type"].unique()
         print(f"Found query types: {query_types}")
+        policy_count_value = None
+        if "policy_count" in df.columns:
+            unique_counts = sorted(df["policy_count"].dropna().unique().tolist())
+            if len(unique_counts) == 1:
+                try:
+                    policy_count_value = int(unique_counts[0])
+                except (ValueError, TypeError):
+                    policy_count_value = None
 
         # Create chart for each query type
         for query_type in sorted(query_types):
             print(f"\nCreating chart for {query_type}...")
-            create_operator_chart(query_type, df, output_dir)
+            create_operator_chart(
+                query_type,
+                df,
+                output_dir,
+                output_template=operator_template,
+                policy_count=policy_count_value,
+            )
         print(f"\nAll charts saved to {output_dir}/")
         return
 
     if {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns):
         if "tpch_sf" in df.columns:
             print("\nCreating TPC-H summary charts by scale factor...")
-            create_tpch_summary_charts_by_sf(df, output_dir)
+            create_tpch_summary_charts_by_sf(
+                df,
+                output_dir,
+                avg_template=tpch_avg_template,
+                overhead_template=tpch_overhead_template,
+            )
         else:
             print("\nCreating TPC-H summary chart...")
             create_tpch_summary_chart(df, output_dir)
+        print(f"\nAll charts saved to {output_dir}/")
+        return
+
+    if {"policy_count", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns):
+        print("\nCreating policy count line chart...")
+        create_policy_count_chart(df, output_dir)
         print(f"\nAll charts saved to {output_dir}/")
         return
 
@@ -348,7 +410,12 @@ def create_tpch_summary_chart(
     return fig
 
 
-def create_tpch_summary_charts_by_sf(df: pd.DataFrame, output_dir: str = "./results") -> None:
+def create_tpch_summary_charts_by_sf(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    avg_template: str = "tpch_average_times_sf{sf}.png",
+    overhead_template: str = "tpch_percent_overhead_sf{sf}.png",
+) -> None:
     """Create TPC-H summary charts separated by scale factor."""
     if "tpch_sf" not in df.columns:
         print("No tpch_sf column found; cannot split charts by scale factor.")
@@ -358,7 +425,7 @@ def create_tpch_summary_charts_by_sf(df: pd.DataFrame, output_dir: str = "./resu
         sf_df = df[df["tpch_sf"] == sf]
         title_suffix = f"SF={sf}"
 
-        output_filename = f"tpch_average_times_sf{sf}.png"
+        output_filename = avg_template.format(sf=sf)
         create_tpch_summary_chart(
             sf_df,
             output_dir,
@@ -367,7 +434,7 @@ def create_tpch_summary_charts_by_sf(df: pd.DataFrame, output_dir: str = "./resu
             plot_mode="average_time",
         )
 
-        output_filename = f"tpch_percent_overhead_sf{sf}.png"
+        output_filename = overhead_template.format(sf=sf)
         create_tpch_summary_chart(
             sf_df,
             output_dir,
@@ -377,25 +444,121 @@ def create_tpch_summary_charts_by_sf(df: pd.DataFrame, output_dir: str = "./resu
         )
 
 
+def create_policy_count_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_q01_policy_count.png",
+) -> Optional[plt.Figure]:
+    """Create a line chart for TPC-H Q01 policy count experiment."""
+    required_cols = {"policy_count", "dfc_time_ms", "logical_time_ms"}
+    if not required_cols.issubset(df.columns):
+        print("Missing required columns for policy count chart.")
+        return None
+
+    plot_df = df[["policy_count", "dfc_time_ms", "logical_time_ms"]].copy()
+    plot_df = plot_df.dropna(subset=["policy_count"])
+
+    grouped = plot_df.groupby("policy_count", as_index=True).mean(numeric_only=True)
+    grouped = grouped.sort_index()
+
+    if grouped.empty:
+        print("No data available for policy count chart.")
+        return None
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(
+        grouped.index,
+        grouped["dfc_time_ms"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="DFC",
+        color="#ff7f0e",
+    )
+    ax.plot(
+        grouped.index,
+        grouped["logical_time_ms"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="Logical",
+        color="#2ca02c",
+    )
+
+    ax.set_xlabel("Number of Policies", fontsize=12)
+    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+    query_label = None
+    if "query_num" in df.columns:
+        unique_queries = df["query_num"].dropna().unique().tolist()
+        if len(unique_queries) == 1:
+            query_label = f"Q{int(unique_queries[0]):02d}"
+    if query_label:
+        ax.set_title(
+            f"TPC-H {query_label} Execution Time vs Policy Count",
+            fontsize=14,
+            fontweight="bold",
+        )
+    else:
+        ax.set_title("TPC-H Execution Time vs Policy Count", fontsize=14, fontweight="bold")
+    ax.set_xscale("log")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=10)
+
+    plt.tight_layout()
+    if output_filename == "tpch_q01_policy_count.png" and query_label:
+        output_filename = f"tpch_{query_label.lower()}_policy_count.png"
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
 def main():
     """Main entry point for visualization script."""
+    import argparse
     from pathlib import Path
-    import sys
 
-    # Default paths
-    csv_path = "./results/microbenchmark_results.csv"
-    output_dir = "./results"
-
-    # Allow command-line arguments
-    if len(sys.argv) > 1:
-        csv_path = sys.argv[1]
-    if len(sys.argv) > 2:
-        output_dir = sys.argv[2]
+    parser = argparse.ArgumentParser(description="Generate experiment visualizations.")
+    parser.add_argument(
+        "csv_path",
+        nargs="?",
+        default="./results/microbenchmark_results.csv",
+        help="Path to the CSV file with results.",
+    )
+    parser.add_argument(
+        "output_dir",
+        nargs="?",
+        default="./results",
+        help="Directory to save charts.",
+    )
+    parser.add_argument(
+        "--tpch-avg-template",
+        default="tpch_average_times_sf{sf}.png",
+        help="Filename template for TPC-H average time charts (use {sf}).",
+    )
+    parser.add_argument(
+        "--tpch-overhead-template",
+        default="tpch_percent_overhead_sf{sf}.png",
+        help="Filename template for TPC-H overhead charts (use {sf}).",
+    )
+    parser.add_argument(
+        "--operator-template",
+        default="{query_type}_performance_policy{policy_count}.png",
+        help="Filename template for operator charts (use {query_type}, {policy_count}).",
+    )
+    args = parser.parse_args()
 
     # Create output directory if it doesn't exist
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
-    create_all_charts(csv_path, output_dir)
+    create_all_charts(
+        args.csv_path,
+        args.output_dir,
+        tpch_avg_template=args.tpch_avg_template,
+        tpch_overhead_template=args.tpch_overhead_template,
+        operator_template=args.operator_template,
+    )
 
 
 if __name__ == "__main__":

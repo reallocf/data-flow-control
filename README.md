@@ -8,6 +8,10 @@ Papers
 Projects
 --------
 
+## shared_sql_utils
+
+Shared SQL utilities used across projects (balanced constraint composition, etc.). See [`shared_sql_utils/README.md`](shared_sql_utils/README.md) for details.
+
 ## sql_rewriter
 
 A SQL rewriter that intercepts queries, transforms them according to data flow control rules, and executes them against a DuckDB database. See [`sql_rewriter/README.md`](sql_rewriter/README.md) for more details.
@@ -30,12 +34,14 @@ Developer Workflow
 Run linting and tests from each project directory.
 
 Linting:
+- `shared_sql_utils`: `python3 -m ruff check .`
 - `sql_rewriter`: `python3 -m ruff check .`
 - `experiment_harness`: `python3 -m ruff check .`
 - `sbo_tax_agent`: `python3 -m ruff check .`
 - `vldb_2026_big_paper_experiments`: `.venv/bin/python -m ruff check src/ tests/`
 
 Tests:
+- `shared_sql_utils`: `python3 -m pytest`
 - `sql_rewriter`: `uv run pytest`
 - `experiment_harness`: `uv run --group dev python -m pytest`
 - `sbo_tax_agent`: no tests currently

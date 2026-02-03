@@ -359,17 +359,59 @@ def _add_clause_to_select(
 
     if existing_clause_expr:
         existing_expr = existing_clause_expr.this if isinstance(existing_clause_expr, clause_class) else existing_clause_expr
-        # Wrap both expressions in parentheses to ensure proper operator precedence
-        # This is especially important when OR clauses are involved
-        # If existing_expr is already a Paren (from a previous policy), use it as-is
-        wrapped_existing = existing_expr if isinstance(existing_expr, exp.Paren) else exp.Paren(this=existing_expr)
         wrapped_new = exp.Paren(this=clause_expr)
-        combined = exp.And(this=wrapped_existing, expression=wrapped_new)
+        combined = _combine_and_expressions([existing_expr, wrapped_new])
         parsed.set(clause_name, clause_class(this=combined))
     else:
         # Wrap each policy addition in its own parentheses for consistency
         wrapped_new = exp.Paren(this=clause_expr)
         parsed.set(clause_name, clause_class(this=wrapped_new))
+
+
+def _flatten_and_expression(expr: exp.Expression) -> list[exp.Expression]:
+    """Flatten nested AND expressions into a list of expressions."""
+    flattened = []
+    stack = [expr]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, exp.Paren):
+            stack.append(current.this)
+            continue
+        if isinstance(current, exp.And):
+            if current.this is not None:
+                stack.append(current.this)
+            if current.expression is not None:
+                stack.append(current.expression)
+            continue
+        flattened.append(current)
+    return flattened
+
+
+def _combine_and_expressions(expressions: list[exp.Expression]) -> exp.Expression:
+    """Combine expressions with AND using a balanced tree to avoid deep recursion."""
+    flattened = []
+    for expr in expressions:
+        flattened.extend(_flatten_and_expression(expr))
+
+    wrapped = [expr if isinstance(expr, exp.Paren) else exp.Paren(this=expr) for expr in flattened]
+    if not wrapped:
+        return exp.Paren(this=exp.Literal.boolean(True))
+    if len(wrapped) == 1:
+        return wrapped[0]
+
+    nodes = wrapped
+    while len(nodes) > 1:
+        next_nodes = []
+        it = iter(nodes)
+        for left in it:
+            right = next(it, None)
+            if right is None:
+                next_nodes.append(left)
+            else:
+                next_nodes.append(exp.And(this=left, expression=right))
+        nodes = next_nodes
+
+    return nodes[0]
 
 
 def _add_invalidate_column_to_select(
