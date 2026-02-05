@@ -84,20 +84,18 @@ def create_operator_chart(
             x_col = "execution_number"
             x_label = "Execution Number"
 
-    # Prepare data for plotting
-    # We need to melt the time columns into a single column
-    time_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms", "physical_time_ms"]
-    breakdown_columns = [
+    # Prepare data for plotting using exec-only times when available
+    exec_columns = [
         "no_policy_exec_time_ms",
-        "dfc_rewrite_time_ms",
         "dfc_exec_time_ms",
-        "logical_rewrite_time_ms",
         "logical_exec_time_ms",
+        "physical_time_ms",
     ]
-    available_breakdown_cols = [col for col in breakdown_columns if col in query_df.columns]
-    available_time_cols = [col for col in time_columns if col in query_df.columns]
+    total_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms", "physical_time_ms"]
+    available_exec_cols = [col for col in exec_columns if col in query_df.columns]
+    available_time_cols = available_exec_cols or [col for col in total_columns if col in query_df.columns]
 
-    if not available_time_cols and not available_breakdown_cols:
+    if not available_time_cols:
         print(f"No time columns found for {query_type}")
         return None
 
@@ -119,17 +117,15 @@ def create_operator_chart(
         except (ValueError, TypeError):
             x_val = float(idx)
 
-        for col in (available_breakdown_cols or available_time_cols):
+        for col in available_time_cols:
             # Map column names directly to approach names
             approach_map = {
                 "no_policy_time_ms": "No Policy",
-                "no_policy_exec_time_ms": "No Policy exec",
+                "no_policy_exec_time_ms": "No Policy",
                 "dfc_time_ms": "DFC",
-                "dfc_rewrite_time_ms": "DFC rewrite",
-                "dfc_exec_time_ms": "DFC exec",
+                "dfc_exec_time_ms": "DFC",
                 "logical_time_ms": "Logical",
-                "logical_rewrite_time_ms": "Logical rewrite",
-                "logical_exec_time_ms": "Logical exec",
+                "logical_exec_time_ms": "Logical",
                 "physical_time_ms": "Physical",
             }
             approach = approach_map.get(col, col.replace("_time_ms", "").replace("_", " ").title())
@@ -184,16 +180,7 @@ def create_operator_chart(
     }
 
     # Plot each approach (using averaged data)
-    if available_breakdown_cols:
-        approaches = [
-            "No Policy exec",
-            "DFC rewrite",
-            "DFC exec",
-            "Logical rewrite",
-            "Logical exec",
-        ]
-    else:
-        approaches = ["No Policy", "DFC", "Logical", "Physical"]
+    approaches = ["No Policy", "DFC", "Logical", "Physical"]
 
     for approach in approaches:
         approach_data = plot_df_averaged[plot_df_averaged["Approach"] == approach]
@@ -260,7 +247,7 @@ def create_all_charts(
     tpch_overhead_template: str = "tpch_percent_overhead_sf{sf}.png",
     operator_template: str = "{query_type}_performance_policy{policy_count}.png",
     tpch_breakdown_template: str = "tpch_rewrite_exec_breakdown_sf{sf}.png",
-    tpch_exec_only_template: str = "tpch_exec_only_sf{sf}.png",
+    tpch_multi_db_template: str = "tpch_multi_db_sf{sf}.png",
     suffix: str = "",
 ) -> None:
     """Create visualizations for all operators.
@@ -278,7 +265,39 @@ def create_all_charts(
     tpch_overhead_template = _apply_suffix(tpch_overhead_template, suffix)
     operator_template = _apply_suffix(operator_template, suffix)
     tpch_breakdown_template = _apply_suffix(tpch_breakdown_template, suffix)
-    tpch_exec_only_template = _apply_suffix(tpch_exec_only_template, suffix)
+    tpch_multi_db_template = _apply_suffix(tpch_multi_db_template, suffix)
+
+    external_time_cols = [
+        col
+        for col in df.columns
+        if col.endswith("_time_ms")
+        and col
+        not in {
+            "no_policy_time_ms",
+            "dfc_time_ms",
+            "logical_time_ms",
+            "physical_time_ms",
+            "no_policy_exec_time_ms",
+            "dfc_rewrite_time_ms",
+            "dfc_exec_time_ms",
+            "logical_rewrite_time_ms",
+            "logical_exec_time_ms",
+        }
+    ]
+
+    if external_time_cols and {"query_num", "tpch_sf"}.issubset(df.columns):
+        print("\nCreating TPC-H multi-db charts by scale factor...")
+        for sf in sorted(df["tpch_sf"].dropna().unique()):
+            sf_df = df[df["tpch_sf"] == sf]
+            output_filename = tpch_multi_db_template.format(sf=sf)
+            create_tpch_multi_db_chart(
+                sf_df,
+                output_dir,
+                output_filename=output_filename,
+                title_suffix=f"SF={sf}",
+            )
+        print(f"\nAll charts saved to {output_dir}/")
+        return
 
     if "query_type" in df.columns:
         query_types = df["query_type"].unique()
@@ -305,7 +324,10 @@ def create_all_charts(
         print(f"\nAll charts saved to {output_dir}/")
         return
 
-    if {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns):
+    if (
+        {"no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns)
+        or {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns)
+    ):
         if "tpch_sf" in df.columns:
             print("\nCreating TPC-H summary charts by scale factor...")
             create_tpch_summary_charts_by_sf(
@@ -330,20 +352,13 @@ def create_all_charts(
                         output_filename=output_filename,
                         title_suffix=f"SF={sf}",
                     )
-                    output_filename = tpch_exec_only_template.format(sf=sf)
-                    create_tpch_exec_only_chart(
-                        sf_df,
-                        output_dir,
-                        output_filename=output_filename,
-                        title_suffix=f"SF={sf}",
-                    )
         else:
             print("\nCreating TPC-H summary chart...")
             create_tpch_summary_chart(df, output_dir)
         print(f"\nAll charts saved to {output_dir}/")
         return
 
-    if {"policy_count", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns):
+    if {"policy_count", "dfc_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns):
         print("\nCreating policy count line chart...")
         output_filename = _apply_suffix("tpch_q01_policy_count.png", suffix)
         create_policy_count_chart(df, output_dir, output_filename=output_filename)
@@ -366,25 +381,28 @@ def create_tpch_summary_chart(
         print("No query_num column found; cannot create TPC-H summary chart.")
         return None
 
-    grouped = (
-        df.groupby("query_num", as_index=True)[
-            ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms"]
-        ]
-        .mean()
-        .sort_index()
-    )
+    time_columns = [
+        "no_policy_exec_time_ms",
+        "dfc_exec_time_ms",
+        "logical_exec_time_ms",
+    ]
+    if not set(time_columns).issubset(df.columns):
+        print("Exec time columns missing; falling back to total time columns.")
+        time_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms"]
+
+    grouped = df.groupby("query_num", as_index=True)[time_columns].mean().sort_index()
     if plot_mode not in {"average_time", "percent_overhead"}:
         raise ValueError(f"Unsupported plot_mode: {plot_mode}")
 
     if plot_mode == "percent_overhead":
         # Compute % overhead relative to no-policy per query.
         grouped["dfc_overhead_pct"] = (
-            (grouped["dfc_time_ms"] - grouped["no_policy_time_ms"])
-            / grouped["no_policy_time_ms"]
+            (grouped[time_columns[1]] - grouped[time_columns[0]])
+            / grouped[time_columns[0]]
         ) * 100.0
         grouped["logical_overhead_pct"] = (
-            (grouped["logical_time_ms"] - grouped["no_policy_time_ms"])
-            / grouped["no_policy_time_ms"]
+            (grouped[time_columns[2]] - grouped[time_columns[0]])
+            / grouped[time_columns[0]]
         ) * 100.0
 
     query_nums = grouped.index.astype(int).tolist()
@@ -396,21 +414,21 @@ def create_tpch_summary_chart(
         colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
         ax.bar(
             [x - bar_width for x in x_positions],
-            grouped["no_policy_time_ms"],
+            grouped[time_columns[0]],
             width=bar_width,
             label="No Policy",
             color=colors[0],
         )
         ax.bar(
             x_positions,
-            grouped["dfc_time_ms"],
+            grouped[time_columns[1]],
             width=bar_width,
             label="DFC",
             color=colors[1],
         )
         ax.bar(
             [x + bar_width for x in x_positions],
-            grouped["logical_time_ms"],
+            grouped[time_columns[2]],
             width=bar_width,
             label="Logical",
             color=colors[2],
@@ -443,6 +461,116 @@ def create_tpch_summary_chart(
         title = f"{title} ({title_suffix})"
     ax.set_title(title, fontsize=14, fontweight="bold")
     ax.legend(loc="best", fontsize=10)
+    ax.grid(axis="y", alpha=0.3)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_tpch_multi_db_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_multi_db.png",
+    title_suffix: str | None = None,
+) -> Optional[plt.Figure]:
+    """Create a multi-db bar chart of per-query average times."""
+    if "query_num" not in df.columns:
+        print("No query_num column found for multi-db chart.")
+        return None
+
+    base_series = [
+        ("no_policy_exec_time_ms", "DuckDB No Policy", "#1f77b4"),
+        ("dfc_exec_time_ms", "DuckDB DFC", "#ff7f0e"),
+        ("logical_exec_time_ms", "DuckDB Logical", "#2ca02c"),
+    ]
+
+    time_cols = {
+        col
+        for col in df.columns
+        if col.endswith("_time_ms")
+        and not col.endswith("_rewrite_time_ms")
+        and col
+        not in {
+            "no_policy_time_ms",
+            "dfc_time_ms",
+            "logical_time_ms",
+            "physical_time_ms",
+        }
+    }
+
+    series = []
+    for col, label, color in base_series:
+        if col in time_cols:
+            series.append((col, label, color))
+
+    external_colors = ["#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+    external_cols = [col for col in time_cols if col not in {c for c, _, _ in base_series}]
+
+    def _engine_name(col: str) -> str:
+        if col.endswith("_dfc_time_ms"):
+            return col[: -len("_dfc_time_ms")]
+        if col.endswith("_logical_time_ms"):
+            return col[: -len("_logical_time_ms")]
+        return col[: -len("_time_ms")]
+
+    engine_prefixes = sorted({_engine_name(col) for col in external_cols})
+    ordered_external_cols: list[str] = []
+    for engine in engine_prefixes:
+        ordered_external_cols.extend(
+            [
+                f"{engine}_time_ms",
+                f"{engine}_dfc_time_ms",
+                f"{engine}_logical_time_ms",
+            ]
+        )
+    ordered_external_cols = [col for col in ordered_external_cols if col in external_cols]
+
+    for idx, col in enumerate(ordered_external_cols):
+        if col.endswith("_dfc_time_ms"):
+            engine = col[: -len("_dfc_time_ms")]
+            label = f"{engine.replace('_', ' ').title()} DFC"
+        elif col.endswith("_logical_time_ms"):
+            engine = col[: -len("_logical_time_ms")]
+            label = f"{engine.replace('_', ' ').title()} Logical"
+        else:
+            engine = col[: -len("_time_ms")]
+            label = f"{engine.replace('_', ' ').title()} No Policy"
+        series.append((col, label, external_colors[idx % len(external_colors)]))
+
+    if not series:
+        print("No time columns found for multi-db chart.")
+        return None
+
+    series_cols = []
+    for col, _, _ in series:
+        if col not in series_cols:
+            series_cols.append(col)
+    grouped = df.groupby("query_num")[series_cols].mean()
+    grouped = grouped.sort_index()
+
+    fig, ax = plt.subplots(figsize=(14, 7))
+    num_series = len(series)
+    width = 0.8 / num_series
+    x = range(len(grouped.index))
+
+    for idx, (col, label, color) in enumerate(series):
+        offsets = [pos + (idx - (num_series - 1) / 2) * width for pos in x]
+        ax.bar(offsets, grouped[col], width=width, label=label, color=color)
+
+    labels = [f"Q{int(q):02d}" for q in grouped.index]
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(labels, rotation=0)
+    ax.set_xlabel("TPC-H Query", fontsize=12)
+    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+    title = "TPC-H Multi-DB Average Execution Time by Query"
+    if title_suffix:
+        title = f"{title} ({title_suffix})"
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.legend(loc="best", fontsize=9, ncol=2)
     ax.grid(axis="y", alpha=0.3)
 
     plt.tight_layout()
@@ -593,84 +721,6 @@ def create_tpch_rewrite_exec_breakdown_chart(
     return fig
 
 
-def create_tpch_exec_only_chart(
-    df: pd.DataFrame,
-    output_dir: str = "./results",
-    output_filename: str = "tpch_exec_only_sf{sf}.png",
-    title_suffix: str = "",
-) -> Optional[plt.Figure]:
-    """Create a grouped bar chart for TPC-H exec-only times."""
-    required_cols = {
-        "query_num",
-        "no_policy_exec_time_ms",
-        "dfc_exec_time_ms",
-        "logical_exec_time_ms",
-    }
-    if not required_cols.issubset(df.columns):
-        print("Missing required columns for TPC-H exec-only chart.")
-        return None
-
-    grouped = (
-        df.groupby("query_num", as_index=True)[
-            [
-                "no_policy_exec_time_ms",
-                "dfc_exec_time_ms",
-                "logical_exec_time_ms",
-            ]
-        ]
-        .mean()
-        .sort_index()
-    )
-
-    if grouped.empty:
-        print("No data available for TPC-H exec-only chart.")
-        return None
-
-    query_nums = grouped.index.astype(int).tolist()
-    x_positions = list(range(len(query_nums)))
-    bar_width = 0.25
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.bar(
-        [x - bar_width for x in x_positions],
-        grouped["no_policy_exec_time_ms"],
-        width=bar_width,
-        label="No Policy exec",
-        color="#1f77b4",
-    )
-    ax.bar(
-        x_positions,
-        grouped["dfc_exec_time_ms"],
-        width=bar_width,
-        label="DFC exec",
-        color="#ffbb78",
-    )
-    ax.bar(
-        [x + bar_width for x in x_positions],
-        grouped["logical_exec_time_ms"],
-        width=bar_width,
-        label="Logical exec",
-        color="#98df8a",
-    )
-
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels([f"Q{q:02d}" for q in query_nums], fontsize=9)
-    ax.set_xlabel("TPC-H Query", fontsize=12)
-    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
-
-    title = "TPC-H Execution Time (Exec Only)"
-    if title_suffix:
-        title = f"{title} ({title_suffix})"
-    ax.set_title(title, fontsize=14, fontweight="bold")
-    ax.legend(loc="best", fontsize=9)
-    ax.grid(axis="y", alpha=0.3)
-
-    plt.tight_layout()
-    output_path = Path(output_dir) / output_filename
-    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Saved chart to {output_path}")
-    return fig
 
 
 def create_policy_count_chart(
@@ -679,12 +729,12 @@ def create_policy_count_chart(
     output_filename: str = "tpch_q01_policy_count.png",
 ) -> Optional[plt.Figure]:
     """Create a line chart for TPC-H Q01 policy count experiment."""
-    required_cols = {"policy_count", "dfc_time_ms", "logical_time_ms"}
+    required_cols = {"policy_count", "dfc_exec_time_ms", "logical_exec_time_ms"}
     if not required_cols.issubset(df.columns):
         print("Missing required columns for policy count chart.")
         return None
 
-    plot_df = df[["policy_count", "dfc_time_ms", "logical_time_ms"]].copy()
+    plot_df = df[["policy_count", "dfc_exec_time_ms", "logical_exec_time_ms"]].copy()
     plot_df = plot_df.dropna(subset=["policy_count"])
 
     grouped = plot_df.groupby("policy_count", as_index=True).mean(numeric_only=True)
@@ -697,7 +747,7 @@ def create_policy_count_chart(
     fig, ax = plt.subplots(figsize=(9, 6))
     ax.plot(
         grouped.index,
-        grouped["dfc_time_ms"],
+        grouped["dfc_exec_time_ms"],
         marker="o",
         linewidth=2,
         markersize=6,
@@ -706,7 +756,7 @@ def create_policy_count_chart(
     )
     ax.plot(
         grouped.index,
-        grouped["logical_time_ms"],
+        grouped["logical_exec_time_ms"],
         marker="o",
         linewidth=2,
         markersize=6,
@@ -777,9 +827,9 @@ def main():
         help="Filename template for TPC-H breakdown charts (use {sf}).",
     )
     parser.add_argument(
-        "--tpch-exec-only-template",
-        default="tpch_exec_only_sf{sf}.png",
-        help="Filename template for TPC-H exec-only charts (use {sf}).",
+        "--tpch-multi-db-template",
+        default="tpch_multi_db_sf{sf}.png",
+        help="Filename template for multi-db TPC-H charts (use {sf}).",
     )
     parser.add_argument(
         "--suffix",
@@ -803,7 +853,7 @@ def main():
         tpch_overhead_template=args.tpch_overhead_template,
         operator_template=args.operator_template,
         tpch_breakdown_template=args.tpch_breakdown_template,
-        tpch_exec_only_template=args.tpch_exec_only_template,
+        tpch_multi_db_template=args.tpch_multi_db_template,
         suffix=args.suffix,
     )
 

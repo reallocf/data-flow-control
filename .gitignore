@@ -210,3 +210,6 @@ __marimo__/
 *.db
 .mplconfig/
 .tmp/
+vldb_2026_big_paper_experiments/results/multi_db/**/*.csv
+vldb_2026_big_paper_experiments/results/multi_db_test_data/**/*.csv
+*.sqlite

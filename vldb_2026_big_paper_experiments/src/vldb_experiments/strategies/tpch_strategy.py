@@ -9,7 +9,7 @@ from experiment_harness import ExperimentContext, ExperimentResult, ExperimentSt
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical
-from vldb_experiments.correctness import compare_results
+from vldb_experiments.correctness import compare_results_exact
 
 
 def load_tpch_query(query_num: int) -> str:
@@ -227,7 +227,7 @@ class TPCHStrategy(ExperimentStrategy):
         correctness_match = False
         correctness_error = None
         if dfc_error is None and logical_error is None:
-            match, error = compare_results(dfc_results, logical_results)
+            match, error = compare_results_exact(dfc_results, logical_results)
             correctness_match = match
             correctness_error = error
         else:

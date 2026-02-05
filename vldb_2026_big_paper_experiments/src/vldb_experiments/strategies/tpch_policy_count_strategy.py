@@ -8,7 +8,7 @@ from experiment_harness import ExperimentContext, ExperimentResult, ExperimentSt
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
 from vldb_experiments.baselines.logical_baseline import execute_query_logical_multi
-from vldb_experiments.correctness import compare_results
+from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.strategies.tpch_strategy import load_tpch_query
 
 DEFAULT_POLICY_COUNTS = [1, 10, 100, 1000]
@@ -154,25 +154,36 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
             for policy in policies:
                 self.dfc_rewriter.register_policy(policy)
 
-        dfc_start = time.perf_counter()
         try:
-            dfc_cursor = self.dfc_rewriter.execute(query)
+            dfc_rewrite_start = time.perf_counter()
+            dfc_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
+            dfc_exec_start = time.perf_counter()
+            dfc_cursor = self.dfc_conn.execute(dfc_transformed)
             dfc_results = dfc_cursor.fetchall()
-            dfc_time = (time.perf_counter() - dfc_start) * 1000.0
+            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
+            dfc_time = dfc_rewrite_time + dfc_exec_time
             dfc_rows = len(dfc_results)
             dfc_error = None
         except Exception as e:
             dfc_time = 0.0
+            dfc_rewrite_time = 0.0
+            dfc_exec_time = 0.0
             dfc_results = []
             dfc_rows = 0
             dfc_error = str(e)
 
         try:
-            logical_results, logical_time = execute_query_logical_multi(self.logical_conn, query, policies)
+            logical_results, logical_rewrite_time, logical_exec_time = execute_query_logical_multi(
+                self.logical_conn, query, policies
+            )
+            logical_time = logical_rewrite_time + logical_exec_time
             logical_rows = len(logical_results)
             logical_error = None
         except Exception as e:
             logical_time = 0.0
+            logical_rewrite_time = 0.0
+            logical_exec_time = 0.0
             logical_results = []
             logical_rows = 0
             logical_error = str(e)
@@ -180,7 +191,7 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
         correctness_match = False
         correctness_error = None
         if dfc_error is None and logical_error is None:
-            match, error = compare_results(dfc_results, logical_results)
+            match, error = compare_results_exact(dfc_results, logical_results)
             correctness_match = match
             correctness_error = error
         else:
@@ -193,7 +204,11 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
             "policy_count": policy_count,
             "run_num": run_num or 0,
             "dfc_time_ms": dfc_time,
+            "dfc_rewrite_time_ms": dfc_rewrite_time,
+            "dfc_exec_time_ms": dfc_exec_time,
             "logical_time_ms": logical_time,
+            "logical_rewrite_time_ms": logical_rewrite_time,
+            "logical_exec_time_ms": logical_exec_time,
             "dfc_rows": dfc_rows,
             "logical_rows": logical_rows,
             "correctness_match": correctness_match,
@@ -221,7 +236,11 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
             "policy_count",
             "run_num",
             "dfc_time_ms",
+            "dfc_rewrite_time_ms",
+            "dfc_exec_time_ms",
             "logical_time_ms",
+            "logical_rewrite_time_ms",
+            "logical_exec_time_ms",
             "dfc_rows",
             "logical_rows",
             "correctness_match",

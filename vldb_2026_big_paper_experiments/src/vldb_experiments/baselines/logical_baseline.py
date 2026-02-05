@@ -120,7 +120,7 @@ def execute_query_logical_multi(
     conn: duckdb.DuckDBPyConnection,
     query: str,
     policies: list[DFCPolicy],
-) -> tuple[list[Any], float]:
+) -> tuple[list[Any], float, float]:
     """Execute query using logical baseline approach with multiple policies.
 
     Args:
@@ -129,14 +129,16 @@ def execute_query_logical_multi(
         policies: List of DFCPolicy instances
 
     Returns:
-        Tuple of (results, execution_time_ms)
+        Tuple of (results, rewrite_time_ms, exec_time_ms)
     """
     import time
 
-    start = time.perf_counter()
+    rewrite_start = time.perf_counter()
     rewritten_query = rewrite_query_logical_multi(query, policies)
+    rewrite_time = (time.perf_counter() - rewrite_start) * 1000.0
+    exec_start = time.perf_counter()
     cursor = conn.execute(rewritten_query)
     results = cursor.fetchall()
-    execution_time = (time.perf_counter() - start) * 1000.0
+    exec_time = (time.perf_counter() - exec_start) * 1000.0
 
-    return results, execution_time
+    return results, rewrite_time, exec_time

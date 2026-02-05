@@ -565,10 +565,9 @@ def _rewrite_exists_to_join(
     join_on_sql = correlation_expr.sql(dialect="duckdb")
 
     rewrite_parts = [
-        f"WITH base_query AS ({base_query})",
         "SELECT",
-        f"base_query.{group_by_cols[0]},",
-        "base_query.order_count,",
+        f"base_query.{group_by_cols[0]} AS {group_by_cols[0]},",
+        "base_query.order_count AS order_count,",
         "orders.o_orderkey,",
         f"AVG({policy_source}.l_quantity) AS policy_1",
         "FROM base_query",
@@ -594,14 +593,16 @@ def _rewrite_exists_to_join(
     having_sql = having_expr.sql(dialect="duckdb")
 
     outer_parts = [
-        "WITH rewrite AS (",
+        "WITH",
+        f"base_query AS ({base_query}),",
+        "rewrite AS (",
         rewrite_sql,
         ")",
         "SELECT",
-        f"{group_by_cols[0]},",
-        "order_count",
+        f"rewrite.{group_by_cols[0]} AS {group_by_cols[0]},",
+        "rewrite.order_count AS order_count",
         "FROM rewrite",
-        f"GROUP BY {group_by_cols[0]}, order_count",
+        f"GROUP BY rewrite.{group_by_cols[0]}, rewrite.order_count",
         f"HAVING {having_sql}",
     ]
     if order_by_columns:
@@ -703,9 +704,8 @@ def _rewrite_in_to_join(
         policy_select_parts.append(f"{agg_expr} AS {alias}")
 
     rewrite_parts = [
-        f"WITH base_query AS ({base_query})",
         "SELECT",
-        f"{', '.join(f'base_query.{col}' for col in group_by_cols)},",
+        f"{', '.join(f'base_query.{col} AS {col}' for col in group_by_cols)},",
         "max(base_query.sum_l_quantity) AS sum_l_quantity,",
         f"{', '.join(policy_select_parts)}",
         "FROM base_query",
@@ -755,14 +755,16 @@ def _rewrite_in_to_join(
         dialect="duckdb",
     )
     outer_parts = [
-        "WITH rewrite AS (",
+        "WITH",
+        f"base_query AS ({base_query}),",
+        "rewrite AS (",
         rewrite_sql,
         ")",
         "SELECT",
-        f"{', '.join(group_by_cols)},",
-        "max(sum_l_quantity) AS sum_l_quantity",
+        f"{', '.join(f'rewrite.{col} AS {col}' for col in group_by_cols)},",
+        "max(rewrite.sum_l_quantity) AS sum_l_quantity",
         "FROM rewrite",
-        f"GROUP BY {', '.join(group_by_cols)}",
+        f"GROUP BY {', '.join(f'rewrite.{col}' for col in group_by_cols)}",
         f"HAVING {combined_having}",
     ]
     if order_by_columns:

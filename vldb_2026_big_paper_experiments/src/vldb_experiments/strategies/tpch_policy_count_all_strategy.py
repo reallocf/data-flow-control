@@ -8,7 +8,7 @@ from experiment_harness import ExperimentContext, ExperimentResult, ExperimentSt
 from sql_rewriter import SQLRewriter
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical_multi
-from vldb_experiments.correctness import compare_results
+from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.strategies.tpch_policy_count_strategy import build_tpch_q01_policies
 from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES, load_tpch_query
 
@@ -151,7 +151,7 @@ class TPCHPolicyCountAllQueriesStrategy(ExperimentStrategy):
         correctness_match = False
         correctness_error = None
         if dfc_error is None and logical_error is None:
-            match, error = compare_results(dfc_results, logical_results)
+            match, error = compare_results_exact(dfc_results, logical_results)
             correctness_match = match
             correctness_error = error
         else:

@@ -12,7 +12,7 @@ from vldb_experiments.baselines.logical_baseline import (
     rewrite_query_logical_multi,
 )
 from vldb_experiments.baselines.physical_baseline import execute_query_physical_simple
-from vldb_experiments.correctness import compare_results
+from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.data_setup import (
     setup_test_data,
     setup_test_data_with_groups,
@@ -371,11 +371,11 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         correctness_error = None
         if dfc_error is None and logical_error is None:
             if physical_error is None:
-                match, error = compare_results(dfc_results, logical_results, physical_results)
+                match, error = compare_results_exact(dfc_results, logical_results, physical_results)
                 correctness_match = match
                 correctness_error = error
             else:
-                match, error = compare_results(dfc_results, logical_results, dfc_results)
+                match, error = compare_results_exact(dfc_results, logical_results, dfc_results)
                 correctness_match = match
                 correctness_error = error
         else:

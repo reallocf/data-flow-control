@@ -23,7 +23,7 @@ from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 import sqlglot
 
 from vldb_experiments.baselines.logical_baseline import execute_query_logical, rewrite_query_logical
-from vldb_experiments.correctness import compare_results
+from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.strategies.tpch_strategy import load_tpch_query
 
 # Policies used in test_tpch.py
@@ -119,26 +119,26 @@ LOGICAL_EXPECTED_SQL = {
         LIMIT 10
     """,
     4: """
-        WITH rewrite AS (
-            WITH base_query AS (
-                SELECT
-                    o_orderpriority,
-                    count(*) AS order_count
-                FROM orders
-                WHERE o_orderdate >= CAST('1993-07-01' AS DATE)
-                    AND o_orderdate < CAST('1993-10-01' AS DATE)
-                    AND EXISTS (
-                        SELECT *
-                        FROM lineitem
-                        WHERE l_orderkey = o_orderkey
-                            AND l_commitdate < l_receiptdate
-                    )
-                GROUP BY o_orderpriority
-                ORDER BY o_orderpriority
-            )
+        WITH base_query AS (
             SELECT
-                base_query.o_orderpriority,
-                base_query.order_count,
+                o_orderpriority,
+                count(*) AS order_count
+            FROM orders
+            WHERE o_orderdate >= CAST('1993-07-01' AS DATE)
+                AND o_orderdate < CAST('1993-10-01' AS DATE)
+                AND EXISTS (
+                    SELECT *
+                    FROM lineitem
+                    WHERE l_orderkey = o_orderkey
+                        AND l_commitdate < l_receiptdate
+                )
+            GROUP BY o_orderpriority
+            ORDER BY o_orderpriority
+        ),
+        rewrite AS (
+            SELECT
+                base_query.o_orderpriority AS o_orderpriority,
+                base_query.order_count AS order_count,
                 orders.o_orderkey,
                 avg(lineitem.l_quantity) AS policy_1
             FROM base_query
@@ -153,10 +153,10 @@ LOGICAL_EXPECTED_SQL = {
                 orders.o_orderkey
         )
         SELECT
-            o_orderpriority,
-            order_count
+            rewrite.o_orderpriority AS o_orderpriority,
+            rewrite.order_count AS order_count
         FROM rewrite
-        GROUP BY o_orderpriority, order_count
+        GROUP BY rewrite.o_orderpriority, rewrite.order_count
         HAVING max(rewrite.policy_1) >= 30
         ORDER BY o_orderpriority
     """,
@@ -552,34 +552,34 @@ LOGICAL_EXPECTED_SQL = {
         HAVING avg(rescan.l_quantity) >= 30
     """,
     18: """
-        WITH rewrite AS (
-            WITH base_query AS (
-                SELECT
-                    c_name,
-                    c_custkey,
-                    o_orderkey,
-                    o_orderdate,
-                    o_totalprice,
-                    SUM(l_quantity) AS sum_l_quantity
-                FROM customer, orders, lineitem
-                WHERE o_orderkey IN (
-                    SELECT l_orderkey
-                    FROM lineitem
-                    GROUP BY l_orderkey
-                    HAVING SUM(l_quantity) > 300
-                )
-                    AND c_custkey = o_custkey
-                    AND o_orderkey = l_orderkey
-                GROUP BY c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice
-                ORDER BY o_totalprice DESC, o_orderdate
-                LIMIT 100
-            )
+        WITH base_query AS (
             SELECT
-                base_query.c_name,
-                base_query.c_custkey,
-                base_query.o_orderkey,
-                base_query.o_orderdate,
-                base_query.o_totalprice,
+                c_name,
+                c_custkey,
+                o_orderkey,
+                o_orderdate,
+                o_totalprice,
+                SUM(l_quantity) AS sum_l_quantity
+            FROM customer, orders, lineitem
+            WHERE o_orderkey IN (
+                SELECT l_orderkey
+                FROM lineitem
+                GROUP BY l_orderkey
+                HAVING SUM(l_quantity) > 300
+            )
+                AND c_custkey = o_custkey
+                AND o_orderkey = l_orderkey
+            GROUP BY c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice
+            ORDER BY o_totalprice DESC, o_orderdate
+            LIMIT 100
+        ),
+        rewrite AS (
+            SELECT
+                base_query.c_name AS c_name,
+                base_query.c_custkey AS c_custkey,
+                base_query.o_orderkey AS o_orderkey,
+                base_query.o_orderdate AS o_orderdate,
+                base_query.o_totalprice AS o_totalprice,
                 max(base_query.sum_l_quantity) AS sum_l_quantity,
                 avg(lineitem.l_quantity) AS policy_1,
                 avg(inner_lineitem.l_quantity) AS policy_2
@@ -599,14 +599,14 @@ LOGICAL_EXPECTED_SQL = {
                 base_query.o_orderdate, base_query.o_totalprice
         )
         SELECT
-            c_name,
-            c_custkey,
-            o_orderkey,
-            o_orderdate,
-            o_totalprice,
-            max(sum_l_quantity) AS sum_l_quantity
+            rewrite.c_name AS c_name,
+            rewrite.c_custkey AS c_custkey,
+            rewrite.o_orderkey AS o_orderkey,
+            rewrite.o_orderdate AS o_orderdate,
+            rewrite.o_totalprice AS o_totalprice,
+            max(rewrite.sum_l_quantity) AS sum_l_quantity
         FROM rewrite
-        GROUP BY c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice
+        GROUP BY rewrite.c_name, rewrite.c_custkey, rewrite.o_orderkey, rewrite.o_orderdate, rewrite.o_totalprice
         HAVING (max(rewrite.policy_1) >= 30) AND (max(rewrite.policy_2) >= 30)
         ORDER BY o_totalprice DESC, o_orderdate
     """,
@@ -737,7 +737,7 @@ def test_tpch_q01(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[1])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -757,7 +757,7 @@ def test_tpch_q03(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[3])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -777,7 +777,7 @@ def test_tpch_q04(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[4])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -797,7 +797,7 @@ def test_tpch_q05(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[5])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -817,7 +817,7 @@ def test_tpch_q06(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[6])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -837,7 +837,7 @@ def test_tpch_q07(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[7])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -857,7 +857,7 @@ def test_tpch_q08(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[8])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -877,7 +877,7 @@ def test_tpch_q09(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[9])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -897,7 +897,7 @@ def test_tpch_q10(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[10])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -917,7 +917,7 @@ def test_tpch_q12(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[12])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -937,7 +937,7 @@ def test_tpch_q14(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[14])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -957,7 +957,7 @@ def test_tpch_q18(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[18])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
 
 
@@ -977,5 +977,5 @@ def test_tpch_q19(tpch_connections):
     assert _normalize_sql(logical_sql) == _normalize_sql(LOGICAL_EXPECTED_SQL[19])
     logical_results, _ = execute_query_logical(tpch_connections["logical"], query, policy)
     # Compare results
-    match, error = compare_results(dfc_results, logical_results)
+    match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
