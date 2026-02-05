@@ -88,7 +88,7 @@ class TestLogicalRewriter:
 
         # Verify the complete expected SQL
         # Pattern: CTE runs original query with GROUP BY, then JOIN with rescan to get policy columns
-        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.count), MAX(base_query.sum_amount) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 100"
+        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.count), MAX(base_query.sum_amount) FROM base_query, test_data WHERE base_query.category = test_data.category GROUP BY base_query.category HAVING max(test_data.value) > 100"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
     def test_order_by_query(self, conn):
@@ -155,7 +155,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         assert len(result) > 0, "Rewritten query should return results"
 
         # Verify the complete expected SQL
-        expected = "WITH base_query AS (SELECT category, AVG(amount) AS avg_amount FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.avg_amount) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 100"
+        expected = "WITH base_query AS (SELECT category, AVG(amount) AS avg_amount FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.avg_amount) FROM base_query, test_data WHERE base_query.category = test_data.category GROUP BY base_query.category HAVING max(test_data.value) > 100"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
     def test_policy_with_different_comparison_operator(self, conn):
@@ -318,7 +318,7 @@ class TestLogicalRewriterWithDifferentPolicies:
 
         # Verify the complete expected SQL
         # Note: The constraint max(test_data.value) > 50 is applied in the HAVING clause
-        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.count), MAX(base_query.sum_amount) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 50"
+        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.count), MAX(base_query.sum_amount) FROM base_query, test_data WHERE base_query.category = test_data.category GROUP BY base_query.category HAVING max(test_data.value) > 50"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
     def test_policy_with_join_and_different_policy_column(self, conn):
@@ -388,7 +388,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         assert len(result[0]) == 6, "Should return 6 columns (category + 5 aggregations)"
 
         # Verify the complete expected SQL
-        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount, AVG(value) AS avg_value, MAX(value) AS max_value, MIN(value) AS min_value FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.count), MAX(base_query.sum_amount), MAX(base_query.avg_value), MAX(base_query.max_value), MAX(base_query.min_value) FROM base_query JOIN (SELECT category, test_data.value FROM test_data) AS rescan ON base_query.category = rescan.category GROUP BY base_query.category HAVING MAX(rescan.value) > 100"
+        expected = "WITH base_query AS (SELECT category, COUNT(*) AS count, SUM(amount) AS sum_amount, AVG(value) AS avg_value, MAX(value) AS max_value, MIN(value) AS min_value FROM test_data GROUP BY category) SELECT base_query.category, MAX(base_query.count), MAX(base_query.sum_amount), MAX(base_query.avg_value), MAX(base_query.max_value), MAX(base_query.min_value) FROM base_query, test_data WHERE base_query.category = test_data.category GROUP BY base_query.category HAVING max(test_data.value) > 100"
         assert rewritten == expected, f"Expected:\n{expected}\nGot:\n{rewritten}"
 
 

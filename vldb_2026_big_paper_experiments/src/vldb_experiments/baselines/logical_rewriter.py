@@ -246,6 +246,276 @@ def _strip_table_qualifiers_expr(expr: exp.Expression) -> exp.Expression:
     return expr_copy
 
 
+def _ensure_group_by_aliases(
+    parsed: exp.Select,
+    group_by_exprs: list[exp.Expression],
+) -> list[str]:
+    """Ensure GROUP BY expressions are selectable by name in the outer query.
+
+    Returns the alias/name to use for each GROUP BY expression, in order.
+    """
+    aliases: list[str] = []
+    existing_aliases = {
+        expr.alias_or_name.lower()
+        for expr in parsed.expressions
+        if isinstance(expr, exp.Alias)
+    }
+
+    for idx, gb_expr in enumerate(group_by_exprs, start=1):
+        gb_sql = gb_expr.sql(dialect="duckdb")
+        alias_name: str | None = None
+        match_expr: exp.Expression | None = None
+
+        for expr in parsed.expressions:
+            if isinstance(expr, exp.Alias):
+                if expr.this.sql(dialect="duckdb") == gb_sql:
+                    alias_name = expr.alias_or_name
+                    match_expr = expr
+                    break
+            elif isinstance(expr, exp.Column):
+                if expr.sql(dialect="duckdb") == gb_sql:
+                    alias_name = expr.this.sql(dialect="duckdb")
+                    match_expr = expr
+                    break
+            else:
+                if expr.sql(dialect="duckdb") == gb_sql:
+                    match_expr = expr
+                    break
+
+        if alias_name is None:
+            alias_name = f"group_{idx}"
+            suffix = 1
+            while alias_name.lower() in existing_aliases:
+                alias_name = f"group_{idx}_{suffix}"
+                suffix += 1
+
+        if match_expr is None:
+            parsed.append(
+                "expressions",
+                exp.Alias(this=gb_expr.copy(), alias=exp.to_identifier(alias_name)),
+            )
+            existing_aliases.add(alias_name.lower())
+        elif not isinstance(match_expr, (exp.Alias, exp.Column)):
+            alias_expr = exp.Alias(
+                this=match_expr.copy(),
+                alias=exp.to_identifier(alias_name),
+            )
+            parsed.set(
+                "expressions",
+                [
+                    alias_expr if expr is match_expr else expr
+                    for expr in parsed.expressions
+                ],
+            )
+            existing_aliases.add(alias_name.lower())
+
+        aliases.append(alias_name)
+
+    return aliases
+
+
+def _collect_select_column_tables(parsed: exp.Select) -> dict[str, set[str]]:
+    """Collect column-to-table mappings from the SELECT list."""
+    column_tables: dict[str, set[str]] = {}
+    for expr in parsed.expressions:
+        for col in expr.find_all(exp.Column):
+            table_name = get_table_name_from_column(col)
+            if not table_name:
+                continue
+            col_name = col.this.sql(dialect="duckdb").lower()
+            column_tables.setdefault(col_name, set()).add(table_name)
+    return column_tables
+
+
+def _get_default_from_table(from_expr: exp.From | None, joins_clause: str | None) -> str | None:
+    """Return the sole FROM table name/alias when no joins are present."""
+    if not from_expr or joins_clause:
+        return None
+    if isinstance(from_expr.this, exp.Table):
+        return from_expr.this.alias_or_name
+    if isinstance(from_expr.this, exp.Subquery):
+        alias = from_expr.this.args.get("alias")
+        if alias and alias.this is not None:
+            return alias.this.sql(dialect="duckdb")
+    return None
+
+
+def _qualify_expression_columns(
+    expr: exp.Expression,
+    *,
+    select_col_tables: dict[str, set[str]],
+    default_table: str | None,
+    policy_source: str,
+) -> exp.Expression:
+    """Qualify unqualified columns to avoid ambiguity in outer joins."""
+    expr_copy = expr.copy()
+    for col in expr_copy.find_all(exp.Column):
+        if get_table_name_from_column(col):
+            continue
+        col_name = col.this.sql(dialect="duckdb").lower()
+        table_name: str | None = None
+        tables = select_col_tables.get(col_name)
+        if tables and len(tables) == 1:
+            table_name = next(iter(tables))
+        elif default_table:
+            table_name = default_table
+        elif policy_source and _is_policy_source_column(col, policy_source):
+            table_name = policy_source
+        else:
+            for table, prefix in _TPCH_COLUMN_PREFIX.items():
+                if col_name.startswith(prefix):
+                    table_name = table
+                    break
+        if table_name:
+            col.set("table", exp.Identifier(this=table_name))
+    return expr_copy
+
+
+def _qualify_group_by_expr(
+    expr: exp.Expression,
+    *,
+    select_col_tables: dict[str, set[str]],
+    default_table: str | None,
+    policy_source: str,
+) -> exp.Expression:
+    """Qualify GROUP BY expressions to avoid ambiguity in outer joins."""
+    return _qualify_expression_columns(
+        expr,
+        select_col_tables=select_col_tables,
+        default_table=default_table,
+        policy_source=policy_source,
+    )
+
+
+def _rewrite_policy_constraint_for_outer(
+    policy_constraint: str,
+    *,
+    policy_source: str,
+    default_table: str | None,
+    select_col_tables: dict[str, set[str]],
+) -> str:
+    """Rewrite policy constraint to reference the outer FROM tables."""
+    constraint_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
+    if default_table:
+        for col in constraint_expr.find_all(exp.Column):
+            table_name = get_table_name_from_column(col)
+            if table_name and table_name.lower() == policy_source.lower():
+                col.set("table", exp.Identifier(this=default_table))
+    qualified_expr = _qualify_expression_columns(
+        constraint_expr,
+        select_col_tables=select_col_tables,
+        default_table=default_table,
+        policy_source=policy_source,
+    )
+    return qualified_expr.sql(dialect="duckdb")
+
+
+def _inline_from_subquery(
+    select_expr: exp.Select,
+    group_by_exprs: list[exp.Expression],
+) -> tuple[exp.Select, list[exp.Expression], exp.Select | None]:
+    """Inline a FROM subquery into the parent SELECT, rewriting aliases."""
+    from_expr = select_expr.args.get("from_")
+    if not from_expr or not isinstance(from_expr.this, exp.Subquery):
+        return select_expr, group_by_exprs, None
+
+    subquery = from_expr.this
+    sub_select = subquery.this
+    if not isinstance(sub_select, exp.Select):
+        return select_expr, group_by_exprs, None
+
+    subquery_alias = subquery.alias_or_name
+    mapping: dict[str, exp.Expression] = {}
+    for expr in sub_select.expressions:
+        if isinstance(expr, exp.Alias):
+            mapping[expr.alias_or_name.lower()] = expr.this.copy()
+        elif isinstance(expr, exp.Column):
+            mapping[expr.this.sql(dialect="duckdb").lower()] = expr.copy()
+
+    def replace_expr(expr: exp.Expression) -> exp.Expression:
+        expr_copy = expr.copy()
+        if isinstance(expr_copy, exp.Column):
+            table_name = get_table_name_from_column(expr_copy)
+            col_name = expr_copy.this.sql(dialect="duckdb").lower()
+            use_mapping = (
+                table_name
+                and subquery_alias
+                and table_name.lower() == subquery_alias.lower()
+            ) or (not table_name and col_name in mapping)
+            if use_mapping:
+                mapped = mapping.get(col_name)
+                if mapped:
+                    mapped_sql = mapped.sql(dialect="duckdb")
+                    return sqlglot.parse_one(mapped_sql, read="duckdb")
+        for col in list(expr_copy.find_all(exp.Column)):
+            table_name = get_table_name_from_column(col)
+            col_name = col.this.sql(dialect="duckdb").lower()
+            use_mapping = (
+                table_name
+                and subquery_alias
+                and table_name.lower() == subquery_alias.lower()
+            ) or (not table_name and col_name in mapping)
+            if not use_mapping:
+                continue
+            mapped = mapping.get(col_name)
+            if not mapped:
+                continue
+            mapped_sql = mapped.sql(dialect="duckdb")
+            mapped_expr = sqlglot.parse_one(mapped_sql, read="duckdb")
+            col.replace(mapped_expr)
+        return expr_copy
+
+    inlined = select_expr.copy()
+    inlined.set("from_", sub_select.args.get("from_"))
+    inlined.set("joins", sub_select.args.get("joins"))
+
+    sub_where = sub_select.args.get("where")
+    base_where = inlined.args.get("where")
+    if sub_where and base_where:
+        combined = exp.And(this=sub_where.this, expression=base_where.this)
+        inlined.set("where", exp.Where(this=combined))
+    elif sub_where:
+        inlined.set("where", sub_where.copy())
+
+    new_expressions = []
+    for expr in inlined.expressions:
+        if isinstance(expr, exp.Column):
+            table_name = get_table_name_from_column(expr)
+            col_name = expr.this.sql(dialect="duckdb").lower()
+            use_mapping = (
+                table_name
+                and subquery_alias
+                and table_name.lower() == subquery_alias.lower()
+            ) or (not table_name and col_name in mapping)
+            if use_mapping:
+                mapped = mapping.get(col_name)
+                if mapped:
+                    mapped_sql = mapped.sql(dialect="duckdb")
+                    mapped_expr = sqlglot.parse_one(mapped_sql, read="duckdb")
+                    new_expressions.append(
+                        exp.Alias(
+                            this=mapped_expr,
+                            alias=exp.to_identifier(expr.this.sql(dialect="duckdb")),
+                        )
+                    )
+                    continue
+        new_expressions.append(replace_expr(expr))
+    inlined.set("expressions", new_expressions)
+
+    group_expr = inlined.args.get("group")
+    if group_expr:
+        new_group = [replace_expr(expr) for expr in group_expr.expressions]
+        inlined.set("group", exp.Group(expressions=new_group))
+
+    having_expr = inlined.args.get("having")
+    if having_expr:
+        inlined.set("having", exp.Having(this=replace_expr(having_expr.this)))
+
+    updated_group_by = [replace_expr(expr) for expr in group_by_exprs]
+
+    return inlined, updated_group_by, sub_select
+
+
 def _is_policy_source_column(column: exp.Column, policy_source: str) -> bool:
     """Check if a column belongs to the policy source table."""
     table_name = get_table_name_from_column(column)
@@ -1285,21 +1555,20 @@ def rewrite_query_with_cte(
 
             return re.sub(r"\s+", " ", query).strip()
 
-        def _has_in_subquery(parsed_query: exp.Select) -> bool:
-            for node in parsed_query.find_all(exp.In):
-                query_expr = node.args.get("query")
-                if isinstance(query_expr, (exp.Subquery, exp.Select)):
-                    return True
-            return False
-
-        rescan_raw = policy_source_in_from and not subquery_in_from
-        use_raw_rescan = not _has_in_subquery(parsed)
-        move_order_limit_to_outer = bool(limit_clause) and use_raw_rescan
         preserve_order_limit = bool(limit_clause)
 
+        agg_alias_map: dict[str, str] = {}
         base_parsed = sqlglot.parse_one(query, read="duckdb")
+        inlined_subquery_select: exp.Select | None = None
+        if subquery_in_from and not subquery_has_group:
+            base_parsed, group_by_exprs, inlined_subquery_select = _inline_from_subquery(
+                base_parsed, group_by_exprs
+            )
+            subquery_in_from = False
+        group_by_aliases: list[str] = []
         if isinstance(base_parsed, exp.Select):
             agg_alias_map = _ensure_agg_aliases(base_parsed)
+            group_by_aliases = _ensure_group_by_aliases(base_parsed, group_by_exprs)
         if not preserve_order_limit:
             base_parsed.set("order", None)
             base_parsed.set("limit", None)
@@ -1312,184 +1581,118 @@ def rewrite_query_with_cte(
         ):
             _thread_lineage_columns(base_parsed, policy_source, sorted(policy_columns))
 
+        if (
+            from_expr
+            and hasattr(from_expr, "this")
+            and isinstance(from_expr.this, exp.Subquery)
+            and policy_columns
+        ):
+            parsed_for_from = parsed.copy()
+            _thread_lineage_columns(parsed_for_from, policy_source, sorted(policy_columns))
+            from_expr_outer = parsed_for_from.args.get("from_")
+            if from_expr_outer:
+                from_clause = from_expr_outer.sql(dialect="duckdb")
+        if inlined_subquery_select is not None:
+            inline_from = inlined_subquery_select.args.get("from_")
+            if inline_from:
+                from_clause = inline_from.sql(dialect="duckdb")
+            inline_joins = inlined_subquery_select.args.get("joins", [])
+            if inline_joins:
+                joins_clause = " " + " ".join(join.sql(dialect="duckdb") for join in inline_joins)
+            inline_where = inlined_subquery_select.args.get("where")
+            if inline_where:
+                where_expression = inline_where.this if hasattr(inline_where, "this") else inline_where
+                where_condition = where_expression.sql(dialect="duckdb")
+
         cte_query = base_parsed.sql(dialect="duckdb")
         outer_select_list = _build_outer_select_for_agg(
             parsed,
-            use_max_for_agg=rescan_raw or use_raw_rescan,
+            use_max_for_agg=True,
             agg_alias_map=agg_alias_map,
         )
 
-        rescan_group_cols = group_by_policy_cols or group_by_cols
-        rescan_select_parts = list(rescan_group_cols)
-        policy_aliases: list[str] = []
-        if use_raw_rescan:
-            for col_name in sorted(policy_columns):
-                if subquery_in_from:
-                    rescan_select_parts.append(col_name)
-                else:
-                    rescan_select_parts.append(f"{policy_source}.{col_name}")
-        else:
-            if policy_agg_nodes:
-                for idx, agg in enumerate(policy_agg_nodes, start=1):
-                    alias = f"policy_{idx}"
-                    policy_aliases.append(alias)
-                    if subquery_in_from:
-                        agg_expr = _strip_table_qualifiers(agg).sql(dialect="duckdb")
-                    else:
-                        agg_expr = _qualify_expression(agg, policy_source).sql(dialect="duckdb")
-                    rescan_select_parts.append(f"{agg_expr} AS {alias}")
-            else:
-                for idx, col_name in enumerate(sorted(policy_columns), start=1):
-                    alias = f"policy_{idx}"
-                    policy_aliases.append(alias)
-                    rescan_select_parts.append(f"MAX({policy_source}.{col_name}) AS {alias}")
-
-        rescan_parts = [f"SELECT {', '.join(rescan_select_parts)}"]
-        group_by_needs_joins = False
-        for expr in group_by_exprs:
-            for col in expr.find_all(exp.Column):
-                if not _is_policy_source_column(col, policy_source):
-                    group_by_needs_joins = True
-                    break
-            if group_by_needs_joins:
-                break
-        where_needs_joins = False
+        select_col_tables = _collect_select_column_tables(base_parsed)
+        default_table = _get_default_from_table(from_expr, joins_clause)
+        qualified_where_condition = where_condition
         if where_expression is not None:
-            for col in where_expression.find_all(exp.Column):
-                if not _is_policy_source_column(col, policy_source):
-                    where_needs_joins = True
-                    break
-
-        rescan_from_clause = from_clause
-        rescan_joins_clause = joins_clause
-        rescan_where_expr = where_expression
-        rescan_parsed = None
-        rescan_needs_joins = group_by_needs_joins or where_needs_joins
-        if rescan_needs_joins and subquery_in_from:
-            rescan_parsed = sqlglot.parse_one(query, read="duckdb")
-            if isinstance(rescan_parsed, exp.Select):
-                if policy_columns:
-                    _thread_lineage_columns(rescan_parsed, policy_source, sorted(policy_columns))
-                rescan_from_clause = rescan_parsed.args.get("from_").sql(dialect="duckdb")
-                rescan_joins = rescan_parsed.args.get("joins", [])
-                if rescan_joins:
-                    rescan_joins_clause = " " + " ".join(
-                        join.sql(dialect="duckdb") for join in rescan_joins
-                    )
-                else:
-                    rescan_joins_clause = ""
-
-        if rescan_needs_joins:
-            required_tables = {policy_source.lower()}
-            required_all = bool(subquery_in_from)
-            for expr in group_by_exprs:
-                for col in expr.find_all(exp.Column):
-                    table_hint = _get_column_table_hint(col, policy_source)
-                    if table_hint is None:
-                        required_all = True
-                        break
-                    required_tables.add(table_hint)
-                if required_all:
-                    break
-
-            filtered_where = rescan_where_expr
-            if filtered_where is not None:
-                for col in filtered_where.find_all(exp.Column):
-                    table_hint = _get_column_table_hint(col, policy_source)
-                    if table_hint is None:
-                        required_all = True
-                        break
-                    required_tables.add(table_hint)
-
-            rescan_tables = []
-            rescan_from_expr = from_expr_check
-            rescan_joins_list = list(parsed.args.get("joins", []))
-            if subquery_in_from and rescan_parsed:
-                rescan_from_expr = rescan_parsed.args.get("from_")
-                rescan_joins_list = list(rescan_parsed.args.get("joins", []))
-
-            if not required_all:
-                ordered_tables = []
-                if rescan_from_expr:
-                    ordered_tables.extend(list(rescan_from_expr.find_all(exp.Table)))
-                for join in rescan_joins_list:
-                    ordered_tables.extend(list(join.find_all(exp.Table)))
-                for table in ordered_tables:
-                    if not hasattr(table, "name") or not table.name:
-                        continue
-                    table_name = table.name.lower()
-                    if table_name in required_tables and table_name not in rescan_tables:
-                        rescan_tables.append(table_name)
-
-            if not rescan_tables or required_all:
-                if rescan_from_clause:
-                    rescan_parts.append(rescan_from_clause)
-                if rescan_joins_clause:
-                    rescan_parts.append(rescan_joins_clause.strip())
-            else:
-                rescan_parts.append(f"FROM {', '.join(rescan_tables)}")
-
-            if filtered_where is not None:
-                rescan_parts.append(f"WHERE {filtered_where.sql(dialect='duckdb')}")
-        else:
-            rescan_parts.append(f"FROM {policy_source}")
-            if where_expression is not None:
-                rescan_parts.append(f"WHERE {where_expression.sql(dialect='duckdb')}")
-
-        if rescan_group_cols and not use_raw_rescan:
-            rescan_parts.append(f"GROUP BY {', '.join(rescan_group_cols)}")
-        rescan_query = " ".join(rescan_parts)
-
-        having_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
-        if use_raw_rescan:
-            def replace_policy_table(node):
-                if isinstance(node, exp.Column):
-                    table_name = get_table_name_from_column(node)
-                    if table_name and table_name.lower() == policy_source.lower():
-                        return exp.Column(
-                            this=node.this,
-                            table=exp.Identifier(this="rescan"),
-                        )
-                return node
-
-            having_expr = having_expr.transform(replace_policy_table, copy=True)
-        else:
-            alias_iter = iter(policy_aliases)
-            for agg in list(having_expr.find_all(exp.AggFunc)):
-                if not _should_use_policy_alias(agg, policy_source):
-                    continue
-                alias = next(alias_iter, None)
-                if not alias:
-                    break
-                replacement = exp.Max(
-                    this=exp.Column(
-                        this=exp.Identifier(this=alias),
-                        table=exp.Identifier(this="rescan"),
-                    )
-                )
-                agg.replace(replacement)
-        having_constraint = having_expr.sql(dialect="duckdb")
-
-        if group_by_cols:
-            join_cols = rescan_group_cols or group_by_cols
-            join_condition = " AND ".join(
-                [f"base_query.{col} = rescan.{col}" for col in join_cols]
+            qualified_where_expr = _qualify_expression_columns(
+                where_expression,
+                select_col_tables=select_col_tables,
+                default_table=default_table,
+                policy_source=policy_source,
             )
-        else:
-            join_condition = "1=1"
+            qualified_where_condition = qualified_where_expr.sql(dialect="duckdb")
+
+        qualified_joins_clause = joins_clause
+        join_sources = parsed.args.get("joins")
+        if inlined_subquery_select is not None:
+            join_sources = inlined_subquery_select.args.get("joins")
+        if join_sources:
+            joins = []
+            for join in join_sources:
+                join_copy = join.copy()
+                on_expr = join_copy.args.get("on")
+                if on_expr is not None:
+                    qualified_on = _qualify_expression_columns(
+                        on_expr.this if hasattr(on_expr, "this") else on_expr,
+                        select_col_tables=select_col_tables,
+                        default_table=default_table,
+                        policy_source=policy_source,
+                    )
+                    join_copy.set("on", exp.On(this=qualified_on))
+                joins.append(join_copy.sql(dialect="duckdb"))
+            if joins:
+                qualified_joins_clause = " " + " ".join(joins)
+
+        outer_policy_constraint = policy_constraint
+        if subquery_in_from:
+            outer_policy_constraint = _rewrite_policy_constraint_for_outer(
+                policy_constraint,
+                policy_source=policy_source,
+                default_table=default_table,
+                select_col_tables=select_col_tables,
+            )
+
+        join_conditions = []
+        for alias, expr in zip(group_by_aliases, group_by_exprs):
+            qualified_expr = _qualify_group_by_expr(
+                expr,
+                select_col_tables=select_col_tables,
+                default_table=default_table,
+                policy_source=policy_source,
+            )
+            join_conditions.append(
+                f"base_query.{alias} = {qualified_expr.sql(dialect='duckdb')}"
+            )
+
+        outer_from = "FROM base_query"
+        if from_clause:
+            from_body = from_clause.strip()
+            if from_body.upper().startswith("FROM "):
+                from_body = from_body[5:]
+            outer_from += f", {from_body}"
+        if qualified_joins_clause:
+            outer_from += f" {qualified_joins_clause.strip()}"
+
+        where_parts = []
+        if qualified_where_condition:
+            where_parts.append(qualified_where_condition)
+        if join_conditions:
+            where_parts.append(" AND ".join(join_conditions))
 
         outer_parts = [
             f"SELECT {outer_select_list}",
-            "FROM base_query",
-            f"JOIN ({rescan_query}) AS rescan ON {join_condition}",
+            outer_from,
         ]
-        if group_by_cols:
-            outer_group_by = ", ".join([f"base_query.{col}" for col in group_by_cols])
+        if where_parts:
+            outer_parts.append(f"WHERE {' AND '.join(where_parts)}")
+        if group_by_aliases:
+            outer_group_by = ", ".join([f"base_query.{alias}" for alias in group_by_aliases])
             outer_parts.append(f"GROUP BY {outer_group_by}")
-        outer_parts.append(f"HAVING {having_constraint}")
+        outer_parts.append(f"HAVING {outer_policy_constraint}")
         outer_query = " ".join(outer_parts)
         rewritten = f"WITH base_query AS ({cte_query}) {outer_query}"
-        if order_by_columns and (not preserve_order_limit or move_order_limit_to_outer):
+        if order_by_columns and not preserve_order_limit:
             order_expr = parsed.args.get("order")
             if order_expr:
                 order_expr_copy = order_expr.copy()
@@ -1506,7 +1709,7 @@ def rewrite_query_with_cte(
                         col.set("table", exp.Identifier(this="base_query"))
                 order_by_clean = order_expr_copy.sql(dialect="duckdb").replace("ORDER BY ", "")
                 rewritten += f" ORDER BY {order_by_clean}"
-        if limit_clause and (not preserve_order_limit or move_order_limit_to_outer):
+        if limit_clause and not preserve_order_limit:
             rewritten += f" {limit_clause}"
     else:
         # For scans: CTE with policy columns, then filter with WHERE

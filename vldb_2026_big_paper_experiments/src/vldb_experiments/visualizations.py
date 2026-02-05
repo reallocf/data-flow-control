@@ -248,6 +248,8 @@ def create_all_charts(
     operator_template: str = "{query_type}_performance_policy{policy_count}.png",
     tpch_breakdown_template: str = "tpch_rewrite_exec_breakdown_sf{sf}.png",
     tpch_multi_db_template: str = "tpch_multi_db_sf{sf}.png",
+    tpch_avg_log_template: str = "tpch_average_times_log_sf{sf}.png",
+    tpch_breakdown_log_template: str = "tpch_rewrite_exec_breakdown_log_sf{sf}.png",
     suffix: str = "",
 ) -> None:
     """Create visualizations for all operators.
@@ -266,6 +268,8 @@ def create_all_charts(
     operator_template = _apply_suffix(operator_template, suffix)
     tpch_breakdown_template = _apply_suffix(tpch_breakdown_template, suffix)
     tpch_multi_db_template = _apply_suffix(tpch_multi_db_template, suffix)
+    tpch_avg_log_template = _apply_suffix(tpch_avg_log_template, suffix)
+    tpch_breakdown_log_template = _apply_suffix(tpch_breakdown_log_template, suffix)
 
     external_time_cols = [
         col
@@ -335,6 +339,7 @@ def create_all_charts(
                 output_dir,
                 avg_template=tpch_avg_template,
                 overhead_template=tpch_overhead_template,
+                avg_log_template=tpch_avg_log_template,
             )
             if {
                 "no_policy_exec_time_ms",
@@ -351,6 +356,14 @@ def create_all_charts(
                         output_dir,
                         output_filename=output_filename,
                         title_suffix=f"SF={sf}",
+                    )
+                    output_filename = tpch_breakdown_log_template.format(sf=sf)
+                    create_tpch_rewrite_exec_breakdown_chart(
+                        sf_df,
+                        output_dir,
+                        output_filename=output_filename,
+                        title_suffix=f"SF={sf}",
+                        log_scale=True,
                     )
         else:
             print("\nCreating TPC-H summary chart...")
@@ -375,6 +388,7 @@ def create_tpch_summary_chart(
     output_filename: str = "tpch_average_times.png",
     title_suffix: str = "",
     plot_mode: str = "average_time",
+    log_scale: bool = False,
 ) -> Optional[plt.Figure]:
     """Create a grouped bar chart for TPC-H results by query and approach."""
     if "query_num" not in df.columns:
@@ -434,6 +448,8 @@ def create_tpch_summary_chart(
             color=colors[2],
         )
         ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+        if log_scale:
+            ax.set_yscale("log")
         title = "TPC-H Average Execution Time by Query and Approach"
     else:
         colors = ["#ff7f0e", "#2ca02c"]
@@ -586,6 +602,7 @@ def create_tpch_summary_charts_by_sf(
     output_dir: str = "./results",
     avg_template: str = "tpch_average_times_sf{sf}.png",
     overhead_template: str = "tpch_percent_overhead_sf{sf}.png",
+    avg_log_template: str | None = None,
 ) -> None:
     """Create TPC-H summary charts separated by scale factor."""
     if "tpch_sf" not in df.columns:
@@ -604,6 +621,16 @@ def create_tpch_summary_charts_by_sf(
             title_suffix,
             plot_mode="average_time",
         )
+        if avg_log_template:
+            output_filename = avg_log_template.format(sf=sf)
+            create_tpch_summary_chart(
+                sf_df,
+                output_dir,
+                output_filename,
+                title_suffix,
+                plot_mode="average_time",
+                log_scale=True,
+            )
 
         output_filename = overhead_template.format(sf=sf)
         create_tpch_summary_chart(
@@ -620,6 +647,7 @@ def create_tpch_rewrite_exec_breakdown_chart(
     output_dir: str = "./results",
     output_filename: str = "tpch_rewrite_exec_breakdown_sf{sf}.png",
     title_suffix: str = "",
+    log_scale: bool = False,
 ) -> Optional[plt.Figure]:
     """Create a stacked bar chart for TPC-H rewrite vs exec breakdown."""
     required_cols = {
@@ -705,6 +733,8 @@ def create_tpch_rewrite_exec_breakdown_chart(
     ax.set_xticklabels([f"Q{q:02d}" for q in query_nums], fontsize=9)
     ax.set_xlabel("TPC-H Query", fontsize=12)
     ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+    if log_scale:
+        ax.set_yscale("log")
 
     title = "TPC-H Rewrite vs Execution Breakdown"
     if title_suffix:
@@ -822,9 +852,19 @@ def main():
         help="Filename template for TPC-H overhead charts (use {sf}).",
     )
     parser.add_argument(
+        "--tpch-avg-log-template",
+        default="tpch_average_times_log_sf{sf}.png",
+        help="Filename template for log-scale TPC-H average time charts (use {sf}).",
+    )
+    parser.add_argument(
         "--tpch-breakdown-template",
         default="tpch_rewrite_exec_breakdown_sf{sf}.png",
         help="Filename template for TPC-H breakdown charts (use {sf}).",
+    )
+    parser.add_argument(
+        "--tpch-breakdown-log-template",
+        default="tpch_rewrite_exec_breakdown_log_sf{sf}.png",
+        help="Filename template for log-scale TPC-H breakdown charts (use {sf}).",
     )
     parser.add_argument(
         "--tpch-multi-db-template",
@@ -854,6 +894,8 @@ def main():
         operator_template=args.operator_template,
         tpch_breakdown_template=args.tpch_breakdown_template,
         tpch_multi_db_template=args.tpch_multi_db_template,
+        tpch_avg_log_template=args.tpch_avg_log_template,
+        tpch_breakdown_log_template=args.tpch_breakdown_log_template,
         suffix=args.suffix,
     )
 
