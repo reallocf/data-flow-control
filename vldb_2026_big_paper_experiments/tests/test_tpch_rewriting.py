@@ -28,7 +28,7 @@ from vldb_experiments.strategies.tpch_strategy import load_tpch_query
 
 # Policies used in test_tpch.py
 lineitem_policy = DFCPolicy(
-    source="lineitem",
+    sources=["lineitem"],
     constraint="avg(lineitem.l_quantity) >= 30",
     on_fail=Resolution.REMOVE,
 )

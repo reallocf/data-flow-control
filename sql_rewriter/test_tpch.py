@@ -23,7 +23,7 @@ from sqlglot import parse_one
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
 lineitem_policy = DFCPolicy(
-    source="lineitem",
+    sources=["lineitem"],
     constraint="max(lineitem.l_quantity) >= 1",
     on_fail=Resolution.REMOVE,
 )

@@ -237,9 +237,9 @@ Upload CSVs for:
 
 Define data flow control policies using:
 
-    SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>
+    SOURCES <source1,source2,...> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>
 
-Whitespace is flexible. All registered policies are viewable in the UI.
+Whitespace is flexible. Use an empty list (`SOURCES []`) when no source is defined. All registered policies are viewable in the UI.
 
 ### Propose Taxes
 

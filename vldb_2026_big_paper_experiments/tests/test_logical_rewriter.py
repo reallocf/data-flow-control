@@ -122,7 +122,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with min() aggregation constraint."""
         query = "SELECT * FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="min(test_data.value) > 10",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 10"
@@ -142,7 +142,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with avg() aggregation constraint."""
         query = "SELECT category, AVG(amount) FROM test_data GROUP BY category"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter groups where max(value) <= 100"
@@ -162,7 +162,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with < comparison operator."""
         query = "SELECT * FROM test_data"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) < 500",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value >= 500"
@@ -182,7 +182,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with >= comparison operator."""
         query = "SELECT * FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) >= 200",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value < 200"
@@ -202,7 +202,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with policy on amount column instead of value."""
         query = "SELECT * FROM test_data"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
             description="Filter rows where amount <= 5000"
@@ -222,7 +222,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with KILL resolution (should still work for logical rewriter)."""
         query = "SELECT * FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.KILL,
             description="Kill query if value <= 100"
@@ -244,7 +244,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with INVALIDATE resolution."""
         query = "SELECT * FROM test_data"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.INVALIDATE,
             description="Invalidate rows where value <= 100"
@@ -264,7 +264,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with complex WHERE clause."""
         query = "SELECT * FROM test_data WHERE value > 50 AND category = 'A'"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 100"
@@ -284,7 +284,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting with SELECT of specific columns."""
         query = "SELECT id, value, category FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 100"
@@ -304,7 +304,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting aggregation query with different threshold."""
         query = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 50",
             on_fail=Resolution.REMOVE,
             description="Filter groups where max(value) <= 50"
@@ -329,7 +329,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             "JOIN test_data AS other ON test_data.id = other.id"
         )
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
             description="Filter rows where amount <= 5000"
@@ -349,7 +349,7 @@ class TestLogicalRewriterWithDifferentPolicies:
         """Test rewriting query with ORDER BY and LIMIT."""
         query = "SELECT * FROM test_data ORDER BY value DESC LIMIT 10"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 100"
@@ -374,7 +374,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             "GROUP BY category"
         )
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter groups where max(value) <= 100"

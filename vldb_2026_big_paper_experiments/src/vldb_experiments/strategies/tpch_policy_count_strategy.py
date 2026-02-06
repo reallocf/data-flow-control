@@ -34,7 +34,7 @@ def build_tpch_q01_policies(num_policies: int) -> list[DFCPolicy]:
         constraint = template.format(i=i, i_plus=i + 1)
         policies.append(
             DFCPolicy(
-                source="lineitem",
+                sources=["lineitem"],
                 constraint=constraint,
                 on_fail=Resolution.REMOVE,
                 description=f"q01_policy_{i + 1}",
@@ -138,7 +138,7 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
             existing_policies = self.dfc_rewriter.get_dfc_policies()
             for old_policy in existing_policies:
                 self.dfc_rewriter.delete_policy(
-                    source=old_policy.source,
+                    sources=old_policy.sources,
                     constraint=old_policy.constraint,
                     on_fail=old_policy.on_fail,
                 )

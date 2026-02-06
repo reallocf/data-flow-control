@@ -40,7 +40,7 @@ TPCH_QUERIES = [1, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 18, 19]
 
 # Policies used in test_tpch.py
 lineitem_policy = DFCPolicy(
-    source="lineitem",
+    sources=["lineitem"],
     constraint="max(lineitem.l_quantity) >= 1",
     on_fail=Resolution.REMOVE,
 )
@@ -150,7 +150,7 @@ class TPCHStrategy(ExperimentStrategy):
             existing_policies = self.dfc_rewriter.get_dfc_policies()
             for old_policy in existing_policies:
                 self.dfc_rewriter.delete_policy(
-                    source=old_policy.source,
+                    sources=old_policy.sources,
                     constraint=old_policy.constraint,
                     on_fail=old_policy.on_fail
                 )

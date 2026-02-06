@@ -93,7 +93,7 @@ def rewrite_query_logical_multi(query: str, policies: list[DFCPolicy]) -> str:
     if not policies:
         return query
 
-    sources = {policy.source for policy in policies}
+    sources = {tuple(policy.sources) for policy in policies}
     sinks = {policy.sink for policy in policies}
     resolutions = {policy.on_fail for policy in policies}
 
@@ -102,7 +102,7 @@ def rewrite_query_logical_multi(query: str, policies: list[DFCPolicy]) -> str:
             [policy.constraint for policy in policies]
         )
         combined_policy = DFCPolicy(
-            source=policies[0].source,
+            sources=policies[0].sources,
             sink=policies[0].sink,
             constraint=combined_constraint,
             on_fail=policies[0].on_fail,

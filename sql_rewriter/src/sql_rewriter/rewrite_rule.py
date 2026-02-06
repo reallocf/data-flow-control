@@ -510,11 +510,10 @@ def apply_policy_constraints_to_aggregation(
     table_mapping = _get_source_table_to_alias_mapping(parsed, source_tables)
 
     for policy in policies:
-        # Check if policy requires source but source is not present
-        # If policy has both source and sink, source must be present in the query
-        policy_source = policy.source.lower() if policy.source else None
-        if policy_source and sink_table and policy_source not in source_tables:
-            # Policy requires source but source is not present - constraint fails
+        # Check if policy requires sources but sources are not present
+        policy_sources = policy._sources_lower
+        if policy_sources and not policy_sources.issubset(source_tables):
+            # Policy requires sources but they are not present - constraint fails
             constraint_expr = exp.Literal(this="false", is_string=False)
         else:
             constraint_expr = sqlglot.parse_one(policy.constraint, read="duckdb")
@@ -532,10 +531,10 @@ def apply_policy_constraints_to_aggregation(
 
             # Replace aggregations from EXISTS-rewritten JOINs with subquery column references
             constraint_expr = _replace_aggregations_from_join_subqueries(
-                parsed, constraint_expr, policy_source
+                parsed, constraint_expr, policy_sources
             )
             constraint_expr = _replace_aggregations_from_from_subqueries(
-                parsed, constraint_expr, policy_source
+                parsed, constraint_expr, policy_sources
             )
 
             ensure_columns_accessible(parsed, constraint_expr, source_tables)
@@ -1059,7 +1058,7 @@ def _replace_table_references_in_constraint(
 def _replace_aggregations_from_join_subqueries(
     parsed: exp.Select,
     constraint_expr: exp.Expression,
-    policy_source: Optional[str]
+    policy_sources: set[str]
 ) -> exp.Expression:
     """Replace aggregations in constraints that reference tables only in JOIN subqueries.
 
@@ -1070,12 +1069,12 @@ def _replace_aggregations_from_join_subqueries(
     Args:
         parsed: The parsed SELECT statement.
         constraint_expr: The constraint expression to modify.
-        policy_source: The policy source table name (lowercase), or None.
+        policy_sources: Set of policy source table names (lowercase).
 
     Returns:
         A new constraint expression with aggregations replaced by subquery column references.
     """
-    if not policy_source:
+    if not policy_sources:
         return constraint_expr
 
     # Find JOINs that were created from EXISTS rewrites
@@ -1085,16 +1084,15 @@ def _replace_aggregations_from_join_subqueries(
 
     def replace_agg(node):
         if isinstance(node, exp.AggFunc):
-            # Check if this aggregation references the policy source table
+            # Check if this aggregation references any policy source table
             agg_columns = list(node.find_all(exp.Column))
-            references_policy_table = False
+            referenced_sources = set()
             for col in agg_columns:
                 col_table = get_table_name_from_column(col)
-                if col_table and col_table.lower() == policy_source:
-                    references_policy_table = True
-                    break
+                if col_table and col_table.lower() in policy_sources:
+                    referenced_sources.add(col_table.lower())
 
-            if references_policy_table:
+            if referenced_sources:
                 # Find the JOIN subquery that has this aggregation
                 agg_sql = node.sql()
                 for join in joins:
@@ -1105,17 +1103,20 @@ def _replace_aggregations_from_join_subqueries(
                             policy_table = subquery_node.meta.get("policy_table")
 
                             # Check if this aggregation matches one we computed in the subquery
-                            key = (policy_table, agg_sql)
-                            if key in aggregation_aliases:
-                                subquery_alias_name, agg_alias_name = aggregation_aliases[key]
-                                # Replace aggregation with column reference to subquery alias
-                                # DuckDB requires wrapping in an aggregate function in HAVING, even if already aggregated
-                                subquery_col = exp.Column(
-                                    this=exp.Identifier(this=agg_alias_name),
-                                    table=exp.Identifier(this=subquery_alias_name)
-                                )
-                                # Wrap in MAX() to satisfy DuckDB's HAVING clause requirements
-                                return exp.Max(this=subquery_col)
+                            for source_table in referenced_sources:
+                                key = (policy_table, agg_sql)
+                                if policy_table != source_table:
+                                    continue
+                                if key in aggregation_aliases:
+                                    subquery_alias_name, agg_alias_name = aggregation_aliases[key]
+                                    # Replace aggregation with column reference to subquery alias
+                                    # DuckDB requires wrapping in an aggregate function in HAVING, even if already aggregated
+                                    subquery_col = exp.Column(
+                                        this=exp.Identifier(this=agg_alias_name),
+                                        table=exp.Identifier(this=subquery_alias_name)
+                                    )
+                                    # Wrap in MAX() to satisfy DuckDB's HAVING clause requirements
+                                    return exp.Max(this=subquery_col)
         return node
 
     # Transform the expression, replacing aggregations with subquery column references
@@ -1125,7 +1126,7 @@ def _replace_aggregations_from_join_subqueries(
 def _replace_aggregations_from_from_subqueries(
     parsed: exp.Select,
     constraint_expr: exp.Expression,
-    policy_source: Optional[str]
+    policy_sources: set[str]
 ) -> exp.Expression:
     """Replace aggregations in constraints that reference source tables in FROM subqueries.
 
@@ -1133,7 +1134,7 @@ def _replace_aggregations_from_from_subqueries(
     we add the aggregate inside the subquery and reference it here. To keep HAVING valid,
     we wrap the subquery column in MAX().
     """
-    if not policy_source:
+    if not policy_sources:
         return constraint_expr
 
     subqueries = _get_subqueries_in_from(parsed)
@@ -1188,63 +1189,66 @@ def ensure_subqueries_have_constraint_columns(
             if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                 subquery_tables.add(table.name.lower())
 
-        # Check if this subquery references any source tables
-        referenced_source_tables = subquery_tables & source_tables
-        if not referenced_source_tables:
+        if not subquery_tables:
             continue
 
         subquery_has_group = bool(subquery.this.args.get("group"))
 
-        # For each source table referenced in the subquery, check each policy
-        for source_table in referenced_source_tables:
-            for policy in policies:
-                if policy.source and policy.source.lower() == source_table:
-                    policy_id = get_policy_identifier(policy)
-                    agg_column_names = set()
-                    if subquery_has_group:
-                        source_aggregates = _extract_source_aggregates_from_constraint(
-                            policy._constraint_parsed, policy.source
-                        )
-                        if source_aggregates:
-                            agg_aliases = subquery.meta.get("policy_agg_aliases", {})
-                            for idx, agg_expr in enumerate(source_aggregates, start=1):
-                                temp_col_name = f"_{policy_id}_agg{idx}"
-                                _add_temp_column_to_select(subquery.this, agg_expr, temp_col_name, source_tables)
-                                alias = subquery.args.get("alias")
-                                if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
-                                    alias_columns = alias.args.get("columns")
-                                    if all(
-                                        not (
-                                            isinstance(col, exp.Identifier)
-                                            and col.name.lower() == temp_col_name.lower()
-                                        )
-                                        for col in alias_columns
-                                    ):
-                                        alias_columns.append(
-                                            exp.Identifier(this=temp_col_name, quoted=False)
-                                        )
-                                agg_sql = agg_expr.sql(dialect="duckdb")
-                                mapped_agg = _replace_table_references_in_constraint(
-                                    agg_expr,
-                                    {source_table: subquery_alias},
-                                ).sql(dialect="duckdb")
-                                agg_aliases[agg_sql] = (subquery_alias, temp_col_name)
-                                agg_aliases[mapped_agg] = (subquery_alias, temp_col_name)
-                                for col in agg_expr.find_all(exp.Column):
-                                    col_table = get_table_name_from_column(col)
-                                    if col_table and col_table.lower() == source_table:
-                                        agg_column_names.add(get_column_name(col).lower())
-                            subquery.meta["policy_agg_aliases"] = agg_aliases
-                            subquery.meta["policy_table"] = source_table
+        # For each policy, walk sources in policy order for deterministic column insertion
+        for policy in policies:
+            for source_table in policy.sources:
+                source_table_lower = source_table.lower()
+                if source_table_lower not in subquery_tables:
+                    continue
 
-                    # Use pre-calculated columns needed from the policy
-                    needed_columns = policy._source_columns_needed
+                policy_id = get_policy_identifier(policy)
+                agg_column_names = set()
+                if subquery_has_group:
+                    source_aggregates = _extract_source_aggregates_from_constraint(
+                        policy._constraint_parsed, source_table
+                    )
+                    if source_aggregates:
+                        agg_aliases = subquery.meta.get("policy_agg_aliases", {})
+                        next_idx = len(agg_aliases) + 1
+                        for agg_expr in source_aggregates:
+                            temp_col_name = f"_{policy_id}_agg{next_idx}"
+                            next_idx += 1
+                            _add_temp_column_to_select(subquery.this, agg_expr, temp_col_name, source_tables)
+                            alias = subquery.args.get("alias")
+                            if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
+                                alias_columns = alias.args.get("columns")
+                                if all(
+                                    not (
+                                        isinstance(col, exp.Identifier)
+                                        and col.name.lower() == temp_col_name.lower()
+                                    )
+                                    for col in alias_columns
+                                ):
+                                    alias_columns.append(
+                                        exp.Identifier(this=temp_col_name, quoted=False)
+                                    )
+                            agg_sql = agg_expr.sql(dialect="duckdb")
+                            mapped_agg = _replace_table_references_in_constraint(
+                                agg_expr,
+                                {source_table: subquery_alias},
+                            ).sql(dialect="duckdb")
+                            agg_aliases[agg_sql] = (subquery_alias, temp_col_name)
+                            agg_aliases[mapped_agg] = (subquery_alias, temp_col_name)
+                            for col in agg_expr.find_all(exp.Column):
+                                col_table = get_table_name_from_column(col)
+                                if col_table and col_table.lower() == source_table_lower:
+                                    agg_column_names.add(get_column_name(col).lower())
+                        subquery.meta["policy_agg_aliases"] = agg_aliases
+                        subquery.meta["policy_table"] = source_table_lower
 
-                    # Add missing columns to the subquery's SELECT list
-                    for col_name in needed_columns:
-                        if subquery_has_group and col_name in agg_column_names:
-                            continue
-                        _add_column_to_subquery(subquery, source_table, col_name)
+                # Use pre-calculated columns needed from the policy for this source table
+                needed_columns = policy._source_columns_needed.get(source_table_lower, set())
+
+                # Add missing columns to the subquery's SELECT list
+                for col_name in needed_columns:
+                    if subquery_has_group and col_name in agg_column_names:
+                        continue
+                    _add_column_to_subquery(subquery, source_table_lower, col_name)
 
     # Find all CTEs
     ctes = _get_ctes(parsed)
@@ -1263,21 +1267,21 @@ def ensure_subqueries_have_constraint_columns(
             if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
                 cte_tables.add(table.name.lower())
 
-        # Check if this CTE references any source tables
-        referenced_source_tables = cte_tables & source_tables
-        if not referenced_source_tables:
+        if not cte_tables:
             continue
 
-        # For each source table referenced in the CTE, check each policy
-        for source_table in referenced_source_tables:
-            for policy in policies:
-                if policy.source and policy.source.lower() == source_table:
-                    # Use pre-calculated columns needed from the policy
-                    needed_columns = policy._source_columns_needed
+        # For each policy, walk sources in policy order for deterministic column insertion
+        for policy in policies:
+            for source_table in policy.sources:
+                source_table_lower = source_table.lower()
+                if source_table_lower not in cte_tables:
+                    continue
+                # Use pre-calculated columns needed from the policy for this source table
+                needed_columns = policy._source_columns_needed.get(source_table_lower, set())
 
-                    # Add missing columns to the CTE's SELECT list
-                    for col_name in needed_columns:
-                        _add_column_to_cte(cte, source_table, col_name)
+                # Add missing columns to the CTE's SELECT list
+                for col_name in needed_columns:
+                    _add_column_to_cte(cte, source_table_lower, col_name)
 
 
 def wrap_query_with_limit_in_cte_for_remove_policy(
@@ -1523,11 +1527,10 @@ def apply_policy_constraints_to_scan(
     table_mapping = _get_source_table_to_alias_mapping(parsed, source_tables)
 
     for policy in policies:
-        # Check if policy requires source but source is not present
-        # If policy has both source and sink, source must be present in the query
-        policy_source = policy.source.lower() if policy.source else None
-        if policy_source and sink_table and policy_source not in source_tables:
-            # Policy requires source but source is not present - constraint fails
+        # Check if policy requires sources but sources are not present
+        policy_sources = policy._sources_lower
+        if policy_sources and not policy_sources.issubset(source_tables):
+            # Policy requires sources but they are not present - constraint fails
             constraint_expr = exp.Literal(this="false", is_string=False)
         else:
             constraint_expr = transform_aggregations_to_columns(
@@ -1547,7 +1550,7 @@ def apply_policy_constraints_to_scan(
 
             # Replace aggregations from EXISTS-rewritten JOINs with subquery column references
             constraint_expr = _replace_aggregations_from_join_subqueries(
-                parsed, constraint_expr, policy_source
+                parsed, constraint_expr, policy_sources
             )
 
         if policy.on_fail == Resolution.KILL:
@@ -1667,7 +1670,8 @@ def get_policy_identifier(policy: AggregateDFCPolicy) -> str:
     """
     # Use a hash of the constraint and source/sink to create a unique identifier
     import hashlib
-    policy_str = f"{policy.source or ''}_{policy.sink or ''}_{policy.constraint}"
+    sources_part = ",".join(policy.sources) if policy.sources else ""
+    policy_str = f"{sources_part}_{policy.sink or ''}_{policy.constraint}"
     hash_obj = hashlib.md5(policy_str.encode())
     return f"policy_{hash_obj.hexdigest()[:8]}"
 
@@ -2055,15 +2059,18 @@ def apply_aggregate_policy_constraints_to_aggregation(
         temp_col_counter = 1
 
         # Extract and add source aggregates
-        if policy.source and policy.source.lower() in source_tables:
-            source_aggregates = _extract_source_aggregates_from_constraint(
-                policy._constraint_parsed, policy.source
-            )
+        if policy.sources:
+            for source in policy.sources:
+                if source.lower() not in source_tables:
+                    continue
+                source_aggregates = _extract_source_aggregates_from_constraint(
+                    policy._constraint_parsed, source
+                )
 
-            for agg_expr in source_aggregates:
-                temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
-                _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
-                temp_col_counter += 1
+                for agg_expr in source_aggregates:
+                    temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                    _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
+                    temp_col_counter += 1
 
         # Extract and add sink expressions
         if policy.sink and sink_table and policy.sink.lower() == sink_table.lower():
@@ -2170,14 +2177,19 @@ def rewrite_exists_subqueries_as_joins(
         needs_rewrite = False
         policy_table = None
         for policy in policies:
-            if policy.source:
-                policy_source = policy.source.lower()
-                logger.debug(f"Checking policy with source: {policy_source}, in subquery_tables: {policy_source in subquery_tables}, in main_from_tables: {policy_source in main_from_tables}")
-                if policy_source in subquery_tables and policy_source not in main_from_tables:
-                    needs_rewrite = True
-                    policy_table = policy_source
-                    logger.debug(f"Found policy that needs rewrite: {policy_table}")
-                    break
+            if policy.sources:
+                for policy_source in policy._sources_lower:
+                    logger.debug(
+                        f"Checking policy with source: {policy_source}, in subquery_tables: {policy_source in subquery_tables}, "
+                        f"in main_from_tables: {policy_source in main_from_tables}"
+                    )
+                    if policy_source in subquery_tables and policy_source not in main_from_tables:
+                        needs_rewrite = True
+                        policy_table = policy_source
+                        logger.debug(f"Found policy that needs rewrite: {policy_table}")
+                        break
+            if needs_rewrite:
+                break
 
         if not needs_rewrite:
             logger.debug("No policy found that requires rewrite, skipping this EXISTS")
@@ -2366,7 +2378,7 @@ def rewrite_exists_subqueries_as_joins(
         subquery_alias_name = "exists_subquery"  # Will be used when creating the JOIN
 
         for policy in policies:
-            if policy.source and policy.source.lower() == policy_table:
+            if policy.sources and policy_table in policy._sources_lower:
                 # Parse the constraint to find aggregations
                 constraint_expr = policy._constraint_parsed
                 # Find all aggregations that reference the policy table
@@ -2575,12 +2587,18 @@ def rewrite_in_subqueries_as_joins(
         if not subquery_tables:
             continue
 
-        policy = next(
-            (p for p in policies if p.source and p.source.lower() in subquery_tables),
+        policy_match = next(
+            (
+                (p, source)
+                for p in policies
+                for source in p._sources_lower
+                if source in subquery_tables
+            ),
             None,
         )
-        if not policy or not policy.source:
+        if not policy_match:
             continue
+        policy, matched_source = policy_match
 
         if not subquery_select.expressions:
             continue
@@ -2673,14 +2691,14 @@ def rewrite_in_subqueries_as_joins(
             parsed.set("where", None)
 
         if parsed.args.get("where"):
-            def qualify_join_key(node, join_key_name=join_key_name, policy=policy):
+            def qualify_join_key(node, join_key_name=join_key_name, matched_source=matched_source):
                 if isinstance(node, exp.Column):
                     table_name = get_table_name_from_column(node)
                     col_name = get_column_name(node)
                     if not table_name and col_name == join_key_name:
                         return exp.Column(
                             this=node.this,
-                            table=exp.Identifier(this=policy.source),
+                            table=exp.Identifier(this=matched_source),
                         )
                 return node
 
@@ -2865,15 +2883,18 @@ def apply_aggregate_policy_constraints_to_scan(
         temp_col_counter = 1
 
         # Extract and add source aggregates (still need inner aggregation in scan queries)
-        if policy.source and policy.source.lower() in source_tables:
-            source_aggregates = _extract_source_aggregates_from_constraint(
-                policy._constraint_parsed, policy.source
-            )
+        if policy.sources:
+            for source in policy.sources:
+                if source.lower() not in source_tables:
+                    continue
+                source_aggregates = _extract_source_aggregates_from_constraint(
+                    policy._constraint_parsed, source
+                )
 
-            for agg_expr in source_aggregates:
-                temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
-                _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
-                temp_col_counter += 1
+                for agg_expr in source_aggregates:
+                    temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                    _add_temp_column_to_select(parsed, agg_expr, temp_col_name, source_tables)
+                    temp_col_counter += 1
 
         # Extract and add sink expressions
         if policy.sink and sink_table and policy.sink.lower() == sink_table.lower():

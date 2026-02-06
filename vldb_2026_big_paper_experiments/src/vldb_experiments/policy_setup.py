@@ -6,7 +6,7 @@ from sql_rewriter import DFCPolicy, Resolution
 def create_test_policy(threshold: int = 100) -> DFCPolicy:
     """Create a single source-only DFC policy for testing.
 
-    Policy: SOURCE test_data CONSTRAINT max(test_data.value) > threshold ON FAIL REMOVE
+    Policy: SOURCES test_data CONSTRAINT max(test_data.value) > threshold ON FAIL REMOVE
 
     This policy will filter rows where value <= threshold when applied to queries.
     The constraint uses max(value) > threshold, which for scan queries gets transformed
@@ -19,7 +19,7 @@ def create_test_policy(threshold: int = 100) -> DFCPolicy:
         DFCPolicy instance configured for test_data table
     """
     return DFCPolicy(
-        source="test_data",
+        sources=["test_data"],
         constraint=f"max(test_data.value) > {threshold}",
         on_fail=Resolution.REMOVE,
         description=f"Filter rows where value <= {threshold}"
@@ -52,7 +52,7 @@ def create_test_policies(threshold: int = 100, policy_count: int = 1) -> list[DF
         policy_threshold = min_threshold + ((threshold - min_threshold + offset) % threshold_span)
         policies.append(
             DFCPolicy(
-                source="test_data",
+                sources=["test_data"],
                 constraint=f"max(test_data.value) > {policy_threshold}",
                 on_fail=Resolution.REMOVE,
                 description=f"Filter rows where value <= {policy_threshold}",

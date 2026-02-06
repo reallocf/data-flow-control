@@ -34,7 +34,7 @@ class DFCPolicy:
         self,
         constraint: str,
         on_fail: Resolution,
-        source: Optional[str] = None,
+        sources: list[str],
         sink: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -43,21 +43,40 @@ class DFCPolicy:
         Args:
             constraint: A SQL expression that must evaluate to true for the policy to pass.
             on_fail: Action to take when the policy fails (REMOVE, KILL, INVALIDATE, or LLM).
-            source: Optional source table name.
+            sources: List of source table names (use an empty list for no sources).
             sink: Optional sink table name.
             description: Optional description of the policy.
 
         Raises:
             ValueError: If neither source nor sink is provided, or if validation fails.
         """
-        if source is None and sink is None:
-            raise ValueError("Either source or sink must be provided")
+        if sources is None:
+            raise ValueError("Sources must be provided (use an empty list for no sources)")
+        if not sources and sink is None:
+            raise ValueError("Either sources or sink must be provided")
+        if not isinstance(sources, list):
+            raise ValueError("Sources must be provided as a list of table names")
+        if any(source is None for source in sources):
+            raise ValueError("Sources cannot contain None values")
 
-        self.source = source
+        seen_sources = set()
+        normalized_sources = []
+        for source in sources:
+            if not isinstance(source, str) or not source.strip():
+                raise ValueError("Sources must be non-empty strings")
+            source_stripped = source.strip()
+            source_lower = source_stripped.lower()
+            if source_lower in seen_sources:
+                raise ValueError(f"Duplicate source table '{source_stripped}' in sources list")
+            seen_sources.add(source_lower)
+            normalized_sources.append(source_stripped)
+
+        self.sources = normalized_sources
         self.sink = sink
         self.constraint = constraint
         self.on_fail = on_fail
         self.description = description
+        self._sources_lower = {source.lower() for source in self.sources}
 
         self._constraint_parsed = self._parse_constraint()
         self._validate()
@@ -68,7 +87,7 @@ class DFCPolicy:
         """Create a DFCPolicy from a policy string.
 
         Parses a policy string in the format:
-        SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
+        SOURCES <source1, source2> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
 
         Fields can be separated by any whitespace (spaces, tabs, newlines).
         The constraint value can contain spaces.
@@ -89,7 +108,7 @@ class DFCPolicy:
         # Normalize whitespace: replace all whitespace sequences with single spaces
         normalized = re.sub(r"\s+", " ", policy_str.strip())
 
-        source = None
+        sources: list[str] = []
         sink = None
         constraint = None
         on_fail = None
@@ -100,7 +119,7 @@ class DFCPolicy:
         keyword_positions = []
 
         # Find single-word keywords
-        for keyword in ["SOURCE", "SINK", "CONSTRAINT", "DESCRIPTION"]:
+        for keyword in ["SOURCES", "SINK", "CONSTRAINT", "DESCRIPTION"]:
             pattern = r"\b" + re.escape(keyword) + r"\b"
             for match in re.finditer(pattern, normalized, re.IGNORECASE):
                 keyword_positions.append((match.start(), keyword.upper()))
@@ -131,8 +150,11 @@ class DFCPolicy:
 
             value = normalized[value_start:value_end].strip()
 
-            if keyword == "SOURCE":
-                source = value if value and value.upper() != "NONE" else None
+            if keyword == "SOURCES":
+                if not value or value.upper() == "NONE":
+                    sources = []
+                else:
+                    sources = [item.strip() for item in value.split(",") if item.strip()]
             elif keyword == "SINK":
                 sink = value if value and value.upper() != "NONE" else None
             elif keyword == "CONSTRAINT":
@@ -154,14 +176,14 @@ class DFCPolicy:
         if on_fail is None:
             raise ValueError("ON FAIL is required but not found in policy text")
 
-        if source is None and sink is None:
-            raise ValueError("Either SOURCE or SINK must be provided")
+        if not sources and sink is None:
+            raise ValueError("Either SOURCES or SINK must be provided")
 
         # Create and return the policy
         return cls(
             constraint=constraint,
             on_fail=on_fail,
-            source=source,
+            sources=sources,
             sink=sink,
             description=description
         )
@@ -173,8 +195,8 @@ class DFCPolicy:
         tables and columns actually exist) should be performed when the policy is
         registered with a SQLRewriter instance.
         """
-        if self.source:
-            self._validate_table_name(self.source, "Source")
+        for source in self.sources:
+            self._validate_table_name(source, "Source")
         if self.sink:
             self._validate_table_name(self.sink, "Sink")
 
@@ -182,10 +204,12 @@ class DFCPolicy:
             raise ValueError("Constraint must be an expression, not a SELECT statement")
 
         try:
-            if self.source and self.sink:
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source} s, {self.sink} t"
-            elif self.source:
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source}"
+            if self.sources and self.sink:
+                sources_from = ", ".join(self.sources)
+                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {self.sink}"
+            elif self.sources:
+                sources_from = ", ".join(self.sources)
+                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}"
             else:
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.sink}"
 
@@ -193,7 +217,7 @@ class DFCPolicy:
         except sqlglot.errors.ParseError as e:
             raise ValueError(
                 f"Constraint '{self.constraint}' cannot be evaluated with "
-                f"source={self.source}, sink={self.sink}: {e}"
+                f"sources={self.sources}, sink={self.sink}: {e}"
             ) from e
 
         self._validate_column_qualification()
@@ -278,7 +302,7 @@ class DFCPolicy:
                 f"Unqualified columns found: {', '.join(unqualified_columns)}"
             )
 
-    def _calculate_source_columns_needed(self) -> set[str]:
+    def _calculate_source_columns_needed(self) -> dict[str, set[str]]:
         """Calculate the set of source columns needed after transforming aggregations to columns.
 
         For scan queries, aggregations in constraints are transformed to their underlying columns.
@@ -286,21 +310,21 @@ class DFCPolicy:
         transformation. For example, max(foo.id) > 1 becomes id > 1, so 'id' is needed.
 
         Returns:
-            Set of column names (lowercase) needed from the source table.
+            Mapping of source table names (lowercase) to needed column names (lowercase).
         """
-        if not self.source:
-            return set()
+        if not self.sources:
+            return {}
 
-        needed_columns = set()
+        needed_columns: dict[str, set[str]] = {source.lower(): set() for source in self.sources}
 
         # Extract columns from aggregations (these will become the columns after transformation)
         for agg_func in self._constraint_parsed.find_all(exp.AggFunc):
             columns = list(agg_func.find_all(exp.Column))
             for column in columns:
                 table_name = get_table_name_from_column(column)
-                if table_name == self.source.lower():
+                if table_name in self._sources_lower:
                     col_name = get_column_name(column).lower()
-                    needed_columns.add(col_name)
+                    needed_columns[table_name].add(col_name)
 
         # Also extract any non-aggregated source columns
         for column in self._constraint_parsed.find_all(exp.Column):
@@ -309,9 +333,9 @@ class DFCPolicy:
                 continue
 
             table_name = get_table_name_from_column(column)
-            if table_name == self.source.lower():
+            if table_name in self._sources_lower:
                 col_name = get_column_name(column).lower()
-                needed_columns.add(col_name)
+                needed_columns[table_name].add(col_name)
 
         return needed_columns
 
@@ -321,10 +345,10 @@ class DFCPolicy:
         all_columns = list(self._constraint_parsed.find_all(exp.Column))
 
         if aggregate_funcs:
-            if not self.source:
+            if not self.sources:
                 raise ValueError(
-                    "Aggregations in constraints can only reference the source table, "
-                    "but no source table is provided"
+                    "Aggregations in constraints can only reference the source tables, "
+                    "but no sources are provided"
                 )
 
             for agg_func in aggregate_funcs:
@@ -338,33 +362,26 @@ class DFCPolicy:
                     if self.sink and table_name == self.sink.lower():
                         raise ValueError(
                             f"Aggregation '{agg_func.sql()}' references sink table '{self.sink}', "
-                            "but aggregations can only reference the source table"
+                            "but aggregations can only reference source tables"
                         )
-                    if table_name != self.source.lower():
+                    if table_name not in self._sources_lower:
                         raise ValueError(
                             f"Aggregation '{agg_func.sql()}' references table '{table_name}', "
-                            f"but aggregations can only reference the source table '{self.source}'"
+                            f"but aggregations can only reference source tables {self.sources}"
                         )
 
-        if self.source:
-            source_columns = [
-                column
-                for column in all_columns
-                if get_table_name_from_column(column) == self.source.lower()
-            ]
+        if self.sources:
+            unaggregated_source_columns = []
+            for column in all_columns:
+                table_name = get_table_name_from_column(column)
+                if table_name in self._sources_lower and column.find_ancestor(exp.AggFunc) is None:
+                    unaggregated_source_columns.append(f"{table_name}.{get_column_name(column)}")
 
-            if source_columns:
-                unaggregated_source_columns = [
-                    f"{self.source}.{get_column_name(column)}"
-                    for column in source_columns
-                    if column.find_ancestor(exp.AggFunc) is None
-                ]
-
-                if unaggregated_source_columns:
-                    raise ValueError(
-                        f"All columns from source table '{self.source}' must be aggregated. "
-                        f"Unaggregated source columns found: {', '.join(unaggregated_source_columns)}"
-                    )
+            if unaggregated_source_columns:
+                raise ValueError(
+                    "All columns from source tables must be aggregated. "
+                    f"Unaggregated source columns found: {', '.join(unaggregated_source_columns)}"
+                )
 
     def get_identifier(self) -> str:
         """Get a descriptive identifier for a policy for logging purposes.
@@ -373,8 +390,8 @@ class DFCPolicy:
             A string identifier for the policy.
         """
         parts = []
-        if self.source:
-            parts.append(f"source={self.source}")
+        if self.sources:
+            parts.append(f"sources={self.sources}")
         if self.sink:
             parts.append(f"sink={self.sink}")
         parts.append(f"constraint={self.constraint}")
@@ -383,8 +400,8 @@ class DFCPolicy:
     def __repr__(self) -> str:
         """Return a string representation of the policy."""
         parts = []
-        if self.source:
-            parts.append(f"source={self.source!r}")
+        if self.sources:
+            parts.append(f"sources={self.sources!r}")
         if self.sink:
             parts.append(f"sink={self.sink!r}")
         parts.append(f"constraint={self.constraint!r}")
@@ -398,7 +415,7 @@ class DFCPolicy:
         if not isinstance(other, DFCPolicy):
             return False
         return (
-            self.source == other.source
+            self.sources == other.sources
             and self.sink == other.sink
             and self.constraint == other.constraint
             and self.on_fail == other.on_fail
@@ -419,7 +436,7 @@ class AggregateDFCPolicy:
         self,
         constraint: str,
         on_fail: Resolution,
-        source: Optional[str] = None,
+        sources: list[str],
         sink: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
@@ -428,15 +445,21 @@ class AggregateDFCPolicy:
         Args:
             constraint: A SQL expression that must evaluate to true for the policy to pass.
             on_fail: Action to take when the policy fails (currently only INVALIDATE supported).
-            source: Optional source table name.
+            sources: List of source table names (use an empty list for no sources).
             sink: Optional sink table name.
             description: Optional description of the policy.
 
         Raises:
             ValueError: If neither source nor sink is provided, or if validation fails.
         """
-        if source is None and sink is None:
-            raise ValueError("Either source or sink must be provided")
+        if sources is None:
+            raise ValueError("Sources must be provided (use an empty list for no sources)")
+        if not sources and sink is None:
+            raise ValueError("Either sources or sink must be provided")
+        if not isinstance(sources, list):
+            raise ValueError("Sources must be provided as a list of table names")
+        if any(source is None for source in sources):
+            raise ValueError("Sources cannot contain None values")
 
         # Only INVALIDATE is supported initially
         if on_fail != Resolution.INVALIDATE:
@@ -445,11 +468,24 @@ class AggregateDFCPolicy:
                 f"but got {on_fail.value}"
             )
 
-        self.source = source
+        seen_sources = set()
+        normalized_sources = []
+        for source in sources:
+            if not isinstance(source, str) or not source.strip():
+                raise ValueError("Sources must be non-empty strings")
+            source_stripped = source.strip()
+            source_lower = source_stripped.lower()
+            if source_lower in seen_sources:
+                raise ValueError(f"Duplicate source table '{source_stripped}' in sources list")
+            seen_sources.add(source_lower)
+            normalized_sources.append(source_stripped)
+
+        self.sources = normalized_sources
         self.sink = sink
         self.constraint = constraint
         self.on_fail = on_fail
         self.description = description
+        self._sources_lower = {source.lower() for source in self.sources}
 
         self._constraint_parsed = self._parse_constraint()
         self._validate()
@@ -460,7 +496,7 @@ class AggregateDFCPolicy:
         """Create an AggregateDFCPolicy from a policy string.
 
         Parses a policy string in the format:
-        AGGREGATE SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
+        AGGREGATE SOURCES <source1, source2> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail> [DESCRIPTION <description>]
 
         Fields can be separated by any whitespace (spaces, tabs, newlines).
         The constraint value can contain spaces.
@@ -490,7 +526,7 @@ class AggregateDFCPolicy:
         # Remove AGGREGATE keyword from the start only
         normalized = re.sub(r"^\s*\bAGGREGATE\b\s+", "", normalized, flags=re.IGNORECASE).strip()
 
-        source = None
+        sources: list[str] = []
         sink = None
         constraint = None
         on_fail = None
@@ -500,7 +536,7 @@ class AggregateDFCPolicy:
         keyword_positions = []
 
         # Find single-word keywords
-        for keyword in ["SOURCE", "SINK", "CONSTRAINT", "DESCRIPTION"]:
+        for keyword in ["SOURCES", "SINK", "CONSTRAINT", "DESCRIPTION"]:
             pattern = r"\b" + re.escape(keyword) + r"\b"
             for match in re.finditer(pattern, normalized, re.IGNORECASE):
                 keyword_positions.append((match.start(), keyword.upper()))
@@ -531,8 +567,11 @@ class AggregateDFCPolicy:
 
             value = normalized[value_start:value_end].strip()
 
-            if keyword == "SOURCE":
-                source = value if value and value.upper() != "NONE" else None
+            if keyword == "SOURCES":
+                if not value or value.upper() == "NONE":
+                    sources = []
+                else:
+                    sources = [item.strip() for item in value.split(",") if item.strip()]
             elif keyword == "SINK":
                 sink = value if value and value.upper() != "NONE" else None
             elif keyword == "CONSTRAINT":
@@ -554,14 +593,14 @@ class AggregateDFCPolicy:
         if on_fail is None:
             raise ValueError("ON FAIL is required but not found in policy text")
 
-        if source is None and sink is None:
-            raise ValueError("Either SOURCE or SINK must be provided")
+        if not sources and sink is None:
+            raise ValueError("Either SOURCES or SINK must be provided")
 
         # Create and return the policy
         return cls(
             constraint=constraint,
             on_fail=on_fail,
-            source=source,
+            sources=sources,
             sink=sink,
             description=description
         )
@@ -573,8 +612,8 @@ class AggregateDFCPolicy:
         tables and columns actually exist) should be performed when the policy is
         registered with a SQLRewriter instance.
         """
-        if self.source:
-            self._validate_table_name(self.source, "Source")
+        for source in self.sources:
+            self._validate_table_name(source, "Source")
         if self.sink:
             self._validate_table_name(self.sink, "Sink")
 
@@ -582,10 +621,12 @@ class AggregateDFCPolicy:
             raise ValueError("Constraint must be an expression, not a SELECT statement")
 
         try:
-            if self.source and self.sink:
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source} s, {self.sink} t"
-            elif self.source:
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.source}"
+            if self.sources and self.sink:
+                sources_from = ", ".join(self.sources)
+                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {self.sink}"
+            elif self.sources:
+                sources_from = ", ".join(self.sources)
+                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}"
             else:
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.sink}"
 
@@ -593,7 +634,7 @@ class AggregateDFCPolicy:
         except sqlglot.errors.ParseError as e:
             raise ValueError(
                 f"Constraint '{self.constraint}' cannot be evaluated with "
-                f"source={self.source}, sink={self.sink}: {e}"
+                f"sources={self.sources}, sink={self.sink}: {e}"
             ) from e
 
         self._validate_column_qualification()
@@ -706,25 +747,25 @@ class AggregateDFCPolicy:
                 f"Unaggregated columns found: {', '.join(unqualified_columns)}"
             )
 
-    def _calculate_source_columns_needed(self) -> set[str]:
+    def _calculate_source_columns_needed(self) -> dict[str, set[str]]:
         """Calculate the set of source columns needed.
 
         Returns:
-            Set of column names (lowercase) needed from the source table.
+            Mapping of source table names (lowercase) to needed column names (lowercase).
         """
-        if not self.source:
-            return set()
+        if not self.sources:
+            return {}
 
-        needed_columns = set()
+        needed_columns: dict[str, set[str]] = {source.lower(): set() for source in self.sources}
 
         # Extract columns from aggregations
         for agg_func in self._constraint_parsed.find_all(exp.AggFunc):
             columns = list(agg_func.find_all(exp.Column))
             for column in columns:
                 table_name = get_table_name_from_column(column)
-                if table_name == self.source.lower():
+                if table_name in self._sources_lower:
                     col_name = get_column_name(column).lower()
-                    needed_columns.add(col_name)
+                    needed_columns[table_name].add(col_name)
 
         # Also extract any non-aggregated source columns
         for column in self._constraint_parsed.find_all(exp.Column):
@@ -733,9 +774,9 @@ class AggregateDFCPolicy:
                 continue
 
             table_name = get_table_name_from_column(column)
-            if table_name == self.source.lower():
+            if table_name in self._sources_lower:
                 col_name = get_column_name(column).lower()
-                needed_columns.add(col_name)
+                needed_columns[table_name].add(col_name)
 
         return needed_columns
 
@@ -745,25 +786,18 @@ class AggregateDFCPolicy:
         all_columns = list(self._constraint_parsed.find_all(exp.Column))
 
         # Source columns must be aggregated
-        if self.source:
-            source_columns = [
-                column
-                for column in all_columns
-                if get_table_name_from_column(column) == self.source.lower()
-            ]
+        if self.sources:
+            unaggregated_source_columns = []
+            for column in all_columns:
+                table_name = get_table_name_from_column(column)
+                if table_name in self._sources_lower and column.find_ancestor(exp.AggFunc) is None:
+                    unaggregated_source_columns.append(f"{table_name}.{get_column_name(column)}")
 
-            if source_columns:
-                unaggregated_source_columns = [
-                    f"{self.source}.{get_column_name(column)}"
-                    for column in source_columns
-                    if column.find_ancestor(exp.AggFunc) is None
-                ]
-
-                if unaggregated_source_columns:
-                    raise ValueError(
-                        f"All columns from source table '{self.source}' must be aggregated. "
-                        f"Unaggregated source columns found: {', '.join(unaggregated_source_columns)}"
-                    )
+            if unaggregated_source_columns:
+                raise ValueError(
+                    "All columns from source tables must be aggregated. "
+                    f"Unaggregated source columns found: {', '.join(unaggregated_source_columns)}"
+                )
 
     def get_identifier(self) -> str:
         """Get a descriptive identifier for a policy for logging purposes.
@@ -772,8 +806,8 @@ class AggregateDFCPolicy:
             A string identifier for the policy.
         """
         parts = []
-        if self.source:
-            parts.append(f"source={self.source}")
+        if self.sources:
+            parts.append(f"sources={self.sources}")
         if self.sink:
             parts.append(f"sink={self.sink}")
         parts.append(f"constraint={self.constraint}")
@@ -782,8 +816,8 @@ class AggregateDFCPolicy:
     def __repr__(self) -> str:
         """Return a string representation of the policy."""
         parts = []
-        if self.source:
-            parts.append(f"source={self.source!r}")
+        if self.sources:
+            parts.append(f"sources={self.sources!r}")
         if self.sink:
             parts.append(f"sink={self.sink!r}")
         parts.append(f"constraint={self.constraint!r}")
@@ -797,7 +831,7 @@ class AggregateDFCPolicy:
         if not isinstance(other, AggregateDFCPolicy):
             return False
         return (
-            self.source == other.source
+            self.sources == other.sources
             and self.sink == other.sink
             and self.constraint == other.constraint
             and self.on_fail == other.on_fail

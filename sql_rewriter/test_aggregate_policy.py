@@ -17,8 +17,9 @@ class TestAggregateDFCPolicyCreation:
 
     def test_aggregate_policy_requires_source_or_sink(self):
         """Test that aggregate policy must have either source or sink."""
-        with pytest.raises(ValueError, match="Either source or sink must be provided"):
+        with pytest.raises(ValueError, match="Either sources or sink must be provided"):
             AggregateDFCPolicy(
+                sources=[],
                 constraint="max(users.age) >= 18",
                 on_fail=Resolution.INVALIDATE,
             )
@@ -27,7 +28,7 @@ class TestAggregateDFCPolicyCreation:
         """Test that aggregate policy only supports INVALIDATE resolution initially."""
         with pytest.raises(ValueError, match="currently only supports INVALIDATE resolution"):
             AggregateDFCPolicy(
-                source="users",
+                sources=["users"],
                 constraint="sum(users.amount) > 100",
                 on_fail=Resolution.REMOVE,
             )
@@ -35,11 +36,11 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_with_source_only(self):
         """Test creating aggregate policy with only source table."""
         policy = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
-        assert policy.source == "users"
+        assert policy.sources == ["users"]
         assert policy.sink is None
         assert policy.constraint == "sum(users.amount) > 100"
         assert policy.on_fail == Resolution.INVALIDATE
@@ -47,11 +48,12 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_with_sink_only(self):
         """Test creating aggregate policy with only sink table."""
         policy = AggregateDFCPolicy(
+            sources=[],
             sink="reports",
             constraint="sum(reports.value) > 100",
             on_fail=Resolution.INVALIDATE,
         )
-        assert policy.source is None
+        assert policy.sources == []
         assert policy.sink == "reports"
         assert policy.constraint == "sum(reports.value) > 100"
         assert policy.on_fail == Resolution.INVALIDATE
@@ -59,12 +61,12 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_with_filter_clause(self):
         """Test creating aggregate policy with FILTER clause in aggregate function."""
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000",
             on_fail=Resolution.INVALIDATE,
         )
-        assert policy.source == "bank_txn"
+        assert policy.sources == ["bank_txn"]
         assert policy.sink == "irs_form"
         assert policy.constraint == "sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000"
         assert policy.on_fail == Resolution.INVALIDATE
@@ -74,12 +76,12 @@ class TestAggregateDFCPolicyCreation:
         # This tests the case: sum(irs_form) filter (where irs_form.kind = 'Income')
         # where irs_form in the aggregate argument is unqualified but should be allowed
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(irs_form) filter (where irs_form.kind = 'Income') > 4000",
             on_fail=Resolution.INVALIDATE,
         )
-        assert policy.source == "bank_txn"
+        assert policy.sources == ["bank_txn"]
         assert policy.sink == "irs_form"
         assert "sum(irs_form)" in policy.constraint.lower()
         assert "filter" in policy.constraint.lower()
@@ -87,9 +89,9 @@ class TestAggregateDFCPolicyCreation:
 
     def test_aggregate_policy_with_filter_clause_parsing(self):
         """Test that aggregate policy with FILTER clause can be parsed from string."""
-        policy_str = "AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT sum(irs_form) filter (where irs_form.kind = 'Income') > 4000 ON FAIL INVALIDATE"
+        policy_str = "AGGREGATE SOURCES bank_txn SINK irs_form CONSTRAINT sum(irs_form) filter (where irs_form.kind = 'Income') > 4000 ON FAIL INVALIDATE"
         policy = AggregateDFCPolicy.from_policy_str(policy_str)
-        assert policy.source == "bank_txn"
+        assert policy.sources == ["bank_txn"]
         assert policy.sink == "irs_form"
         assert "sum(irs_form)" in policy.constraint.lower()
         assert "filter" in policy.constraint.lower()
@@ -98,21 +100,21 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_with_both_source_and_sink(self):
         """Test creating aggregate policy with both source and sink."""
         policy = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(sum(users.amount)) > sum(reports.total)",
             on_fail=Resolution.INVALIDATE,
         )
-        assert policy.source == "users"
+        assert policy.sources == ["users"]
         assert policy.sink == "reports"
         assert policy.constraint == "sum(sum(users.amount)) > sum(reports.total)"
         assert policy.on_fail == Resolution.INVALIDATE
 
     def test_aggregate_policy_source_must_be_aggregated(self):
         """Test that source columns must be aggregated in aggregate policies."""
-    with pytest.raises(ValueError, match=r"All columns from source table.*must be aggregated"):
+        with pytest.raises(ValueError, match=r"All columns from source tables.*must be aggregated"):
             AggregateDFCPolicy(
-                source="users",
+                sources=["users"],
                 constraint="users.amount > 100",
                 on_fail=Resolution.INVALIDATE,
             )
@@ -120,7 +122,7 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_allows_sink_aggregation(self):
         """Test that aggregate policies allow sink aggregations (unlike regular policies)."""
         policy = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > sum(reports.total)",
             on_fail=Resolution.INVALIDATE,
@@ -130,7 +132,7 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_allows_unaggregated_sink(self):
         """Test that aggregate policies allow unaggregated sink columns."""
         policy = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > reports.threshold",
             on_fail=Resolution.INVALIDATE,
@@ -141,7 +143,7 @@ class TestAggregateDFCPolicyCreation:
         """Test that aggregate policies require column qualification."""
         with pytest.raises(ValueError, match="All columns in constraints must be qualified"):
             AggregateDFCPolicy(
-                source="users",
+                sources=["users"],
                 constraint="sum(amount) > 100",
                 on_fail=Resolution.INVALIDATE,
             )
@@ -149,7 +151,7 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_repr(self):
         """Test string representation of aggregate policy."""
         policy = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -157,7 +159,7 @@ class TestAggregateDFCPolicyCreation:
         )
         repr_str = repr(policy)
         assert "AggregateDFCPolicy" in repr_str
-        assert "source='users'" in repr_str
+        assert "sources=['users']" in repr_str
         assert "sink='reports'" in repr_str
         assert "constraint='sum(users.amount) > 100'" in repr_str
         assert "on_fail=INVALIDATE" in repr_str
@@ -166,13 +168,13 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_equality(self):
         """Test that two aggregate policies with same values are equal."""
         policy1 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -182,12 +184,12 @@ class TestAggregateDFCPolicyCreation:
     def test_aggregate_policy_inequality(self):
         """Test that two aggregate policies with different values are not equal."""
         policy1 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             constraint="sum(users.amount) > 200",
             on_fail=Resolution.INVALIDATE,
         )
@@ -199,9 +201,9 @@ class TestAggregateDFCPolicyParsing:
 
     def test_parse_aggregate_policy_with_source_only(self):
         """Test parsing aggregate policy with only source."""
-        policy_str = "AGGREGATE SOURCE users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE"
+        policy_str = "AGGREGATE SOURCES users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE"
         policy = AggregateDFCPolicy.from_policy_str(policy_str)
-        assert policy.source == "users"
+        assert policy.sources == ["users"]
         assert policy.sink is None
         assert policy.constraint == "sum(users.amount) > 100"
         assert policy.on_fail == Resolution.INVALIDATE
@@ -210,46 +212,46 @@ class TestAggregateDFCPolicyParsing:
         """Test parsing aggregate policy with only sink."""
         policy_str = "AGGREGATE SINK reports CONSTRAINT sum(reports.value) > 100 ON FAIL INVALIDATE"
         policy = AggregateDFCPolicy.from_policy_str(policy_str)
-        assert policy.source is None
+        assert policy.sources == []
         assert policy.sink == "reports"
         assert policy.constraint == "sum(reports.value) > 100"
         assert policy.on_fail == Resolution.INVALIDATE
 
     def test_parse_aggregate_policy_with_both(self):
         """Test parsing aggregate policy with both source and sink."""
-        policy_str = "AGGREGATE SOURCE users SINK reports CONSTRAINT sum(users.amount) > sum(reports.total) ON FAIL INVALIDATE"
+        policy_str = "AGGREGATE SOURCES users SINK reports CONSTRAINT sum(users.amount) > sum(reports.total) ON FAIL INVALIDATE"
         policy = AggregateDFCPolicy.from_policy_str(policy_str)
-        assert policy.source == "users"
+        assert policy.sources == ["users"]
         assert policy.sink == "reports"
         assert policy.constraint == "sum(users.amount) > sum(reports.total)"
         assert policy.on_fail == Resolution.INVALIDATE
 
     def test_parse_aggregate_policy_with_description(self):
         """Test parsing aggregate policy with description."""
-        policy_str = "AGGREGATE SOURCE users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE DESCRIPTION Test aggregate policy"
+        policy_str = "AGGREGATE SOURCES users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE DESCRIPTION Test aggregate policy"
         policy = AggregateDFCPolicy.from_policy_str(policy_str)
-        assert policy.source == "users"
+        assert policy.sources == ["users"]
         assert policy.constraint == "sum(users.amount) > 100"
         assert policy.description == "Test aggregate policy"
 
     def test_parse_aggregate_policy_requires_aggregate_keyword(self):
         """Test that parsing requires AGGREGATE keyword."""
-        policy_str = "SOURCE users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE"
+        policy_str = "SOURCES users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE"
         with pytest.raises(ValueError, match="requires 'AGGREGATE' keyword"):
             AggregateDFCPolicy.from_policy_str(policy_str)
 
     def test_parse_aggregate_policy_case_insensitive(self):
         """Test that AGGREGATE keyword is case-insensitive."""
-        policy_str = "aggregate SOURCE users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE"
+        policy_str = "aggregate SOURCES users CONSTRAINT sum(users.amount) > 100 ON FAIL INVALIDATE"
         policy = AggregateDFCPolicy.from_policy_str(policy_str)
-        assert policy.source == "users"
+        assert policy.sources == ["users"]
         assert policy.constraint == "sum(users.amount) > 100"
 
     def test_parse_aggregate_policy_with_whitespace(self):
         """Test parsing aggregate policy with various whitespace."""
-        policy_str = "AGGREGATE\nSOURCE\tusers\nSINK\treports\nCONSTRAINT sum(users.amount) > 100\nON FAIL INVALIDATE"
+        policy_str = "AGGREGATE\nSOURCES\tusers\nSINK\treports\nCONSTRAINT sum(users.amount) > 100\nON FAIL INVALIDATE"
         policy = AggregateDFCPolicy.from_policy_str(policy_str)
-        assert policy.source == "users"
+        assert policy.sources == ["users"]
         assert policy.sink == "reports"
         assert policy.constraint == "sum(users.amount) > 100"
 
@@ -263,7 +265,7 @@ class TestAggregatePolicyRewriting:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="sum(foo.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
@@ -294,6 +296,7 @@ class TestAggregatePolicyRewriting:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = AggregateDFCPolicy(
+            sources=[],
             sink="bar",
             constraint="bar.value > 100",
             on_fail=Resolution.INVALIDATE,
@@ -322,7 +325,7 @@ class TestAggregatePolicyRewriting:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="sum(foo.amount) > 100 AND max(foo.id) > 10",
             on_fail=Resolution.INVALIDATE,
         )
@@ -343,13 +346,13 @@ class TestAggregatePolicyRewriting:
     def test_policy_identifier_generation(self):
         """Test that policy identifiers are generated correctly."""
         policy1 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -366,12 +369,12 @@ class TestAggregatePolicyRewriting:
     def test_different_policies_have_different_identifiers(self):
         """Test that different policies have different identifiers."""
         policy1 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             constraint="sum(users.amount) > 200",
             on_fail=Resolution.INVALIDATE,
         )
@@ -429,7 +432,7 @@ class TestAggregatePolicyFinalize:
         # Temp columns are only used internally during finalize evaluation
         # This test just verifies finalize runs without error
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(bank_txn.amount) > 500",
             on_fail=Resolution.INVALIDATE,
@@ -446,7 +449,7 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.execute("CREATE TABLE IF NOT EXISTS nonexistent (id INTEGER)")
 
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="nonexistent",
             constraint="sum(bank_txn.amount) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -464,7 +467,7 @@ class TestAggregatePolicyFinalize:
         """Test that source columns are aggregated twice: inner during rewriting, outer during finalize."""
         # Policy with nested aggregate: max(sum(bank_txn.amount)) > 500
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="reports",
             constraint="max(sum(bank_txn.amount)) > 500",
             on_fail=Resolution.INVALIDATE,
@@ -527,7 +530,7 @@ class TestAggregatePolicyFinalize:
     def test_sink_columns_aggregated_once(self, rewriter_with_data):
         """Test that sink columns are aggregated once during finalize."""
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="reports",
             constraint="sum(reports.value) > 500",
             on_fail=Resolution.INVALIDATE,
@@ -589,7 +592,7 @@ class TestAggregatePolicyFinalize:
     def test_combined_source_and_sink_aggregation(self, rewriter_with_data):
         """Test policy with both source (two-stage) and sink (one-stage) aggregation."""
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="reports",
             constraint="max(sum(bank_txn.amount)) > sum(reports.value)",
             on_fail=Resolution.INVALIDATE,
@@ -634,7 +637,7 @@ class TestAggregatePolicyFinalize:
     def test_finalize_returns_error_message_when_constraint_fails(self, rewriter_with_data):
         """Test that finalize returns the correct error message format when constraint fails."""
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="reports",
             constraint="sum(bank_txn.amount) > 1000",
             on_fail=Resolution.INVALIDATE,
@@ -679,7 +682,7 @@ class TestAggregatePolicyFinalize:
 
         # Test without description
         policy_no_desc = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="reports",
             constraint="sum(bank_txn.amount) > 2000",
             on_fail=Resolution.INVALIDATE,
@@ -706,7 +709,7 @@ class TestAggregatePolicyFinalize:
         """Test that FILTER clauses are preserved when replacing sink expressions during finalize."""
         # Policy with FILTER clause: sum(irs_form) filter (where irs_form.kind = 'Income') > 4000
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(irs_form) filter (where irs_form.kind = 'Income') > 4000",
             on_fail=Resolution.INVALIDATE,
@@ -804,7 +807,7 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
 
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000",
             on_fail=Resolution.INVALIDATE,
@@ -852,7 +855,7 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
 
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000",
             on_fail=Resolution.INVALIDATE,
@@ -897,7 +900,7 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
 
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000",
             on_fail=Resolution.INVALIDATE,
@@ -942,7 +945,7 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
 
         policy = AggregateDFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000",
             on_fail=Resolution.INVALIDATE,
@@ -1006,7 +1009,7 @@ class TestAggregatePolicyIntegration:
         rewriter.execute("CREATE TABLE IF NOT EXISTS bar (id INTEGER, value DOUBLE)")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="bar",
             constraint="sum(foo.amount) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -1023,12 +1026,12 @@ class TestAggregatePolicyIntegration:
         rewriter.execute("CREATE TABLE IF NOT EXISTS bar (id INTEGER, value DOUBLE)")
 
         regular_policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         aggregate_policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="bar",
             constraint="sum(foo.amount) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -1056,7 +1059,7 @@ class TestAggregatePolicyIntegration:
 
         # Use a constraint with a sink expression to ensure temp columns are added
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="bar",
             constraint="sum(bar.total) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -1088,7 +1091,7 @@ class TestAggregatePolicyIntegration:
         rewriter.execute("CREATE TABLE bar (id INTEGER, value DOUBLE)")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="bar",
             constraint="sum(foo.amount) > 1000",
             on_fail=Resolution.INVALIDATE,
@@ -1104,13 +1107,13 @@ class TestAggregatePolicyIntegration:
         rewriter.execute("CREATE TABLE IF NOT EXISTS bar (id INTEGER, total DOUBLE)")
 
         policy1 = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="bar",
             constraint="sum(foo.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="bar",
             constraint="max(foo.id) > 5",
             on_fail=Resolution.INVALIDATE,

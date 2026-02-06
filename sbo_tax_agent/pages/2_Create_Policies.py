@@ -56,8 +56,8 @@ def build_policy_text(policy, include_description=False):
     # Add AGGREGATE keyword for aggregate policies
     if isinstance(policy, AggregateDFCPolicy):
         parts.append("AGGREGATE")
-    if policy.source:
-        parts.append(f"SOURCE {policy.source}")
+    if policy.sources:
+        parts.append(f"SOURCES {', '.join(policy.sources)}")
     if policy.sink:
         parts.append(f"SINK {policy.sink}")
     parts.append(f"CONSTRAINT {policy.constraint}")
@@ -115,7 +115,7 @@ else:
                         # First delete all policies that come after (in reverse order)
                         for _p_type, p in reversed(policies_after):
                             rewriter.delete_policy(
-                                source=p.source,
+                                sources=p.sources,
                                 sink=p.sink,
                                 constraint=p.constraint,
                                 on_fail=p.on_fail,
@@ -124,7 +124,7 @@ else:
 
                         # Delete the old policy
                         deleted = rewriter.delete_policy(
-                            source=policy.source,
+                            sources=policy.sources,
                             sink=policy.sink,
                             constraint=policy.constraint,
                             on_fail=policy.on_fail,

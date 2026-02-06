@@ -108,7 +108,7 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
             existing_policies = self.dfc_rewriter.get_dfc_policies()
             for old_policy in existing_policies:
                 self.dfc_rewriter.delete_policy(
-                    source=old_policy.source,
+                    sources=old_policy.sources,
                     constraint=old_policy.constraint,
                     on_fail=old_policy.on_fail,
                 )

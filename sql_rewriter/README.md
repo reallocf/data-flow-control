@@ -88,7 +88,7 @@ with SQLRewriter() as rewriter:
     
     # Create a policy: only allow queries where max age >= 18
     policy = DFCPolicy(
-        source="users",
+        sources=["users"],
         constraint="max(users.age) >= 18",
         on_fail=Resolution.REMOVE,  # Filter out rows that don't meet constraint
     )
@@ -121,7 +121,7 @@ with SQLRewriter(bedrock_client=bedrock_client) as rewriter:
     
     # Policy that uses LLM to fix violating rows
     policy = DFCPolicy(
-        source="transactions",
+        sources=["transactions"],
         constraint="transactions.amount > 0",
         on_fail=Resolution.LLM,  # AI will try to fix violating rows
         description="Only positive amounts allowed"
@@ -155,21 +155,21 @@ rewriter.set_replay_manager(replay_manager)
 
 ### Creating Policies
 
-Policies define constraints on data flow. They require either a `source` or `sink` table (or both):
+Policies define constraints on data flow. They require a `sources` list (use `[]` if no source is defined) and/or a `sink` table:
 
 ```python
 from sql_rewriter import DFCPolicy, Resolution
 
 # Policy with source only
 policy1 = DFCPolicy(
-    source="users",
+    sources=["users"],
     constraint="max(users.age) >= 18",
     on_fail=Resolution.REMOVE,
 )
 
 # Policy with source and sink
 policy2 = DFCPolicy(
-    source="orders",
+    sources=["orders"],
     sink="analytics",
     constraint="max(orders.total) > 100 AND analytics.status = 'active'",
     on_fail=Resolution.KILL,  # Abort query if constraint fails
@@ -177,8 +177,16 @@ policy2 = DFCPolicy(
 
 # Policy with sink only
 policy3 = DFCPolicy(
+    sources=[],
     sink="reports",
     constraint="reports.status = 'approved'",
+    on_fail=Resolution.REMOVE,
+)
+
+# Policy with multiple sources
+policy4 = DFCPolicy(
+    sources=["orders", "customers"],
+    constraint="max(orders.total) > 100 AND max(customers.age) >= 18",
     on_fail=Resolution.REMOVE,
 )
 ```
@@ -187,6 +195,7 @@ policy3 = DFCPolicy(
 
 - **All columns must be qualified** with table names (e.g., `users.age`, not just `age`)
 - **Source columns must be aggregated** when a source table is specified (for regular `DFCPolicy`)
+- **Applicability requires all sources**: a policy applies only when a query selects from all sources in the list (and writes to the sink if defined)
 - **Constraints are SQL expressions** that evaluate to boolean
 
 ### Aggregate Policies
@@ -206,7 +215,7 @@ rewriter.execute("CREATE TABLE sink_table (total INTEGER)")
 
 # Create an aggregate policy
 aggregate_policy = AggregateDFCPolicy(
-    source="source_table",
+    sources=["source_table"],
     sink="sink_table",
     constraint="sum(sink_table.total) > 1000",
     on_fail=Resolution.INVALIDATE,  # Only INVALIDATE is currently supported
@@ -239,7 +248,7 @@ rewriter = SQLRewriter()
 rewriter.execute("CREATE TABLE users (id INTEGER, age INTEGER)")
 
 policy = DFCPolicy(
-    source="users",
+    sources=["users"],
     constraint="max(users.age) >= 18",
     on_fail=Resolution.REMOVE,
 )
@@ -255,12 +264,12 @@ Get all registered policies using the public API:
 # Get regular DFC policies
 policies = rewriter.get_dfc_policies()  # Returns list of DFCPolicy objects
 for policy in policies:
-    print(f"Source: {policy.source}, Constraint: {policy.constraint}")
+    print(f"Source: {policy.sources}, Constraint: {policy.constraint}")
 
 # Get aggregate policies
 aggregate_policies = rewriter.get_aggregate_policies()  # Returns list of AggregateDFCPolicy objects
 for policy in aggregate_policies:
-    print(f"Source: {policy.source}, Sink: {policy.sink}, Constraint: {policy.constraint}")
+    print(f"Source: {policy.sources}, Sink: {policy.sink}, Constraint: {policy.constraint}")
 ```
 
 ### Query Execution
@@ -291,7 +300,7 @@ with SQLRewriter() as rewriter:
     
     # Only allow queries where total sales > 150
     policy = DFCPolicy(
-        source="sales",
+        sources=["sales"],
         constraint="sum(sales.amount) > 150",
         on_fail=Resolution.REMOVE,
     )
@@ -311,7 +320,7 @@ with SQLRewriter() as rewriter:
     
     # Abort query if max level is too high
     policy = DFCPolicy(
-        source="sensitive",
+        sources=["sensitive"],
         constraint="max(sensitive.level) < 4",
         on_fail=Resolution.KILL,  # Abort if constraint fails
     )
@@ -339,7 +348,7 @@ with SQLRewriter(bedrock_client=bedrock_client) as rewriter:
     
     # Policy that uses LLM to fix negative prices
     policy = DFCPolicy(
-        source="products",
+        sources=["products"],
         constraint="products.price >= 0",
         on_fail=Resolution.LLM,
         description="Prices must be non-negative"

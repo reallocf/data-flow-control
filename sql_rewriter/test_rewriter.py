@@ -76,7 +76,7 @@ def test_context_manager():
 def test_register_policy_with_source_only(rewriter):
     """Test registering a policy with only a source table."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -86,6 +86,7 @@ def test_register_policy_with_source_only(rewriter):
 def test_register_policy_with_sink_only(rewriter):
     """Test registering a policy with only a sink table."""
     policy = DFCPolicy(
+        sources=[],
         sink="baz",
         constraint="baz.x > 5",
         on_fail=Resolution.KILL,
@@ -97,7 +98,7 @@ def test_register_policy_with_sink_only(rewriter):
 def test_register_policy_with_both_source_and_sink(rewriter):
     """Test registering a policy with both source and sink tables."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         sink="baz",
         constraint="max(foo.id) > baz.x",
         on_fail=Resolution.REMOVE,
@@ -110,7 +111,7 @@ def test_register_policy_rejects_nonexistent_source_table():
     rewriter = SQLRewriter()
     try:
         policy = DFCPolicy(
-            source="nonexistent",
+            sources=["nonexistent"],
             constraint="max(nonexistent.id) >= 1",
             on_fail=Resolution.REMOVE,
         )
@@ -126,6 +127,7 @@ def test_register_policy_rejects_nonexistent_sink_table():
     try:
         rewriter.execute("CREATE TABLE test (x INTEGER)")
         policy = DFCPolicy(
+            sources=[],
             sink="nonexistent",
             constraint="nonexistent.x > 5",
             on_fail=Resolution.KILL,
@@ -139,7 +141,7 @@ def test_register_policy_rejects_nonexistent_sink_table():
 def test_register_policy_rejects_nonexistent_source_column(rewriter):
     """Test that registering a policy with a nonexistent source column is rejected."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.nonexistent) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -150,6 +152,7 @@ def test_register_policy_rejects_nonexistent_source_column(rewriter):
 def test_register_policy_rejects_nonexistent_sink_column(rewriter):
     """Test that registering a policy with a nonexistent sink column is rejected."""
     policy = DFCPolicy(
+        sources=[],
         sink="baz",
         constraint="baz.nonexistent > 5",
         on_fail=Resolution.KILL,
@@ -161,7 +164,7 @@ def test_register_policy_rejects_nonexistent_sink_column(rewriter):
 def test_register_policy_rejects_column_from_wrong_table(rewriter):
     """Test that registering a policy with a column from a table that's not source or sink is rejected."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         sink="baz",
         constraint="max(foo.id) > baz.x AND baz.y = 'test'",
         on_fail=Resolution.REMOVE,
@@ -173,12 +176,12 @@ def test_register_policy_rejects_column_from_wrong_table(rewriter):
         rewriter2.execute("CREATE TABLE users (id INTEGER)")
         rewriter2.execute("CREATE TABLE orders (user_id INTEGER)")
         policy2 = DFCPolicy(
-            source="users",
+            sources=["users"],
             sink="orders",
             constraint="max(users.id) > orders.user_id AND baz.x > 5",
             on_fail=Resolution.REMOVE,
         )
-        with pytest.raises(ValueError, match="references table 'baz', which is not the source"):
+        with pytest.raises(ValueError, match="references table 'baz', which is not in sources"):
             rewriter2.register_policy(policy2)
     finally:
         rewriter2.close()
@@ -187,7 +190,7 @@ def test_register_policy_rejects_column_from_wrong_table(rewriter):
 def test_register_policy_validates_all_columns(rewriter):
     """Test that register_policy validates all columns in a complex constraint."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         sink="baz",
         constraint="max(foo.id) > 0 AND min(foo.name) = 'Alice' AND baz.x > 5 AND baz.y = 'test'",
         on_fail=Resolution.REMOVE,
@@ -198,11 +201,12 @@ def test_register_policy_validates_all_columns(rewriter):
 def test_register_policy_stores_policies(rewriter):
     """Test that registered policies are stored in the rewriter."""
     policy1 = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
     policy2 = DFCPolicy(
+        sources=[],
         sink="baz",
         constraint="baz.x > 5",
         on_fail=Resolution.KILL,
@@ -219,12 +223,13 @@ def test_register_policy_stores_policies(rewriter):
 def test_register_policy_with_description(rewriter):
     """Test that policy descriptions are preserved when registering and retrieving."""
     policy_with_description = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
         description="Test policy description",
     )
     policy_without_description = DFCPolicy(
+        sources=[],
         sink="baz",
         constraint="baz.x > 5",
         on_fail=Resolution.KILL,
@@ -239,7 +244,7 @@ def test_register_policy_with_description(rewriter):
     policy_with_desc = next((p for p in policies if p.description == "Test policy description"), None)
     assert policy_with_desc is not None
     assert policy_with_desc.description == "Test policy description"
-    assert policy_with_desc.source == "foo"
+    assert policy_with_desc.sources == ["foo"]
     assert policy_with_desc.constraint == "max(foo.id) >= 1"
     assert policy_with_desc.on_fail == Resolution.REMOVE
 
@@ -326,7 +331,7 @@ def test_register_policy_with_different_case_table_name(rewriter):
     rewriter.execute("CREATE TABLE testtable (col INTEGER)")
 
     policy = DFCPolicy(
-        source="testtable",  # Use lowercase to match
+        sources=["testtable"],  # Use lowercase to match
         constraint="max(testtable.col) > 0",
         on_fail=Resolution.REMOVE,
     )
@@ -338,7 +343,7 @@ def test_register_policy_case_insensitive_column_names(rewriter):
     rewriter.execute("CREATE TABLE test (ColName INTEGER)")
 
     policy = DFCPolicy(
-        source="test",
+        sources=["test"],
         constraint="max(test.colname) > 0",  # lowercase column name
         on_fail=Resolution.REMOVE,
     )
@@ -348,12 +353,12 @@ def test_register_policy_case_insensitive_column_names(rewriter):
 def test_register_policy_multiple_policies_same_table(rewriter):
     """Test that multiple policies can be registered for the same table."""
     policy1 = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
     policy2 = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="min(foo.id) <= 10",
         on_fail=Resolution.KILL,
     )
@@ -367,7 +372,7 @@ def test_register_policy_multiple_policies_same_table(rewriter):
 def test_register_policy_same_policy_twice(rewriter):
     """Test that the same policy can be registered twice."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -412,7 +417,7 @@ def test_register_policy_with_empty_table(rewriter):
     rewriter.execute("CREATE TABLE empty_table (id INTEGER)")
 
     policy = DFCPolicy(
-        source="empty_table",
+        sources=["empty_table"],
         constraint="COUNT(*) >= 0",  # COUNT(*) works even on empty tables
         on_fail=Resolution.REMOVE,
     )
@@ -425,7 +430,7 @@ def test_register_policy_rejects_unqualified_column_during_registration(rewriter
     This tests the defensive check in register_policy.
     """
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -483,7 +488,7 @@ def test_register_policy_with_quoted_identifiers(rewriter):
     rewriter.execute('CREATE TABLE "test_table" ("col_name" INTEGER)')
 
     policy = DFCPolicy(
-        source="test_table",
+        sources=["test_table"],
         constraint="max(test_table.col_name) > 0",
         on_fail=Resolution.REMOVE,
     )
@@ -494,7 +499,7 @@ def test_policy_applied_to_aggregation_query(rewriter):
     """Test that policies are applied to aggregation queries over source tables."""
     # Register a policy
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -515,7 +520,7 @@ def test_policy_filters_aggregation_query(rewriter):
     """Test that policies filter aggregation queries when constraint fails."""
     # Register a policy with a constraint that will fail
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 10",  # max(id) = 3, so this will fail
         on_fail=Resolution.REMOVE,
     )
@@ -539,7 +544,7 @@ def test_policy_kill_resolution_aborts_aggregation_query_when_constraint_fails(r
     # Policy with KILL resolution: max(id) > 10
     # Since max id is 3, this will fail and abort the query
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 10",
         on_fail=Resolution.KILL,
     )
@@ -564,7 +569,7 @@ def test_policy_kill_resolution_allows_aggregation_when_constraint_passes(rewrit
     # Policy with KILL resolution: max(id) >= 1
     # Since max id is 3, this will pass and result should be returned
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.KILL,
     )
@@ -585,7 +590,7 @@ def test_policy_kill_resolution_allows_aggregation_when_constraint_passes(rewrit
 def test_policy_invalidate_resolution_adds_column_to_aggregation(rewriter):
     """Test that INVALIDATE resolution adds a 'valid' column to aggregation queries."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
@@ -609,7 +614,7 @@ def test_policy_invalidate_resolution_adds_column_to_aggregation(rewriter):
 def test_policy_invalidate_resolution_adds_column_to_scan(rewriter):
     """Test that INVALIDATE resolution adds a 'valid' column to scan queries."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
@@ -638,12 +643,12 @@ def test_policy_invalidate_resolution_adds_column_to_scan(rewriter):
 def test_policy_invalidate_resolution_combines_multiple_policies(rewriter):
     """Test that multiple INVALIDATE policies are combined with AND in the 'valid' column."""
     policy1 = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
     policy2 = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) < 10",
         on_fail=Resolution.INVALIDATE,
     )
@@ -668,12 +673,12 @@ def test_policy_invalidate_resolution_combines_multiple_policies(rewriter):
 def test_policy_invalidate_resolution_with_other_resolutions(rewriter):
     """Test that INVALIDATE resolution works alongside REMOVE/KILL policies."""
     policy1 = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 1",
         on_fail=Resolution.REMOVE,
     )
     policy2 = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) < 10",
         on_fail=Resolution.INVALIDATE,
     )
@@ -698,7 +703,7 @@ def test_policy_invalidate_resolution_with_other_resolutions(rewriter):
 def test_policy_invalidate_resolution_false_when_constraint_fails(rewriter):
     """Test that INVALIDATE resolution sets valid=False when constraint fails."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 10",
         on_fail=Resolution.INVALIDATE,
     )
@@ -721,7 +726,7 @@ def test_invalidate_policy_with_sink_requires_valid_column(rewriter):
     rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         sink="reports",
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
@@ -737,7 +742,7 @@ def test_invalidate_policy_with_sink_requires_boolean_valid_column(rewriter):
     rewriter.execute("CREATE TABLE reports (id INTEGER, valid INTEGER)")
 
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         sink="reports",
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
@@ -753,7 +758,7 @@ def test_invalidate_policy_with_sink_accepts_boolean_valid_column(rewriter):
     rewriter.execute("CREATE TABLE reports (id INTEGER, valid BOOLEAN)")
 
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         sink="reports",
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
@@ -767,7 +772,7 @@ def test_invalidate_policy_without_sink_does_not_require_valid_column(rewriter):
     """Test that INVALIDATE policy without sink table does not require 'valid' column."""
     # Policy with only source, no sink
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 1",
         on_fail=Resolution.INVALIDATE,
     )
@@ -779,7 +784,7 @@ def test_invalidate_policy_without_sink_does_not_require_valid_column(rewriter):
 def test_policy_applied_to_multiple_aggregations(rewriter):
     """Test that policies work with queries that have multiple aggregations."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1 AND min(foo.id) <= 10",
         on_fail=Resolution.REMOVE,
     )
@@ -798,7 +803,7 @@ def test_policy_applied_to_multiple_aggregations(rewriter):
 def test_policy_applied_to_non_aggregation_via_where(rewriter):
     """Test that policies are applied to non-aggregation queries via WHERE clause."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -818,7 +823,7 @@ def test_policy_applied_to_non_aggregation_via_where(rewriter):
 def test_policy_not_applied_to_different_source(rewriter):
     """Test that policies are not applied to queries over different source tables."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -836,10 +841,343 @@ def test_policy_not_applied_to_different_source(rewriter):
     assert result[0][0] == 10
 
 
+class TestMultiSourceRewrites:
+    """Tests for multi-source policy rewrites with joins and aggregations."""
+
+    def test_policy_requires_all_sources_for_match(self, rewriter):
+        """Test that policies require all sources in the query before applying."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 1 AND max(baz.x) >= 10",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        # Missing one source: policy should not apply
+        query = "SELECT max(foo.id) FROM foo"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  MAX(foo.id)
+FROM foo"""
+
+        # Both sources present: policy should apply
+        query = "SELECT max(foo.id), max(baz.x) FROM foo JOIN baz ON TRUE"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  MAX(foo.id),
+  MAX(baz.x)
+FROM foo
+JOIN baz
+  ON TRUE
+HAVING
+  (
+    MAX(foo.id) >= 1 AND MAX(baz.x) >= 10
+  )"""
+
+    def test_multi_source_aggregation_with_inner_join(self, rewriter):
+        """Test multi-source policy on aggregation with INNER JOIN."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "SELECT max(foo.id), max(baz.x) FROM foo JOIN baz ON foo.id = baz.x"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  MAX(foo.id),
+  MAX(baz.x)
+FROM foo
+JOIN baz
+  ON foo.id = baz.x
+HAVING
+  (
+    MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+  )"""
+
+    def test_multi_source_scan_with_left_join(self, rewriter):
+        """Test multi-source policy on scan query with LEFT JOIN."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "SELECT foo.id, baz.x FROM foo LEFT JOIN baz ON foo.id = baz.x"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  foo.id,
+  baz.x
+FROM foo
+LEFT JOIN baz
+  ON foo.id = baz.x
+WHERE
+  (
+    foo.id >= 2 AND baz.x <= 20
+  )"""
+
+    def test_multi_source_scan_missing_source_no_rewrite(self, rewriter):
+        """Test multi-source policy does not apply when a source is missing."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "SELECT id, name FROM foo"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  id,
+  name
+FROM foo"""
+
+    def test_multi_source_group_by_with_additional_join(self, rewriter):
+        """Test multi-source policy on grouped query with extra JOIN."""
+        rewriter.execute("CREATE TABLE qux (q INTEGER)")
+        rewriter.execute("INSERT INTO qux VALUES (1)")
+
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "SELECT foo.name, max(baz.x) FROM foo JOIN baz ON foo.id = baz.x JOIN qux ON TRUE GROUP BY foo.name"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  foo.name,
+  MAX(baz.x)
+FROM foo
+JOIN baz
+  ON foo.id = baz.x
+JOIN qux
+  ON TRUE
+GROUP BY
+  foo.name
+HAVING
+  (
+    MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+  )"""
+
+    def test_multi_source_subquery_join_propagates_columns(self, rewriter):
+        """Test multi-source policy adds missing columns in subquery JOINs."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "SELECT sub.name FROM (SELECT foo.name FROM foo JOIN baz ON foo.id = baz.x) AS sub"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  sub.name
+FROM (
+  SELECT
+    foo.name,
+    foo.id,
+    baz.x
+  FROM foo
+  JOIN baz
+    ON foo.id = baz.x
+) AS sub
+WHERE
+  (
+    sub.id >= 2 AND sub.x <= 20
+  )"""
+
+    def test_multi_source_insert_select_applies_where(self, rewriter):
+        """Test multi-source policy on INSERT...SELECT with join sources."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, name VARCHAR, x INTEGER)")
+
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            sink="reports",
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "INSERT INTO reports SELECT foo.id, foo.name, baz.x FROM foo JOIN baz ON foo.id = baz.x"
+        transformed = rewriter.transform_query(query)
+        assert transformed == """INSERT INTO reports
+SELECT
+  foo.id,
+  foo.name,
+  baz.x
+FROM foo
+JOIN baz
+  ON foo.id = baz.x
+WHERE
+  (
+    foo.id >= 2 AND baz.x <= 20
+  )"""
+
+    def test_multi_source_multi_join_group_by_having(self, rewriter):
+        """Test multi-source policy with multiple joins and group by."""
+        rewriter.execute("CREATE TABLE qux (q INTEGER)")
+        rewriter.execute("INSERT INTO qux VALUES (1)")
+        rewriter.execute("CREATE TABLE quux (z INTEGER)")
+        rewriter.execute("INSERT INTO quux VALUES (1)")
+
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = (
+            "SELECT foo.name, qux.q, max(baz.x) "
+            "FROM foo JOIN baz ON foo.id = baz.x "
+            "JOIN qux ON TRUE JOIN quux ON TRUE "
+            "GROUP BY foo.name, qux.q"
+        )
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  foo.name,
+  qux.q,
+  MAX(baz.x)
+FROM foo
+JOIN baz
+  ON foo.id = baz.x
+JOIN qux
+  ON TRUE
+JOIN quux
+  ON TRUE
+GROUP BY
+  foo.name,
+  qux.q
+HAVING
+  (
+    MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+  )"""
+
+    def test_multi_source_group_by_with_distinct_and_join(self, rewriter):
+        """Test multi-source policy with DISTINCT and GROUP BY."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = (
+            "SELECT DISTINCT foo.name, max(baz.x) "
+            "FROM foo JOIN baz ON foo.id = baz.x "
+            "GROUP BY foo.name"
+        )
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT DISTINCT
+  foo.name,
+  MAX(baz.x)
+FROM foo
+JOIN baz
+  ON foo.id = baz.x
+GROUP BY
+  foo.name
+HAVING
+  (
+    MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+  )"""
+
+    def test_multi_source_scan_with_multiple_joins(self, rewriter):
+        """Test multi-source policy on scan with multiple joins."""
+        rewriter.execute("CREATE TABLE qux (q INTEGER)")
+        rewriter.execute("INSERT INTO qux VALUES (1)")
+
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = (
+            "SELECT foo.id, baz.x, qux.q "
+            "FROM foo JOIN baz ON foo.id = baz.x "
+            "JOIN qux ON TRUE"
+        )
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  foo.id,
+  baz.x,
+  qux.q
+FROM foo
+JOIN baz
+  ON foo.id = baz.x
+JOIN qux
+  ON TRUE
+WHERE
+  (
+    foo.id >= 2 AND baz.x <= 20
+  )"""
+
+    def test_multi_source_group_by_on_join_key(self, rewriter):
+        """Test multi-source policy with group by on join key."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = (
+            "SELECT foo.id, max(baz.x) "
+            "FROM foo JOIN baz ON foo.id = baz.x "
+            "GROUP BY foo.id"
+        )
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  foo.id,
+  MAX(baz.x)
+FROM foo
+JOIN baz
+  ON foo.id = baz.x
+GROUP BY
+  foo.id
+HAVING
+  (
+    MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+  )"""
+
+    def test_multi_source_multi_join_group_by_with_alias(self, rewriter):
+        """Test multi-source policy with aliased joins and group by."""
+        policy = DFCPolicy(
+            sources=["foo", "baz"],
+            constraint="max(foo.id) >= 2 AND max(baz.x) <= 20",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = (
+            "SELECT f.name, max(b.x) "
+            "FROM foo f JOIN baz b ON f.id = b.x "
+            "GROUP BY f.name"
+        )
+        transformed = rewriter.transform_query(query)
+        assert transformed == """SELECT
+  f.name,
+  MAX(b.x)
+FROM foo AS f
+JOIN baz AS b
+  ON f.id = b.x
+GROUP BY
+  f.name
+HAVING
+  (
+    MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+  )"""
+
+
 def test_policy_applied_to_scan_query(rewriter):
     """Test that policies are applied to non-aggregation queries (table scans)."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) >= 1",
         on_fail=Resolution.REMOVE,
     )
@@ -859,7 +1197,7 @@ def test_policy_applied_to_scan_query(rewriter):
 def test_policy_filters_scan_query(rewriter):
     """Test that policies filter scan queries when constraint fails."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 10",  # max(id) = 3, so id > 10 will filter all rows
         on_fail=Resolution.REMOVE,
     )
@@ -880,7 +1218,7 @@ def test_policy_filters_scan_query(rewriter):
 def test_policy_scan_with_count(rewriter):
     """Test that COUNT aggregations in constraints are transformed to 1."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="COUNT(*) > 0",
         on_fail=Resolution.REMOVE,
     )
@@ -901,7 +1239,7 @@ def test_policy_scan_with_count(rewriter):
 def test_policy_scan_with_count_distinct(rewriter):
     """Test that COUNT(DISTINCT ...) aggregations in constraints are transformed to 1."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="COUNT(DISTINCT foo.id) > 0",
         on_fail=Resolution.REMOVE,
     )
@@ -921,7 +1259,7 @@ def test_policy_scan_with_count_distinct(rewriter):
 def test_policy_scan_with_approx_count_distinct(rewriter):
     """Test that APPROX_COUNT_DISTINCT aggregations in constraints are transformed to 1."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="APPROX_COUNT_DISTINCT(foo.id) > 0",
         on_fail=Resolution.REMOVE,
     )
@@ -941,7 +1279,7 @@ def test_policy_scan_with_approx_count_distinct(rewriter):
 def test_policy_scan_with_count_if(rewriter):
     """Test that COUNT_IF aggregations in constraints are transformed to CASE WHEN."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="COUNT_IF(foo.id > 2) > 0",
         on_fail=Resolution.REMOVE,
     )
@@ -962,7 +1300,7 @@ def test_policy_scan_with_count_if(rewriter):
 def test_policy_scan_with_count_if_false(rewriter):
     """Test that COUNT_IF with false condition filters out rows."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="COUNT_IF(foo.id > 10) > 0",
         on_fail=Resolution.REMOVE,
     )
@@ -983,7 +1321,7 @@ def test_policy_scan_with_count_if_false(rewriter):
 def test_policy_scan_with_array_agg(rewriter):
     """Test that ARRAY_AGG aggregations in constraints are transformed to single-element arrays."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="array_agg(foo.id) = ARRAY[2]",
         on_fail=Resolution.REMOVE,
     )
@@ -1004,7 +1342,7 @@ def test_policy_scan_with_array_agg(rewriter):
 def test_policy_scan_with_array_agg_comparison(rewriter):
     """Test that ARRAY_AGG in constraints works with array comparisons."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="array_agg(foo.id) != ARRAY[999]",
         on_fail=Resolution.REMOVE,
     )
@@ -1025,7 +1363,7 @@ def test_policy_scan_with_array_agg_comparison(rewriter):
 def test_policy_scan_with_min(rewriter):
     """Test that MIN aggregations in constraints are transformed to columns."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="min(foo.id) <= 2",
         on_fail=Resolution.REMOVE,
     )
@@ -1046,7 +1384,7 @@ def test_policy_scan_with_min(rewriter):
 def test_policy_scan_with_complex_constraint(rewriter):
     """Test that complex constraints with multiple aggregations work."""
     policy = DFCPolicy(
-        source="foo",
+        sources=["foo"],
         constraint="max(foo.id) > 1 AND min(foo.id) < 10",
         on_fail=Resolution.REMOVE,
     )
@@ -1071,7 +1409,7 @@ class TestPolicyRowDropping:
         """Test that a policy drops specific rows in a scan query."""
         # Policy: max(id) > 1 means id > 1, so id=1 should be dropped
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1093,7 +1431,7 @@ class TestPolicyRowDropping:
         """Test that a policy drops rows when constraint uses less-than."""
         # Policy: min(id) < 3 means id < 3, so id=3 should be dropped
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="min(foo.id) < 3",
             on_fail=Resolution.REMOVE,
         )
@@ -1115,7 +1453,7 @@ class TestPolicyRowDropping:
         """Test that a policy drops rows when constraint uses equality."""
         # Policy: max(id) = 2 means id = 2, so only id=2 should remain
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) = 2",
             on_fail=Resolution.REMOVE,
         )
@@ -1137,7 +1475,7 @@ class TestPolicyRowDropping:
         """Test that a policy drops rows when constraint uses not-equal."""
         # Policy: max(id) != 2 means id != 2, so id=2 should be dropped
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) != 2",
             on_fail=Resolution.REMOVE,
         )
@@ -1160,7 +1498,7 @@ class TestPolicyRowDropping:
         # Policy: max(id) > 1 AND min(id) < 3 means id > 1 AND id < 3
         # So only id=2 should remain (id=1 fails id > 1, id=3 fails id < 3)
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1 AND min(foo.id) < 3",
             on_fail=Resolution.REMOVE,
         )
@@ -1183,7 +1521,7 @@ class TestPolicyRowDropping:
         # Policy: max(id) = 1 OR max(id) = 3 means id = 1 OR id = 3
         # So id=2 should be dropped
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) = 1 OR max(foo.id) = 3",
             on_fail=Resolution.REMOVE,
         )
@@ -1205,7 +1543,7 @@ class TestPolicyRowDropping:
         """Test that a policy drops all rows when all rows fail the constraint."""
         # Policy: max(id) > 10 means id > 10, so all rows should be dropped
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 10",
             on_fail=Resolution.REMOVE,
         )
@@ -1223,7 +1561,7 @@ class TestPolicyRowDropping:
         """Test that a policy keeps all rows when all rows pass the constraint."""
         # Policy: max(id) >= 1 means id >= 1, so all rows should pass
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) >= 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1244,7 +1582,7 @@ class TestPolicyRowDropping:
         # Policy: COUNT_IF(id > 2) > 0 means CASE WHEN id > 2 THEN 1 ELSE 0 END > 0
         # So only id=3 should remain
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="COUNT_IF(foo.id > 2) > 0",
             on_fail=Resolution.REMOVE,
         )
@@ -1266,7 +1604,7 @@ class TestPolicyRowDropping:
         """Test that a policy drops aggregation results when constraint fails."""
         # Policy: max(id) > 10 means the aggregation result should be dropped
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 10",
             on_fail=Resolution.REMOVE,
         )
@@ -1294,7 +1632,7 @@ class TestPolicyRowDropping:
         # Policy with KILL resolution: max(id) > 10 means id > 10
         # Since max id is 3, this will fail and abort the query
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 10",
             on_fail=Resolution.KILL,
         )
@@ -1318,7 +1656,7 @@ class TestPolicyRowDropping:
         # Policy with KILL resolution: max(id) >= 1 means id >= 1
         # Since all ids are >= 1, this will pass and rows should be returned
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) >= 1",
             on_fail=Resolution.KILL,
         )
@@ -1343,7 +1681,7 @@ class TestPolicyRowDropping:
         # Actually, let's use a different approach - check if name contains certain characters
         # Policy: max(name) != 'Alice' means name != 'Alice', so 'Alice' should be dropped
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.name) != 'Alice'",
             on_fail=Resolution.REMOVE,
         )
@@ -1433,7 +1771,7 @@ class TestFindMatchingPolicies:
     def test_find_matching_policies_case_insensitive(self, rewriter):
         """Test that policy matching is case-insensitive."""
         policy = DFCPolicy(
-            source="FOO",  # Uppercase
+            sources=["FOO"],  # Uppercase
             constraint="max(FOO.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1448,7 +1786,7 @@ class TestFindMatchingPolicies:
     def test_find_matching_policies_with_empty_source_tables(self, rewriter):
         """Test that _find_matching_policies handles empty source_tables."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1461,12 +1799,12 @@ class TestFindMatchingPolicies:
     def test_find_matching_policies_with_multiple_tables(self, rewriter):
         """Test that _find_matching_policies works with multiple tables."""
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="baz",
+            sources=["baz"],
             constraint="max(baz.x) > 5",
             on_fail=Resolution.KILL,
         )
@@ -1480,6 +1818,7 @@ class TestFindMatchingPolicies:
     def test_find_matching_policies_with_policy_no_source(self, rewriter):
         """Test that policies without source are not matched."""
         policy = DFCPolicy(
+            sources=[],
             sink="baz",
             constraint="baz.x > 5",
             on_fail=Resolution.REMOVE,
@@ -1523,7 +1862,7 @@ class TestTransformQueryEdgeCases:
         # This is hard to test directly, but we can test that invalid policies
         # don't crash the rewriter
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1614,7 +1953,7 @@ class TestRegisterPolicyEdgeCases:
         # Actually, DuckDB requires at least one column, so this is a theoretical test
         # But we can test the error message path
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1626,6 +1965,7 @@ class TestRegisterPolicyEdgeCases:
         """Test that register_policy handles sink table with no columns."""
         # Similar to above - DuckDB requires at least one column
         policy = DFCPolicy(
+            sources=[],
             sink="baz",
             constraint="baz.x > 5",
             on_fail=Resolution.REMOVE,
@@ -1638,7 +1978,7 @@ class TestRegisterPolicyEdgeCases:
         """Test _get_column_table_type with edge cases."""
         # Use aggregated source column to satisfy policy validation
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="max(foo.id) > baz.x",
             on_fail=Resolution.REMOVE,
@@ -1723,7 +2063,7 @@ class TestJoinTypes:
     def test_right_join(self, rewriter):
         """Test that transform_query handles RIGHT JOIN."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1739,7 +2079,7 @@ class TestJoinTypes:
     def test_full_outer_join(self, rewriter):
         """Test that transform_query handles FULL OUTER JOIN."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1755,7 +2095,7 @@ class TestJoinTypes:
     def test_cross_join(self, rewriter):
         """Test that transform_query handles CROSS JOIN."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1772,7 +2112,7 @@ class TestJoinTypes:
     def test_right_join_with_policy(self, rewriter):
         """Test that policies work with RIGHT JOIN."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1787,7 +2127,7 @@ class TestJoinTypes:
     def test_full_outer_join_with_policy(self, rewriter):
         """Test that policies work with FULL OUTER JOIN."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1814,7 +2154,7 @@ class TestDistinctQueries:
     def test_select_distinct_with_policy(self, rewriter):
         """Test that policies work with SELECT DISTINCT."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1830,7 +2170,7 @@ class TestDistinctQueries:
     def test_select_distinct_multiple_columns(self, rewriter):
         """Test SELECT DISTINCT with multiple columns."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1846,7 +2186,7 @@ class TestDistinctQueries:
     def test_select_distinct_with_aggregation(self, rewriter):
         """Test SELECT DISTINCT with aggregation."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1866,7 +2206,7 @@ class TestExistsSubqueries:
     def test_exists_subquery(self, rewriter):
         """Test that transform_query handles EXISTS subqueries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1882,7 +2222,7 @@ class TestExistsSubqueries:
     def test_exists_subquery_with_policy(self, rewriter):
         """Test that policies work with EXISTS subqueries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1898,7 +2238,7 @@ class TestExistsSubqueries:
     def test_not_exists_subquery(self, rewriter):
         """Test that transform_query handles NOT EXISTS subqueries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1926,7 +2266,7 @@ class TestExistsSubqueries:
 
         # Policy on lineitem (the table in the EXISTS subquery)
         policy = DFCPolicy(
-            source="lineitem",
+            sources=["lineitem"],
             constraint="max(lineitem.l_quantity) >= 1",
             on_fail=Resolution.REMOVE,
         )
@@ -1996,7 +2336,7 @@ ORDER BY
         rewriter.execute("INSERT INTO lineitem VALUES (1, 10), (2, 5)")
 
         policy = DFCPolicy(
-            source="lineitem",
+            sources=["lineitem"],
             constraint="max(lineitem.l_quantity) >= 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2029,7 +2369,7 @@ GROUP BY o_orderkey"""
 
         # Policy on orders (the outer table)
         policy = DFCPolicy(
-            source="orders",
+            sources=["orders"],
             constraint="max(orders.o_orderkey) >= 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2058,7 +2398,7 @@ class TestRemovePolicyWithLimit:
         rewriter.execute("INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)")
 
         policy = DFCPolicy(
-            source="test_table",
+            sources=["test_table"],
             constraint="count(*) > 2",
             on_fail=Resolution.REMOVE,
         )
@@ -2112,7 +2452,7 @@ WHERE
         rewriter.execute("INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)")
 
         policy = DFCPolicy(
-            source="test_table",
+            sources=["test_table"],
             constraint="max(test_table.value) > 15",
             on_fail=Resolution.REMOVE,
         )
@@ -2168,7 +2508,7 @@ class TestInSubqueries:
     def test_in_subquery(self, rewriter):
         """Test that transform_query handles IN subqueries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2184,7 +2524,7 @@ class TestInSubqueries:
     def test_in_subquery_with_policy(self, rewriter):
         """Test that policies work with IN subqueries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2200,7 +2540,7 @@ class TestInSubqueries:
     def test_not_in_subquery(self, rewriter):
         """Test that transform_query handles NOT IN subqueries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2217,7 +2557,7 @@ class TestInSubqueries:
     def test_in_with_list(self, rewriter):
         """Test IN with literal list (not a subquery)."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2238,7 +2578,7 @@ class TestCorrelatedSubqueries:
     def test_correlated_subquery_in_select(self, rewriter):
         """Test correlated subquery in SELECT clause."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2259,7 +2599,7 @@ class TestCorrelatedSubqueries:
     def test_correlated_subquery_in_where(self, rewriter):
         """Test correlated subquery in WHERE clause."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2275,7 +2615,7 @@ class TestCorrelatedSubqueries:
     def test_correlated_subquery_with_policy(self, rewriter):
         """Test that policies work with correlated subqueries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2291,7 +2631,7 @@ class TestCorrelatedSubqueries:
     def test_correlated_subquery_with_aggregation(self, rewriter):
         """Test correlated subquery with aggregation."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2318,7 +2658,7 @@ class TestSubqueryWithMissingColumns:
         """
         # Register a policy that requires foo.id
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2361,7 +2701,7 @@ class TestSubqueryWithMissingColumns:
         """
         # Register a policy that requires foo.id
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2398,7 +2738,7 @@ class TestSubqueryWithMissingColumns:
         """
         # Register a policy that requires foo.id
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2431,7 +2771,7 @@ class TestSubqueryWithMissingColumns:
         """Test CTE missing policy column in aggregation query."""
         # Register a policy that requires foo.id
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2454,7 +2794,7 @@ class TestSubqueryWithMissingColumns:
         """Test subquery missing policy column in aggregation query."""
         # Register a policy that requires foo.id
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2474,7 +2814,7 @@ class TestSubqueryWithMissingColumns:
         """Test subquery missing multiple columns needed for policy evaluation."""
         # Register a policy that requires both foo.id and foo.name
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1 AND min(foo.name) < 'Z'",
             on_fail=Resolution.REMOVE,
         )
@@ -2499,7 +2839,7 @@ class TestUnionAll:
     def test_union_all(self, rewriter):
         """Test that transform_query handles UNION ALL."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2518,7 +2858,7 @@ class TestUnionAll:
     def test_union_all_with_policy(self, rewriter):
         """Test that policies work with UNION ALL."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2537,7 +2877,7 @@ class TestUnionAll:
     def test_union_all_multiple_unions(self, rewriter):
         """Test multiple UNION ALL operations."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2563,7 +2903,7 @@ class TestMultipleCTEs:
     def test_multiple_ctes(self, rewriter):
         """Test that transform_query handles multiple CTEs."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2582,7 +2922,7 @@ class TestMultipleCTEs:
     def test_multiple_ctes_with_policy(self, rewriter):
         """Test that policies work with multiple CTEs."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2601,7 +2941,7 @@ class TestMultipleCTEs:
     def test_nested_ctes(self, rewriter):
         """Test nested CTEs (CTE referencing another CTE)."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2631,7 +2971,7 @@ class TestMultipleCTEs:
     def test_multiple_ctes_with_joins(self, rewriter):
         """Test multiple CTEs with JOINs."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2664,6 +3004,7 @@ class TestInsertStatements:
 
         # Register sink-only policy
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
@@ -2686,6 +3027,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.REMOVE,
@@ -2702,7 +3044,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE analytics (user_id INTEGER, total INTEGER)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="analytics",
             constraint="max(foo.id) = analytics.user_id",
             on_fail=Resolution.KILL,
@@ -2720,6 +3062,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, value INTEGER)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
@@ -2737,6 +3080,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
@@ -2754,7 +3098,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE analytics (max_id INTEGER, count_val INTEGER)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="analytics",
             constraint="max(foo.id) > 0",
             on_fail=Resolution.REMOVE,
@@ -2771,7 +3115,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, name VARCHAR)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
@@ -2788,7 +3132,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, name VARCHAR)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
@@ -2800,8 +3144,8 @@ class TestInsertStatements:
         INSERT INTO reports SELECT id, name FROM filtered
         """
         transformed = rewriter.transform_query(query)
-        # Should handle CTEs correctly (adds WHERE clause to INSERT SELECT)
-        assert transformed == "WITH filtered AS (\n  SELECT\n    id,\n    name\n  FROM foo\n  WHERE\n    id > 1\n)\nINSERT INTO reports\nSELECT\n  id,\n  name\nFROM filtered\nWHERE\n  (\n    false\n  )"
+        # Should handle CTEs correctly without altering INSERT SELECT structure
+        assert transformed == "WITH filtered AS (\n  SELECT\n    id,\n    name\n  FROM foo\n  WHERE\n    id > 1\n)\nINSERT INTO reports\nSELECT\n  id,\n  name\nFROM filtered"
 
     def test_insert_sink_table_extraction(self, rewriter):
         """Test that sink table is correctly extracted from various INSERT formats."""
@@ -2831,6 +3175,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
@@ -2851,7 +3196,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE analytics (user_id INTEGER)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="analytics",
             constraint="max(foo.id) > 0",
             on_fail=Resolution.KILL,
@@ -2873,6 +3218,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE other_table (id INTEGER)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.id > 0",
             on_fail=Resolution.KILL,
@@ -2890,7 +3236,7 @@ class TestInsertStatements:
     def test_insert_not_matching_source_only_policy(self, rewriter):
         """Test that INSERT doesn't match source-only policies."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -2914,6 +3260,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
@@ -2930,11 +3277,13 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, value INTEGER)")
 
         policy1 = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
         )
         policy2 = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.value > 0",
             on_fail=Resolution.REMOVE,
@@ -2955,7 +3304,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, name VARCHAR, other_val INTEGER)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
@@ -2973,13 +3322,13 @@ class TestInsertStatements:
 
         # Two policies, both with source and sink
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="analytics",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="analytics",
             constraint="min(foo.id) < 10",
             on_fail=Resolution.REMOVE,
@@ -3010,6 +3359,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.KILL,
@@ -3030,6 +3380,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
         policy = DFCPolicy(
+            sources=[],
             sink="reports",
             constraint="reports.status = 'approved'",
             on_fail=Resolution.REMOVE,
@@ -3054,7 +3405,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, valid BOOLEAN)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.INVALIDATE,
@@ -3075,7 +3426,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, valid BOOLEAN)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.INVALIDATE,
@@ -3095,7 +3446,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR, valid BOOLEAN)")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="max(foo.id) > 1",
             on_fail=Resolution.INVALIDATE,
@@ -3127,21 +3478,21 @@ class TestInsertStatements:
         # Register policy with both source and sink constraints
         # Use aggregations for source columns (they'll be transformed to columns for scan queries)
         policy1 = DFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="min(bank_txn.txn_id) = irs_form.txn_id",
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy1)
         policy2 = DFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="NOT min(LOWER(bank_txn.category)) = 'meal' OR irs_form.business_use_pct <= 50.0",
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy2)
         policy3 = DFCPolicy(
-            source="bank_txn",
+            sources=["bank_txn"],
             sink="irs_form",
             constraint="count(distinct bank_txn.txn_id) = 1",
             on_fail=Resolution.REMOVE,
@@ -3198,7 +3549,7 @@ class TestDeletePolicy:
     def test_delete_policy_by_all_fields(self, rewriter):
         """Test deleting a policy by matching all fields."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="min(foo.id) > 1",
             on_fail=Resolution.REMOVE,
@@ -3210,7 +3561,7 @@ class TestDeletePolicy:
 
         # Delete by all fields
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="min(foo.id) > 1",
             on_fail=Resolution.REMOVE,
@@ -3223,12 +3574,12 @@ class TestDeletePolicy:
     def test_delete_policy_by_source_and_constraint(self, rewriter):
         """Test deleting a policy by matching source and constraint only."""
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) < 10",
             on_fail=Resolution.KILL,
         )
@@ -3239,7 +3590,7 @@ class TestDeletePolicy:
 
         # Delete by source and constraint
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1"
         )
 
@@ -3251,11 +3602,13 @@ class TestDeletePolicy:
     def test_delete_policy_by_sink_only(self, rewriter):
         """Test deleting a policy by matching sink only."""
         policy1 = DFCPolicy(
+            sources=[],
             sink="baz",
             constraint="baz.x > 5",
             on_fail=Resolution.KILL,
         )
         policy2 = DFCPolicy(
+            sources=[],
             sink="baz",
             constraint="baz.x < 20",
             on_fail=Resolution.REMOVE,
@@ -3279,12 +3632,12 @@ class TestDeletePolicy:
     def test_delete_policy_by_constraint_only(self, rewriter):
         """Test deleting a policy by matching constraint only."""
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="baz",
+            sources=["baz"],
             constraint="max(baz.x) > 5",
             on_fail=Resolution.KILL,
         )
@@ -3304,13 +3657,13 @@ class TestDeletePolicy:
     def test_delete_policy_with_description(self, rewriter):
         """Test deleting a policy that includes a description."""
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
             description="First policy"
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
             description="Second policy"
@@ -3322,7 +3675,7 @@ class TestDeletePolicy:
 
         # Delete by description
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             description="First policy"
         )
@@ -3335,13 +3688,13 @@ class TestDeletePolicy:
     def test_delete_policy_without_description_matches_any(self, rewriter):
         """Test that not providing description matches policies with or without description."""
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
             description="Has description"
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) < 10",
             on_fail=Resolution.REMOVE,
         )
@@ -3352,7 +3705,7 @@ class TestDeletePolicy:
 
         # Delete without description should match policy with description
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1"
         )
 
@@ -3364,12 +3717,12 @@ class TestDeletePolicy:
     def test_delete_policy_by_on_fail(self, rewriter):
         """Test deleting a policy by matching on_fail resolution."""
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.KILL,
         )
@@ -3380,7 +3733,7 @@ class TestDeletePolicy:
 
         # Delete by on_fail
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE
         )
@@ -3393,7 +3746,7 @@ class TestDeletePolicy:
     def test_delete_policy_not_found_returns_false(self, rewriter):
         """Test that deleting a non-existent policy returns False."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -3401,7 +3754,7 @@ class TestDeletePolicy:
 
         # Try to delete a different policy
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 100"  # Different constraint
         )
 
@@ -3410,13 +3763,13 @@ class TestDeletePolicy:
 
     def test_delete_policy_requires_at_least_one_identifier(self, rewriter):
         """Test that delete_policy requires at least one of source, sink, or constraint."""
-        with pytest.raises(ValueError, match="At least one of source, sink, or constraint must be provided"):
+        with pytest.raises(ValueError, match="At least one of sources, sink, or constraint must be provided"):
             rewriter.delete_policy()
 
     def test_delete_policy_case_sensitive_matching(self, rewriter):
         """Test that delete_policy matches are case-sensitive for table names."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -3424,7 +3777,7 @@ class TestDeletePolicy:
 
         # Try to delete with different case (should not match)
         deleted = rewriter.delete_policy(
-            source="FOO",  # Different case
+            sources=["FOO"],  # Different case
             constraint="max(foo.id) > 1"
         )
 
@@ -3434,17 +3787,17 @@ class TestDeletePolicy:
     def test_delete_policy_multiple_policies_same_source(self, rewriter):
         """Test deleting one of multiple policies with the same source."""
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.name) = 'Alice'",
             on_fail=Resolution.KILL,
         )
         policy3 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) < 10",
             on_fail=Resolution.REMOVE,
         )
@@ -3456,7 +3809,7 @@ class TestDeletePolicy:
 
         # Delete middle policy
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.name) = 'Alice'"
         )
 
@@ -3471,7 +3824,7 @@ class TestDeletePolicy:
     def test_delete_policy_with_source_and_sink(self, rewriter):
         """Test deleting a policy that has both source and sink."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="min(foo.id) = baz.x",
             on_fail=Resolution.REMOVE,
@@ -3482,7 +3835,7 @@ class TestDeletePolicy:
 
         # Delete by source, sink, and constraint
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="min(foo.id) = baz.x"
         )
@@ -3493,14 +3846,14 @@ class TestDeletePolicy:
     def test_delete_policy_with_empty_constraint_matches_any(self, rewriter):
         """Test that empty constraint string matches any constraint."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         rewriter.register_policy(policy)
 
         # Delete with empty constraint should match any constraint
-        deleted = rewriter.delete_policy(source="foo", constraint="")
+        deleted = rewriter.delete_policy(sources=["foo"], constraint="")
 
         assert deleted is True
         assert len(rewriter.get_dfc_policies()) == 0
@@ -3508,7 +3861,7 @@ class TestDeletePolicy:
     def test_delete_policy_verifies_policy_no_longer_applies(self, rewriter):
         """Test that after deleting a policy, it no longer affects queries."""
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -3520,7 +3873,7 @@ class TestDeletePolicy:
 
         # Delete the policy
         deleted = rewriter.delete_policy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1"
         )
         assert deleted is True
@@ -3536,7 +3889,7 @@ class TestAggregateDFCPolicyIntegration:
     def test_register_aggregate_policy(self, rewriter):
         """Test registering an aggregate policy."""
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="sum(foo.id) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -3550,12 +3903,12 @@ class TestAggregateDFCPolicyIntegration:
     def test_aggregate_policy_separate_from_regular(self, rewriter):
         """Test that aggregate policies are stored separately from regular policies."""
         regular_policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         aggregate_policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="sum(foo.id) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -3584,7 +3937,7 @@ class TestAggregateDFCPolicyIntegration:
         from sql_rewriter.rewrite_rule import get_policy_identifier
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="sum(reports.value) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -3613,7 +3966,7 @@ class TestAggregateDFCPolicyIntegration:
         rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="sum(foo.id) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -3644,7 +3997,7 @@ class TestAggregateDFCPolicyIntegration:
         """)
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="sum(foo.id) > 1000",
             on_fail=Resolution.INVALIDATE,
@@ -3659,7 +4012,7 @@ class TestAggregateDFCPolicyIntegration:
         """Test that aggregate policy registration rejects non-INVALIDATE resolutions."""
         with pytest.raises(ValueError, match="currently only supports INVALIDATE resolution"):
             AggregateDFCPolicy(
-                source="foo",
+                sources=["foo"],
                 constraint="sum(foo.id) > 100",
                 on_fail=Resolution.REMOVE,
             )
@@ -3669,7 +4022,7 @@ class TestAggregateDFCPolicyIntegration:
         rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="sum(foo.id) > sum(reports.value)",
             on_fail=Resolution.INVALIDATE,
@@ -3682,9 +4035,9 @@ class TestAggregateDFCPolicyIntegration:
     @pytest.mark.usefixtures("rewriter")
     def test_aggregate_policy_source_must_be_aggregated(self):
         """Test that aggregate policies require source columns to be aggregated."""
-        with pytest.raises(ValueError, match=r"All columns from source table.*must be aggregated"):
+        with pytest.raises(ValueError, match=r"All columns from source tables.*must be aggregated"):
             AggregateDFCPolicy(
-                source="foo",
+                sources=["foo"],
                 constraint="foo.id > 100",
                 on_fail=Resolution.INVALIDATE,
             )
@@ -3694,13 +4047,13 @@ class TestAggregateDFCPolicyIntegration:
         rewriter.execute("CREATE TABLE reports (id INTEGER, value DOUBLE, valid BOOLEAN)")
 
         policy1 = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="sum(foo.id) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="reports",
             constraint="max(foo.id) > 5",
             on_fail=Resolution.INVALIDATE,
@@ -3715,7 +4068,7 @@ class TestAggregateDFCPolicyIntegration:
     def test_aggregate_policy_with_description(self, rewriter):
         """Test aggregate policy with description."""
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             sink="baz",
             constraint="sum(foo.id) > 100",
             on_fail=Resolution.INVALIDATE,

@@ -553,7 +553,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         # The physical rewriter should handle this transformation
         query = "SELECT * FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="min(test_data.value) > 10",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 10"
@@ -587,7 +587,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with < comparison operator."""
         query = "SELECT * FROM test_data"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) < 500",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value >= 500"
@@ -624,7 +624,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with >= comparison operator."""
         query = "SELECT * FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) >= 200",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value < 200"
@@ -662,7 +662,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         # Note: The physical rewriter transforms max(amount) to amount for scan queries
         query = "SELECT * FROM test_data"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
             description="Filter rows where amount <= 5000"
@@ -702,7 +702,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with KILL resolution (should still work for physical rewriter)."""
         query = "SELECT * FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.KILL,
             description="Kill query if value <= 100"
@@ -727,7 +727,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with INVALIDATE resolution."""
         query = "SELECT * FROM test_data"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.INVALIDATE,
             description="Invalidate rows where value <= 100"
@@ -750,7 +750,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with complex WHERE clause."""
         query = "SELECT * FROM test_data WHERE value > 50 AND category = 'A'"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 100"
@@ -788,7 +788,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with SELECT of specific columns."""
         query = "SELECT id, value, category FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 100"
@@ -828,7 +828,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
             "JOIN test_data AS other ON test_data.id = other.id"
         )
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
             description="Filter rows where amount <= 5000"
@@ -867,7 +867,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting query with ORDER BY and LIMIT."""
         query = "SELECT * FROM test_data ORDER BY value DESC LIMIT 10"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value <= 100"
@@ -908,7 +908,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting aggregation query with different threshold."""
         query = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 50",
             on_fail=Resolution.REMOVE,
             description="Filter groups where max(value) <= 50"
@@ -937,7 +937,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
             "GROUP BY category"
         )
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
             description="Filter groups where max(value) <= 100"
@@ -964,7 +964,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with <= comparison operator."""
         query = "SELECT * FROM test_data"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) <= 200",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value > 200"
@@ -1001,7 +1001,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """Test rewriting with = comparison operator."""
         query = "SELECT * FROM test_data WHERE value > 50"
         policy = DFCPolicy(
-            source="test_data",
+            sources=["test_data"],
             constraint="max(test_data.value) = 100",
             on_fail=Resolution.REMOVE,
             description="Filter rows where value != 100"

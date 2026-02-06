@@ -35,7 +35,7 @@ def build_policies(num_policies: int) -> list[DFCPolicy]:
         constraint = template.format(i=i, i_plus=i + 1)
         policies.append(
             DFCPolicy(
-                source="lineitem",
+                sources=["lineitem"],
                 constraint=constraint,
                 on_fail=Resolution.REMOVE,
                 description=f"q01_policy_{i + 1}",
@@ -48,7 +48,7 @@ def _clear_policies(rewriter: SQLRewriter) -> None:
     existing = rewriter.get_dfc_policies()
     for old_policy in existing:
         rewriter.delete_policy(
-            source=old_policy.source,
+            sources=old_policy.sources,
             constraint=old_policy.constraint,
             on_fail=old_policy.on_fail,
         )

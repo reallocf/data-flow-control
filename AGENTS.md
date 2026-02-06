@@ -14,6 +14,8 @@ This project implements Data Flow Control (DFC) policies that can filter or abor
 - **Policy types**: `DFCPolicy` for standard policies, `AggregateDFCPolicy` for policies evaluated after all data is processed
 - **Resolution types**: `REMOVE` filters rows, `KILL` aborts the query, `LLM` uses AI to fix violating rows, `INVALIDATE` marks rows as invalid
 - **Column qualification**: All constraint columns must be qualified with table names
+- **Source list**: `sources` is a non-optional list; use `[]` when no source is defined
+- **Policy applicability**: A policy applies only when the query selects from all sources in the list (and writes to the sink if defined)
 - **Source aggregation**: Source columns must be aggregated when source is present (for `DFCPolicy`)
 - **Aggregate policies**: `AggregateDFCPolicy` uses inner/outer aggregation patterns and currently only supports `INVALIDATE` resolution
 

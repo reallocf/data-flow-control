@@ -328,6 +328,13 @@ def create_all_charts(
         print(f"\nAll charts saved to {output_dir}/")
         return
 
+    if {"source_count", "join_count", "no_policy_exec_time_ms", "dfc_exec_time_ms"}.issubset(df.columns):
+        print("\nCreating multi-source execution time chart...")
+        create_multi_source_exec_time_chart(df, output_dir=output_dir)
+        create_multi_source_heatmap_chart(df, output_dir=output_dir)
+        print(f"\nAll charts saved to {output_dir}/")
+        return
+
     if (
         {"no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns)
         or {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns)
@@ -816,6 +823,143 @@ def create_policy_count_chart(
     plt.tight_layout()
     if output_filename == "tpch_q01_policy_count.png" and query_label:
         output_filename = f"tpch_{query_label.lower()}_policy_count.png"
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_multi_source_exec_time_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "multi_source_exec_time.png",
+) -> Optional[plt.Figure]:
+    """Create a line chart for multi-source join chain execution times."""
+    required_cols = {"source_count", "no_policy_exec_time_ms", "dfc_exec_time_ms"}
+    if not required_cols.issubset(df.columns):
+        print("Missing required columns for multi-source chart.")
+        return None
+
+    plot_df = df[list(required_cols)].copy()
+    if "run_num" in df.columns:
+        plot_df = df[df["run_num"].fillna(0) > 0].copy()
+
+    plot_df = plot_df.dropna(subset=["source_count"])
+    if plot_df.empty:
+        print("No data available for multi-source chart.")
+        return None
+
+    grouped = plot_df.groupby("source_count", as_index=True).mean(numeric_only=True)
+    grouped = grouped.sort_index()
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(
+        grouped.index,
+        grouped["no_policy_exec_time_ms"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="No Policy",
+        color="#1f77b4",
+    )
+    ax.plot(
+        grouped.index,
+        grouped["dfc_exec_time_ms"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="DFC",
+        color="#ff7f0e",
+    )
+
+    ax.set_xlabel("Number of Sources (Linear Join Chain)", fontsize=12)
+    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+    ax.set_title("Multi-Source Join Chain Execution Time", fontsize=14, fontweight="bold")
+    ax.set_xscale("log")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=10)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_multi_source_heatmap_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "multi_source_heatmap.png",
+) -> Optional[plt.Figure]:
+    """Create a heatmap of DFC vs No Policy execution time ratio."""
+    required_cols = {"source_count", "join_count", "no_policy_exec_time_ms", "dfc_exec_time_ms"}
+    if not required_cols.issubset(df.columns):
+        print("Missing required columns for multi-source heatmap.")
+        return None
+
+    plot_df = df[list(required_cols)].copy()
+    if "run_num" in df.columns:
+        plot_df = df[df["run_num"].fillna(0) > 0].copy()
+
+    plot_df = plot_df.dropna(subset=["source_count", "join_count"])
+    if plot_df.empty:
+        print("No data available for multi-source heatmap.")
+        return None
+
+    plot_df["relative_perf"] = plot_df["dfc_exec_time_ms"] / plot_df["no_policy_exec_time_ms"]
+
+    grouped = (
+        plot_df.groupby(["join_count", "source_count"], as_index=False)
+        .agg({"relative_perf": "mean"})
+    )
+
+    join_values = sorted(grouped["join_count"].unique().tolist())
+    source_values = sorted(grouped["source_count"].unique().tolist())
+
+    heatmap = pd.DataFrame(index=source_values, columns=join_values, dtype=float)
+    for _, row in grouped.iterrows():
+        heatmap.at[row["source_count"], row["join_count"]] = row["relative_perf"]
+
+    for source in source_values:
+        for join in join_values:
+            if source > join:
+                heatmap.at[source, join] = float("nan")
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+        "light_red_yellow",
+        ["#e38b8b", "#fff3b0"],
+    )
+    cmap.set_bad(color="#f0f0f0")
+
+    im = ax.imshow(
+        heatmap.values,
+        origin="lower",
+        aspect="auto",
+        cmap=cmap,
+    )
+
+    ax.set_xticks(range(len(join_values)))
+    ax.set_xticklabels(join_values)
+    ax.set_yticks(range(len(source_values)))
+    ax.set_yticklabels(source_values)
+    ax.set_xlabel("Number of Joins", fontsize=12)
+    ax.set_ylabel("Number of Sources", fontsize=12)
+    ax.set_title("Multi-Source Relative Performance (DFC / No Policy)", fontsize=14, fontweight="bold")
+
+    for y_idx, source in enumerate(source_values):
+        for x_idx, join in enumerate(join_values):
+            value = heatmap.at[source, join]
+            if pd.notna(value):
+                ax.text(x_idx, y_idx, f"{value:.2f}", ha="center", va="center", fontsize=9)
+
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label("Execution Time Ratio", fontsize=11)
+
+    ax.grid(False)
+    plt.tight_layout()
     output_path = Path(output_dir) / output_filename
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
     plt.close(fig)

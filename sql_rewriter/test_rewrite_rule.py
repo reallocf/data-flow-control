@@ -9,6 +9,7 @@ from sql_rewriter.rewrite_rule import (
     apply_policy_constraints_to_aggregation,
     apply_policy_constraints_to_scan,
     ensure_columns_accessible,
+    ensure_subqueries_have_constraint_columns,
     get_policy_identifier,
     transform_aggregations_to_columns,
 )
@@ -23,7 +24,7 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -42,7 +43,7 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -62,12 +63,12 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) < 10",
             on_fail=Resolution.KILL,
         )
@@ -100,7 +101,7 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1 AND min(foo.id) < 5",
             on_fail=Resolution.REMOVE,
         )
@@ -120,7 +121,7 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -140,7 +141,7 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) = 1 OR max(foo.id) = 3",
             on_fail=Resolution.REMOVE,
         )
@@ -160,7 +161,7 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.INVALIDATE,
         )
@@ -182,12 +183,12 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) < 10",
             on_fail=Resolution.INVALIDATE,
         )
@@ -207,12 +208,12 @@ class TestApplyPolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) < 10",
             on_fail=Resolution.INVALIDATE,
         )
@@ -235,7 +236,7 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -255,7 +256,7 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -275,12 +276,12 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="min(foo.id) < 10",
             on_fail=Resolution.KILL,
         )
@@ -301,7 +302,7 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -321,7 +322,7 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) = 1 OR max(foo.id) = 3",
             on_fail=Resolution.REMOVE,
         )
@@ -341,7 +342,7 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -362,7 +363,7 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.INVALIDATE,
         )
@@ -383,12 +384,12 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="min(foo.id) < 10",
             on_fail=Resolution.INVALIDATE,
         )
@@ -408,12 +409,12 @@ class TestApplyPolicyConstraintsToScan:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="min(foo.id) < 10",
             on_fail=Resolution.INVALIDATE,
         )
@@ -697,7 +698,7 @@ class TestIntegration:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -716,7 +717,7 @@ class TestIntegration:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
@@ -736,12 +737,12 @@ class TestIntegration:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) < 10",
             on_fail=Resolution.KILL,
         )
@@ -762,12 +763,12 @@ class TestIntegration:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy1 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="max(foo.id) > 1",
             on_fail=Resolution.REMOVE,
         )
         policy2 = DFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="min(foo.id) < 10",
             on_fail=Resolution.KILL,
         )
@@ -793,7 +794,7 @@ class TestApplyAggregatePolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="sum(foo.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
@@ -821,7 +822,7 @@ class TestApplyAggregatePolicyConstraintsToAggregation:
         parsed = sqlglot.parse_one(query, read="duckdb")
 
         policy = AggregateDFCPolicy(
-            source="foo",
+            sources=["foo"],
             constraint="sum(foo.amount) > 100 AND max(foo.id) > 10",
             on_fail=Resolution.INVALIDATE,
         )
@@ -857,13 +858,13 @@ class TestGetPolicyIdentifier:
     def test_same_policy_same_identifier(self):
         """Test that same policy produces same identifier."""
         policy1 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             sink="reports",
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
@@ -878,12 +879,12 @@ class TestGetPolicyIdentifier:
     def test_different_policies_different_identifiers(self):
         """Test that different policies produce different identifiers."""
         policy1 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             constraint="sum(users.amount) > 100",
             on_fail=Resolution.INVALIDATE,
         )
         policy2 = AggregateDFCPolicy(
-            source="users",
+            sources=["users"],
             constraint="sum(users.amount) > 200",
             on_fail=Resolution.INVALIDATE,
         )
@@ -892,3 +893,29 @@ class TestGetPolicyIdentifier:
         id2 = get_policy_identifier(policy2)
 
         assert id1 != id2
+
+
+def test_ensure_subqueries_have_constraint_columns_multiple_sources():
+    """Test that subqueries add missing columns for multi-source constraints."""
+    query = "SELECT sub.id FROM (SELECT foo.id FROM foo JOIN baz ON TRUE) AS sub"
+    parsed = sqlglot.parse_one(query, read="duckdb")
+
+    policy = DFCPolicy(
+        sources=["foo", "baz"],
+        constraint="max(foo.id) > 1 AND max(baz.x) > 5",
+        on_fail=Resolution.REMOVE,
+    )
+
+    ensure_subqueries_have_constraint_columns(parsed, [policy], {"foo", "baz"})
+    assert parsed.sql(pretty=True) == (
+        "SELECT\n"
+        "  sub.id\n"
+        "FROM (\n"
+        "  SELECT\n"
+        "    foo.id,\n"
+        "    baz.x\n"
+        "  FROM foo\n"
+        "  JOIN baz\n"
+        "    ON TRUE\n"
+        ") AS sub"
+    )

@@ -19,9 +19,12 @@ vldb_2026_big_paper_experiments/
 │       ├── policy_setup.py     # Policy configuration
 │       ├── query_definitions.py # Query definitions for each operator
 │       └── strategies/
-│           └── microbenchmark_strategy.py # Main experiment strategy
+│           ├── microbenchmark_strategy.py # Main experiment strategy
+│           └── multi_source_strategy.py  # Multi-source join-chain strategy
 └── scripts/
-    └── run_microbenchmarks.py  # Script to run experiments
+    ├── run_microbenchmarks.py  # Script to run experiments
+    ├── run_multi_source_experiment.py # Multi-source experiment runner
+    └── generate_multi_source_visualizations.py # Multi-source chart generator
 ```
 
 ## Installation
@@ -82,7 +85,7 @@ The experiments use a fixed dataset with 1,000,000 rows in a `test_data` table:
 
 A single source-only DFC policy is used:
 ```
-SOURCE test_data CONSTRAINT max(test_data.value) > 100 ON FAIL REMOVE
+SOURCES test_data CONSTRAINT max(test_data.value) > 100 ON FAIL REMOVE
 ```
 
 This policy filters rows where `value <= 100` when applied to queries.
@@ -183,6 +186,27 @@ If you're not using SmokedDuck (uv install), disable the physical baseline:
 ```bash
 python scripts/run_microbenchmarks.py --disable-physical
 ```
+
+### Multi-Source Join-Chain Experiment
+
+The multi-source experiment varies join counts and source counts (2, 4, 8, 16, 32) and compares No Policy vs DFC. Outputs are suffixed so runs don't overwrite prior results.
+
+Run the experiment:
+```bash
+source setup_local_smokedduck.sh
+python scripts/run_multi_source_experiment.py --suffix <label>
+```
+
+Generate charts:
+```bash
+source setup_local_smokedduck.sh
+python scripts/generate_multi_source_visualizations.py --suffix <label>
+```
+
+Outputs are written to `results/` as:
+- `multi_source_results_<label>.csv`
+- `multi_source_exec_time_<label>.png`
+- `multi_source_heatmap_<label>.png`
 
 ## Linting and Tests
 

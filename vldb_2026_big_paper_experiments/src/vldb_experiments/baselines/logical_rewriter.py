@@ -1151,15 +1151,17 @@ def rewrite_query_with_cte(
     """
     if not isinstance(policy, DFCPolicy):
         raise ValueError("policy must be a DFCPolicy instance")
-    if policy.source is None:
-        raise ValueError("policy must have a source specified")
+    if not policy.sources:
+        raise ValueError("policy must have sources specified")
+    if len(policy.sources) != 1:
+        raise ValueError("logical baseline supports a single source table per policy")
     parsed = sqlglot.parse_one(query, read="duckdb")
 
     if not isinstance(parsed, exp.Select):
         raise ValueError(f"Query must be a SELECT statement, got {type(parsed)}")
 
     # Extract policy attributes
-    policy_source = policy.source
+    policy_source = policy.sources[0]
     policy_constraint = policy.constraint
 
     # Determine if query is aggregation

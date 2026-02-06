@@ -474,7 +474,7 @@ class SQLRewriter:
         if not table_name:
             return None
 
-        if policy.source and table_name == policy.source.lower():
+        if policy.sources and table_name in policy._sources_lower:
             return "source"
         if policy.sink and table_name == policy.sink.lower():
             return "sink"
@@ -520,16 +520,16 @@ class SQLRewriter:
         Raises:
             ValueError: If validation fails (table doesn't exist, column doesn't exist, etc.).
         """
-        if policy.source:
-            self._validate_table_exists(policy.source, "Source")
+        for source in policy.sources:
+            self._validate_table_exists(source, "Source")
         if policy.sink:
             self._validate_table_exists(policy.sink, "Sink")
 
-        source_columns: Optional[set[str]] = None
+        source_columns: Optional[dict[str, set[str]]] = None
         sink_columns: Optional[set[str]] = None
 
-        if policy.source:
-            source_columns = self._get_table_columns(policy.source)
+        if policy.sources:
+            source_columns = {source.lower(): self._get_table_columns(source) for source in policy.sources}
         if policy.sink:
             sink_columns = self._get_table_columns(policy.sink)
 
@@ -584,8 +584,11 @@ class SQLRewriter:
 
             if table_type == "source":
                 if source_columns is None:
-                    raise ValueError(f"Source table '{policy.source}' has no columns")
-                self._validate_column_in_table(column, table_name, source_columns, "source")
+                    raise ValueError("Source tables have no columns")
+                table_columns = source_columns.get(table_name)
+                if table_columns is None:
+                    raise ValueError(f"Source table '{table_name}' has no columns")
+                self._validate_column_in_table(column, table_name, table_columns, "source")
             elif table_type == "sink":
                 if sink_columns is None:
                     raise ValueError(f"Sink table '{policy.sink}' has no columns")
@@ -593,8 +596,8 @@ class SQLRewriter:
             else:
                 raise ValueError(
                     f"Column '{table_name}.{col_name}' referenced in constraint "
-                    f"references table '{table_name}', which is not the source "
-                    f"('{policy.source}') or sink ('{policy.sink}')"
+                    f"references table '{table_name}', which is not in sources "
+                    f"({policy.sources}) or sink ('{policy.sink}')"
                 )
 
         # Store aggregate policies separately
@@ -665,15 +668,16 @@ class SQLRewriter:
                 sink_temp_cols = []
 
                 # Extract source aggregates and their temp column names
-                if policy.source:
-                    source_aggregates = _extract_source_aggregates_from_constraint(
-                        policy._constraint_parsed, policy.source
-                    )
-                    for _ in source_aggregates:
-                        temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
-                        if temp_col_name.lower() in sink_columns:
-                            source_temp_cols.append(temp_col_name)
-                        temp_col_counter += 1
+                if policy.sources:
+                    for source in policy.sources:
+                        source_aggregates = _extract_source_aggregates_from_constraint(
+                            policy._constraint_parsed, source
+                        )
+                        for _ in source_aggregates:
+                            temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
+                            if temp_col_name.lower() in sink_columns:
+                                source_temp_cols.append(temp_col_name)
+                            temp_col_counter += 1
 
                 # Extract sink expressions and their temp column names
                 sink_expressions = _extract_sink_expressions_from_constraint(
@@ -700,45 +704,46 @@ class SQLRewriter:
                 temp_col_idx = 0
 
                 # Map source aggregates to outer aggregates
-                if policy.source:
-                    source_aggregates = _extract_source_aggregates_from_constraint(
-                        policy._constraint_parsed, policy.source
-                    )
-                    for agg_expr in source_aggregates:
-                        if temp_col_idx < len(source_temp_cols):
-                            temp_col_name = source_temp_cols[temp_col_idx]
-                            inner_agg_sql = agg_expr.sql()
+                if policy.sources:
+                    for source in policy.sources:
+                        source_aggregates = _extract_source_aggregates_from_constraint(
+                            policy._constraint_parsed, source
+                        )
+                        for agg_expr in source_aggregates:
+                            if temp_col_idx < len(source_temp_cols):
+                                temp_col_name = source_temp_cols[temp_col_idx]
+                                inner_agg_sql = agg_expr.sql()
 
-                            # Find the outer aggregate function that wraps this inner aggregate
-                            outer_agg_name = _find_outer_aggregate_for_inner(
-                                policy._constraint_parsed, inner_agg_sql
-                            )
-
-                            # If there's an outer aggregate, use it; otherwise use the inner aggregate function
-                            if outer_agg_name:
-                                # Replace the entire nested expression (e.g., max(sum(foo.amount)))
-                                # with outer aggregate over temp column (e.g., max(_policy_tmp1))
-                                # Find the outer aggregate expression in the constraint
-                                for outer_agg in policy._constraint_parsed.find_all(exp.AggFunc):
-                                    outer_agg_sql = outer_agg.sql()
-                                    if inner_agg_sql.upper() in outer_agg_sql.upper() and outer_agg_sql.upper() != inner_agg_sql.upper():
-                                        # This is the outer aggregate - replace it
-                                        temp_col_ref = exp.Column(
-                                            this=exp.Identifier(this=temp_col_name, quoted=False)
-                                        )
-                                        # Create the proper aggregate function class
-                                        new_outer_agg = self._create_aggregate_function(outer_agg_name, [temp_col_ref])
-                                        replacement_map[outer_agg_sql] = new_outer_agg.sql()
-                                        break
-                            else:
-                                # No outer aggregate - use the inner aggregate function
-                                agg_name = agg_expr.sql_name().upper() if hasattr(agg_expr, "sql_name") else "SUM"
-                                temp_col_ref = exp.Column(
-                                    this=exp.Identifier(this=temp_col_name, quoted=False)
+                                # Find the outer aggregate function that wraps this inner aggregate
+                                outer_agg_name = _find_outer_aggregate_for_inner(
+                                    policy._constraint_parsed, inner_agg_sql
                                 )
-                                outer_agg = self._create_aggregate_function(agg_name, [temp_col_ref])
-                                replacement_map[inner_agg_sql] = outer_agg.sql()
-                            temp_col_idx += 1
+
+                                # If there's an outer aggregate, use it; otherwise use the inner aggregate function
+                                if outer_agg_name:
+                                    # Replace the entire nested expression (e.g., max(sum(foo.amount)))
+                                    # with outer aggregate over temp column (e.g., max(_policy_tmp1))
+                                    # Find the outer aggregate expression in the constraint
+                                    for outer_agg in policy._constraint_parsed.find_all(exp.AggFunc):
+                                        outer_agg_sql = outer_agg.sql()
+                                        if inner_agg_sql.upper() in outer_agg_sql.upper() and outer_agg_sql.upper() != inner_agg_sql.upper():
+                                            # This is the outer aggregate - replace it
+                                            temp_col_ref = exp.Column(
+                                                this=exp.Identifier(this=temp_col_name, quoted=False)
+                                            )
+                                            # Create the proper aggregate function class
+                                            new_outer_agg = self._create_aggregate_function(outer_agg_name, [temp_col_ref])
+                                            replacement_map[outer_agg_sql] = new_outer_agg.sql()
+                                            break
+                                else:
+                                    # No outer aggregate - use the inner aggregate function
+                                    agg_name = agg_expr.sql_name().upper() if hasattr(agg_expr, "sql_name") else "SUM"
+                                    temp_col_ref = exp.Column(
+                                        this=exp.Identifier(this=temp_col_name, quoted=False)
+                                    )
+                                    outer_agg = self._create_aggregate_function(agg_name, [temp_col_ref])
+                                    replacement_map[inner_agg_sql] = outer_agg.sql()
+                                temp_col_idx += 1
 
                 # Map sink expressions to aggregates
                 temp_col_idx = 0
@@ -834,7 +839,7 @@ class SQLRewriter:
 
     def delete_policy(
         self,
-        source: Optional[str] = None,
+        sources: Optional[list[str]] = None,
         sink: Optional[str] = None,
         constraint: str = "",
         on_fail: Optional[Resolution] = None,
@@ -843,12 +848,12 @@ class SQLRewriter:
         """Delete a DFC policy from the rewriter by matching all provided parameters.
 
         All provided parameters must match exactly for a policy to be deleted.
-        If a parameter is None (for source/sink/description/on_fail) or empty string (for constraint),
-        it will match any value for that field. However, at least one of source, sink, or
+        If a parameter is None (for sources/sink/description/on_fail) or empty string (for constraint),
+        it will match any value for that field. However, at least one of sources, sink, or
         constraint must be provided to identify the policy.
 
         Args:
-            source: Optional source table name to match. None matches any source.
+            sources: Optional list of source table names to match. None matches any sources.
             sink: Optional sink table name to match. None matches any sink.
             constraint: Constraint SQL expression to match. Empty string matches any constraint.
             on_fail: Optional resolution type to match. None matches any resolution.
@@ -858,22 +863,28 @@ class SQLRewriter:
             True if a policy was found and deleted, False otherwise.
 
         Raises:
-            ValueError: If neither source, sink, nor constraint is provided.
+            ValueError: If neither sources, sink, nor constraint is provided.
         """
-        if source is None and sink is None and not constraint:
-            raise ValueError("At least one of source, sink, or constraint must be provided")
+        if sources is None and sink is None and not constraint:
+            raise ValueError("At least one of sources, sink, or constraint must be provided")
+
+        normalized_sources = None
+        if sources is not None:
+            if not isinstance(sources, list):
+                raise ValueError("Sources must be provided as a list of table names")
+            normalized_sources = [source.strip() for source in sources]
 
         # Find matching policy by comparing each field
         # Check regular policies first
         for i, policy in enumerate(self._policies):
             # Compare each field individually, allowing None/empty to match any
-            source_match = source is None or policy.source == source
+            sources_match = normalized_sources is None or policy.sources == normalized_sources
             sink_match = sink is None or policy.sink == sink
             constraint_match = not constraint or policy.constraint == constraint
             on_fail_match = on_fail is None or policy.on_fail == on_fail
             description_match = description is None or policy.description == description
 
-            if source_match and sink_match and constraint_match and on_fail_match and description_match:
+            if sources_match and sink_match and constraint_match and on_fail_match and description_match:
                 # Remove the matching policy
                 del self._policies[i]
                 return True
@@ -881,13 +892,13 @@ class SQLRewriter:
         # Check aggregate policies if not found in regular policies
         for i, policy in enumerate(self._aggregate_policies):
             # Compare each field individually, allowing None/empty to match any
-            source_match = source is None or policy.source == source
+            sources_match = normalized_sources is None or policy.sources == normalized_sources
             sink_match = sink is None or policy.sink == sink
             constraint_match = not constraint or policy.constraint == constraint
             on_fail_match = on_fail is None or policy.on_fail == on_fail
             description_match = description is None or policy.description == description
 
-            if source_match and sink_match and constraint_match and on_fail_match and description_match:
+            if sources_match and sink_match and constraint_match and on_fail_match and description_match:
                 # Remove the matching policy
                 del self._aggregate_policies[i]
                 return True
@@ -1351,20 +1362,19 @@ class SQLRewriter:
         """
         matching = []
         for policy in self._policies:
-            policy_source = policy.source.lower() if policy.source else None
+            policy_sources = policy._sources_lower
             policy_sink = policy.sink.lower() if policy.sink else None
 
-            if policy_sink and policy_source:
-                # Policy has both sink and source: match INSERT INTO sink queries
-                # The policy will fail if source is not present (enforcing that source must be present)
-                if sink_table is not None and policy_sink == sink_table:
+            if policy_sink and policy_sources:
+                # Policy has both sink and sources: match INSERT INTO sink queries with all sources present
+                if sink_table is not None and policy_sink == sink_table and policy_sources.issubset(source_tables):
                     matching.append(policy)
             elif policy_sink:
                 # Policy has only sink: query must be INSERT INTO sink
                 if sink_table is not None and policy_sink == sink_table:
                     matching.append(policy)
-            elif policy_source and source_tables and policy_source in source_tables:
-                # Policy has only source: query must be SELECT ... FROM source
+            elif policy_sources and policy_sources.issubset(source_tables):
+                # Policy has only sources: query must include all sources
                 matching.append(policy)
 
         return matching
@@ -1387,19 +1397,19 @@ class SQLRewriter:
         """
         matching = []
         for policy in self._aggregate_policies:
-            policy_source = policy.source.lower() if policy.source else None
+            policy_sources = policy._sources_lower
             policy_sink = policy.sink.lower() if policy.sink else None
 
-            if policy_sink and policy_source:
-                # Policy has both sink and source: match INSERT INTO sink queries
-                if sink_table is not None and policy_sink == sink_table:
+            if policy_sink and policy_sources:
+                # Policy has both sink and sources: match INSERT INTO sink queries with all sources present
+                if sink_table is not None and policy_sink == sink_table and policy_sources.issubset(source_tables):
                     matching.append(policy)
             elif policy_sink:
                 # Policy has only sink: query must be INSERT INTO sink
                 if sink_table is not None and policy_sink == sink_table:
                     matching.append(policy)
-            elif policy_source and source_tables and policy_source in source_tables:
-                # Policy has only source: query must be SELECT ... FROM source
+            elif policy_sources and policy_sources.issubset(source_tables):
+                # Policy has only sources: query must include all sources
                 matching.append(policy)
 
         return matching

@@ -399,8 +399,10 @@ def build_lineage_filter_query(
     """Build a filter query that uses operator lineage tables to enforce policy."""
     if not isinstance(policy, DFCPolicy):
         raise ValueError("policy must be a DFCPolicy instance")
-    if policy.source is None:
-        raise ValueError("policy must have a source specified")
+    if not policy.sources:
+        raise ValueError("policy must have sources specified")
+    if len(policy.sources) != 1:
+        raise ValueError("physical baseline supports a single source table per policy")
     if not output_columns:
         raise ValueError("output_columns must be provided for lineage filtering")
 
@@ -424,8 +426,8 @@ def build_lineage_filter_query(
         f"FROM {temp_table_name} AS generated_table\n"
         "JOIN lineage\n"
         "    ON generated_table.rowid::int = lineage.out_index::int\n"
-        f"JOIN {policy.source}\n"
-        f"    ON {policy.source}.rowid::int = lineage.{policy.source}::int\n"
+        f"JOIN {policy.sources[0]}\n"
+        f"    ON {policy.sources[0]}.rowid::int = lineage.{policy.sources[0]}::int\n"
         f"GROUP BY {', '.join(group_by_cols)}\n"
         f"HAVING {constraint_sql}"
         f"{order_by_sql}"
@@ -460,10 +462,12 @@ def rewrite_query_physical(
 
     if not isinstance(policy, DFCPolicy):
         raise ValueError("policy must be a DFCPolicy instance")
-    if policy.source is None:
-        raise ValueError("policy must have a source specified")
+    if not policy.sources:
+        raise ValueError("policy must have sources specified")
+    if len(policy.sources) != 1:
+        raise ValueError("physical baseline supports a single source table per policy")
 
-    source_table = policy.source
+    source_table = policy.sources[0]
     is_agg = is_aggregation_query(query)
 
     # Parse query to get column names (for filter query construction)
