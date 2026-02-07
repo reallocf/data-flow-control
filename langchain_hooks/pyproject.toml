@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "langchain-hooks"
+version = "0.1.0"
+description = "LangChain hooks and middlewares for data flow control"
+requires-python = ">=3.9"
+dependencies = [
+    "langchain>=0.1.0",
+    "langgraph>=0.0.1",
+    "openai>=1.0.0",
+    "boto3>=1.28.0",
+    "botocore>=1.31.0",
+    "duckdb>=0.9.2",
+    "streamlit>=1.25.0",
+    "tenacity>=8.2.2",
+    "requests>=2.31.0",
+    "loguru>=0.7.0",
+    "typing-extensions>=4.7.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1.0",
+    "black>=23.7.0",
+    "isort>=5.12.0",
+]
