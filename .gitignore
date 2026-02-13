@@ -213,3 +213,9 @@ __marimo__/
 vldb_2026_big_paper_experiments/results/multi_db/**/*.csv
 vldb_2026_big_paper_experiments/results/multi_db_test_data/**/*.csv
 *.sqlite
+
+# Ignore large tax documents
+ECFR-title26.xml
+USCODE-2023-title26.htm
+*.jsonl
+*.duckdb
