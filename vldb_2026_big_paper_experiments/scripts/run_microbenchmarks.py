@@ -2,14 +2,15 @@
 """Script to run microbenchmark experiments."""
 
 import argparse
-import sys
 from pathlib import Path
+import sys
 
 # Add src to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentRunner, ExperimentConfig
+from experiment_harness import ExperimentConfig, ExperimentRunner
+
 from vldb_experiments import MicrobenchmarkStrategy
 from vldb_experiments.query_definitions import get_query_order
 
@@ -62,27 +63,27 @@ def main():
     num_runs_per_variation = args.num_runs_per_variation
     num_executions_per_query = num_variations * num_runs_per_variation
     num_warmup_runs = args.warmup_runs
-    
+
     # Calculate total executions needed
     num_query_types = len(get_query_order())
     total_executions = num_executions_per_query * num_query_types
-    
-    print(f"Running microbenchmark experiments with variations:")
+
+    print("Running microbenchmark experiments with variations:")
     print(f"  Query types: {num_query_types}")
     print(f"  Variations per query: {num_variations} (x values, Zipfian distributed)")
     print(f"  Runs per variation: {num_runs_per_variation}")
     print(f"  Executions per query: {num_executions_per_query} ({num_variations} × {num_runs_per_variation})")
     print(f"  Total executions: {total_executions}")
     print(f"  Warm-up runs: {num_warmup_runs}")
-    print(f"  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
+    print("  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
     print(f"  Policy count: {args.policy_count}")
-    print(f"  Variations:")
-    print(f"    - SELECT/WHERE/ORDER_BY: Vary policy threshold (zipfian, 4 values)")
-    print(f"    - JOIN: Vary join matches (zipfian, 4 values)")
-    print(f"    - GROUP_BY: Vary number of groups (zipfian, 4 values)")
+    print("  Variations:")
+    print("    - SELECT/WHERE/ORDER_BY: Vary policy threshold (zipfian, 4 values)")
+    print("    - JOIN: Vary join matches (zipfian, 4 values)")
+    print("    - GROUP_BY: Vary number of groups (zipfian, 4 values)")
     print(f"  Charts will show averages of {num_runs_per_variation} runs per x value")
     print()
-    
+
     # Configure experiment
     config = ExperimentConfig(
         num_executions=total_executions,
@@ -94,7 +95,7 @@ def main():
         output_filename=output_filename,
         verbose=True,
     )
-    
+
     # Create and run strategy
     strategy = MicrobenchmarkStrategy(
         policy_count=args.policy_count,
@@ -103,26 +104,26 @@ def main():
         enable_physical=None if not args.disable_physical else False,
     )
     runner = ExperimentRunner(strategy, config)
-    
+
     print("Starting experiments...")
     collector = runner.run()
-    
-    print(f"\nExperiments completed!")
+
+    print("\nExperiments completed!")
     print(f"Results saved to: {config.output_dir}/{config.output_filename}")
-    
+
     # Check correctness
     import csv
     correctness_failures = []
-    with open(f"{config.output_dir}/{config.output_filename}", 'r') as f:
+    with open(f"{config.output_dir}/{config.output_filename}") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row.get('correctness_match', '').lower() == 'false':
+            if row.get("correctness_match", "").lower() == "false":
                 correctness_failures.append({
-                    'execution': row.get('execution_number'),
-                    'query_type': row.get('query_type'),
-                    'error': row.get('correctness_error', '')
+                    "execution": row.get("execution_number"),
+                    "query_type": row.get("query_type"),
+                    "error": row.get("correctness_error", "")
                 })
-    
+
     if correctness_failures:
         print(f"\n⚠️  WARNING: {len(correctness_failures)} correctness failures detected!")
         for failure in correctness_failures[:5]:  # Show first 5
@@ -130,8 +131,8 @@ def main():
         if len(correctness_failures) > 5:
             print(f"  ... and {len(correctness_failures) - 5} more")
     else:
-        print(f"\n✓ All correctness checks passed!")
-    
+        print("\n✓ All correctness checks passed!")
+
     return 0
 
 

@@ -21,8 +21,13 @@ def main() -> int:
         help="Suffix appended to the output CSV filename (e.g., _umbra).",
     )
     parser.add_argument(
+        "--output-dir",
+        default="./results",
+        help="Directory to write CSV outputs (default: ./results).",
+    )
+    parser.add_argument(
         "--engine",
-        choices=["umbra", "postgres", "sqlite", "datafusion", "all"],
+        choices=["umbra", "postgres", "datafusion", "sqlserver", "all"],
         default="all",
         help="External engine to run (default: all).",
     )
@@ -49,7 +54,9 @@ def main() -> int:
     for scale_factor in args.sf:
         print(f"\n=== Scale factor {scale_factor} ===", flush=True)
 
-        db_path = f"./results/tpch_sf{scale_factor}.db"
+        output_dir = Path(args.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        db_path = str(output_dir / f"tpch_sf{scale_factor}.db")
         output_filename = f"tpch_multi_db_sf{scale_factor}{args.suffix}.csv"
 
         config = ExperimentConfig(
@@ -63,7 +70,7 @@ def main() -> int:
                 "tpch_db_path": db_path,
                 "external_engines": None if args.engine == "all" else [args.engine],
             },
-            output_dir="./results",
+            output_dir=str(output_dir),
             output_filename=output_filename,
             verbose=True,
         )

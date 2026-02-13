@@ -2,13 +2,14 @@
 """Run multi-source join chain experiment (No Policy vs DFC)."""
 
 import argparse
-import sys
 from pathlib import Path
+import sys
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 from experiment_harness import ExperimentConfig, ExperimentRunner
+
 from vldb_experiments import MultiSourceStrategy
 
 DEFAULT_SOURCE_COUNTS = [2, 4, 8, 16, 32]

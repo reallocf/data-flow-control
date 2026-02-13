@@ -335,6 +335,20 @@ def create_all_charts(
         print(f"\nAll charts saved to {output_dir}/")
         return
 
+    if {"complexity_terms", "no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns):
+        print("\nCreating policy complexity overhead chart...")
+        output_filename = _apply_suffix("tpch_q01_policy_complexity_overhead.png", suffix)
+        create_policy_complexity_overhead_chart(df, output_dir=output_dir, output_filename=output_filename)
+        print(f"\nAll charts saved to {output_dir}/")
+        return
+
+    if {"or_count", "no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns):
+        print("\nCreating policy OR-chain overhead chart...")
+        output_filename = _apply_suffix("tpch_q01_policy_many_ors_overhead.png", suffix)
+        create_policy_many_ors_overhead_chart(df, output_dir=output_dir, output_filename=output_filename)
+        print(f"\nAll charts saved to {output_dir}/")
+        return
+
     if (
         {"no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns)
         or {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns)
@@ -830,6 +844,149 @@ def create_policy_count_chart(
     return fig
 
 
+def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.DataFrame]:
+    required_cols = {x_col, "no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms"}
+    if not required_cols.issubset(df.columns):
+        print(f"Missing required columns for policy overhead chart: {required_cols - set(df.columns)}")
+        return None
+
+    plot_df = df.copy()
+    if "run_num" in plot_df.columns:
+        plot_df = plot_df[plot_df["run_num"].fillna(0) > 0].copy()
+
+    plot_df = plot_df[list(required_cols)].copy()
+    plot_df = plot_df.dropna(subset=[x_col])
+    if plot_df.empty:
+        print("No data available for policy overhead chart.")
+        return None
+
+    grouped = plot_df.groupby(x_col, as_index=True).mean(numeric_only=True).sort_index()
+    grouped = grouped[grouped["no_policy_exec_time_ms"] > 0]
+    if grouped.empty:
+        print("No valid no-policy timings available for policy overhead chart.")
+        return None
+
+    grouped["dfc_overhead"] = grouped["dfc_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+    grouped["logical_overhead"] = grouped["logical_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+    return grouped
+
+
+def _apply_overhead_xscale(ax: plt.Axes, x_values: pd.Index) -> None:
+    if (x_values <= 0).any():
+        ax.set_xscale("symlog", linthresh=1, base=10)
+        ax.set_xlim(left=0)
+    else:
+        ax.set_xscale("log")
+        ax.set_xlim(left=max(min(x_values), 1e-6))
+
+    unique_values = sorted(set(x_values.tolist()))
+    if len(unique_values) <= 10:
+        ax.set_xticks(unique_values)
+
+
+def _policy_overhead_title(df: pd.DataFrame, base_title: str) -> str:
+    query_label = None
+    if "query_num" in df.columns:
+        unique_queries = df["query_num"].dropna().unique().tolist()
+        if len(unique_queries) == 1:
+            query_label = f"Q{int(unique_queries[0]):02d}"
+    if query_label:
+        return f"{base_title} ({query_label})"
+    return base_title
+
+
+def create_policy_complexity_overhead_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_q01_policy_complexity_overhead.png",
+) -> Optional[plt.Figure]:
+    """Create a relative overhead chart for policy complexity scaling."""
+    grouped = _prepare_policy_overhead_df(df, "complexity_terms")
+    if grouped is None:
+        return None
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(
+        grouped.index,
+        grouped["dfc_overhead"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="DFC / No Policy",
+        color="#ff7f0e",
+    )
+    ax.plot(
+        grouped.index,
+        grouped["logical_overhead"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="Logical / No Policy",
+        color="#2ca02c",
+    )
+    ax.axhline(1.0, color="#1f77b4", linestyle="--", linewidth=1, label="No Policy")
+
+    ax.set_xlabel("Predicate Complexity (Term Count)", fontsize=12)
+    ax.set_ylabel("Relative Overhead (Exec Time Ratio)", fontsize=12)
+    ax.set_title(_policy_overhead_title(df, "TPC-H Policy Complexity Overhead"), fontsize=14, fontweight="bold")
+    _apply_overhead_xscale(ax, grouped.index)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=9)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_policy_many_ors_overhead_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_q01_policy_many_ors_overhead.png",
+) -> Optional[plt.Figure]:
+    """Create a relative overhead chart for policy OR-clause scaling."""
+    grouped = _prepare_policy_overhead_df(df, "or_count")
+    if grouped is None:
+        return None
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(
+        grouped.index,
+        grouped["dfc_overhead"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="DFC / No Policy",
+        color="#ff7f0e",
+    )
+    ax.plot(
+        grouped.index,
+        grouped["logical_overhead"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="Logical / No Policy",
+        color="#2ca02c",
+    )
+    ax.axhline(1.0, color="#1f77b4", linestyle="--", linewidth=1, label="No Policy")
+
+    ax.set_xlabel("Number of OR Clauses", fontsize=12)
+    ax.set_ylabel("Relative Overhead (Exec Time Ratio)", fontsize=12)
+    ax.set_title(_policy_overhead_title(df, "TPC-H Policy OR-Chain Overhead"), fontsize=14, fontweight="bold")
+    _apply_overhead_xscale(ax, grouped.index)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=9)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
 def create_multi_source_exec_time_chart(
     df: pd.DataFrame,
     output_dir: str = "./results",
@@ -959,6 +1116,214 @@ def create_multi_source_heatmap_chart(
     cbar.set_label("Execution Time Ratio", fontsize=11)
 
     ax.grid(False)
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_multi_db_engine_summary_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_multi_db_engine_summary.png",
+    title_suffix: str | None = None,
+) -> Optional[plt.Figure]:
+    """Create a per-engine summary chart of average overhead."""
+    if "query_num" not in df.columns:
+        print("Missing query_num column for multi-db engine summary chart.")
+        return None
+
+    engines = {
+        "DuckDB": ("dfc_time_ms", "logical_time_ms", "no_policy_time_ms"),
+        "Umbra": ("umbra_dfc_time_ms", "umbra_logical_time_ms", "umbra_time_ms"),
+        "Postgres": ("postgres_dfc_time_ms", "postgres_logical_time_ms", "postgres_time_ms"),
+        "DataFusion": ("datafusion_dfc_time_ms", "datafusion_logical_time_ms", "datafusion_time_ms"),
+        "SQL Server": (
+            "sqlserver_dfc_time_ms",
+            "sqlserver_logical_time_ms",
+            "sqlserver_time_ms",
+        ),
+    }
+
+    available = {
+        name: cols for name, cols in engines.items() if all(col in df.columns for col in cols)
+    }
+    if not available:
+        print("No engine time columns found for multi-db engine summary chart.")
+        return None
+
+    records: list[dict[str, float | str]] = []
+    for engine, (dfc_col, logical_col, baseline_col) in available.items():
+        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(
+            numeric_only=True
+        )
+        if baseline_by_query.empty:
+            continue
+        for label, col in [("DFC", dfc_col), ("Logical", logical_col)]:
+            approach_by_query = df.groupby("query_num", as_index=True)[col].mean(
+                numeric_only=True
+            )
+            overhead_by_query = (approach_by_query / baseline_by_query).replace(
+                [float("inf"), float("-inf")], pd.NA
+            ).dropna()
+            if overhead_by_query.empty:
+                continue
+            overall_avg = float((overhead_by_query.mean() - 1.0) * 100.0)
+            records.append(
+                {
+                    "engine": engine,
+                    "approach": label,
+                    "avg_overhead": overall_avg,
+                }
+            )
+
+    if not records:
+        print("No data available for multi-db engine summary chart.")
+        return None
+
+    summary_df = pd.DataFrame.from_records(records)
+    engine_order = list(available.keys())
+    summary_df["engine"] = pd.Categorical(summary_df["engine"], categories=engine_order, ordered=True)
+    summary_df = summary_df.sort_values(["engine", "approach"])
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    x_positions = range(len(engine_order))
+    bar_width = 0.36
+    offsets = {"DFC": -bar_width / 2, "Logical": bar_width / 2}
+    colors = {"DFC": "#ff7f0e", "Logical": "#2ca02c"}
+
+    for approach in ["DFC", "Logical"]:
+        subset = summary_df[summary_df["approach"] == approach]
+        if subset.empty:
+            continue
+        xs = [engine_order.index(e) + offsets[approach] for e in subset["engine"]]
+        ax.bar(
+            xs,
+            subset["avg_overhead"],
+            width=bar_width,
+            label=approach,
+            color=colors[approach],
+        )
+
+    ax.set_xticks(list(x_positions))
+    ax.set_xticklabels(engine_order, fontsize=10)
+    ax.set_ylabel("Avg Overhead (%)", fontsize=12)
+    title = "TPC-H Average Overhead by Engine (Per-Query Avg)"
+    if title_suffix:
+        title = f"{title} ({title_suffix})"
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.grid(axis="y", alpha=0.3)
+    ax.legend(loc="best", fontsize=10)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_multi_db_engine_summary_capped_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_multi_db_engine_summary_capped.png",
+    duckdb_cap_pct: float = 300.0,
+    title_suffix: str | None = None,
+) -> Optional[plt.Figure]:
+    """Create a per-engine summary chart with DuckDB overhead capped."""
+    if "query_num" not in df.columns:
+        print("Missing query_num column for multi-db engine summary chart.")
+        return None
+
+    engines = {
+        "DuckDB": ("dfc_time_ms", "logical_time_ms", "no_policy_time_ms"),
+        "Umbra": ("umbra_dfc_time_ms", "umbra_logical_time_ms", "umbra_time_ms"),
+        "Postgres": ("postgres_dfc_time_ms", "postgres_logical_time_ms", "postgres_time_ms"),
+        "DataFusion": ("datafusion_dfc_time_ms", "datafusion_logical_time_ms", "datafusion_time_ms"),
+        "SQL Server": (
+            "sqlserver_dfc_time_ms",
+            "sqlserver_logical_time_ms",
+            "sqlserver_time_ms",
+        ),
+    }
+
+    available = {
+        name: cols for name, cols in engines.items() if all(col in df.columns for col in cols)
+    }
+    if not available:
+        print("No engine time columns found for multi-db engine summary chart.")
+        return None
+
+    records: list[dict[str, float | str]] = []
+    for engine, (dfc_col, logical_col, baseline_col) in available.items():
+        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(
+            numeric_only=True
+        )
+        if baseline_by_query.empty:
+            continue
+        for label, col in [("DFC", dfc_col), ("Logical", logical_col)]:
+            approach_by_query = df.groupby("query_num", as_index=True)[col].mean(
+                numeric_only=True
+            )
+            overhead_by_query = (approach_by_query / baseline_by_query).replace(
+                [float("inf"), float("-inf")], pd.NA
+            ).dropna()
+            if overhead_by_query.empty:
+                continue
+            overall_avg = float((overhead_by_query.mean() - 1.0) * 100.0)
+            if engine == "DuckDB":
+                overall_avg = min(overall_avg, duckdb_cap_pct)
+            records.append(
+                {
+                    "engine": engine,
+                    "approach": label,
+                    "avg_overhead": overall_avg,
+                }
+            )
+
+    if not records:
+        print("No data available for multi-db engine summary chart.")
+        return None
+
+    summary_df = pd.DataFrame.from_records(records)
+    engine_order = list(available.keys())
+    summary_df["engine"] = pd.Categorical(summary_df["engine"], categories=engine_order, ordered=True)
+    summary_df = summary_df.sort_values(["engine", "approach"])
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    x_positions = range(len(engine_order))
+    bar_width = 0.36
+    offsets = {"DFC": -bar_width / 2, "Logical": bar_width / 2}
+    colors = {"DFC": "#ff7f0e", "Logical": "#2ca02c"}
+
+    for approach in ["DFC", "Logical"]:
+        subset = summary_df[summary_df["approach"] == approach]
+        if subset.empty:
+            continue
+        xs = [engine_order.index(e) + offsets[approach] for e in subset["engine"]]
+        ax.bar(
+            xs,
+            subset["avg_overhead"],
+            width=bar_width,
+            label=approach,
+            color=colors[approach],
+        )
+
+    ax.set_xticks(list(x_positions))
+    ax.set_xticklabels(engine_order, fontsize=10)
+    ax.set_ylabel("Avg Overhead (%)", fontsize=12)
+    title = f"TPC-H Average Overhead by Engine (DuckDB capped at {duckdb_cap_pct:.0f}%)"
+    if title_suffix:
+        title = f"{title} ({title_suffix})"
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.grid(axis="y", alpha=0.3)
+    ax.legend(loc="best", fontsize=10)
+    ax.set_ylim(top=duckdb_cap_pct)
+
     plt.tight_layout()
     output_path = Path(output_dir) / output_filename
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight")

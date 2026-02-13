@@ -12,10 +12,21 @@ from sql_rewriter import SQLRewriter
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical
 from vldb_experiments.correctness import compare_results_approx
-from vldb_experiments.multi_db import DataFusionClient, PostgresClient, SQLiteClient, UmbraClient
+from vldb_experiments.multi_db import (
+    DataFusionClient,
+    PostgresClient,
+    SQLServerClient,
+    UmbraClient,
+    sqlserver_env_available,
+)
 from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES, lineitem_policy, load_tpch_query
 
 MULTI_DB_DATA_DIR = pathlib.Path("results") / "multi_db"
+
+
+def _schema_for_scale(scale_factor: float) -> str:
+    formatted = f"{scale_factor}".rstrip("0").rstrip(".")
+    return f"tpch_sf{formatted}".replace(".", "_")
 
 
 class TPCHMultiDBStrategy(ExperimentStrategy):
@@ -67,17 +78,20 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
 
         configured_engines = context.strategy_config.get("external_engines")
         if configured_engines is None:
-            enabled_engines = {"umbra", "postgres", "sqlite", "datafusion"}
+            enabled_engines = {"umbra", "postgres", "datafusion"}
+            if sqlserver_env_available():
+                enabled_engines.add("sqlserver")
         else:
             enabled_engines = {str(engine).lower() for engine in configured_engines}
         self.enabled_engines = sorted(enabled_engines)
 
         sf_dir = MULTI_DB_DATA_DIR / f"sf{self.scale_factor}"
+        sqlserver_schema = _schema_for_scale(self.scale_factor)
         available_clients = {
             "umbra": UmbraClient(sf_dir / "umbra"),
             "postgres": PostgresClient(sf_dir / "postgres"),
-            "sqlite": SQLiteClient(sf_dir / "sqlite"),
             "datafusion": DataFusionClient(sf_dir / "datafusion"),
+            "sqlserver": SQLServerClient(sf_dir / "sqlserver", schema=sqlserver_schema),
         }
         self.external_clients = {
             name: client for name, client in available_clients.items() if name in enabled_engines

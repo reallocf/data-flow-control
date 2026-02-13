@@ -9,7 +9,13 @@ import uuid
 
 import pytest
 
-from vldb_experiments.multi_db import DataFusionClient, PostgresClient, SQLiteClient, UmbraClient
+from vldb_experiments.multi_db import (
+    DataFusionClient,
+    PostgresClient,
+    SQLServerClient,
+    UmbraClient,
+    sqlserver_env_available,
+)
 
 DATA_DIR = Path("results") / "multi_db_test_data"
 
@@ -66,26 +72,6 @@ def test_postgres_smoke() -> None:
 
 
 
-def test_sqlite_smoke() -> None:
-    client = SQLiteClient(DATA_DIR / "sqlite")
-    client.start()
-    client.connect()
-    table = _table_name("local_test")
-    try:
-        cursor = client.conn.cursor()
-        cursor.execute(f"DROP TABLE IF EXISTS {table}")
-        cursor.execute(f"CREATE TABLE {table} (id INTEGER, name TEXT)")
-        cursor.execute(f"INSERT INTO {table} VALUES (1, 'alpha'), (2, 'beta')")
-        cursor.execute(f"SELECT name FROM {table} WHERE id = 2")
-        results = cursor.fetchall()
-        assert results == [("beta",)]
-    finally:
-        with contextlib.suppress(Exception):
-            cursor.execute(f"DROP TABLE IF EXISTS {table}")
-            client.conn.commit()
-        client.close()
-
-
 def test_datafusion_smoke() -> None:
     client = DataFusionClient(DATA_DIR / "datafusion")
     client.start()
@@ -105,3 +91,32 @@ def test_datafusion_smoke() -> None:
     results = client.fetchall(f"SELECT name FROM {table} WHERE id = 2")
     assert results == [("beta",)]
     client.close()
+
+
+def test_sqlserver_smoke() -> None:
+    if not sqlserver_env_available():
+        pytest.skip("SQL Server env vars not set")
+
+    db_name = f"sqlserver_test_{uuid.uuid4().hex[:8]}"
+    client = SQLServerClient(
+        DATA_DIR / "sqlserver",
+        database=db_name,
+        drop_database_on_close=True,
+    )
+    client.start()
+    client.wait_ready(timeout_s=120)
+    client.connect()
+    table = _table_name("sqlserver_test")
+    try:
+        cursor = client.conn.cursor()
+        cursor.execute(f"IF OBJECT_ID(N'dbo.{table}', N'U') IS NOT NULL DROP TABLE dbo.{table}")
+        cursor.execute(f"CREATE TABLE dbo.{table} (id INT, name VARCHAR(50))")
+        cursor.execute(f"INSERT INTO dbo.{table} (id, name) VALUES (?, ?)", (1, "alpha"))
+        cursor.execute(f"INSERT INTO dbo.{table} (id, name) VALUES (?, ?)", (2, "beta"))
+        cursor.execute(f"SELECT name FROM dbo.{table} WHERE id = 2")
+        results = [tuple(row) for row in cursor.fetchall()]
+        assert results == [("beta",)]
+    finally:
+        with contextlib.suppress(Exception):
+            cursor.execute(f"IF OBJECT_ID(N'dbo.{table}', N'U') IS NOT NULL DROP TABLE dbo.{table}")
+        client.close()

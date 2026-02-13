@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Run TPC-H Q01 policy count experiments."""
 
-import sys
-from pathlib import Path
 import argparse
+from pathlib import Path
+import sys
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentRunner, ExperimentConfig
-from vldb_experiments import TPCHPolicyCountStrategy
+from experiment_harness import ExperimentConfig, ExperimentRunner
 
+from vldb_experiments import TPCHPolicyCountStrategy
 
 DEFAULT_POLICY_COUNTS = [1, 10, 100, 1000]
 DEFAULT_WARMUP_PER_POLICY = 1

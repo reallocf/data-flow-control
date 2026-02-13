@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Script to run TPC-H experiments."""
 
-import sys
-from pathlib import Path
 import argparse
+from pathlib import Path
+import sys
 
 # Add src to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentRunner, ExperimentConfig
+from experiment_harness import ExperimentConfig, ExperimentRunner
+
 from vldb_experiments import TPCHStrategy
 from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES
 
@@ -78,7 +79,7 @@ def main():
         import csv
 
         correctness_failures = []
-        with open(f"{config.output_dir}/{config.output_filename}", "r") as f:
+        with open(f"{config.output_dir}/{config.output_filename}") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 if row.get("correctness_match", "").lower() == "false":

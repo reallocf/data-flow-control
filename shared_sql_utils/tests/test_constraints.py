@@ -5,7 +5,12 @@ import math
 import sqlglot
 from sqlglot import exp
 
-from shared_sql_utils import combine_constraints_balanced, combine_constraints_balanced_expr
+from shared_sql_utils import (
+    combine_constraints_balanced,
+    combine_constraints_balanced_expr,
+    combine_expressions_balanced,
+    combine_expressions_balanced_expr,
+)
 
 
 def _and_depth(expr: exp.Expression) -> int:
@@ -13,6 +18,22 @@ def _and_depth(expr: exp.Expression) -> int:
         return 1 + max(_and_depth(expr.this), _and_depth(expr.expression))
     if isinstance(expr, exp.Paren):
         return _and_depth(expr.this)
+    return 0
+
+
+def _or_depth(expr: exp.Expression) -> int:
+    if isinstance(expr, exp.Or):
+        return 1 + max(_or_depth(expr.this), _or_depth(expr.expression))
+    if isinstance(expr, exp.Paren):
+        return _or_depth(expr.this)
+    return 0
+
+
+def _add_depth(expr: exp.Expression) -> int:
+    if isinstance(expr, exp.Add):
+        return 1 + max(_add_depth(expr.this), _add_depth(expr.expression))
+    if isinstance(expr, exp.Paren):
+        return _add_depth(expr.this)
     return 0
 
 
@@ -55,3 +76,28 @@ def test_combine_constraints_dialect_round_trip():
     combined = combine_constraints_balanced(constraints, dialect="duckdb")
     parsed = sqlglot.parse_one(combined, read="duckdb")
     assert parsed.sql(dialect="duckdb") == combined
+
+
+def test_combine_expressions_balanced_or_contains_all_predicates():
+    expressions = ["a = 1", "b = 2", "c = 3", "d = 4", "e = 5"]
+    combined = combine_expressions_balanced(expressions, exp.Or, dialect="duckdb")
+    for expr in expressions:
+        needle = sqlglot.parse_one(expr, read="duckdb").sql(dialect="duckdb")
+        assert needle in combined
+    parsed = combine_expressions_balanced_expr(expressions, exp.Or, dialect="duckdb")
+    assert _or_depth(parsed) <= 3
+
+
+def test_combine_expressions_balanced_add_contains_all_terms():
+    terms = ["col1", "col2", "col3", "col4", "col5", "col6"]
+    combined = combine_expressions_balanced(terms, exp.Add, dialect="duckdb")
+    for term in terms:
+        needle = sqlglot.parse_one(term, read="duckdb").sql(dialect="duckdb")
+        assert needle in combined
+    parsed = combine_expressions_balanced_expr(terms, exp.Add, dialect="duckdb")
+    assert _add_depth(parsed) <= 3
+
+
+def test_combine_expressions_balanced_empty_fallback():
+    combined = combine_expressions_balanced([], exp.Or, dialect="duckdb", empty_fallback="FALSE")
+    assert combined.upper() == "FALSE"
