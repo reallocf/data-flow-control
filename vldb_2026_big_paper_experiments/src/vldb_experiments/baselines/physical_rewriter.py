@@ -389,12 +389,27 @@ def _extract_order_by_clause(query: str) -> str | None:
     return order_expr.sql(dialect="duckdb")
 
 
+def _extract_limit_clause(query: str) -> str | None:
+    """Extract LIMIT clause from query."""
+    try:
+        parsed = sqlglot.parse_one(query, read="duckdb")
+    except Exception:
+        return None
+    if not isinstance(parsed, exp.Select):
+        return None
+    limit_expr = parsed.args.get("limit")
+    if not limit_expr:
+        return None
+    return limit_expr.sql(dialect="duckdb")
+
+
 def build_lineage_filter_query(
     lineage_query: str,
     temp_table_name: str,
     policy: DFCPolicy,
     output_columns: list[str],
     order_by: str | None = None,
+    limit: str | None = None,
 ) -> str:
     """Build a filter query that uses operator lineage tables to enforce policy."""
     if not isinstance(policy, DFCPolicy):
@@ -416,6 +431,7 @@ def build_lineage_filter_query(
     constraint_sql = constraint_expr.sql(dialect="duckdb")
 
     order_by_sql = f"\n{order_by}" if order_by else ""
+    limit_sql = f"\n{limit}" if limit else ""
 
     return (
         "WITH lineage AS (\n"
@@ -425,18 +441,19 @@ def build_lineage_filter_query(
         f"    {', '.join(select_cols)}\n"
         f"FROM {temp_table_name} AS generated_table\n"
         "JOIN lineage\n"
-        "    ON generated_table.rowid::int = lineage.out_index::int\n"
+        "    ON generated_table.rowid::bigint = lineage.out_index::bigint\n"
         f"JOIN {policy.sources[0]}\n"
-        f"    ON {policy.sources[0]}.rowid::int = lineage.{policy.sources[0]}::int\n"
+        f"    ON {policy.sources[0]}.rowid::bigint = lineage.{policy.sources[0]}::bigint\n"
         f"GROUP BY {', '.join(group_by_cols)}\n"
         f"HAVING {constraint_sql}"
         f"{order_by_sql}"
+        f"{limit_sql}"
     )
 
 
 def rewrite_query_physical(
     query: str,
-    policy: DFCPolicy,
+    policy: DFCPolicy | list[DFCPolicy],
     lineage_query: str | None = None,
     output_columns: list[str] | None = None,
 ) -> tuple[str, str, bool]:
@@ -449,7 +466,7 @@ def rewrite_query_physical(
 
     Args:
         query: Original SQL query
-        policy: DFCPolicy instance (must have source specified)
+        policy: DFCPolicy instance or list of DFCPolicy (must have a single shared source)
 
     Returns:
         Tuple of (base_query, filter_query_template, is_aggregation)
@@ -460,15 +477,28 @@ def rewrite_query_physical(
     """
     from sql_rewriter import DFCPolicy
 
-    if not isinstance(policy, DFCPolicy):
-        raise ValueError("policy must be a DFCPolicy instance")
-    if not policy.sources:
-        raise ValueError("policy must have sources specified")
-    if len(policy.sources) != 1:
-        raise ValueError("physical baseline supports a single source table per policy")
+    policies = policy if isinstance(policy, list) else [policy]
 
-    source_table = policy.sources[0]
+    if not policies:
+        raise ValueError("policies must contain at least one DFCPolicy instance")
+    for idx, pol in enumerate(policies):
+        if not isinstance(pol, DFCPolicy):
+            raise ValueError(f"policy at index {idx} must be a DFCPolicy instance")
+        if not pol.sources:
+            raise ValueError("policy must have sources specified")
+        if len(pol.sources) != 1:
+            raise ValueError("physical baseline supports a single source table per policy")
+        if pol.sources[0].lower() != policies[0].sources[0].lower():
+            raise ValueError("physical baseline requires all policies to share the same source table")
+
+    base_policy = policies[0]
+    source_table = base_policy.sources[0]
     is_agg = is_aggregation_query(query)
+    combined_constraint = (
+        base_policy.constraint
+        if len(policies) == 1
+        else " AND ".join(f"({pol.constraint})" for pol in policies)
+    )
 
     # Parse query to get column names (for filter query construction)
     column_names = []
@@ -544,17 +574,29 @@ def rewrite_query_physical(
 
     if lineage_query and output_columns:
         order_by_clause = _extract_order_by_clause(query)
+        limit_clause = _extract_limit_clause(query)
+        combined_policy = (
+            base_policy
+            if combined_constraint == base_policy.constraint
+            else DFCPolicy(
+                sources=base_policy.sources,
+                constraint=combined_constraint,
+                on_fail=base_policy.on_fail,
+                description="combined physical policy constraints",
+            )
+        )
         filter_query_template = build_lineage_filter_query(
             lineage_query=lineage_query,
             temp_table_name="{temp_table_name}",
-            policy=policy,
+            policy=combined_policy,
             output_columns=output_columns,
             order_by=order_by_clause,
+            limit=limit_clause,
         )
     else:
         filter_query_template = build_filter_query(
             temp_table_name="{temp_table_name}",
-            constraint=policy.constraint,
+            constraint=combined_constraint,
             source_table=source_table,
             column_names=column_names,
             is_aggregation=is_agg,

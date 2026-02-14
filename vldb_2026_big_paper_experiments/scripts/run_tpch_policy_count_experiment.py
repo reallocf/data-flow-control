@@ -65,7 +65,7 @@ def main() -> int:
     print(f"  Policy counts: {policy_counts}")
     print(f"  Warmup runs: {num_warmup_runs} ({warmup_per_policy} per policy count)")
     print(f"  Measured runs: {num_executions} ({runs_per_policy} per policy count)")
-    print("  Approaches: DFC, Logical")
+    print("  Approaches: DFC, Logical, Physical")
 
     db_path = f"./results/tpch_q01_policy_count_sf{args.sf}.db"
     output_filename = f"tpch_q{args.query:02d}_policy_count_sf{args.sf}.csv"

@@ -84,16 +84,15 @@ def create_operator_chart(
             x_col = "execution_number"
             x_label = "Execution Number"
 
-    # Prepare data for plotting using exec-only times when available
-    exec_columns = [
-        "no_policy_exec_time_ms",
-        "dfc_exec_time_ms",
-        "logical_exec_time_ms",
-        "physical_time_ms",
+    # Prepare data for plotting using runtime columns
+    physical_time_col = "physical_runtime_ms" if "physical_runtime_ms" in query_df.columns else "physical_time_ms"
+    time_columns = [
+        "no_policy_time_ms",
+        "dfc_time_ms",
+        "logical_time_ms",
+        physical_time_col,
     ]
-    total_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms", "physical_time_ms"]
-    available_exec_cols = [col for col in exec_columns if col in query_df.columns]
-    available_time_cols = available_exec_cols or [col for col in total_columns if col in query_df.columns]
+    available_time_cols = [col for col in time_columns if col in query_df.columns]
 
     if not available_time_cols:
         print(f"No time columns found for {query_type}")
@@ -121,12 +120,10 @@ def create_operator_chart(
             # Map column names directly to approach names
             approach_map = {
                 "no_policy_time_ms": "No Policy",
-                "no_policy_exec_time_ms": "No Policy",
                 "dfc_time_ms": "DFC",
-                "dfc_exec_time_ms": "DFC",
                 "logical_time_ms": "Logical",
-                "logical_exec_time_ms": "Logical",
                 "physical_time_ms": "Physical",
+                "physical_runtime_ms": "Physical",
             }
             approach = approach_map.get(col, col.replace("_time_ms", "").replace("_", " ").title())
 
@@ -281,6 +278,11 @@ def create_all_charts(
             "dfc_time_ms",
             "logical_time_ms",
             "physical_time_ms",
+            "physical_runtime_ms",
+            "physical_exec_time_ms",
+            "physical_rewrite_time_ms",
+            "physical_base_capture_time_ms",
+            "physical_lineage_query_time_ms",
             "no_policy_exec_time_ms",
             "dfc_rewrite_time_ms",
             "dfc_exec_time_ms",
@@ -416,14 +418,12 @@ def create_tpch_summary_chart(
         print("No query_num column found; cannot create TPC-H summary chart.")
         return None
 
-    time_columns = [
-        "no_policy_exec_time_ms",
-        "dfc_exec_time_ms",
-        "logical_exec_time_ms",
-    ]
-    if not set(time_columns).issubset(df.columns):
-        print("Exec time columns missing; falling back to total time columns.")
-        time_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms"]
+    physical_col = "physical_runtime_ms" if "physical_runtime_ms" in df.columns else "physical_time_ms"
+    time_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms", physical_col]
+    time_columns = [col for col in time_columns if col in df.columns]
+    if len(time_columns) < 3:
+        print("Missing required time columns for TPC-H summary chart.")
+        return None
 
     grouped = df.groupby("query_num", as_index=True)[time_columns].mean().sort_index()
     if plot_mode not in {"average_time", "percent_overhead"}:
@@ -439,55 +439,76 @@ def create_tpch_summary_chart(
             (grouped[time_columns[2]] - grouped[time_columns[0]])
             / grouped[time_columns[0]]
         ) * 100.0
+        if len(time_columns) > 3:
+            grouped["physical_overhead_pct"] = (
+                (grouped[time_columns[3]] - grouped[time_columns[0]])
+                / grouped[time_columns[0]]
+            ) * 100.0
 
     query_nums = grouped.index.astype(int).tolist()
     x_positions = list(range(len(query_nums)))
-    bar_width = 0.25 if plot_mode == "average_time" else 0.35
+    bar_width = 0.2 if plot_mode == "average_time" else 0.25
 
     fig, ax = plt.subplots(figsize=(12, 6))
     if plot_mode == "average_time":
-        colors = ["#1f77b4", "#ff7f0e", "#2ca02c"]
+        colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
         ax.bar(
-            [x - bar_width for x in x_positions],
+            [x - 1.5 * bar_width for x in x_positions],
             grouped[time_columns[0]],
             width=bar_width,
             label="No Policy",
             color=colors[0],
         )
         ax.bar(
-            x_positions,
+            [x - 0.5 * bar_width for x in x_positions],
             grouped[time_columns[1]],
             width=bar_width,
             label="DFC",
             color=colors[1],
         )
         ax.bar(
-            [x + bar_width for x in x_positions],
+            [x + 0.5 * bar_width for x in x_positions],
             grouped[time_columns[2]],
             width=bar_width,
             label="Logical",
             color=colors[2],
         )
+        if len(time_columns) > 3:
+            ax.bar(
+                [x + 1.5 * bar_width for x in x_positions],
+                grouped[time_columns[3]],
+                width=bar_width,
+                label="Physical",
+                color=colors[3],
+            )
         ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
         if log_scale:
             ax.set_yscale("log")
         title = "TPC-H Average Execution Time by Query and Approach"
     else:
-        colors = ["#ff7f0e", "#2ca02c"]
+        colors = ["#ff7f0e", "#2ca02c", "#d62728"]
         ax.bar(
-            [x - bar_width / 2 for x in x_positions],
+            [x - bar_width for x in x_positions],
             grouped["dfc_overhead_pct"],
             width=bar_width,
             label="DFC",
             color=colors[0],
         )
         ax.bar(
-            [x + bar_width / 2 for x in x_positions],
+            x_positions,
             grouped["logical_overhead_pct"],
             width=bar_width,
             label="Logical",
             color=colors[1],
         )
+        if "physical_overhead_pct" in grouped.columns:
+            ax.bar(
+                [x + bar_width for x in x_positions],
+                grouped["physical_overhead_pct"],
+                width=bar_width,
+                label="Physical",
+                color=colors[2],
+            )
         ax.set_ylabel("Overhead vs No Policy (%)", fontsize=12)
         title = "TPC-H Overhead vs No Policy by Query"
 
@@ -536,6 +557,7 @@ def create_tpch_multi_db_chart(
             "dfc_time_ms",
             "logical_time_ms",
             "physical_time_ms",
+            "physical_runtime_ms",
         }
     }
 
@@ -785,7 +807,10 @@ def create_policy_count_chart(
         print("Missing required columns for policy count chart.")
         return None
 
-    plot_df = df[["policy_count", "dfc_exec_time_ms", "logical_exec_time_ms"]].copy()
+    plot_cols = ["policy_count", "dfc_exec_time_ms", "logical_exec_time_ms"]
+    if "physical_exec_time_ms" in df.columns:
+        plot_cols.append("physical_exec_time_ms")
+    plot_df = df[plot_cols].copy()
     plot_df = plot_df.dropna(subset=["policy_count"])
 
     grouped = plot_df.groupby("policy_count", as_index=True).mean(numeric_only=True)
@@ -814,6 +839,16 @@ def create_policy_count_chart(
         label="Logical",
         color="#2ca02c",
     )
+    if "physical_exec_time_ms" in grouped.columns:
+        ax.plot(
+            grouped.index,
+            grouped["physical_exec_time_ms"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label="Physical",
+            color="#1f77b4",
+        )
 
     ax.set_xlabel("Number of Policies", fontsize=12)
     ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
@@ -854,7 +889,10 @@ def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.Dat
     if "run_num" in plot_df.columns:
         plot_df = plot_df[plot_df["run_num"].fillna(0) > 0].copy()
 
-    plot_df = plot_df[list(required_cols)].copy()
+    plot_cols = list(required_cols)
+    if "physical_exec_time_ms" in plot_df.columns:
+        plot_cols.append("physical_exec_time_ms")
+    plot_df = plot_df[plot_cols].copy()
     plot_df = plot_df.dropna(subset=[x_col])
     if plot_df.empty:
         print("No data available for policy overhead chart.")
@@ -868,6 +906,8 @@ def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.Dat
 
     grouped["dfc_overhead"] = grouped["dfc_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
     grouped["logical_overhead"] = grouped["logical_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+    if "physical_exec_time_ms" in grouped.columns:
+        grouped["physical_overhead"] = grouped["physical_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
     return grouped
 
 
@@ -924,6 +964,16 @@ def create_policy_complexity_overhead_chart(
         label="Logical / No Policy",
         color="#2ca02c",
     )
+    if "physical_overhead" in grouped.columns:
+        ax.plot(
+            grouped.index,
+            grouped["physical_overhead"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label="Physical / No Policy",
+            color="#1f77b4",
+        )
     ax.axhline(1.0, color="#1f77b4", linestyle="--", linewidth=1, label="No Policy")
 
     ax.set_xlabel("Predicate Complexity (Term Count)", fontsize=12)
@@ -970,6 +1020,16 @@ def create_policy_many_ors_overhead_chart(
         label="Logical / No Policy",
         color="#2ca02c",
     )
+    if "physical_overhead" in grouped.columns:
+        ax.plot(
+            grouped.index,
+            grouped["physical_overhead"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label="Physical / No Policy",
+            color="#1f77b4",
+        )
     ax.axhline(1.0, color="#1f77b4", linestyle="--", linewidth=1, label="No Policy")
 
     ax.set_xlabel("Number of OR Clauses", fontsize=12)

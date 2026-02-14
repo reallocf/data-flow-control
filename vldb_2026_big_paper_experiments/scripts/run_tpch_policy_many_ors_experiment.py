@@ -65,7 +65,7 @@ def main() -> int:
     print(f"  OR counts: {or_counts}")
     print(f"  Warmup runs: {num_warmup_runs} ({warmup_per_level} per level)")
     print(f"  Measured runs: {num_executions} ({runs_per_level} per level)")
-    print("  Approaches: No Policy, DFC, Logical")
+    print("  Approaches: No Policy, DFC, Logical, Physical")
 
     db_path = f"./results/tpch_q{args.query:02d}_policy_many_ors_sf{args.sf}.db"
     output_filename = f"tpch_q{args.query:02d}_policy_many_ors_sf{args.sf}.csv"

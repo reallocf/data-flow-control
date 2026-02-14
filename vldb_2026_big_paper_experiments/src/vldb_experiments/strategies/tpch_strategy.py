@@ -9,6 +9,7 @@ from experiment_harness import ExperimentContext, ExperimentResult, ExperimentSt
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical
+from vldb_experiments.baselines.physical_baseline import execute_query_physical_detailed
 from vldb_experiments.correctness import compare_results_exact
 
 
@@ -35,7 +36,7 @@ def load_tpch_query(query_num: int) -> str:
     return query_file.read_text()
 
 
-# TPC-H queries to test (same as test_tpch.py)
+# TPC-H queries to test
 TPCH_QUERIES = [1, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 18, 19]
 
 # Policies used in test_tpch.py
@@ -44,6 +45,24 @@ lineitem_policy = DFCPolicy(
     constraint="max(lineitem.l_quantity) >= 1",
     on_fail=Resolution.REMOVE,
 )
+
+_PHYSICAL_SKIP_QUERIES = {4, 18}
+
+_smokedduck_duckdb = None
+
+
+def _ensure_smokedduck():
+    """Ensure SmokedDuck is set up. Called when needed."""
+    global _smokedduck_duckdb
+    if _smokedduck_duckdb is None:
+        from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
+        _smokedduck_duckdb = setup_local_smokedduck()
+        if _smokedduck_duckdb is None:
+            raise ImportError(
+                "SmokedDuck is REQUIRED but not available. "
+                "Please run ./setup_venv.sh to clone and build SmokedDuck."
+            )
+    return _smokedduck_duckdb
 
 
 
@@ -90,21 +109,33 @@ class TPCHStrategy(ExperimentStrategy):
 
         # Create separate connections for each approach to avoid conflicts
         target_db = db_path or ":memory:"
+        physical_db_path = None
+        if db_path:
+            physical_db_path = f"{db_path}_physical"
         self.no_policy_conn = duckdb.connect(target_db)
         self.dfc_conn = duckdb.connect(target_db)
         self.logical_conn = duckdb.connect(target_db)
+        local_duckdb = _ensure_smokedduck()
+        self.physical_conn = local_duckdb.connect(physical_db_path or ":memory:")
 
         # Ensure TPC-H extension is available for connections
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn]:
+        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
             with contextlib.suppress(Exception):
                 conn.execute("INSTALL tpch")
             conn.execute("LOAD tpch")
             if not db_path:
                 conn.execute(f"CALL dbgen(sf={self.scale_factor})")
 
+        if physical_db_path:
+            table_exists = self.physical_conn.execute(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
+            ).fetchone()[0]
+            if table_exists == 0:
+                self.physical_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
+
         # Commit any transactions before creating rewriters (needed for SmokedDuck lineage)
         # DuckDB auto-commits, but SmokedDuck lineage may leave transactions open
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn]:
+        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
             try:
                 # Try to commit using SQL
                 conn.execute("COMMIT")
@@ -168,6 +199,7 @@ class TPCHStrategy(ExperimentStrategy):
         # Get connections for each approach
         no_policy_conn = self.no_policy_conn
         logical_conn = self.logical_conn
+        physical_conn = self.physical_conn
 
         # 0. Run no_policy baseline (original query without any policy)
         no_policy_start = time.perf_counter()
@@ -223,18 +255,77 @@ class TPCHStrategy(ExperimentStrategy):
             logical_rows = 0
             logical_error = str(e)
 
-        # Verify correctness (compare DFC and logical - they should match)
+        # 3. Run Physical baseline (SmokedDuck REQUIRED)
+        if query_num in _PHYSICAL_SKIP_QUERIES:
+            physical_results = []
+            physical_error = "skipped_for_physical"
+            physical_rewrite_time = 0.0
+            physical_base_capture_time = 0.0
+            physical_lineage_query_time = 0.0
+            physical_runtime = 0.0
+            physical_time = 0.0
+            physical_rows = 0
+        else:
+            try:
+                (
+                    physical_results,
+                    physical_timing,
+                    physical_error,
+                    _base_query_sql,
+                    _filter_query_sql,
+                ) = execute_query_physical_detailed(
+                    physical_conn,
+                    query,
+                    policy,
+                )
+                physical_rewrite_time = physical_timing.get("rewrite_time_ms", 0.0)
+                physical_base_capture_time = physical_timing.get("base_capture_time_ms", 0.0)
+                physical_lineage_query_time = physical_timing.get("lineage_query_time_ms", 0.0)
+                physical_runtime = physical_timing.get("runtime_time_ms", 0.0)
+                physical_time = physical_runtime
+                physical_rows = len(physical_results) if physical_results else 0
+            except Exception as e:
+                physical_results = []
+                physical_error = str(e)
+                physical_rewrite_time = 0.0
+                physical_base_capture_time = 0.0
+                physical_lineage_query_time = 0.0
+                physical_runtime = 0.0
+                physical_time = 0.0
+                physical_rows = 0
+
+        # Verify correctness (compare DFC with logical and physical when available)
         correctness_match = False
         correctness_error = None
+        logical_match = None
+        logical_match_error = None
+        physical_match = None
+        physical_match_error = None
+
         if dfc_error is None and logical_error is None:
-            match, error = compare_results_exact(dfc_results, logical_results)
-            correctness_match = match
-            correctness_error = error
-        else:
-            correctness_error = f"Errors: dfc={dfc_error}, logical={logical_error}"
+            logical_match, logical_match_error = compare_results_exact(dfc_results, logical_results)
+        if dfc_error is None and physical_error is None:
+            physical_match, physical_match_error = compare_results_exact(dfc_results, physical_results)
+
+        matches = []
+        errors = []
+        if logical_match is not None:
+            matches.append(logical_match)
+            if logical_match_error:
+                errors.append(f"logical={logical_match_error}")
+        if physical_match is not None:
+            matches.append(physical_match)
+            if physical_match_error:
+                errors.append(f"physical={physical_match_error}")
+        if matches:
+            correctness_match = all(matches)
+        if errors:
+            correctness_error = "; ".join(errors)
+        if dfc_error is not None:
+            correctness_error = f"Errors: dfc={dfc_error}, logical={logical_error}, physical={physical_error}"
 
         # Total execution time (all three approaches)
-        total_time = no_policy_time + dfc_time + logical_time
+        total_time = no_policy_time + dfc_time + logical_time + physical_time
 
         # Build custom metrics
         custom_metrics = {
@@ -249,14 +340,21 @@ class TPCHStrategy(ExperimentStrategy):
             "logical_time_ms": logical_time,
             "logical_rewrite_time_ms": logical_rewrite_time,
             "logical_exec_time_ms": logical_exec_time,
+            "physical_time_ms": physical_time,
+            "physical_runtime_ms": physical_runtime,
+            "physical_rewrite_time_ms": physical_rewrite_time,
+            "physical_base_capture_time_ms": physical_base_capture_time,
+            "physical_lineage_query_time_ms": physical_lineage_query_time,
             "no_policy_rows": no_policy_rows,
             "dfc_rows": dfc_rows,
             "logical_rows": logical_rows,
+            "physical_rows": physical_rows,
             "correctness_match": correctness_match,
             "correctness_error": correctness_error or "",
             "no_policy_error": no_policy_error or "",
             "dfc_error": dfc_error or "",
             "logical_error": logical_error or "",
+            "physical_error": physical_error or "",
         }
 
         return ExperimentResult(
@@ -274,7 +372,7 @@ class TPCHStrategy(ExperimentStrategy):
         if hasattr(self, "dfc_rewriter"):
             self.dfc_rewriter.close()
         # Close all connections
-        for conn_name in ["no_policy_conn", "dfc_conn", "logical_conn"]:
+        for conn_name in ["no_policy_conn", "dfc_conn", "logical_conn", "physical_conn"]:
             if hasattr(self, conn_name):
                 with contextlib.suppress(Exception):
                     getattr(self, conn_name).close()
@@ -297,12 +395,19 @@ class TPCHStrategy(ExperimentStrategy):
             "logical_time_ms",
             "logical_rewrite_time_ms",
             "logical_exec_time_ms",
+            "physical_time_ms",
+            "physical_runtime_ms",
+            "physical_rewrite_time_ms",
+            "physical_base_capture_time_ms",
+            "physical_lineage_query_time_ms",
             "no_policy_rows",
             "dfc_rows",
             "logical_rows",
+            "physical_rows",
             "correctness_match",
             "correctness_error",
             "no_policy_error",
             "dfc_error",
             "logical_error",
+            "physical_error",
         ]

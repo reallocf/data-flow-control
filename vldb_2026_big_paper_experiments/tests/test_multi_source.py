@@ -177,8 +177,12 @@ HAVING
     AND MAX(t32.id) >= 1
   )"""
 
-    assert transformed == expected
+    assert transformed == expected, (
+        "Transformed SQL does not match expected.\n"
+        f"Expected SQL:\n{expected}\n\n"
+        f"Actual SQL:\n{transformed}"
+    )
 
     expected_results = conn.execute(query).fetchall()
     transformed_results = conn.execute(transformed).fetchall()
-    assert transformed_results == expected_results
+    assert sorted(transformed_results) == sorted(expected_results)

@@ -52,6 +52,11 @@ def main():
         action="store_true",
         help="Disable physical (SmokedDuck) baseline.",
     )
+    parser.add_argument(
+        "--query-types",
+        default=None,
+        help="Comma-separated list of query types to run (e.g., GROUP_BY,JOIN).",
+    )
     args = parser.parse_args()
 
     output_filename = args.output_filename
@@ -65,11 +70,15 @@ def main():
     num_warmup_runs = args.warmup_runs
 
     # Calculate total executions needed
-    num_query_types = len(get_query_order())
+    if args.query_types:
+        query_order = [q.strip() for q in args.query_types.split(",") if q.strip()]
+    else:
+        query_order = get_query_order()
+    num_query_types = len(query_order)
     total_executions = num_executions_per_query * num_query_types
 
     print("Running microbenchmark experiments with variations:")
-    print(f"  Query types: {num_query_types}")
+    print(f"  Query types: {num_query_types} ({', '.join(query_order)})")
     print(f"  Variations per query: {num_variations} (x values, Zipfian distributed)")
     print(f"  Runs per variation: {num_runs_per_variation}")
     print(f"  Executions per query: {num_executions_per_query} ({num_variations} × {num_runs_per_variation})")
@@ -102,6 +111,7 @@ def main():
         num_variations=num_variations,
         num_runs_per_variation=num_runs_per_variation,
         enable_physical=None if not args.disable_physical else False,
+        query_types=query_order,
     )
     runner = ExperimentRunner(strategy, config)
 

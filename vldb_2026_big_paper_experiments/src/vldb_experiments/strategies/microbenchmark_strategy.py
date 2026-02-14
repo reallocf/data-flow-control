@@ -11,7 +11,7 @@ from vldb_experiments.baselines.logical_baseline import (
     rewrite_query_logical,
     rewrite_query_logical_multi,
 )
-from vldb_experiments.baselines.physical_baseline import execute_query_physical_simple
+from vldb_experiments.baselines.physical_baseline import execute_query_physical_detailed
 from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.data_setup import (
     setup_test_data,
@@ -60,6 +60,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         num_variations: int = 4,
         num_runs_per_variation: int = 5,
         enable_physical: bool | None = None,
+        query_types: list[str] | None = None,
     ) -> None:
         """Initialize the microbenchmark strategy.
 
@@ -72,6 +73,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         self.num_variations = num_variations
         self.num_runs_per_variation = num_runs_per_variation
         self.enable_physical_override = enable_physical
+        self.query_types = query_types
         self._policy_cache: dict[tuple[str, int], list] = {}
         self._active_policy_signature: tuple[str, int] | None = None
 
@@ -172,7 +174,10 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
         # Store queries in shared state
         context.shared_state["queries"] = get_query_definitions()
-        context.shared_state["query_order"] = get_query_order()
+        if self.query_types:
+            context.shared_state["query_order"] = self.query_types
+        else:
+            context.shared_state["query_order"] = get_query_order()
         context.shared_state["current_query_index"] = 0
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
@@ -344,17 +349,41 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
         # 3. Run Physical baseline (SmokedDuck REQUIRED)
         try:
-            if self.enable_physical and len(policies) == 1:
+            if query_type == "SELECT":
+                physical_results = []
+                physical_time = 0.0
+                physical_runtime = 0.0
+                physical_rewrite_time = 0.0
+                physical_base_capture_time = 0.0
+                physical_lineage_query_time = 0.0
+                physical_error = "skipped_for_select"
+                physical_rows = 0
+            elif self.enable_physical and len(policies) == 1:
                 # SmokedDuck is REQUIRED - execute_query_physical_simple will raise if not available
-                physical_results, physical_time, physical_error = execute_query_physical_simple(
+                (
+                    physical_results,
+                    physical_timing,
+                    physical_error,
+                    _base_query_sql,
+                    _filter_query_sql,
+                ) = execute_query_physical_detailed(
                     physical_conn,
                     query,
                     policies[0],
                 )
+                physical_rewrite_time = physical_timing.get("rewrite_time_ms", 0.0)
+                physical_base_capture_time = physical_timing.get("base_capture_time_ms", 0.0)
+                physical_lineage_query_time = physical_timing.get("lineage_query_time_ms", 0.0)
+                physical_runtime = physical_timing.get("runtime_time_ms", 0.0)
                 physical_rows = len(physical_results) if physical_results else 0
+                physical_time = physical_runtime
             else:
                 physical_results = []
                 physical_time = 0.0
+                physical_runtime = 0.0
+                physical_rewrite_time = 0.0
+                physical_base_capture_time = 0.0
+                physical_lineage_query_time = 0.0
                 physical_error = "skipped_for_multi_policy"
                 physical_rows = 0
         except ImportError:
@@ -362,27 +391,54 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             raise
         except Exception as e:
             physical_time = 0.0
+            physical_runtime = 0.0
+            physical_rewrite_time = 0.0
+            physical_base_capture_time = 0.0
+            physical_lineage_query_time = 0.0
             physical_results = []
             physical_rows = 0
             physical_error = str(e)
 
-        # Verify correctness (compare DFC and logical; include physical when available)
+        # Verify correctness (always compare DFC vs Physical when available)
         correctness_match = False
         correctness_error = None
+        physical_match = None
+        physical_match_error = None
+        logical_match = None
+        logical_match_error = None
+
+        if dfc_error is None and physical_error is None:
+            physical_match, physical_match_error = compare_results_exact(
+                dfc_results,
+                physical_results,
+            )
+
         if dfc_error is None and logical_error is None:
-            if physical_error is None:
-                match, error = compare_results_exact(dfc_results, logical_results, physical_results)
-                correctness_match = match
-                correctness_error = error
-            else:
-                match, error = compare_results_exact(dfc_results, logical_results, dfc_results)
-                correctness_match = match
-                correctness_error = error
+            logical_match, logical_match_error = compare_results_exact(
+                dfc_results,
+                logical_results,
+            )
+
+        if dfc_error is None:
+            matches = []
+            errors = []
+            if logical_match is not None:
+                matches.append(logical_match)
+                if logical_match_error:
+                    errors.append(f"logical={logical_match_error}")
+            if physical_match is not None:
+                matches.append(physical_match)
+                if physical_match_error:
+                    errors.append(f"physical={physical_match_error}")
+            if matches:
+                correctness_match = all(matches)
+            if errors:
+                correctness_error = "; ".join(errors)
         else:
             correctness_error = f"Errors: dfc={dfc_error}, logical={logical_error}, physical={physical_error}"
 
         # Total execution time (all four approaches)
-        total_time = no_policy_time + dfc_time + logical_time + physical_time
+        total_time = no_policy_time + dfc_time + logical_time + physical_runtime
 
         # Build custom metrics with variation parameters
         custom_metrics = {
@@ -396,6 +452,10 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "logical_rewrite_time_ms": logical_rewrite_time,
             "logical_exec_time_ms": logical_exec_time,
             "physical_time_ms": physical_time,
+            "physical_runtime_ms": physical_runtime,
+            "physical_rewrite_time_ms": physical_rewrite_time,
+            "physical_base_capture_time_ms": physical_base_capture_time,
+            "physical_lineage_query_time_ms": physical_lineage_query_time,
             "no_policy_rows": no_policy_rows,
             "dfc_rows": dfc_rows,
             "logical_rows": logical_rows,
@@ -456,6 +516,10 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "logical_rewrite_time_ms",
             "logical_exec_time_ms",
             "physical_time_ms",
+            "physical_runtime_ms",
+            "physical_rewrite_time_ms",
+            "physical_base_capture_time_ms",
+            "physical_lineage_query_time_ms",
             "no_policy_rows",
             "dfc_rows",
             "logical_rows",

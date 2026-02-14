@@ -9,10 +9,10 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentConfig, ExperimentRunner
+from experiment_harness import ExperimentConfig, ExperimentRunner  # noqa: E402
 
-from vldb_experiments import TPCHStrategy
-from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES
+from vldb_experiments import TPCHStrategy  # noqa: E402
+from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES  # noqa: E402
 
 
 def main():
@@ -30,18 +30,30 @@ def main():
         default="",
         help="Suffix appended to the output CSV filename (e.g., _breakdown).",
     )
+    parser.add_argument(
+        "--runs-per-query",
+        type=int,
+        default=5,
+        help="Number of executions per query (default: 5).",
+    )
+    parser.add_argument(
+        "--warmup-runs",
+        type=int,
+        default=None,
+        help="Number of warm-up runs total (default: 1 per query).",
+    )
     args = parser.parse_args()
 
     # Experiment structure: one execution per query
     num_queries = len(TPCH_QUERIES)
-    num_warmup_runs = num_queries
-    num_executions = num_queries * 5
+    num_executions = num_queries * args.runs_per_query
+    num_warmup_runs = num_queries if args.warmup_runs is None else args.warmup_runs
 
     print("Running TPC-H experiments:")
     print(f"  Queries: {num_queries} ({', '.join(f'Q{q:02d}' for q in TPCH_QUERIES)})")
-    print(f"  Total executions: {num_executions} (5 per query)")
-    print(f"  Warm-up runs: {num_warmup_runs} (1 per query)")
-    print("  Approaches: no_policy, DFC, Logical (CTE)")
+    print(f"  Total executions: {num_executions} ({args.runs_per_query} per query)")
+    print(f"  Warm-up runs: {num_warmup_runs}")
+    print("  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
     print("  Policies:")
     print("    - Q1-Q12, Q14, Q18-Q19: lineitem_policy (max(lineitem.l_quantity) >= 1)")
     print()
