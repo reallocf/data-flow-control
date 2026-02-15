@@ -1,0 +1,24 @@
+execution_number,timestamp,duration_ms,error,correctness_error,correctness_match,dfc_error,dfc_exec_time_ms,dfc_rewrite_time_ms,dfc_rows,dfc_time_ms,logical_error,logical_exec_time_ms,logical_rewrite_time_ms,logical_rows,logical_time_ms,no_policy_error,no_policy_exec_time_ms,no_policy_rows,no_policy_time_ms,physical_base_capture_time_ms,physical_error,physical_lineage_query_time_ms,physical_rewrite_time_ms,physical_rows,physical_runtime_ms,physical_time_ms,policy_count,query_type,run_index,run_num,variation_index,variation_join_count,variation_join_matches,variation_num,variation_num_groups,variation_policy_threshold,variation_rows_to_remove,variation_type
+1,2026-02-14T22:15:59.432309,15.779710374772549,,,True,,0.5025840364396572,1.1034582275897264,5,1.6060422640293837,,7.941083982586861,2.0920000970363617,5,10.033084079623222,,0.7409171666949987,5,0.7409171666949987,2.3899590596556664,,1.0097078047692776,1.619792077690363,5,3.399666864424944,3.399666864424944,1,JOIN_GROUP_BY,0,1,0,1,,1,,,,join_count
+2,2026-02-14T22:19:45.844151,104.13029207848012,,,True,,28.857999946922064,3.617499954998493,5,32.47549990192056,"Out of Memory Error: failed to offload data block of size 256.0 KiB (130.9 GiB/130.9 GiB used).
+This limit was set by the 'max_temp_directory_size' setting.
+By default, this setting utilizes the available disk space on the drive where the 'temp_directory' is located.
+You can adjust this setting, by using (for example) PRAGMA max_temp_directory_size='10GiB'
+
+Possible solutions:
+* Reducing the number of threads (SET threads=X)
+* Disabling insertion-order preservation (SET preserve_insertion_order=false)
+* Increasing the memory limit (SET memory_limit='...GB')
+
+See also https://duckdb.org/docs/stable/guides/performance/how_to_tune_workloads",0.0,0.0,0,0.0,,29.79641710408032,5,29.79641710408032,39.31054216809571,,2.54783290438354,5.773249780759215,5,41.85837507247925,41.85837507247925,1,JOIN_GROUP_BY,0,1,1,10,,2,,,,join_count
+3,2026-02-14T22:24:08.243454,10590.960914967582,,,True,,3536.756790941581,36.571000004187226,5,3573.3277909457684,"Out of Memory Error: failed to offload data block of size 256.0 KiB (130.9 GiB/130.9 GiB used).
+This limit was set by the 'max_temp_directory_size' setting.
+By default, this setting utilizes the available disk space on the drive where the 'temp_directory' is located.
+You can adjust this setting, by using (for example) PRAGMA max_temp_directory_size='10GiB'
+
+Possible solutions:
+* Reducing the number of threads (SET threads=X)
+* Disabling insertion-order preservation (SET preserve_insertion_order=false)
+* Increasing the memory limit (SET memory_limit='...GB')
+
+See also https://duckdb.org/docs/stable/guides/performance/how_to_tune_workloads",0.0,0.0,0,0.0,,3570.7070829812437,5,3570.7070829812437,3440.7772910781205,,6.148749962449074,44.23595801927149,5,3446.9260410405695,3446.9260410405695,1,JOIN_GROUP_BY,0,1,2,100,,3,,,,join_count

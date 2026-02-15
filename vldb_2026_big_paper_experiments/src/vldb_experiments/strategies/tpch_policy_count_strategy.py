@@ -105,41 +105,26 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
 
         self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
 
-        context.shared_state["policy_counts"] = list(policy_counts)
-        context.shared_state["warmup_per_policy"] = warmup_per_policy
-        context.shared_state["runs_per_policy"] = runs_per_policy
-        context.shared_state["global_execution_index"] = 0
+        self.policy_counts = list(policy_counts)
+        self.warmup_per_policy = warmup_per_policy
+        self.runs_per_policy = runs_per_policy
         query_num = int(context.strategy_config.get("tpch_query", 1))
         context.shared_state["tpch_query_num"] = query_num
         context.shared_state["tpch_query"] = load_tpch_query(query_num)
 
-    def _get_policy_count_for_execution(self, context: ExperimentContext) -> tuple[int, int | None, bool]:
-        policy_counts = context.shared_state["policy_counts"]
-        warmup_per_policy = context.shared_state["warmup_per_policy"]
-        runs_per_policy = context.shared_state["runs_per_policy"]
-        warmup_total = len(policy_counts) * warmup_per_policy
-
-        global_index = context.shared_state["global_execution_index"] + 1
-        context.shared_state["global_execution_index"] = global_index
-
-        if global_index <= warmup_total:
-            policy_index = (global_index - 1) // warmup_per_policy
-            return policy_counts[policy_index], None, True
-
-        run_index = global_index - warmup_total - 1
-        policy_index = run_index // runs_per_policy
-        run_num = (run_index % runs_per_policy) + 1
-
-        return policy_counts[policy_index], run_num, False
+    def _policy_and_run_for_execution(self, execution_number: int) -> tuple[int, int]:
+        policy_index = (execution_number - 1) // self.runs_per_policy
+        run_num = ((execution_number - 1) % self.runs_per_policy) + 1
+        return self.policy_counts[policy_index], run_num
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
         query = context.shared_state["tpch_query"]
         query_num = context.shared_state["tpch_query_num"]
-        policy_count, run_num, is_warmup = self._get_policy_count_for_execution(context)
+        policy_count, run_num = self._policy_and_run_for_execution(context.execution_number)
 
-        phase_label = "warmup" if is_warmup else f"run {run_num}"
+        phase_label = "warmup" if context.is_warmup else f"run {run_num}"
         print(
-            f"[Execution {context.shared_state['global_execution_index']}] "
+            f"[Execution {context.execution_number}] "
             f"TPC-H Q{query_num:02d} (sf={self.scale_factor}) policies={policy_count} ({phase_label})"
         )
 
@@ -327,3 +312,7 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
             "logical_error",
             "physical_error",
         ]
+
+    def get_setting_key(self, context: ExperimentContext) -> tuple[str, int]:
+        policy_count, _ = self._policy_and_run_for_execution(context.execution_number)
+        return ("policy_count", policy_count)

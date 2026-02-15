@@ -182,7 +182,7 @@ def generate_variation_parameters(
         }
 
     if query_type == "JOIN_GROUP_BY":
-        join_count_values = [1, 10, 100, 1000]
+        join_count_values = [16, 32, 64, 128]
         join_count = join_count_values[variation_index]
 
         return {

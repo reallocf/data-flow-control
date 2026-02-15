@@ -42,12 +42,12 @@ def main() -> int:
     from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES
 
     num_queries = len(TPCH_QUERIES)
-    num_warmup_runs = num_queries
+    warmup_per_query = 1
     num_executions = num_queries * 5
 
     print("Running TPC-H multi-database experiments:")
     print(f"  Queries: {num_queries} ({', '.join(f'Q{q:02d}' for q in TPCH_QUERIES)})")
-    print(f"  Warm-up runs: {num_warmup_runs} (1 per query)")
+    print(f"  Warm-up runs per query: {warmup_per_query}")
     print(f"  Measured runs: {num_executions} (5 per query)")
     print("  Approaches: DuckDB no_policy/DFC/Logical + external no_policy engines")
 
@@ -61,7 +61,9 @@ def main() -> int:
 
         config = ExperimentConfig(
             num_executions=num_executions,
-            num_warmup_runs=num_warmup_runs,
+            num_warmup_runs=0,
+            warmup_mode="per_setting",
+            warmup_runs_per_setting=warmup_per_query,
             database_config={
                 "database": db_path,
             },

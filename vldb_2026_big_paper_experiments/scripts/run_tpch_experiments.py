@@ -39,20 +39,20 @@ def main():
     parser.add_argument(
         "--warmup-runs",
         type=int,
-        default=None,
-        help="Number of warm-up runs total (default: 1 per query).",
+        default=1,
+        help="Warm-up runs per query setting (default: 1).",
     )
     args = parser.parse_args()
 
     # Experiment structure: one execution per query
     num_queries = len(TPCH_QUERIES)
     num_executions = num_queries * args.runs_per_query
-    num_warmup_runs = num_queries if args.warmup_runs is None else args.warmup_runs
+    warmup_per_query = args.warmup_runs
 
     print("Running TPC-H experiments:")
     print(f"  Queries: {num_queries} ({', '.join(f'Q{q:02d}' for q in TPCH_QUERIES)})")
     print(f"  Total executions: {num_executions} ({args.runs_per_query} per query)")
-    print(f"  Warm-up runs: {num_warmup_runs}")
+    print(f"  Warm-up runs per query: {warmup_per_query}")
     print("  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
     print("  Policies:")
     print("    - Q1-Q12, Q14, Q18-Q19: lineitem_policy (max(lineitem.l_quantity) >= 1)")
@@ -65,7 +65,9 @@ def main():
 
         config = ExperimentConfig(
             num_executions=num_executions,
-            num_warmup_runs=num_warmup_runs,
+            num_warmup_runs=0,
+            warmup_mode="per_setting",
+            warmup_runs_per_setting=warmup_per_query,
             database_config={
                 "database": db_path,
             },

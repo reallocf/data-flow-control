@@ -75,6 +75,30 @@ class DatabaseExperiment(ExperimentStrategy):
             context.database_connection.execute("DROP TABLE IF EXISTS test")
 
 
+class SettingAwareExperiment(ExperimentStrategy):
+    """Experiment with explicit per-setting keys for runner scheduling."""
+
+    def setup(self, _context):
+        self.calls = []
+
+    def get_setting_key(self, context):
+        # settings: A for executions 1-2, B for executions 3-4
+        return "A" if context.execution_number <= 2 else "B"
+
+    def execute(self, context):
+        self.calls.append((context.execution_number, context.is_warmup, self.get_setting_key(context)))
+        return ExperimentResult(
+            duration_ms=1.0,
+            custom_metrics={
+                "execution_num": context.execution_number,
+                "is_warmup": int(context.is_warmup),
+            },
+        )
+
+    def teardown(self, _context):
+        pass
+
+
 def test_simple_experiment():
     """Test basic experiment execution."""
     strategy = SimpleExperiment()
@@ -250,6 +274,12 @@ def test_config_validation():
     with pytest.raises(ValueError, match="num_warmup_runs must be less than num_executions"):
         ExperimentConfig(num_executions=5, num_warmup_runs=5)
 
+    with pytest.raises(ValueError, match="warmup_mode must be either"):
+        ExperimentConfig(warmup_mode="bad")
+
+    with pytest.raises(ValueError, match="warmup_runs_per_setting must be non-negative"):
+        ExperimentConfig(warmup_runs_per_setting=-1)
+
 
 def test_result_collector_summary():
     """Test result collector summary calculation."""
@@ -293,3 +323,33 @@ def test_context_shared_state():
 
     # Accumulator should be 1+2+3 = 6 by the end
     assert collector.results[2].custom_metrics["accumulator"] == 6
+
+
+def test_per_setting_warmup_schedule():
+    """Test per-setting warmups run before measured runs for each setting."""
+    strategy = SettingAwareExperiment()
+    config = ExperimentConfig(
+        num_executions=4,
+        warmup_mode="per_setting",
+        warmup_runs_per_setting=1,
+        verbose=False,
+    )
+
+    runner = ExperimentRunner(strategy, config)
+    collector = runner.run()
+
+    assert len(collector.results) == 4
+    # Measured results are execution numbers 1..4.
+    assert [r.custom_metrics["execution_num"] for r in collector.results] == [1, 2, 3, 4]
+
+    # Full call order:
+    # warmup A(exec1), measured exec1, measured exec2,
+    # warmup B(exec3), measured exec3, measured exec4
+    assert strategy.calls == [
+        (1, True, "A"),
+        (1, False, "A"),
+        (2, False, "A"),
+        (3, True, "B"),
+        (3, False, "B"),
+        (4, False, "B"),
+    ]

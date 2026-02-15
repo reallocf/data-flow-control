@@ -133,45 +133,27 @@ class MultiSourceStrategy(ExperimentStrategy):
         context.shared_state["join_counts"] = self.join_counts
         context.shared_state["warmup_per_setting"] = self.warmup_per_setting
         context.shared_state["runs_per_setting"] = self.runs_per_setting
-        context.shared_state["global_execution_index"] = 0
-        context.shared_state["valid_pairs"] = [
+        self.valid_pairs = [
             (join_count, source_count)
             for join_count in self.join_counts
             for source_count in self.source_counts
             if source_count <= join_count
         ]
+        context.shared_state["valid_pairs"] = self.valid_pairs
 
-    def _get_source_count_for_execution(
-        self,
-        context: ExperimentContext,
-    ) -> tuple[int, int, int | None, bool]:
-        valid_pairs = context.shared_state["valid_pairs"]
-        warmup_per_setting = context.shared_state["warmup_per_setting"]
-        runs_per_setting = context.shared_state["runs_per_setting"]
-        warmup_total = len(valid_pairs) * warmup_per_setting
-
-        global_index = context.shared_state["global_execution_index"] + 1
-        context.shared_state["global_execution_index"] = global_index
-
-        if global_index <= warmup_total:
-            setting_index = (global_index - 1) // warmup_per_setting
-            join_count, source_count = valid_pairs[setting_index]
-            return join_count, source_count, None, True
-
-        run_index = global_index - warmup_total - 1
-        setting_index = run_index // runs_per_setting
-        run_num = (run_index % runs_per_setting) + 1
-
-        join_count, source_count = valid_pairs[setting_index]
-        return join_count, source_count, run_num, False
+    def _setting_and_run_for_execution(self, execution_number: int) -> tuple[int, int, int]:
+        setting_index = (execution_number - 1) // self.runs_per_setting
+        run_num = ((execution_number - 1) % self.runs_per_setting) + 1
+        join_count, source_count = self.valid_pairs[setting_index]
+        return join_count, source_count, run_num
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
-        join_count, source_count, run_num, is_warmup = self._get_source_count_for_execution(context)
+        join_count, source_count, run_num = self._setting_and_run_for_execution(context.execution_number)
         table_count = join_count + 1
 
-        phase_label = "warmup" if is_warmup else f"run {run_num}"
+        phase_label = "warmup" if context.is_warmup else f"run {run_num}"
         print(
-            f"[Execution {context.shared_state['global_execution_index']}] "
+            f"[Execution {context.execution_number}] "
             f"multi-source sources={source_count} joins={join_count} ({phase_label})"
         )
 
@@ -267,3 +249,7 @@ class MultiSourceStrategy(ExperimentStrategy):
             "no_policy_error",
             "dfc_error",
         ]
+
+    def get_setting_key(self, context: ExperimentContext) -> tuple[int, int]:
+        join_count, source_count, _ = self._setting_and_run_for_execution(context.execution_number)
+        return (join_count, source_count)

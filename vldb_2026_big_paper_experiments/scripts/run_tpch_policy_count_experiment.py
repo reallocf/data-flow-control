@@ -8,9 +8,9 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentConfig, ExperimentRunner
+from experiment_harness import ExperimentConfig, ExperimentRunner  # noqa: E402
 
-from vldb_experiments import TPCHPolicyCountStrategy
+from vldb_experiments import TPCHPolicyCountStrategy  # noqa: E402
 
 DEFAULT_POLICY_COUNTS = [1, 10, 100, 1000]
 DEFAULT_WARMUP_PER_POLICY = 1
@@ -56,14 +56,13 @@ def main() -> int:
     runs_per_policy = args.runs_per_policy
     warmup_per_policy = args.warmup_per_policy
 
-    num_warmup_runs = len(policy_counts) * warmup_per_policy
     num_executions = len(policy_counts) * runs_per_policy
 
     print("Running TPC-H Q01 policy count experiment:")
     print(f"  Scale factor: {args.sf}")
     print(f"  Query: Q{args.query:02d}")
     print(f"  Policy counts: {policy_counts}")
-    print(f"  Warmup runs: {num_warmup_runs} ({warmup_per_policy} per policy count)")
+    print(f"  Warmup runs per setting: {warmup_per_policy}")
     print(f"  Measured runs: {num_executions} ({runs_per_policy} per policy count)")
     print("  Approaches: DFC, Logical, Physical")
 
@@ -72,7 +71,9 @@ def main() -> int:
 
     config = ExperimentConfig(
         num_executions=num_executions,
-        num_warmup_runs=num_warmup_runs,
+        num_warmup_runs=0,
+        warmup_mode="per_setting",
+        warmup_runs_per_setting=warmup_per_policy,
         database_config={
             "database": db_path,
         },

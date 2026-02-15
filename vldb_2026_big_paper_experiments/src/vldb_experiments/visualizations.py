@@ -47,6 +47,30 @@ def get_variation_x_axis(query_type: str) -> tuple[str, str]:
     return "variation_num", "Variation Number"
 
 
+def _with_exec_time_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy with exec-time columns normalized and preferred."""
+    normalized = df.copy()
+
+    if "no_policy_exec_time_ms" not in normalized.columns and "no_policy_time_ms" in normalized.columns:
+        normalized["no_policy_exec_time_ms"] = normalized["no_policy_time_ms"]
+    if "dfc_exec_time_ms" not in normalized.columns and "dfc_time_ms" in normalized.columns:
+        normalized["dfc_exec_time_ms"] = normalized["dfc_time_ms"]
+    if "logical_exec_time_ms" not in normalized.columns and "logical_time_ms" in normalized.columns:
+        normalized["logical_exec_time_ms"] = normalized["logical_time_ms"]
+    if "physical_exec_time_ms" not in normalized.columns:
+        if {"physical_base_capture_time_ms", "physical_lineage_query_time_ms"}.issubset(normalized.columns):
+            normalized["physical_exec_time_ms"] = (
+                normalized["physical_base_capture_time_ms"].fillna(0.0)
+                + normalized["physical_lineage_query_time_ms"].fillna(0.0)
+            )
+        elif "physical_runtime_ms" in normalized.columns:
+            normalized["physical_exec_time_ms"] = normalized["physical_runtime_ms"]
+        elif "physical_time_ms" in normalized.columns:
+            normalized["physical_exec_time_ms"] = normalized["physical_time_ms"]
+
+    return normalized
+
+
 def create_operator_chart(
     query_type: str,
     df: pd.DataFrame,
@@ -66,6 +90,7 @@ def create_operator_chart(
     """
     # Filter to this query type
     query_df = df[df["query_type"] == query_type].copy()
+    query_df = _with_exec_time_columns(query_df)
 
     if len(query_df) == 0:
         print(f"No data found for {query_type}")
@@ -86,12 +111,12 @@ def create_operator_chart(
             x_col = "execution_number"
             x_label = "Execution Number"
 
-    # Prepare data for plotting using runtime columns
-    physical_time_col = "physical_runtime_ms" if "physical_runtime_ms" in query_df.columns else "physical_time_ms"
+    # Prepare data for plotting using exec-only columns.
+    physical_time_col = "physical_exec_time_ms"
     time_columns = [
-        "no_policy_time_ms",
-        "dfc_time_ms",
-        "logical_time_ms",
+        "no_policy_exec_time_ms",
+        "dfc_exec_time_ms",
+        "logical_exec_time_ms",
         physical_time_col,
     ]
     available_time_cols = [col for col in time_columns if col in query_df.columns]
@@ -121,11 +146,10 @@ def create_operator_chart(
         for col in available_time_cols:
             # Map column names directly to approach names
             approach_map = {
-                "no_policy_time_ms": "No Policy",
-                "dfc_time_ms": "DFC",
-                "logical_time_ms": "Logical",
-                "physical_time_ms": "Physical",
-                "physical_runtime_ms": "Physical",
+                "no_policy_exec_time_ms": "No Policy",
+                "dfc_exec_time_ms": "DFC",
+                "logical_exec_time_ms": "Logical",
+                "physical_exec_time_ms": "Physical",
             }
             approach = approach_map.get(col, col.replace("_time_ms", "").replace("_", " ").title())
 
@@ -229,6 +253,238 @@ def create_operator_chart(
     return fig
 
 
+def create_operator_overhead_chart(
+    query_type: str,
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_template: str = "{query_type}_percent_overhead_policy{policy_count}.png",
+    policy_count: int | None = None,
+) -> Optional[plt.Figure]:
+    """Create a percent-overhead chart vs No Policy for a specific operator."""
+    query_df = df[df["query_type"] == query_type].copy()
+    query_df = _with_exec_time_columns(query_df)
+    if len(query_df) == 0:
+        print(f"No data found for {query_type}")
+        return None
+
+    x_col, x_label = get_variation_x_axis(query_type)
+    if x_col not in query_df.columns or query_df[x_col].isna().all():
+        if "variation_num" in query_df.columns and not query_df["variation_num"].isna().all():
+            x_col = "variation_num"
+            x_label = "Variation Number"
+        else:
+            x_col = "execution_number"
+            x_label = "Execution Number"
+
+    physical_time_col = "physical_exec_time_ms"
+    overhead_sources = {
+        "DFC": "dfc_exec_time_ms",
+        "Logical": "logical_exec_time_ms",
+        "Physical": physical_time_col,
+    }
+
+    if "no_policy_exec_time_ms" not in query_df.columns:
+        print(f"No no_policy_exec_time_ms column found for {query_type}")
+        return None
+
+    plot_data = []
+    for idx, row in query_df.iterrows():
+        baseline = row.get("no_policy_exec_time_ms")
+        if pd.isna(baseline) or baseline <= 0:
+            continue
+
+        if x_col in query_df.columns and pd.notna(row[x_col]):
+            x_val = row[x_col]
+        elif "variation_num" in query_df.columns and pd.notna(row.get("variation_num")):
+            x_val = row["variation_num"]
+        else:
+            x_val = row.get("execution_number", idx)
+
+        try:
+            x_val = float(x_val)
+        except (ValueError, TypeError):
+            x_val = float(idx)
+
+        for approach, col in overhead_sources.items():
+            if col not in query_df.columns:
+                continue
+            value = row.get(col)
+            if pd.isna(value) or value <= 0:
+                continue
+            overhead_pct = ((float(value) - float(baseline)) / float(baseline)) * 100.0
+            plot_data.append(
+                {
+                    x_label: x_val,
+                    "Percent Overhead (%)": overhead_pct,
+                    "Approach": approach,
+                }
+            )
+
+    if not plot_data:
+        print(f"No valid overhead data for {query_type}")
+        return None
+
+    plot_df = pd.DataFrame(plot_data)
+    plot_df_averaged = plot_df.groupby([x_label, "Approach"], as_index=False).agg(
+        {"Percent Overhead (%)": "mean"}
+    )
+    plot_df_averaged = plot_df_averaged.sort_values(["Approach", x_label])
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+    colors = {
+        "DFC": "#ff7f0e",
+        "Logical": "#2ca02c",
+        "Physical": "#d62728",
+    }
+    for approach in ["DFC", "Logical", "Physical"]:
+        approach_data = plot_df_averaged[plot_df_averaged["Approach"] == approach]
+        if len(approach_data) == 0:
+            continue
+        approach_data = approach_data.sort_values(x_label)
+        ax.plot(
+            approach_data[x_label],
+            approach_data["Percent Overhead (%)"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label=approach,
+            color=colors.get(approach),
+        )
+
+    ax.set_xlabel(x_label, fontsize=12)
+    ax.set_ylabel("Percent Overhead (%)", fontsize=12)
+    ax.set_title(f"{query_type} Percent Overhead vs No Policy", fontsize=14, fontweight="bold")
+    ax.set_xscale("log")
+    ax.axhline(y=0.0, color="#555555", linestyle="--", linewidth=1)
+    ax.legend(loc="best", fontsize=10)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    output_path = Path(output_dir) / output_template.format(
+        query_type=query_type.lower(),
+        policy_count=policy_count if policy_count is not None else "unknown",
+    )
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_operator_overhead_chart_dfc_physical(
+    query_type: str,
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_template: str = "{query_type}_percent_overhead_dfc_physical_policy{policy_count}.png",
+    policy_count: int | None = None,
+) -> Optional[plt.Figure]:
+    """Create a percent-overhead chart vs No Policy for DFC and Physical only."""
+    query_df = df[df["query_type"] == query_type].copy()
+    query_df = _with_exec_time_columns(query_df)
+    if len(query_df) == 0:
+        print(f"No data found for {query_type}")
+        return None
+
+    x_col, x_label = get_variation_x_axis(query_type)
+    if x_col not in query_df.columns or query_df[x_col].isna().all():
+        if "variation_num" in query_df.columns and not query_df["variation_num"].isna().all():
+            x_col = "variation_num"
+            x_label = "Variation Number"
+        else:
+            x_col = "execution_number"
+            x_label = "Execution Number"
+
+    physical_time_col = "physical_exec_time_ms"
+    overhead_sources = {
+        "DFC": "dfc_exec_time_ms",
+        "Physical": physical_time_col,
+    }
+
+    if "no_policy_exec_time_ms" not in query_df.columns:
+        print(f"No no_policy_exec_time_ms column found for {query_type}")
+        return None
+
+    plot_data = []
+    for idx, row in query_df.iterrows():
+        baseline = row.get("no_policy_exec_time_ms")
+        if pd.isna(baseline) or baseline <= 0:
+            continue
+
+        if x_col in query_df.columns and pd.notna(row[x_col]):
+            x_val = row[x_col]
+        elif "variation_num" in query_df.columns and pd.notna(row.get("variation_num")):
+            x_val = row["variation_num"]
+        else:
+            x_val = row.get("execution_number", idx)
+
+        try:
+            x_val = float(x_val)
+        except (ValueError, TypeError):
+            x_val = float(idx)
+
+        for approach, col in overhead_sources.items():
+            if col not in query_df.columns:
+                continue
+            value = row.get(col)
+            if pd.isna(value) or value <= 0:
+                continue
+            overhead_pct = ((float(value) - float(baseline)) / float(baseline)) * 100.0
+            plot_data.append(
+                {
+                    x_label: x_val,
+                    "Percent Overhead (%)": overhead_pct,
+                    "Approach": approach,
+                }
+            )
+
+    if not plot_data:
+        print(f"No valid overhead data for {query_type}")
+        return None
+
+    plot_df = pd.DataFrame(plot_data)
+    plot_df_averaged = plot_df.groupby([x_label, "Approach"], as_index=False).agg(
+        {"Percent Overhead (%)": "mean"}
+    )
+    plot_df_averaged = plot_df_averaged.sort_values(["Approach", x_label])
+
+    fig, ax = plt.subplots(figsize=(10, 7))
+    colors = {
+        "DFC": "#ff7f0e",
+        "Physical": "#d62728",
+    }
+    for approach in ["DFC", "Physical"]:
+        approach_data = plot_df_averaged[plot_df_averaged["Approach"] == approach]
+        if len(approach_data) == 0:
+            continue
+        approach_data = approach_data.sort_values(x_label)
+        ax.plot(
+            approach_data[x_label],
+            approach_data["Percent Overhead (%)"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label=approach,
+            color=colors.get(approach),
+        )
+
+    ax.set_xlabel(x_label, fontsize=12)
+    ax.set_ylabel("Percent Overhead (%)", fontsize=12)
+    ax.set_title(f"{query_type} Percent Overhead vs No Policy (DFC/Physical)", fontsize=14, fontweight="bold")
+    ax.set_xscale("log")
+    ax.axhline(y=0.0, color="#555555", linestyle="--", linewidth=1)
+    ax.legend(loc="best", fontsize=10)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    output_path = Path(output_dir) / output_template.format(
+        query_type=query_type.lower(),
+        policy_count=policy_count if policy_count is not None else "unknown",
+    )
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
 def _apply_suffix(template: str, suffix: str) -> str:
     if not suffix:
         return template
@@ -245,6 +501,8 @@ def create_all_charts(
     tpch_avg_template: str = "tpch_average_times_sf{sf}.png",
     tpch_overhead_template: str = "tpch_percent_overhead_sf{sf}.png",
     operator_template: str = "{query_type}_performance_policy{policy_count}.png",
+    operator_overhead_template: str = "{query_type}_percent_overhead_policy{policy_count}.png",
+    operator_overhead_dfc_physical_template: str = "{query_type}_percent_overhead_dfc_physical_policy{policy_count}.png",
     tpch_breakdown_template: str = "tpch_rewrite_exec_breakdown_sf{sf}.png",
     tpch_multi_db_template: str = "tpch_multi_db_sf{sf}.png",
     tpch_avg_log_template: str = "tpch_average_times_log_sf{sf}.png",
@@ -265,6 +523,8 @@ def create_all_charts(
     tpch_avg_template = _apply_suffix(tpch_avg_template, suffix)
     tpch_overhead_template = _apply_suffix(tpch_overhead_template, suffix)
     operator_template = _apply_suffix(operator_template, suffix)
+    operator_overhead_template = _apply_suffix(operator_overhead_template, suffix)
+    operator_overhead_dfc_physical_template = _apply_suffix(operator_overhead_dfc_physical_template, suffix)
     tpch_breakdown_template = _apply_suffix(tpch_breakdown_template, suffix)
     tpch_multi_db_template = _apply_suffix(tpch_multi_db_template, suffix)
     tpch_avg_log_template = _apply_suffix(tpch_avg_log_template, suffix)
@@ -327,6 +587,20 @@ def create_all_charts(
                 df,
                 output_dir,
                 output_template=operator_template,
+                policy_count=policy_count_value,
+            )
+            create_operator_overhead_chart(
+                query_type,
+                df,
+                output_dir,
+                output_template=operator_overhead_template,
+                policy_count=policy_count_value,
+            )
+            create_operator_overhead_chart_dfc_physical(
+                query_type,
+                df,
+                output_dir,
+                output_template=operator_overhead_dfc_physical_template,
                 policy_count=policy_count_value,
             )
         print(f"\nAll charts saved to {output_dir}/")
@@ -420,8 +694,9 @@ def create_tpch_summary_chart(
         print("No query_num column found; cannot create TPC-H summary chart.")
         return None
 
-    physical_col = "physical_runtime_ms" if "physical_runtime_ms" in df.columns else "physical_time_ms"
-    time_columns = ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms", physical_col]
+    df = _with_exec_time_columns(df)
+    physical_col = "physical_exec_time_ms"
+    time_columns = ["no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms", physical_col]
     time_columns = [col for col in time_columns if col in df.columns]
     if len(time_columns) < 3:
         print("Missing required time columns for TPC-H summary chart.")
@@ -881,6 +1156,85 @@ def create_policy_count_chart(
     return fig
 
 
+def create_microbenchmark_policy_count_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "microbenchmark_group_by_policy_count.png",
+) -> Optional[plt.Figure]:
+    """Create policy-count line chart for the GROUP BY microbenchmark."""
+    required_cols = {"policy_count", "dfc_exec_time_ms", "logical_exec_time_ms"}
+    if not required_cols.issubset(df.columns):
+        print("Missing required columns for microbenchmark policy count chart.")
+        return None
+
+    plot_df = df.copy()
+    if "query_type" in plot_df.columns:
+        if (plot_df["query_type"] == "GROUP_BY").any():
+            plot_df = plot_df[plot_df["query_type"] == "GROUP_BY"].copy()
+        elif (plot_df["query_type"] == "JOIN_GROUP_BY").any():
+            plot_df = plot_df[plot_df["query_type"] == "JOIN_GROUP_BY"].copy()
+    if "run_num" in plot_df.columns:
+        plot_df = plot_df[plot_df["run_num"].fillna(0) > 0].copy()
+
+    plot_cols = ["policy_count", "dfc_exec_time_ms", "logical_exec_time_ms"]
+    if "physical_exec_time_ms" in plot_df.columns:
+        plot_cols.append("physical_exec_time_ms")
+    plot_df = plot_df[plot_cols].copy().dropna(subset=["policy_count"])
+    grouped = plot_df.groupby("policy_count", as_index=True).mean(numeric_only=True).sort_index()
+
+    if grouped.empty:
+        print("No data available for microbenchmark policy count chart.")
+        return None
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(
+        grouped.index,
+        grouped["dfc_exec_time_ms"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="DFC",
+        color="#ff7f0e",
+    )
+    ax.plot(
+        grouped.index,
+        grouped["logical_exec_time_ms"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="Logical",
+        color="#2ca02c",
+    )
+    if "physical_exec_time_ms" in grouped.columns:
+        ax.plot(
+            grouped.index,
+            grouped["physical_exec_time_ms"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label="Physical",
+            color="#1f77b4",
+        )
+
+    ax.set_xlabel("Number of Policies", fontsize=12)
+    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+    ax.set_title(
+        "Microbenchmark Execution Time vs Policy Count",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax.set_xscale("log")
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=10)
+
+    plt.tight_layout()
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
 def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.DataFrame]:
     required_cols = {x_col, "no_policy_exec_time_ms", "dfc_exec_time_ms", "logical_exec_time_ms"}
     if not required_cols.issubset(df.columns):
@@ -1197,8 +1551,13 @@ def create_multi_db_engine_summary_chart(
         print("Missing query_num column for multi-db engine summary chart.")
         return None
 
+    duckdb_cols = (
+        "dfc_exec_time_ms" if "dfc_exec_time_ms" in df.columns else "dfc_time_ms",
+        "logical_exec_time_ms" if "logical_exec_time_ms" in df.columns else "logical_time_ms",
+        "no_policy_exec_time_ms" if "no_policy_exec_time_ms" in df.columns else "no_policy_time_ms",
+    )
     engines = {
-        "DuckDB": ("dfc_time_ms", "logical_time_ms", "no_policy_time_ms"),
+        "DuckDB": duckdb_cols,
         "Umbra": ("umbra_dfc_time_ms", "umbra_logical_time_ms", "umbra_time_ms"),
         "Postgres": ("postgres_dfc_time_ms", "postgres_logical_time_ms", "postgres_time_ms"),
         "DataFusion": ("datafusion_dfc_time_ms", "datafusion_logical_time_ms", "datafusion_time_ms"),
@@ -1300,8 +1659,13 @@ def create_multi_db_engine_summary_capped_chart(
         print("Missing query_num column for multi-db engine summary chart.")
         return None
 
+    duckdb_cols = (
+        "dfc_exec_time_ms" if "dfc_exec_time_ms" in df.columns else "dfc_time_ms",
+        "logical_exec_time_ms" if "logical_exec_time_ms" in df.columns else "logical_time_ms",
+        "no_policy_exec_time_ms" if "no_policy_exec_time_ms" in df.columns else "no_policy_time_ms",
+    )
     engines = {
-        "DuckDB": ("dfc_time_ms", "logical_time_ms", "no_policy_time_ms"),
+        "DuckDB": duckdb_cols,
         "Umbra": ("umbra_dfc_time_ms", "umbra_logical_time_ms", "umbra_time_ms"),
         "Postgres": ("postgres_dfc_time_ms", "postgres_logical_time_ms", "postgres_time_ms"),
         "DataFusion": ("datafusion_dfc_time_ms", "datafusion_logical_time_ms", "datafusion_time_ms"),
@@ -1452,6 +1816,16 @@ def main():
         default="{query_type}_performance_policy{policy_count}.png",
         help="Filename template for operator charts (use {query_type}, {policy_count}).",
     )
+    parser.add_argument(
+        "--operator-overhead-template",
+        default="{query_type}_percent_overhead_policy{policy_count}.png",
+        help="Filename template for operator overhead charts (use {query_type}, {policy_count}).",
+    )
+    parser.add_argument(
+        "--operator-overhead-dfc-physical-template",
+        default="{query_type}_percent_overhead_dfc_physical_policy{policy_count}.png",
+        help="Filename template for DFC/Physical-only operator overhead charts (use {query_type}, {policy_count}).",
+    )
     args = parser.parse_args()
 
     # Create output directory if it doesn't exist
@@ -1463,6 +1837,8 @@ def main():
         tpch_avg_template=args.tpch_avg_template,
         tpch_overhead_template=args.tpch_overhead_template,
         operator_template=args.operator_template,
+        operator_overhead_template=args.operator_overhead_template,
+        operator_overhead_dfc_physical_template=args.operator_overhead_dfc_physical_template,
         tpch_breakdown_template=args.tpch_breakdown_template,
         tpch_multi_db_template=args.tpch_multi_db_template,
         tpch_avg_log_template=args.tpch_avg_log_template,

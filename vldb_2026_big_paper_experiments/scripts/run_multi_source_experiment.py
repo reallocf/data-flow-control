@@ -8,9 +8,9 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentConfig, ExperimentRunner
+from experiment_harness import ExperimentConfig, ExperimentRunner  # noqa: E402
 
-from vldb_experiments import MultiSourceStrategy
+from vldb_experiments import MultiSourceStrategy  # noqa: E402
 
 DEFAULT_SOURCE_COUNTS = [2, 4, 8, 16, 32]
 DEFAULT_JOIN_COUNTS = [2, 4, 8, 16, 32]
@@ -73,14 +73,13 @@ def main() -> int:
     runs_per_setting = args.runs_per_setting
     warmup_per_setting = args.warmup_per_setting
 
-    num_warmup_runs = len(valid_pairs) * warmup_per_setting
     num_executions = len(valid_pairs) * runs_per_setting
 
     print("Running multi-source experiment:")
     print(f"  Sources: {source_counts}")
     print(f"  Joins: {join_counts}")
     print(f"  Rows per table: {args.rows}")
-    print(f"  Warmup runs: {num_warmup_runs} ({warmup_per_setting} per source count)")
+    print(f"  Warmup runs per setting: {warmup_per_setting}")
     print(f"  Measured runs: {num_executions} ({runs_per_setting} per source count)")
     print("  Approaches: No Policy, DFC")
 
@@ -88,7 +87,9 @@ def main() -> int:
 
     config = ExperimentConfig(
         num_executions=num_executions,
-        num_warmup_runs=num_warmup_runs,
+        num_warmup_runs=0,
+        warmup_mode="per_setting",
+        warmup_runs_per_setting=warmup_per_setting,
         database_config={
             "database": ":memory:",
         },

@@ -9,10 +9,10 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentConfig, ExperimentRunner
+from experiment_harness import ExperimentConfig, ExperimentRunner  # noqa: E402
 
-from vldb_experiments import MicrobenchmarkStrategy
-from vldb_experiments.query_definitions import get_query_order
+from vldb_experiments import MicrobenchmarkStrategy  # noqa: E402
+from vldb_experiments.query_definitions import get_query_order  # noqa: E402
 
 
 def main():
@@ -45,7 +45,7 @@ def main():
         "--warmup-runs",
         type=int,
         default=2,
-        help="Number of warm-up runs.",
+        help="Warm-up runs per query variation setting.",
     )
     parser.add_argument(
         "--disable-physical",
@@ -63,11 +63,11 @@ def main():
     if output_filename is None:
         output_filename = f"microbenchmark_results_policy{args.policy_count}.csv"
 
-    # Experiment structure: 4 variations × 5 runs = 20 executions per query type
+    # Experiment structure: 4 variations x 5 runs = 20 executions per query type
     num_variations = args.num_variations
     num_runs_per_variation = args.num_runs_per_variation
     num_executions_per_query = num_variations * num_runs_per_variation
-    num_warmup_runs = args.warmup_runs
+    warmup_per_setting = args.warmup_runs
 
     # Calculate total executions needed
     if args.query_types:
@@ -81,9 +81,9 @@ def main():
     print(f"  Query types: {num_query_types} ({', '.join(query_order)})")
     print(f"  Variations per query: {num_variations} (x values, Zipfian distributed)")
     print(f"  Runs per variation: {num_runs_per_variation}")
-    print(f"  Executions per query: {num_executions_per_query} ({num_variations} × {num_runs_per_variation})")
+    print(f"  Executions per query: {num_executions_per_query} ({num_variations} x {num_runs_per_variation})")
     print(f"  Total executions: {total_executions}")
-    print(f"  Warm-up runs: {num_warmup_runs}")
+    print(f"  Warm-up runs per setting: {warmup_per_setting}")
     print("  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
     print(f"  Policy count: {args.policy_count}")
     print("  Variations:")
@@ -96,7 +96,9 @@ def main():
     # Configure experiment
     config = ExperimentConfig(
         num_executions=total_executions,
-        num_warmup_runs=num_warmup_runs,
+        num_warmup_runs=0,
+        warmup_mode="per_setting",
+        warmup_runs_per_setting=warmup_per_setting,
         database_config={
             "database": ":memory:",
         },
@@ -116,7 +118,7 @@ def main():
     runner = ExperimentRunner(strategy, config)
 
     print("Starting experiments...")
-    collector = runner.run()
+    runner.run()
 
     print("\nExperiments completed!")
     print(f"Results saved to: {config.output_dir}/{config.output_filename}")
@@ -148,6 +150,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-    output_filename = args.output_filename
-    if output_filename is None:
-        output_filename = f"microbenchmark_results_policy{args.policy_count}.csv"

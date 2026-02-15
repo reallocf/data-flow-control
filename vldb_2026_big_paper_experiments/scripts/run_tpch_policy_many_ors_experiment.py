@@ -8,9 +8,9 @@ import sys
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentConfig, ExperimentRunner
+from experiment_harness import ExperimentConfig, ExperimentRunner  # noqa: E402
 
-from vldb_experiments import TPCHPolicyManyORsStrategy
+from vldb_experiments import TPCHPolicyManyORsStrategy  # noqa: E402
 
 DEFAULT_OR_COUNTS = [0, 1, 10, 100, 1000]
 DEFAULT_WARMUP_PER_LEVEL = 1
@@ -56,14 +56,13 @@ def main() -> int:
     runs_per_level = args.runs_per_level
     warmup_per_level = args.warmup_per_level
 
-    num_warmup_runs = len(or_counts) * warmup_per_level
     num_executions = len(or_counts) * runs_per_level
 
     print("Running TPC-H Q01 policy many-ORs experiment:")
     print(f"  Scale factor: {args.sf}")
     print(f"  Query: Q{args.query:02d}")
     print(f"  OR counts: {or_counts}")
-    print(f"  Warmup runs: {num_warmup_runs} ({warmup_per_level} per level)")
+    print(f"  Warmup runs per setting: {warmup_per_level}")
     print(f"  Measured runs: {num_executions} ({runs_per_level} per level)")
     print("  Approaches: No Policy, DFC, Logical, Physical")
 
@@ -72,7 +71,9 @@ def main() -> int:
 
     config = ExperimentConfig(
         num_executions=num_executions,
-        num_warmup_runs=num_warmup_runs,
+        num_warmup_runs=0,
+        warmup_mode="per_setting",
+        warmup_runs_per_setting=warmup_per_level,
         database_config={
             "database": db_path,
         },

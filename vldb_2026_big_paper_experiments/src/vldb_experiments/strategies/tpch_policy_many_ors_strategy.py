@@ -108,41 +108,26 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
 
         self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
 
-        context.shared_state["or_counts"] = list(or_counts)
-        context.shared_state["warmup_per_level"] = warmup_per_level
-        context.shared_state["runs_per_level"] = runs_per_level
-        context.shared_state["global_execution_index"] = 0
+        self.or_counts = list(or_counts)
+        self.warmup_per_level = warmup_per_level
+        self.runs_per_level = runs_per_level
         query_num = int(context.strategy_config.get("tpch_query", 1))
         context.shared_state["tpch_query_num"] = query_num
         context.shared_state["tpch_query"] = load_tpch_query(query_num)
 
-    def _get_or_count_for_execution(self, context: ExperimentContext) -> tuple[int, int | None, bool]:
-        or_counts = context.shared_state["or_counts"]
-        warmup_per_level = context.shared_state["warmup_per_level"]
-        runs_per_level = context.shared_state["runs_per_level"]
-        warmup_total = len(or_counts) * warmup_per_level
-
-        global_index = context.shared_state["global_execution_index"] + 1
-        context.shared_state["global_execution_index"] = global_index
-
-        if global_index <= warmup_total:
-            level_index = (global_index - 1) // warmup_per_level
-            return or_counts[level_index], None, True
-
-        run_index = global_index - warmup_total - 1
-        level_index = run_index // runs_per_level
-        run_num = (run_index % runs_per_level) + 1
-
-        return or_counts[level_index], run_num, False
+    def _or_count_and_run_for_execution(self, execution_number: int) -> tuple[int, int]:
+        level_index = (execution_number - 1) // self.runs_per_level
+        run_num = ((execution_number - 1) % self.runs_per_level) + 1
+        return self.or_counts[level_index], run_num
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
         query = context.shared_state["tpch_query"]
         query_num = context.shared_state["tpch_query_num"]
-        or_count, run_num, is_warmup = self._get_or_count_for_execution(context)
+        or_count, run_num = self._or_count_and_run_for_execution(context.execution_number)
 
-        phase_label = "warmup" if is_warmup else f"run {run_num}"
+        phase_label = "warmup" if context.is_warmup else f"run {run_num}"
         print(
-            f"[Execution {context.shared_state['global_execution_index']}] "
+            f"[Execution {context.execution_number}] "
             f"TPC-H Q{query_num:02d} (sf={self.scale_factor}) ors={or_count} ({phase_label})"
         )
 
@@ -361,3 +346,7 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
             "logical_error",
             "physical_error",
         ]
+
+    def get_setting_key(self, context: ExperimentContext) -> tuple[str, int]:
+        or_count, _ = self._or_count_and_run_for_execution(context.execution_number)
+        return ("or_count", or_count)

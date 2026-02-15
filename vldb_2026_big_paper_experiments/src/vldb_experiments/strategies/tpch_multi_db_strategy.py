@@ -435,3 +435,9 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                 ]
             )
         return metrics
+
+    def get_setting_key(self, context: ExperimentContext) -> tuple[str, int]:
+        tpch_queries = context.shared_state.get("tpch_queries", TPCH_QUERIES)
+        query_index = (context.execution_number - 1) % len(tpch_queries)
+        query_num = tpch_queries[query_index]
+        return ("tpch_query", query_num)

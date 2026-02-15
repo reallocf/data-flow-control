@@ -1636,12 +1636,12 @@ def rewrite_query_with_cte(
                 on_expr = join_copy.args.get("on")
                 if on_expr is not None:
                     qualified_on = _qualify_expression_columns(
-                        on_expr.this if hasattr(on_expr, "this") else on_expr,
+                        on_expr,
                         select_col_tables=select_col_tables,
                         default_table=default_table,
                         policy_source=policy_source,
                     )
-                    join_copy.set("on", exp.On(this=qualified_on))
+                    join_copy.set("on", qualified_on)
                 joins.append(join_copy.sql(dialect="duckdb"))
             if joins:
                 qualified_joins_clause = " " + " ".join(joins)
