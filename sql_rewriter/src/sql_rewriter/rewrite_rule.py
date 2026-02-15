@@ -691,21 +691,29 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     if column_name.lower() in selected:
         return
 
-    # Check if SELECT * is used - in that case, we can't safely add columns
-    # because we don't know what columns are actually selected
     has_star = any(isinstance(expr, exp.Star) for expr in select_expr.expressions)
-    if has_star:
-        # Can't safely add columns when SELECT * is used
+    if has_star and column_name.lower() not in {"__dfc_rowid", "__dfc_rowid_passthrough"}:
+        # Can't safely add regular columns when SELECT * is used
         return
 
     # Get the table alias if one exists
     table_ref = _get_table_alias_in_subquery(subquery, table_name)
 
-    # Create a column expression with table qualification
-    col_expr = exp.Column(
-        this=exp.Identifier(this=column_name, quoted=False),
-        table=exp.Identifier(this=table_ref, quoted=False)
-    )
+    # Create a column expression with table qualification.
+    # __dfc_rowid is a synthetic key used by two-phase rewrites.
+    if column_name.lower() == "__dfc_rowid":
+        col_expr = exp.Alias(
+            this=exp.Column(
+                this=exp.Identifier(this="rowid", quoted=False),
+                table=exp.Identifier(this=table_ref, quoted=False),
+            ),
+            alias=exp.Identifier(this="__dfc_rowid", quoted=False),
+        )
+    else:
+        col_expr = exp.Column(
+            this=exp.Identifier(this=column_name, quoted=False),
+            table=exp.Identifier(this=table_ref, quoted=False)
+        )
 
     # Add the column to the SELECT list
     select_expr.expressions.append(col_expr)
@@ -714,11 +722,12 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     alias = subquery.args.get("alias")
     if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
         alias_columns = alias.args.get("columns")
+        alias_col_name = "__dfc_rowid" if column_name.lower() == "__dfc_rowid_passthrough" else column_name
         if all(
-            not (isinstance(col, exp.Identifier) and col.name.lower() == column_name.lower())
+            not (isinstance(col, exp.Identifier) and col.name.lower() == alias_col_name.lower())
             for col in alias_columns
         ):
-            alias_columns.append(exp.Identifier(this=column_name, quoted=False))
+            alias_columns.append(exp.Identifier(this=alias_col_name, quoted=False))
 
 
 def _get_ctes(parsed: exp.Select) -> list[tuple[exp.CTE, str]]:
@@ -848,21 +857,37 @@ def _add_column_to_cte(cte: exp.CTE, table_name: str, column_name: str) -> None:
     if column_name.lower() in selected:
         return
 
-    # Check if SELECT * is used - in that case, we can't safely add columns
-    # because we don't know what columns are actually selected
     has_star = any(isinstance(expr, exp.Star) for expr in select_expr.expressions)
-    if has_star:
-        # Can't safely add columns when SELECT * is used
+    if has_star and column_name.lower() != "__dfc_rowid":
+        # Can't safely add regular columns when SELECT * is used
         return
 
     # Get the table alias if one exists
     table_ref = _get_table_alias_in_select(select_expr, table_name)
 
-    # Create a column expression with table qualification
-    col_expr = exp.Column(
-        this=exp.Identifier(this=column_name, quoted=False),
-        table=exp.Identifier(this=table_ref, quoted=False)
-    )
+    # Create a column expression with table qualification.
+    # __dfc_rowid is a synthetic key used by two-phase rewrites.
+    if column_name.lower() == "__dfc_rowid":
+        col_expr = exp.Alias(
+            this=exp.Column(
+                this=exp.Identifier(this="rowid", quoted=False),
+                table=exp.Identifier(this=table_ref, quoted=False),
+            ),
+            alias=exp.Identifier(this="__dfc_rowid", quoted=False),
+        )
+    elif column_name.lower() == "__dfc_rowid_passthrough":
+        col_expr = exp.Alias(
+            this=exp.Column(
+                this=exp.Identifier(this="__dfc_rowid", quoted=False),
+                table=exp.Identifier(this=table_ref, quoted=False),
+            ),
+            alias=exp.Identifier(this="__dfc_rowid", quoted=False),
+        )
+    else:
+        col_expr = exp.Column(
+            this=exp.Identifier(this=column_name, quoted=False),
+            table=exp.Identifier(this=table_ref, quoted=False)
+        )
 
     # Add the column to the SELECT list
     select_expr.expressions.append(col_expr)
@@ -1282,6 +1307,42 @@ def ensure_subqueries_have_constraint_columns(
                 # Add missing columns to the CTE's SELECT list
                 for col_name in needed_columns:
                     _add_column_to_cte(cte, source_table_lower, col_name)
+
+    # Propagate synthetic rowid keys across CTE dependency chains.
+    cte_alias_to_select: dict[str, exp.Select] = {}
+    ctes_with_rowid: set[str] = set()
+    for cte, cte_alias in ctes:
+        cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
+        if not isinstance(cte_select, exp.Select):
+            continue
+        cte_alias_to_select[cte_alias] = cte_select
+        if "__dfc_rowid" in _get_selected_columns_from_select(cte_select):
+            ctes_with_rowid.add(cte_alias)
+
+    changed = True
+    while changed:
+        changed = False
+        for cte, cte_alias in ctes:
+            if cte_alias in ctes_with_rowid:
+                continue
+
+            cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
+            if not isinstance(cte_select, exp.Select):
+                continue
+
+            referenced_ctes = set()
+            for table in cte_select.find_all(exp.Table):
+                if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
+                    referenced_ctes.add(table.name.lower())
+
+            rowid_sources = [name for name in referenced_ctes if name in ctes_with_rowid]
+            if not rowid_sources:
+                continue
+
+            _add_column_to_cte(cte, rowid_sources[0], "__dfc_rowid_passthrough")
+            if "__dfc_rowid" in _get_selected_columns_from_select(cte_select):
+                ctes_with_rowid.add(cte_alias)
+                changed = True
 
 
 def wrap_query_with_limit_in_cte_for_remove_policy(
