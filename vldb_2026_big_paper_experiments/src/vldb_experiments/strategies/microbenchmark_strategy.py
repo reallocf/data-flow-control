@@ -3,7 +3,6 @@
 import contextlib
 import time
 
-import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import SQLRewriter
 
@@ -16,6 +15,7 @@ from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.data_setup import (
     setup_test_data,
     setup_test_data_with_groups,
+    setup_test_data_with_join_group_by,
     setup_test_data_with_join_matches,
 )
 from vldb_experiments.policy_setup import create_test_policies
@@ -114,6 +114,29 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             self.dfc_rewriter.register_policy(policy)
         self._active_policy_signature = signature
 
+    def _physical_supported_for_query(self, query_type: str) -> bool:
+        """Return whether the physical baseline is supported for this query type."""
+        return query_type in {"GROUP_BY", "JOIN_GROUP_BY"}
+
+    def _build_join_group_by_query(self, join_count: int) -> str:
+        """Build a JOIN->GROUP_BY query with the requested number of joins."""
+        if join_count < 1:
+            raise ValueError(f"join_count must be >= 1, got {join_count}")
+
+        amount_terms = ["test_data.amount"] + [f"j{i}.amount" for i in range(1, join_count + 1)]
+        joins = [
+            f"JOIN join_data_{i} j{i} ON test_data.id = j{i}.id"
+            for i in range(1, join_count + 1)
+        ]
+
+        query = f"""
+            SELECT test_data.category, COUNT(*), SUM({" + ".join(amount_terms)}) AS total_amount
+            FROM test_data
+            {" ".join(joins)}
+            GROUP BY test_data.category
+        """
+        return " ".join(query.split())
+
     def setup(self, context: ExperimentContext) -> None:
         """Set up test data and rewriter instances.
 
@@ -125,8 +148,14 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             if self.enable_physical_override is not None
             else self.policy_count <= 1
         )
-        # Use locally built SmokedDuck DuckDB for physical baseline when enabled.
-        local_duckdb = _ensure_smokedduck() if self.enable_physical else None
+        query_order = self.query_types or get_query_order()
+        self._physical_enabled_for_run = (
+            self.enable_physical
+            and any(self._physical_supported_for_query(query) for query in query_order)
+        )
+        # Use locally built SmokedDuck DuckDB for all benchmark connections.
+        self.local_duckdb = _ensure_smokedduck()
+        local_duckdb = self.local_duckdb if self._physical_enabled_for_run else None
 
         # Use the connection from context to set up data
         # But create separate connections for each rewriter to avoid UDF conflicts
@@ -139,9 +168,9 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
         # Create separate connections for each approach to avoid conflicts
         # Use local DuckDB for physical connection (SmokedDuck build)
-        self.no_policy_conn = duckdb.connect(":memory:")
-        self.dfc_conn = duckdb.connect(":memory:")
-        self.logical_conn = duckdb.connect(":memory:")
+        self.no_policy_conn = self.local_duckdb.connect(":memory:")
+        self.dfc_conn = self.local_duckdb.connect(":memory:")
+        self.logical_conn = self.local_duckdb.connect(":memory:")
         self.physical_conn = local_duckdb.connect(":memory:") if local_duckdb else None
 
         # Set up data in each connection
@@ -171,13 +200,11 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         # Create DFC rewriter (policies will be registered per execution with variations)
         self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
         self._active_policy_signature = None
+        self._max_join_group_by_count_seen = 0
 
         # Store queries in shared state
         context.shared_state["queries"] = get_query_definitions()
-        if self.query_types:
-            context.shared_state["query_order"] = self.query_types
-        else:
-            context.shared_state["query_order"] = get_query_order()
+        context.shared_state["query_order"] = query_order
         context.shared_state["current_query_index"] = 0
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
@@ -216,6 +243,8 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             variation_info = f"join_matches={variation_params.get('join_matches', 'N/A')}"
         elif query_type == "GROUP_BY":
             variation_info = f"num_groups={variation_params.get('num_groups', 'N/A')}"
+        elif query_type == "JOIN_GROUP_BY":
+            variation_info = f"join_count={variation_params.get('join_count', 'N/A')}"
         print(f"[Execution {context.execution_number}] {query_type} - Variation {variation_params.get('variation_num', 'N/A')}, Run {variation_params.get('run_num', 'N/A')} ({variation_info})")
 
         # Get connections for each approach
@@ -247,7 +276,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                 self._ensure_policies(("default", 0), policies)
             except Exception:
                 # If rewriter/connection is broken, recreate it
-                self.dfc_conn = duckdb.connect(":memory:")
+                self.dfc_conn = self.local_duckdb.connect(":memory:")
                 setup_test_data_with_join_matches(self.dfc_conn, num_rows=1_000_000, join_matches=join_matches)
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
                 self._active_policy_signature = None
@@ -270,8 +299,45 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                 self._ensure_policies(("default", 0), policies)
             except Exception:
                 # If rewriter/connection is broken, recreate it
-                self.dfc_conn = duckdb.connect(":memory:")
+                self.dfc_conn = self.local_duckdb.connect(":memory:")
                 setup_test_data_with_groups(self.dfc_conn, num_rows=1_000_000, num_groups=num_groups)
+                self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
+                self._active_policy_signature = None
+                self._ensure_policies(("default", 0), policies)
+
+        elif query_type == "JOIN_GROUP_BY":
+            join_count = variation_params["join_count"]
+            query = self._build_join_group_by_query(join_count)
+
+            drop_join_limit = max(self._max_join_group_by_count_seen, join_count)
+            for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
+                if conn is None:
+                    continue
+                with contextlib.suppress(Exception):
+                    conn.execute("DROP TABLE IF EXISTS test_data")
+                for idx in range(1, drop_join_limit + 1):
+                    with contextlib.suppress(Exception):
+                        conn.execute(f"DROP TABLE IF EXISTS join_data_{idx}")
+                setup_test_data_with_join_group_by(
+                    conn=conn,
+                    join_count=join_count,
+                    num_rows=1_000,
+                )
+            self._max_join_group_by_count_seen = max(
+                self._max_join_group_by_count_seen,
+                join_count,
+            )
+
+            policies = self._get_policies("default")
+            try:
+                self._ensure_policies(("default", 0), policies)
+            except Exception:
+                self.dfc_conn = self.local_duckdb.connect(":memory:")
+                setup_test_data_with_join_group_by(
+                    conn=self.dfc_conn,
+                    join_count=join_count,
+                    num_rows=1_000,
+                )
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
                 self._active_policy_signature = None
                 self._ensure_policies(("default", 0), policies)
@@ -284,7 +350,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                 self._ensure_policies(("default", 0), policies)
             except Exception:
                 # If rewriter/connection is broken, recreate it
-                self.dfc_conn = duckdb.connect(":memory:")
+                self.dfc_conn = self.local_duckdb.connect(":memory:")
                 setup_test_data(self.dfc_conn, num_rows=1_000_000)
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
                 self._active_policy_signature = None
@@ -358,7 +424,16 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                 physical_lineage_query_time = 0.0
                 physical_error = "skipped_for_select"
                 physical_rows = 0
-            elif self.enable_physical and len(policies) == 1:
+            elif not self._physical_supported_for_query(query_type):
+                physical_results = []
+                physical_time = 0.0
+                physical_runtime = 0.0
+                physical_rewrite_time = 0.0
+                physical_base_capture_time = 0.0
+                physical_lineage_query_time = 0.0
+                physical_error = "skipped_not_supported_for_query"
+                physical_rows = 0
+            elif self._physical_enabled_for_run and len(policies) == 1:
                 # SmokedDuck is REQUIRED - execute_query_physical_simple will raise if not available
                 (
                     physical_results,
@@ -384,7 +459,11 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                 physical_rewrite_time = 0.0
                 physical_base_capture_time = 0.0
                 physical_lineage_query_time = 0.0
-                physical_error = "skipped_for_multi_policy"
+                physical_error = (
+                    "skipped_for_multi_policy"
+                    if len(policies) != 1
+                    else "skipped_physical_disabled"
+                )
                 physical_rows = 0
         except ImportError:
             # Re-raise ImportError as-is (SmokedDuck is required)
@@ -477,6 +556,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "variation_policy_threshold": variation_params.get("policy_threshold"),
             "variation_join_matches": variation_params.get("join_matches"),
             "variation_num_groups": variation_params.get("num_groups"),
+            "variation_join_count": variation_params.get("join_count"),
         }
 
         return ExperimentResult(
@@ -538,4 +618,5 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "variation_policy_threshold",
             "variation_join_matches",
             "variation_num_groups",
+            "variation_join_count",
         ]

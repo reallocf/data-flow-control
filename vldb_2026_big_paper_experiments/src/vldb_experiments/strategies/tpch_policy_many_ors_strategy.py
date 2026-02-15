@@ -3,7 +3,6 @@
 import contextlib
 import time
 
-import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
@@ -75,11 +74,12 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
             main_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
 
         target_db = db_path or ":memory:"
-        self.no_policy_conn = duckdb.connect(target_db)
-        self.dfc_conn = duckdb.connect(target_db)
-        self.logical_conn = duckdb.connect(target_db)
-        physical_db_path = f"{db_path}_physical" if db_path else None
         local_duckdb = _ensure_smokedduck()
+        self.local_duckdb = local_duckdb
+        self.no_policy_conn = self.local_duckdb.connect(target_db)
+        self.dfc_conn = self.local_duckdb.connect(target_db)
+        self.logical_conn = self.local_duckdb.connect(target_db)
+        physical_db_path = f"{db_path}_physical" if db_path else None
         self.physical_conn = local_duckdb.connect(physical_db_path or ":memory:")
 
         for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
@@ -159,7 +159,7 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
                 )
             self.dfc_rewriter.register_policy(policy)
         except Exception:
-            self.dfc_conn = duckdb.connect(":memory:")
+            self.dfc_conn = self.local_duckdb.connect(":memory:")
             with contextlib.suppress(Exception):
                 self.dfc_conn.execute("INSTALL tpch")
             self.dfc_conn.execute("LOAD tpch")

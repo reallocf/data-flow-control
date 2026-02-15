@@ -3,14 +3,13 @@
 import contextlib
 import re
 
-import duckdb
 import pytest
 import sqlglot
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical_multi
 from vldb_experiments.baselines.physical_rewriter import rewrite_query_physical
 from vldb_experiments.strategies.tpch_policy_count_strategy import build_tpch_q01_policies
-from vldb_experiments.strategies.tpch_strategy import load_tpch_query
+from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck, load_tpch_query
 
 POLICY_COUNTS = [1, 10, 100, 1000]
 
@@ -18,7 +17,7 @@ POLICY_COUNTS = [1, 10, 100, 1000]
 @pytest.fixture(scope="module")
 def tpch_conn():
     """Create a DuckDB connection with TPC-H data loaded (sf=0.1)."""
-    conn = duckdb.connect(":memory:")
+    conn = _ensure_smokedduck().connect(":memory:")
     with contextlib.suppress(Exception):
         conn.execute("INSTALL tpch")
     conn.execute("LOAD tpch")

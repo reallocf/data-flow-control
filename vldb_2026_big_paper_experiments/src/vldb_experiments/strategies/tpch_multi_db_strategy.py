@@ -6,7 +6,6 @@ import contextlib
 import pathlib
 import time
 
-import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import SQLRewriter
 
@@ -19,7 +18,12 @@ from vldb_experiments.multi_db import (
     UmbraClient,
     sqlserver_env_available,
 )
-from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES, lineitem_policy, load_tpch_query
+from vldb_experiments.strategies.tpch_strategy import (
+    TPCH_QUERIES,
+    _ensure_smokedduck,
+    lineitem_policy,
+    load_tpch_query,
+)
 
 MULTI_DB_DATA_DIR = pathlib.Path("results") / "multi_db"
 
@@ -53,9 +57,10 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
             main_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
 
         target_db = db_path or ":memory:"
-        self.no_policy_conn = duckdb.connect(target_db)
-        self.dfc_conn = duckdb.connect(target_db)
-        self.logical_conn = duckdb.connect(target_db)
+        self.local_duckdb = _ensure_smokedduck()
+        self.no_policy_conn = self.local_duckdb.connect(target_db)
+        self.dfc_conn = self.local_duckdb.connect(target_db)
+        self.logical_conn = self.local_duckdb.connect(target_db)
 
         for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn]:
             with contextlib.suppress(Exception):
@@ -128,7 +133,7 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                 )
             self.dfc_rewriter.register_policy(policy)
         except Exception:
-            self.dfc_conn = duckdb.connect(":memory:")
+            self.dfc_conn = self.local_duckdb.connect(":memory:")
             with contextlib.suppress(Exception):
                 self.dfc_conn.execute("INSTALL tpch")
             self.dfc_conn.execute("LOAD tpch")

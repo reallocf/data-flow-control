@@ -15,11 +15,11 @@ from vldb_experiments.strategies.tpch_policy_complexity_strategy import (
 from vldb_experiments.strategies.tpch_policy_many_ors_strategy import (
     build_tpch_q01_or_policy,
 )
-from vldb_experiments.strategies.tpch_strategy import load_tpch_query
+from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck, load_tpch_query
 
 
 def _build_tpch_conn() -> duckdb.DuckDBPyConnection:
-    conn = duckdb.connect(":memory:")
+    conn = _ensure_smokedduck().connect(":memory:")
     with contextlib.suppress(Exception):
         conn.execute("INSTALL tpch")
     conn.execute("LOAD tpch")

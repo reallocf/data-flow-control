@@ -33,7 +33,7 @@ from vldb_experiments.baselines.smokedduck_helper import (
     is_smokedduck_available,
 )
 from vldb_experiments.correctness import compare_results_exact
-from vldb_experiments.strategies.tpch_strategy import load_tpch_query
+from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck, load_tpch_query
 
 # Policies used in test_tpch.py
 lineitem_policy = DFCPolicy(
@@ -1216,9 +1216,9 @@ def _debug_physical_mismatch(
 @pytest.fixture
 def tpch_connections():
     """Create connections with TPC-H data loaded."""
-    # Regular DuckDB connections
-    dfc_conn = duckdb.connect(":memory:")
-    logical_conn = duckdb.connect(":memory:")
+    local_duckdb = _ensure_smokedduck()
+    dfc_conn = local_duckdb.connect(":memory:")
+    logical_conn = local_duckdb.connect(":memory:")
     physical_conn = None
 
     # Set up TPC-H data in each connection
@@ -1228,10 +1228,7 @@ def tpch_connections():
         conn.execute("LOAD tpch")
         conn.execute("CALL dbgen(sf=0.1)")
 
-    from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
-
-    duckdb_module = setup_local_smokedduck()
-    physical_conn = duckdb_module.connect(":memory:")
+    physical_conn = local_duckdb.connect(":memory:")
     with contextlib.suppress(Exception):
         physical_conn.execute("INSTALL tpch")
     physical_conn.execute("LOAD tpch")

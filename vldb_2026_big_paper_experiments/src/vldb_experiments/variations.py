@@ -78,16 +78,16 @@ def generate_variation_parameters(
     execution_number: int,
     num_variations: int = 4,
     num_runs_per_variation: int = 5,
-    num_query_types: int = 5
+    num_query_types: int = 6
 ) -> dict:
     """Generate variation parameters for a query type.
 
     Args:
-        query_type: Type of query (SELECT, WHERE, JOIN, GROUP_BY, ORDER_BY)
+        query_type: Type of query (SELECT, WHERE, JOIN, GROUP_BY, JOIN_GROUP_BY, ORDER_BY)
         execution_number: Current execution number
         num_variations: Number of variations (x values) per query type (default: 4)
         num_runs_per_variation: Number of runs per variation (default: 5)
-        num_query_types: Number of different query types (default: 5)
+        num_query_types: Number of different query types (default: 6)
 
     Returns:
         Dictionary with variation parameters and metrics
@@ -175,6 +175,19 @@ def generate_variation_parameters(
         return {
             "variation_type": "num_groups",
             "num_groups": num_groups,
+            "variation_index": variation_index,
+            "variation_num": variation_num,
+            "run_index": run_index,
+            "run_num": run_num,
+        }
+
+    if query_type == "JOIN_GROUP_BY":
+        join_count_values = [1, 10, 100, 1000]
+        join_count = join_count_values[variation_index]
+
+        return {
+            "variation_type": "join_count",
+            "join_count": join_count,
             "variation_index": variation_index,
             "variation_num": variation_num,
             "run_index": run_index,

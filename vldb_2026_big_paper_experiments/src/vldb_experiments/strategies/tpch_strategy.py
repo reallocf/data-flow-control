@@ -4,7 +4,6 @@ import contextlib
 import pathlib
 import time
 
-import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
@@ -112,10 +111,11 @@ class TPCHStrategy(ExperimentStrategy):
         physical_db_path = None
         if db_path:
             physical_db_path = f"{db_path}_physical"
-        self.no_policy_conn = duckdb.connect(target_db)
-        self.dfc_conn = duckdb.connect(target_db)
-        self.logical_conn = duckdb.connect(target_db)
-        local_duckdb = _ensure_smokedduck()
+        self.local_duckdb = _ensure_smokedduck()
+        self.no_policy_conn = self.local_duckdb.connect(target_db)
+        self.dfc_conn = self.local_duckdb.connect(target_db)
+        self.logical_conn = self.local_duckdb.connect(target_db)
+        local_duckdb = self.local_duckdb
         self.physical_conn = local_duckdb.connect(physical_db_path or ":memory:")
 
         # Ensure TPC-H extension is available for connections
@@ -188,7 +188,7 @@ class TPCHStrategy(ExperimentStrategy):
             self.dfc_rewriter.register_policy(policy)
         except Exception:
             # If rewriter/connection is broken, recreate it
-            self.dfc_conn = duckdb.connect(":memory:")
+            self.dfc_conn = self.local_duckdb.connect(":memory:")
             with contextlib.suppress(Exception):
                 self.dfc_conn.execute("INSTALL tpch")
             self.dfc_conn.execute("LOAD tpch")

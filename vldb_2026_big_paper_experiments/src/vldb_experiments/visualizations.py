@@ -42,6 +42,8 @@ def get_variation_x_axis(query_type: str) -> tuple[str, str]:
         return "variation_join_matches", "Join Matches"
     if query_type == "GROUP_BY":
         return "variation_num_groups", "Number of Groups"
+    if query_type == "JOIN_GROUP_BY":
+        return "variation_join_count", "Number of Joins"
     return "variation_num", "Variation Number"
 
 

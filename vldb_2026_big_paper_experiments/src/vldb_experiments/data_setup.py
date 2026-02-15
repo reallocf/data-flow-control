@@ -154,6 +154,37 @@ def setup_test_data_with_join_matches(
     assert result[0] == actual_rows, f"Expected {actual_rows} rows, got {result[0]}"
 
 
+def setup_test_data_with_join_group_by(
+    conn: duckdb.DuckDBPyConnection,
+    join_count: int,
+    num_rows: int = 1_000,
+) -> None:
+    """Set up data for JOIN->GROUP_BY microbenchmarks.
+
+    Creates one policy source table named ``test_data`` and ``join_count`` auxiliary
+    tables named ``join_data_1`` ... ``join_data_{join_count}`` with matching schema/data.
+    The policy targets only ``test_data``, so it is applied exactly once.
+
+    Args:
+        conn: DuckDB connection
+        join_count: Number of joined auxiliary tables
+        num_rows: Number of rows in each table
+    """
+    if join_count < 1:
+        raise ValueError(f"join_count must be >= 1, got {join_count}")
+
+    setup_test_data(conn, num_rows=num_rows)
+
+    for idx in range(1, join_count + 1):
+        conn.execute(
+            f"""
+            CREATE TABLE join_data_{idx} AS
+            SELECT id, value, category, amount
+            FROM test_data
+            """
+        )
+
+
 def get_data_statistics(conn: duckdb.DuckDBPyConnection) -> dict:
     """Get statistics about the test data.
 

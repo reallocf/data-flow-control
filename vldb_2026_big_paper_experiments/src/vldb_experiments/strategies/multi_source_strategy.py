@@ -7,6 +7,8 @@ import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
+from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck
+
 DEFAULT_SOURCE_COUNTS = [2, 4, 8, 16, 32]
 DEFAULT_JOIN_COUNTS = [2, 4, 8, 16, 32]
 DEFAULT_NUM_ROWS = 10_000
@@ -108,8 +110,9 @@ class MultiSourceStrategy(ExperimentStrategy):
 
         max_join_count = max(self.join_counts)
         max_table_count = max_join_count + 1
-        self.no_policy_conn = duckdb.connect(":memory:")
-        self.dfc_conn = duckdb.connect(":memory:")
+        self.local_duckdb = _ensure_smokedduck()
+        self.no_policy_conn = self.local_duckdb.connect(":memory:")
+        self.dfc_conn = self.local_duckdb.connect(":memory:")
 
         _setup_chain_tables(self.no_policy_conn, max_table_count, self.num_rows)
         _setup_chain_tables(self.dfc_conn, max_table_count, self.num_rows)
@@ -185,7 +188,7 @@ class MultiSourceStrategy(ExperimentStrategy):
                 )
             self.dfc_rewriter.register_policy(policy)
         except Exception:
-            self.dfc_conn = duckdb.connect(":memory:")
+            self.dfc_conn = self.local_duckdb.connect(":memory:")
             _setup_chain_tables(self.dfc_conn, max(self.join_counts) + 1, self.num_rows)
             self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
             self.dfc_rewriter.register_policy(policy)

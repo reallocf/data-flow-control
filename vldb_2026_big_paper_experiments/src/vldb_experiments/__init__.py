@@ -7,7 +7,6 @@ from .strategies.microbenchmark_strategy import MicrobenchmarkStrategy
 from .strategies.multi_source_strategy import MultiSourceStrategy
 from .strategies.tpch_multi_db_strategy import TPCHMultiDBStrategy
 from .strategies.tpch_policy_complexity_strategy import TPCHPolicyComplexityStrategy
-from .strategies.tpch_policy_count_all_strategy import TPCHPolicyCountAllQueriesStrategy
 from .strategies.tpch_policy_count_strategy import TPCHPolicyCountStrategy
 from .strategies.tpch_policy_many_ors_strategy import TPCHPolicyManyORsStrategy
 from .strategies.tpch_strategy import TPCHStrategy, load_tpch_query
@@ -17,7 +16,6 @@ __all__ = [
     "MultiSourceStrategy",
     "TPCHMultiDBStrategy",
     "TPCHPolicyComplexityStrategy",
-    "TPCHPolicyCountAllQueriesStrategy",
     "TPCHPolicyCountStrategy",
     "TPCHPolicyManyORsStrategy",
     "TPCHStrategy",

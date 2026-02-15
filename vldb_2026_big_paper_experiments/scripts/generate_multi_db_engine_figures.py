@@ -9,6 +9,39 @@ from pathlib import Path
 import pandas as pd
 
 
+def _filter_to_engine(df: pd.DataFrame, engine: str, include_duckdb: bool) -> pd.DataFrame:
+    """Keep only columns needed for a single external engine chart."""
+    normalized_engine = engine.lower().replace("-", "").replace("_", "")
+    engine_prefix_map = {
+        "postgres": "postgres",
+        "umbra": "umbra",
+        "datafusion": "datafusion",
+        "sqlserver": "sqlserver",
+    }
+    engine_prefix = engine_prefix_map.get(normalized_engine, engine.lower())
+
+    keep_cols = {"execution_number", "query_num", "tpch_sf"}
+    if include_duckdb:
+        keep_cols.update(
+            {
+                "no_policy_exec_time_ms",
+                "dfc_exec_time_ms",
+                "logical_exec_time_ms",
+            }
+        )
+
+    keep_cols.update(
+        {
+            f"{engine_prefix}_time_ms",
+            f"{engine_prefix}_dfc_time_ms",
+            f"{engine_prefix}_logical_time_ms",
+        }
+    )
+
+    selected = [col for col in df.columns if col in keep_cols]
+    return df[selected].copy()
+
+
 def _drop_duckdb_columns(df: pd.DataFrame) -> pd.DataFrame:
     drop_cols = [
         c
@@ -42,7 +75,8 @@ def main() -> int:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    df = load_results(args.csv_path)
+    raw_df = load_results(args.csv_path)
+    df = _filter_to_engine(raw_df, args.engine, include_duckdb=True)
 
     output_filename = f"tpch_multi_db_{args.engine}_only_{args.suffix}.png"
     create_tpch_multi_db_chart(
@@ -53,7 +87,7 @@ def main() -> int:
     )
 
     if args.exclude_duckdb:
-        filtered = _drop_duckdb_columns(pd.read_csv(args.csv_path))
+        filtered = _drop_duckdb_columns(_filter_to_engine(pd.read_csv(args.csv_path), args.engine, include_duckdb=True))
         noduckdb_csv = output_dir / f"tpch_multi_db_{args.engine}_only_noduckdb_{args.suffix}.csv"
         filtered.to_csv(noduckdb_csv, index=False)
         noduckdb_df = load_results(str(noduckdb_csv))

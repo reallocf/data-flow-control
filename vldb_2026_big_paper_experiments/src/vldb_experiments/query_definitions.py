@@ -28,6 +28,15 @@ def get_query_definitions() -> dict[str, str]:
             GROUP BY category
         """,
 
+        # Real query is generated dynamically in MicrobenchmarkStrategy based on
+        # variation_join_count. This placeholder keeps query type registration simple.
+        "JOIN_GROUP_BY": """
+            SELECT test_data.category, COUNT(*), SUM(test_data.amount + j1.amount)
+            FROM test_data
+            JOIN join_data_1 j1 ON test_data.id = j1.id
+            GROUP BY test_data.category
+        """,
+
         "ORDER_BY": """
             SELECT * FROM test_data ORDER BY value DESC
         """,
@@ -43,4 +52,4 @@ def get_query_order() -> list[str]:
     Returns:
         List of operator names in execution order
     """
-    return ["SELECT", "WHERE", "JOIN", "GROUP_BY", "ORDER_BY"]
+    return ["SELECT", "WHERE", "JOIN", "GROUP_BY", "JOIN_GROUP_BY", "ORDER_BY"]

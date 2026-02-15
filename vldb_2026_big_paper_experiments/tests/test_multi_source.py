@@ -4,6 +4,7 @@ import duckdb
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
 from vldb_experiments.strategies.multi_source_strategy import _build_chain_query
+from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck
 
 
 def _setup_chain_schema(conn: duckdb.DuckDBPyConnection, join_count: int) -> None:
@@ -53,7 +54,7 @@ def test_multi_source_32_join_32_sources_rewrite() -> None:
     source_count = 32
     num_rows = 10_000
 
-    conn = duckdb.connect(":memory:")
+    conn = _ensure_smokedduck().connect(":memory:")
     _setup_chain_schema(conn, join_count)
     _populate_chain_data(conn, join_count, num_rows)
 
