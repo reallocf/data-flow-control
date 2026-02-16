@@ -29,42 +29,80 @@ def create_tpch_duckdb_capped_overhead_chart(
     output_path: Path,
     title_suffix: str = "",
 ) -> None:
-    """Create a per-query capped overhead bar chart for DuckDB DFC and Logical."""
-    required_cols = {"query_num", "no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}
+    """Create a per-query capped overhead bar chart for DuckDB 1Phase, 2Phase, and Logical."""
+    if "no_policy_exec_time_ms" not in df.columns and "no_policy_time_ms" in df.columns:
+        df["no_policy_exec_time_ms"] = df["no_policy_time_ms"]
+    if "dfc_1phase_exec_time_ms" not in df.columns and "dfc_exec_time_ms" in df.columns:
+        df["dfc_1phase_exec_time_ms"] = df["dfc_exec_time_ms"]
+    if "dfc_1phase_exec_time_ms" not in df.columns and "dfc_time_ms" in df.columns:
+        df["dfc_1phase_exec_time_ms"] = df["dfc_time_ms"]
+    if "dfc_2phase_exec_time_ms" not in df.columns and "dfc_2phase_time_ms" in df.columns:
+        df["dfc_2phase_exec_time_ms"] = df["dfc_2phase_time_ms"]
+    if "logical_exec_time_ms" not in df.columns and "logical_time_ms" in df.columns:
+        df["logical_exec_time_ms"] = df["logical_time_ms"]
+
+    required_cols = {
+        "query_num",
+        "no_policy_exec_time_ms",
+        "dfc_1phase_exec_time_ms",
+        "dfc_2phase_exec_time_ms",
+        "logical_exec_time_ms",
+    }
     if not required_cols.issubset(df.columns):
         missing = sorted(required_cols - set(df.columns))
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
 
     grouped = (
         df.groupby("query_num", as_index=True)[
-            ["no_policy_time_ms", "dfc_time_ms", "logical_time_ms"]
+            [
+                "no_policy_exec_time_ms",
+                "dfc_1phase_exec_time_ms",
+                "dfc_2phase_exec_time_ms",
+                "logical_exec_time_ms",
+            ]
         ]
         .mean()
         .sort_index()
     )
 
-    dfc_overhead = ((grouped["dfc_time_ms"] - grouped["no_policy_time_ms"]) / grouped["no_policy_time_ms"]) * 100.0
+    dfc_1phase_overhead = (
+        (grouped["dfc_1phase_exec_time_ms"] - grouped["no_policy_exec_time_ms"])
+        / grouped["no_policy_exec_time_ms"]
+    ) * 100.0
+    dfc_2phase_overhead = (
+        (grouped["dfc_2phase_exec_time_ms"] - grouped["no_policy_exec_time_ms"])
+        / grouped["no_policy_exec_time_ms"]
+    ) * 100.0
     logical_overhead = (
-        (grouped["logical_time_ms"] - grouped["no_policy_time_ms"]) / grouped["no_policy_time_ms"]
+        (grouped["logical_exec_time_ms"] - grouped["no_policy_exec_time_ms"])
+        / grouped["no_policy_exec_time_ms"]
     ) * 100.0
 
     # Cap only the top-end to preserve negative-overhead visibility.
-    dfc_plot = dfc_overhead.clip(upper=cap_pct)
+    dfc_1phase_plot = dfc_1phase_overhead.clip(upper=cap_pct)
+    dfc_2phase_plot = dfc_2phase_overhead.clip(upper=cap_pct)
     logical_plot = logical_overhead.clip(upper=cap_pct)
 
     x_positions = list(range(len(grouped.index)))
-    bar_width = 0.35
+    bar_width = 0.25
 
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.bar(
-        [x - (bar_width / 2) for x in x_positions],
-        dfc_plot,
+        [x - bar_width for x in x_positions],
+        dfc_1phase_plot,
         width=bar_width,
-        label="DFC",
+        label="1Phase",
         color="#ff7f0e",
     )
     ax.bar(
-        [x + (bar_width / 2) for x in x_positions],
+        x_positions,
+        dfc_2phase_plot,
+        width=bar_width,
+        label="2Phase",
+        color="#9467bd",
+    )
+    ax.bar(
+        [x + bar_width for x in x_positions],
         logical_plot,
         width=bar_width,
         label="Logical",

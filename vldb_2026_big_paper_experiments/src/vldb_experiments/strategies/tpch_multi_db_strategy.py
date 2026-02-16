@@ -154,24 +154,43 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
             no_policy_rows = 0
             no_policy_error = str(e)
 
-        dfc_rewrite_start = time.perf_counter()
+        dfc_1phase_rewrite_start = time.perf_counter()
         try:
-            dfc_transformed = self.dfc_rewriter.transform_query(query)
-            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
-            dfc_exec_start = time.perf_counter()
-            dfc_cursor = self.dfc_conn.execute(dfc_transformed)
-            dfc_results = dfc_cursor.fetchall()
-            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
-            dfc_time = dfc_rewrite_time + dfc_exec_time
-            dfc_rows = len(dfc_results)
-            dfc_error = None
+            dfc_1phase_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_1phase_rewrite_time = (time.perf_counter() - dfc_1phase_rewrite_start) * 1000.0
+            dfc_1phase_exec_start = time.perf_counter()
+            dfc_1phase_cursor = self.dfc_conn.execute(dfc_1phase_transformed)
+            dfc_1phase_results = dfc_1phase_cursor.fetchall()
+            dfc_1phase_exec_time = (time.perf_counter() - dfc_1phase_exec_start) * 1000.0
+            dfc_1phase_time = dfc_1phase_rewrite_time + dfc_1phase_exec_time
+            dfc_1phase_rows = len(dfc_1phase_results)
+            dfc_1phase_error = None
         except Exception as e:
-            dfc_rewrite_time = 0.0
-            dfc_exec_time = 0.0
-            dfc_time = 0.0
-            dfc_results = []
-            dfc_rows = 0
-            dfc_error = str(e)
+            dfc_1phase_rewrite_time = 0.0
+            dfc_1phase_exec_time = 0.0
+            dfc_1phase_time = 0.0
+            dfc_1phase_results = []
+            dfc_1phase_rows = 0
+            dfc_1phase_error = str(e)
+
+        dfc_2phase_rewrite_start = time.perf_counter()
+        try:
+            dfc_2phase_transformed = self.dfc_rewriter.transform_query(query, use_two_phase=True)
+            dfc_2phase_rewrite_time = (time.perf_counter() - dfc_2phase_rewrite_start) * 1000.0
+            dfc_2phase_exec_start = time.perf_counter()
+            dfc_2phase_cursor = self.dfc_conn.execute(dfc_2phase_transformed)
+            dfc_2phase_results = dfc_2phase_cursor.fetchall()
+            dfc_2phase_exec_time = (time.perf_counter() - dfc_2phase_exec_start) * 1000.0
+            dfc_2phase_time = dfc_2phase_rewrite_time + dfc_2phase_exec_time
+            dfc_2phase_rows = len(dfc_2phase_results)
+            dfc_2phase_error = None
+        except Exception as e:
+            dfc_2phase_rewrite_time = 0.0
+            dfc_2phase_exec_time = 0.0
+            dfc_2phase_time = 0.0
+            dfc_2phase_results = []
+            dfc_2phase_rows = 0
+            dfc_2phase_error = str(e)
 
         try:
             logical_rewrite_start = time.perf_counter()
@@ -196,10 +215,14 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
         external_times: dict[str, float] = {}
         external_rows: dict[str, int] = {}
         external_errors: dict[str, str | None] = {}
-        external_dfc_results: dict[str, list[tuple]] = {}
-        external_dfc_times: dict[str, float] = {}
-        external_dfc_rows: dict[str, int] = {}
-        external_dfc_errors: dict[str, str | None] = {}
+        external_dfc_1phase_results: dict[str, list[tuple]] = {}
+        external_dfc_1phase_times: dict[str, float] = {}
+        external_dfc_1phase_rows: dict[str, int] = {}
+        external_dfc_1phase_errors: dict[str, str | None] = {}
+        external_dfc_2phase_results: dict[str, list[tuple]] = {}
+        external_dfc_2phase_times: dict[str, float] = {}
+        external_dfc_2phase_rows: dict[str, int] = {}
+        external_dfc_2phase_errors: dict[str, str | None] = {}
         external_logical_results: dict[str, list[tuple]] = {}
         external_logical_times: dict[str, float] = {}
         external_logical_rows: dict[str, int] = {}
@@ -211,10 +234,14 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                 external_times[name] = 0.0
                 external_rows[name] = 0
                 external_errors[name] = self.external_client_errors[name]
-                external_dfc_results[name] = []
-                external_dfc_times[name] = 0.0
-                external_dfc_rows[name] = 0
-                external_dfc_errors[name] = self.external_client_errors[name]
+                external_dfc_1phase_results[name] = []
+                external_dfc_1phase_times[name] = 0.0
+                external_dfc_1phase_rows[name] = 0
+                external_dfc_1phase_errors[name] = self.external_client_errors[name]
+                external_dfc_2phase_results[name] = []
+                external_dfc_2phase_times[name] = 0.0
+                external_dfc_2phase_rows[name] = 0
+                external_dfc_2phase_errors[name] = self.external_client_errors[name]
                 external_logical_results[name] = []
                 external_logical_times[name] = 0.0
                 external_logical_rows[name] = 0
@@ -234,21 +261,37 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                 external_rows[name] = 0
                 external_errors[name] = str(e)
 
-            if dfc_error is None:
+            if dfc_1phase_error is None:
                 try:
                     dfc_start = time.perf_counter()
-                    dfc_results_external = client.fetchall(dfc_transformed)
-                    external_dfc_times[name] = (time.perf_counter() - dfc_start) * 1000.0
-                    external_dfc_results[name] = dfc_results_external
-                    external_dfc_rows[name] = len(dfc_results_external)
-                    external_dfc_errors[name] = None
+                    dfc_results_external = client.fetchall(dfc_1phase_transformed)
+                    external_dfc_1phase_times[name] = (time.perf_counter() - dfc_start) * 1000.0
+                    external_dfc_1phase_results[name] = dfc_results_external
+                    external_dfc_1phase_rows[name] = len(dfc_results_external)
+                    external_dfc_1phase_errors[name] = None
                 except Exception as e:
-                    external_dfc_times[name] = 0.0
-                    external_dfc_results[name] = []
-                    external_dfc_rows[name] = 0
-                    external_dfc_errors[name] = str(e)
+                    external_dfc_1phase_times[name] = 0.0
+                    external_dfc_1phase_results[name] = []
+                    external_dfc_1phase_rows[name] = 0
+                    external_dfc_1phase_errors[name] = str(e)
             else:
-                external_dfc_errors[name] = f"duckdb dfc error: {dfc_error}"
+                external_dfc_1phase_errors[name] = f"duckdb dfc_1phase error: {dfc_1phase_error}"
+
+            if dfc_2phase_error is None:
+                try:
+                    dfc_start = time.perf_counter()
+                    dfc_results_external = client.fetchall(dfc_2phase_transformed)
+                    external_dfc_2phase_times[name] = (time.perf_counter() - dfc_start) * 1000.0
+                    external_dfc_2phase_results[name] = dfc_results_external
+                    external_dfc_2phase_rows[name] = len(dfc_results_external)
+                    external_dfc_2phase_errors[name] = None
+                except Exception as e:
+                    external_dfc_2phase_times[name] = 0.0
+                    external_dfc_2phase_results[name] = []
+                    external_dfc_2phase_rows[name] = 0
+                    external_dfc_2phase_errors[name] = str(e)
+            else:
+                external_dfc_2phase_errors[name] = f"duckdb dfc_2phase error: {dfc_2phase_error}"
 
             if logical_error is None:
                 try:
@@ -270,12 +313,12 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
 
         correctness_match = False
         correctness_error = None
-        if dfc_error is None and logical_error is None:
-            match, error = compare_results_approx(dfc_results, logical_results)
+        if dfc_1phase_error is None and logical_error is None:
+            match, error = compare_results_approx(dfc_1phase_results, logical_results)
             correctness_match = match
             correctness_error = error
         else:
-            correctness_error = f"Errors: dfc={dfc_error}, logical={logical_error}"
+            correctness_error = f"Errors: dfc_1phase={dfc_1phase_error}, logical={logical_error}"
 
         external_correctness_match: dict[str, bool] = {}
         external_correctness_error: dict[str, str] = {}
@@ -294,65 +337,96 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                     f"Errors: duckdb={no_policy_error}, {name}={error}"
                 )
 
-        external_dfc_correctness_match: dict[str, bool] = {}
-        external_dfc_correctness_error: dict[str, str] = {}
+        external_dfc_1phase_correctness_match: dict[str, bool] = {}
+        external_dfc_1phase_correctness_error: dict[str, str] = {}
+        external_dfc_2phase_correctness_match: dict[str, bool] = {}
+        external_dfc_2phase_correctness_error: dict[str, str] = {}
         external_logical_correctness_match: dict[str, bool] = {}
         external_logical_correctness_error: dict[str, str] = {}
         for name in context.shared_state.get("external_engines", []):
-            dfc_err = external_dfc_errors.get(name)
-            if dfc_error is None and dfc_err is None:
+            dfc_err = external_dfc_1phase_errors.get(name)
+            if dfc_1phase_error is None and dfc_err is None:
                 match, compare_error = compare_results_approx(
-                    dfc_results, external_dfc_results.get(name, [])
+                    dfc_1phase_results, external_dfc_1phase_results.get(name, [])
                 )
-                external_dfc_correctness_match[name] = match
-                external_dfc_correctness_error[name] = compare_error or ""
+                external_dfc_1phase_correctness_match[name] = match
+                external_dfc_1phase_correctness_error[name] = compare_error or ""
             else:
-                external_dfc_correctness_match[name] = False
-                external_dfc_correctness_error[name] = f"Errors: duckdb={dfc_error}, {name}={dfc_err}"
+                external_dfc_1phase_correctness_match[name] = False
+                external_dfc_1phase_correctness_error[name] = (
+                    f"Errors: duckdb={dfc_1phase_error}, {name}={dfc_err}"
+                )
+
+            dfc2_err = external_dfc_2phase_errors.get(name)
+            if dfc_2phase_error is None and dfc2_err is None:
+                match, compare_error = compare_results_approx(
+                    dfc_2phase_results, external_dfc_2phase_results.get(name, [])
+                )
+                external_dfc_2phase_correctness_match[name] = match
+                external_dfc_2phase_correctness_error[name] = compare_error or ""
+            else:
+                external_dfc_2phase_correctness_match[name] = False
+                external_dfc_2phase_correctness_error[name] = (
+                    f"Errors: duckdb={dfc_2phase_error}, {name}={dfc2_err}"
+                )
 
             logical_err = external_logical_errors.get(name)
-            if dfc_error is None and logical_err is None:
+            if dfc_1phase_error is None and logical_err is None:
                 match, compare_error = compare_results_approx(
-                    dfc_results, external_logical_results.get(name, [])
+                    dfc_1phase_results, external_logical_results.get(name, [])
                 )
                 external_logical_correctness_match[name] = match
                 external_logical_correctness_error[name] = compare_error or ""
             else:
                 external_logical_correctness_match[name] = False
                 external_logical_correctness_error[name] = (
-                    f"Errors: duckdb={dfc_error}, {name}={logical_err}"
+                    f"Errors: duckdb={dfc_1phase_error}, {name}={logical_err}"
                 )
 
-        total_time = no_policy_time + dfc_time + logical_time + sum(external_times.values())
+        total_time = no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + sum(external_times.values())
         custom_metrics = {
             "query_num": query_num,
             "query_name": f"q{query_num:02d}",
             "tpch_sf": self.scale_factor,
             "no_policy_time_ms": no_policy_time,
             "no_policy_exec_time_ms": no_policy_time,
-            "dfc_time_ms": dfc_time,
-            "dfc_rewrite_time_ms": dfc_rewrite_time,
-            "dfc_exec_time_ms": dfc_exec_time,
+            "dfc_1phase_time_ms": dfc_1phase_time,
+            "dfc_1phase_rewrite_time_ms": dfc_1phase_rewrite_time,
+            "dfc_1phase_exec_time_ms": dfc_1phase_exec_time,
+            "dfc_2phase_time_ms": dfc_2phase_time,
+            "dfc_2phase_rewrite_time_ms": dfc_2phase_rewrite_time,
+            "dfc_2phase_exec_time_ms": dfc_2phase_exec_time,
             "logical_time_ms": logical_time,
             "logical_rewrite_time_ms": logical_rewrite_time,
             "logical_exec_time_ms": logical_exec_time,
             "no_policy_rows": no_policy_rows,
-            "dfc_rows": dfc_rows,
+            "dfc_1phase_rows": dfc_1phase_rows,
+            "dfc_2phase_rows": dfc_2phase_rows,
             "logical_rows": logical_rows,
             "correctness_match": correctness_match,
             "correctness_error": correctness_error or "",
             "no_policy_error": no_policy_error or "",
-            "dfc_error": dfc_error or "",
+            "dfc_1phase_error": dfc_1phase_error or "",
+            "dfc_2phase_error": dfc_2phase_error or "",
             "logical_error": logical_error or "",
         }
         for name in context.shared_state.get("external_engines", []):
-            custom_metrics[f"{name}_dfc_time_ms"] = external_dfc_times.get(name, 0.0)
-            custom_metrics[f"{name}_dfc_rows"] = external_dfc_rows.get(name, 0)
-            custom_metrics[f"{name}_dfc_error"] = external_dfc_errors.get(name) or ""
-            custom_metrics[f"{name}_dfc_correctness_match"] = external_dfc_correctness_match.get(
+            custom_metrics[f"{name}_dfc_1phase_time_ms"] = external_dfc_1phase_times.get(name, 0.0)
+            custom_metrics[f"{name}_dfc_1phase_rows"] = external_dfc_1phase_rows.get(name, 0)
+            custom_metrics[f"{name}_dfc_1phase_error"] = external_dfc_1phase_errors.get(name) or ""
+            custom_metrics[f"{name}_dfc_1phase_correctness_match"] = external_dfc_1phase_correctness_match.get(
                 name, False
             )
-            custom_metrics[f"{name}_dfc_correctness_error"] = external_dfc_correctness_error.get(
+            custom_metrics[f"{name}_dfc_1phase_correctness_error"] = external_dfc_1phase_correctness_error.get(
+                name, ""
+            )
+            custom_metrics[f"{name}_dfc_2phase_time_ms"] = external_dfc_2phase_times.get(name, 0.0)
+            custom_metrics[f"{name}_dfc_2phase_rows"] = external_dfc_2phase_rows.get(name, 0)
+            custom_metrics[f"{name}_dfc_2phase_error"] = external_dfc_2phase_errors.get(name) or ""
+            custom_metrics[f"{name}_dfc_2phase_correctness_match"] = external_dfc_2phase_correctness_match.get(
+                name, False
+            )
+            custom_metrics[f"{name}_dfc_2phase_correctness_error"] = external_dfc_2phase_correctness_error.get(
                 name, ""
             )
             custom_metrics[f"{name}_logical_time_ms"] = external_logical_times.get(name, 0.0)
@@ -398,19 +472,24 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
             "tpch_sf",
             "no_policy_time_ms",
             "no_policy_exec_time_ms",
-            "dfc_time_ms",
-            "dfc_rewrite_time_ms",
-            "dfc_exec_time_ms",
+            "dfc_1phase_time_ms",
+            "dfc_1phase_rewrite_time_ms",
+            "dfc_1phase_exec_time_ms",
+            "dfc_2phase_time_ms",
+            "dfc_2phase_rewrite_time_ms",
+            "dfc_2phase_exec_time_ms",
             "logical_time_ms",
             "logical_rewrite_time_ms",
             "logical_exec_time_ms",
             "no_policy_rows",
-            "dfc_rows",
+            "dfc_1phase_rows",
+            "dfc_2phase_rows",
             "logical_rows",
             "correctness_match",
             "correctness_error",
             "no_policy_error",
-            "dfc_error",
+            "dfc_1phase_error",
+            "dfc_2phase_error",
             "logical_error",
         ]
         enabled = getattr(self, "enabled_engines", [])
@@ -422,11 +501,16 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                     f"{engine}_error",
                     f"{engine}_correctness_match",
                     f"{engine}_correctness_error",
-                    f"{engine}_dfc_time_ms",
-                    f"{engine}_dfc_rows",
-                    f"{engine}_dfc_error",
-                    f"{engine}_dfc_correctness_match",
-                    f"{engine}_dfc_correctness_error",
+                    f"{engine}_dfc_1phase_time_ms",
+                    f"{engine}_dfc_1phase_rows",
+                    f"{engine}_dfc_1phase_error",
+                    f"{engine}_dfc_1phase_correctness_match",
+                    f"{engine}_dfc_1phase_correctness_error",
+                    f"{engine}_dfc_2phase_time_ms",
+                    f"{engine}_dfc_2phase_rows",
+                    f"{engine}_dfc_2phase_error",
+                    f"{engine}_dfc_2phase_correctness_match",
+                    f"{engine}_dfc_2phase_correctness_error",
                     f"{engine}_logical_time_ms",
                     f"{engine}_logical_rows",
                     f"{engine}_logical_error",

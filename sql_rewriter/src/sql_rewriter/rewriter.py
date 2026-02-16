@@ -412,12 +412,13 @@ class SQLRewriter:
         remove_policy: DFCPolicy,
     ) -> exp.Select:
         """Rewrite LIMIT+REMOVE aggregation queries using two-phase evaluation."""
-        group_keys = self._group_by_join_keys(parsed)
-        if group_keys is None:
+        group_specs = self._group_by_join_specs(parsed)
+        if group_specs is None:
             raise ValueError(
                 "Two-phase LIMIT rewrite requires GROUP BY expressions to be projected in SELECT "
                 "with stable output names"
             )
+        group_keys = [key_name for key_name, _ in group_specs]
 
         projection_query = parsed.copy()
         self._ensure_projection_aliases(projection_query)
@@ -445,11 +446,10 @@ class SQLRewriter:
 
         policy_select_exprs: list[exp.Expression] = []
         if group_keys:
-            group_exprs = policy_eval.args.get("group").expressions
-            for group_expr, key_name in zip(group_exprs, group_keys):
+            for key_name, key_expr in group_specs:
                 policy_select_exprs.append(
                     exp.Alias(
-                        this=group_expr.copy(),
+                        this=key_expr.copy(),
                         alias=exp.Identifier(this=key_name, quoted=False),
                     )
                 )
@@ -560,31 +560,57 @@ class SQLRewriter:
         outer_select.set("with_", exp.With(expressions=with_exprs))
         return outer_select
 
-    def _group_by_join_keys(self, parsed: exp.Select) -> list[str] | None:
-        """Map GROUP BY expressions to output column names for star join."""
+    def _group_by_join_specs(self, parsed: exp.Select) -> list[tuple[str, exp.Expression]] | None:
+        """Map GROUP BY expressions to output key names and policy-eval expressions."""
         group_clause = parsed.args.get("group")
         if not group_clause or not group_clause.expressions:
             return []
 
         select_exprs = list(parsed.expressions or [])
-        keys: list[str] = []
+        alias_expr_map: dict[str, exp.Expression] = {}
+        for select_expr in select_exprs:
+            if isinstance(select_expr, exp.Alias) and select_expr.alias:
+                alias_expr_map[select_expr.alias.lower()] = select_expr.this.copy()
+            elif isinstance(select_expr, exp.Column):
+                alias_expr_map[get_column_name(select_expr).lower()] = select_expr.copy()
+
+        keys: list[tuple[str, exp.Expression]] = []
         for group_expr in group_clause.expressions:
             target_sql = group_expr.sql(dialect="duckdb")
             matched_key = None
+            matched_expr = None
             for select_expr in select_exprs:
                 if isinstance(select_expr, exp.Alias):
                     if select_expr.this.sql(dialect="duckdb") == target_sql and select_expr.alias:
                         matched_key = select_expr.alias
+                        matched_expr = select_expr.this.copy()
                         break
                 elif (
                     select_expr.sql(dialect="duckdb") == target_sql
                     and isinstance(select_expr, exp.Column)
                 ):
                     matched_key = get_column_name(select_expr)
+                    matched_expr = select_expr.copy()
                     break
+
+            if matched_key is None:
+                alias_ref = None
+                if isinstance(group_expr, exp.Identifier):
+                    alias_ref = group_expr.this
+                elif (
+                    isinstance(group_expr, exp.Column)
+                    and get_table_name_from_column(group_expr) is None
+                ):
+                    alias_ref = get_column_name(group_expr)
+                if alias_ref:
+                    alias_expr = alias_expr_map.get(alias_ref.lower())
+                    if alias_expr is not None:
+                        matched_key = alias_ref
+                        matched_expr = alias_expr.copy()
+
             if matched_key is None:
                 return None
-            keys.append(matched_key)
+            keys.append((matched_key, matched_expr if matched_expr is not None else group_expr.copy()))
         return keys
 
     def _rewrite_aggregation_with_two_phase(
@@ -598,12 +624,13 @@ class SQLRewriter:
         Two-phase evaluates base query aggregates and policy aggregates in separate scans,
         then joins the results.
         """
-        group_keys = self._group_by_join_keys(parsed)
-        if group_keys is None:
+        group_specs = self._group_by_join_specs(parsed)
+        if group_specs is None:
             raise ValueError(
                 "Two-phase rewrite requires GROUP BY expressions to be projected in SELECT "
                 "with stable output names"
             )
+        group_keys = [key_name for key_name, _ in group_specs]
 
         include_valid = any(policy.on_fail == Resolution.INVALIDATE for policy in policies)
         base_query = parsed.copy()
@@ -617,11 +644,10 @@ class SQLRewriter:
 
         if group_keys:
             policy_select_exprs: list[exp.Expression] = []
-            group_exprs = policy_eval.args.get("group").expressions
-            for group_expr, key_name in zip(group_exprs, group_keys):
+            for key_name, key_expr in group_specs:
                 policy_select_exprs.append(
                     exp.Alias(
-                        this=group_expr.copy(),
+                        this=key_expr.copy(),
                         alias=exp.Identifier(this=key_name, quoted=False),
                     )
                 )

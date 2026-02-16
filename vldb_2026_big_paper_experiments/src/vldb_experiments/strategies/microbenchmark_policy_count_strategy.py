@@ -161,12 +161,19 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
         no_policy_results = self.no_policy_conn.execute(query).fetchall()
         no_policy_exec_time = (time.perf_counter() - no_policy_start) * 1000.0
 
-        dfc_rewrite_start = time.perf_counter()
-        dfc_transformed = self.dfc_rewriter.transform_query(query)
-        dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
-        dfc_exec_start = time.perf_counter()
-        dfc_results = self.dfc_conn.execute(dfc_transformed).fetchall()
-        dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
+        dfc_1phase_rewrite_start = time.perf_counter()
+        dfc_1phase_transformed = self.dfc_rewriter.transform_query(query)
+        dfc_1phase_rewrite_time = (time.perf_counter() - dfc_1phase_rewrite_start) * 1000.0
+        dfc_1phase_exec_start = time.perf_counter()
+        dfc_1phase_results = self.dfc_conn.execute(dfc_1phase_transformed).fetchall()
+        dfc_1phase_exec_time = (time.perf_counter() - dfc_1phase_exec_start) * 1000.0
+
+        dfc_2phase_rewrite_start = time.perf_counter()
+        dfc_2phase_transformed = self.dfc_rewriter.transform_query(query, use_two_phase=True)
+        dfc_2phase_rewrite_time = (time.perf_counter() - dfc_2phase_rewrite_start) * 1000.0
+        dfc_2phase_exec_start = time.perf_counter()
+        dfc_2phase_results = self.dfc_conn.execute(dfc_2phase_transformed).fetchall()
+        dfc_2phase_exec_time = (time.perf_counter() - dfc_2phase_exec_start) * 1000.0
 
         logical_results, logical_rewrite_time, logical_exec_time = execute_query_logical_multi(
             self.logical_conn,
@@ -191,12 +198,16 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
         physical_runtime = physical_timing.get("runtime_time_ms", 0.0)
         physical_exec_time = physical_runtime
 
-        logical_match, logical_match_error = compare_results_exact(dfc_results, logical_results)
-        physical_match, physical_match_error = compare_results_exact(dfc_results, physical_results)
+        logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
+        physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+        dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
+            dfc_1phase_results, dfc_2phase_results
+        )
         correctness_match = logical_match and physical_match and not physical_error
         correctness_error = "; ".join(
             err
             for err in [
+                f"dfc_2phase={dfc_2phase_match_error}" if dfc_2phase_match_error else "",
                 f"logical={logical_match_error}" if logical_match_error else "",
                 f"physical={physical_match_error}" if physical_match_error else "",
                 f"physical_error={physical_error}" if physical_error else "",
@@ -204,7 +215,13 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
             if err
         )
 
-        total_time = no_policy_exec_time + dfc_exec_time + logical_exec_time + physical_exec_time
+        total_time = (
+            no_policy_exec_time
+            + dfc_1phase_exec_time
+            + dfc_2phase_exec_time
+            + logical_exec_time
+            + physical_exec_time
+        )
         if total_time == 0.0:
             total_time = 0.001
 
@@ -216,9 +233,12 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
             "run_num": run_num or 0,
             "no_policy_time_ms": no_policy_exec_time,
             "no_policy_exec_time_ms": no_policy_exec_time,
-            "dfc_time_ms": dfc_rewrite_time + dfc_exec_time,
-            "dfc_rewrite_time_ms": dfc_rewrite_time,
-            "dfc_exec_time_ms": dfc_exec_time,
+            "dfc_1phase_time_ms": dfc_1phase_rewrite_time + dfc_1phase_exec_time,
+            "dfc_1phase_rewrite_time_ms": dfc_1phase_rewrite_time,
+            "dfc_1phase_exec_time_ms": dfc_1phase_exec_time,
+            "dfc_2phase_time_ms": dfc_2phase_rewrite_time + dfc_2phase_exec_time,
+            "dfc_2phase_rewrite_time_ms": dfc_2phase_rewrite_time,
+            "dfc_2phase_exec_time_ms": dfc_2phase_exec_time,
             "logical_time_ms": logical_rewrite_time + logical_exec_time,
             "logical_rewrite_time_ms": logical_rewrite_time,
             "logical_exec_time_ms": logical_exec_time,
@@ -229,11 +249,14 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
             "physical_base_capture_time_ms": physical_base_capture_time,
             "physical_lineage_query_time_ms": physical_lineage_query_time,
             "no_policy_rows": len(no_policy_results),
-            "dfc_rows": len(dfc_results),
+            "dfc_1phase_rows": len(dfc_1phase_results),
+            "dfc_2phase_rows": len(dfc_2phase_results),
             "logical_rows": len(logical_results),
             "physical_rows": len(physical_results) if physical_results else 0,
             "correctness_match": correctness_match,
             "correctness_error": correctness_error,
+            "dfc_2phase_match": dfc_2phase_match,
+            "dfc_2phase_match_error": dfc_2phase_match_error or "",
             "logical_match": logical_match,
             "logical_match_error": logical_match_error or "",
             "physical_match": physical_match,
@@ -267,9 +290,12 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
             "run_num",
             "no_policy_time_ms",
             "no_policy_exec_time_ms",
-            "dfc_time_ms",
-            "dfc_rewrite_time_ms",
-            "dfc_exec_time_ms",
+            "dfc_1phase_time_ms",
+            "dfc_1phase_rewrite_time_ms",
+            "dfc_1phase_exec_time_ms",
+            "dfc_2phase_time_ms",
+            "dfc_2phase_rewrite_time_ms",
+            "dfc_2phase_exec_time_ms",
             "logical_time_ms",
             "logical_rewrite_time_ms",
             "logical_exec_time_ms",
@@ -280,11 +306,14 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
             "physical_base_capture_time_ms",
             "physical_lineage_query_time_ms",
             "no_policy_rows",
-            "dfc_rows",
+            "dfc_1phase_rows",
+            "dfc_2phase_rows",
             "logical_rows",
             "physical_rows",
             "correctness_match",
             "correctness_error",
+            "dfc_2phase_match",
+            "dfc_2phase_match_error",
             "logical_match",
             "logical_match_error",
             "physical_match",

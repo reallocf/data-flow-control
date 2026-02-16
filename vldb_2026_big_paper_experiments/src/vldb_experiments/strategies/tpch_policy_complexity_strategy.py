@@ -169,23 +169,42 @@ class TPCHPolicyComplexityStrategy(ExperimentStrategy):
             no_policy_error = str(e)
 
         try:
-            dfc_rewrite_start = time.perf_counter()
-            dfc_transformed = self.dfc_rewriter.transform_query(query)
-            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
-            dfc_exec_start = time.perf_counter()
-            dfc_cursor = self.dfc_conn.execute(dfc_transformed)
-            dfc_results = dfc_cursor.fetchall()
-            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
-            dfc_time = dfc_rewrite_time + dfc_exec_time
-            dfc_rows = len(dfc_results)
-            dfc_error = None
+            dfc_1phase_rewrite_start = time.perf_counter()
+            dfc_1phase_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_1phase_rewrite_time = (time.perf_counter() - dfc_1phase_rewrite_start) * 1000.0
+            dfc_1phase_exec_start = time.perf_counter()
+            dfc_1phase_cursor = self.dfc_conn.execute(dfc_1phase_transformed)
+            dfc_1phase_results = dfc_1phase_cursor.fetchall()
+            dfc_1phase_exec_time = (time.perf_counter() - dfc_1phase_exec_start) * 1000.0
+            dfc_1phase_time = dfc_1phase_rewrite_time + dfc_1phase_exec_time
+            dfc_1phase_rows = len(dfc_1phase_results)
+            dfc_1phase_error = None
         except Exception as e:
-            dfc_time = 0.0
-            dfc_rewrite_time = 0.0
-            dfc_exec_time = 0.0
-            dfc_results = []
-            dfc_rows = 0
-            dfc_error = str(e)
+            dfc_1phase_time = 0.0
+            dfc_1phase_rewrite_time = 0.0
+            dfc_1phase_exec_time = 0.0
+            dfc_1phase_results = []
+            dfc_1phase_rows = 0
+            dfc_1phase_error = str(e)
+
+        try:
+            dfc_2phase_rewrite_start = time.perf_counter()
+            dfc_2phase_transformed = self.dfc_rewriter.transform_query(query, use_two_phase=True)
+            dfc_2phase_rewrite_time = (time.perf_counter() - dfc_2phase_rewrite_start) * 1000.0
+            dfc_2phase_exec_start = time.perf_counter()
+            dfc_2phase_cursor = self.dfc_conn.execute(dfc_2phase_transformed)
+            dfc_2phase_results = dfc_2phase_cursor.fetchall()
+            dfc_2phase_exec_time = (time.perf_counter() - dfc_2phase_exec_start) * 1000.0
+            dfc_2phase_time = dfc_2phase_rewrite_time + dfc_2phase_exec_time
+            dfc_2phase_rows = len(dfc_2phase_results)
+            dfc_2phase_error = None
+        except Exception as e:
+            dfc_2phase_time = 0.0
+            dfc_2phase_rewrite_time = 0.0
+            dfc_2phase_exec_time = 0.0
+            dfc_2phase_results = []
+            dfc_2phase_rows = 0
+            dfc_2phase_error = str(e)
 
         try:
             logical_results, logical_rewrite_time, logical_exec_time = execute_query_logical_multi(
@@ -232,10 +251,16 @@ class TPCHPolicyComplexityStrategy(ExperimentStrategy):
         logical_match_error = None
         physical_match = None
         physical_match_error = None
-        if dfc_error is None and logical_error is None:
-            logical_match, logical_match_error = compare_results_exact(dfc_results, logical_results)
-        if dfc_error is None and physical_error is None:
-            physical_match, physical_match_error = compare_results_exact(dfc_results, physical_results)
+        if dfc_1phase_error is None and logical_error is None:
+            logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
+        if dfc_1phase_error is None and physical_error is None:
+            physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+        if dfc_1phase_error is None and dfc_2phase_error is None:
+            dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
+                dfc_1phase_results, dfc_2phase_results
+            )
+        else:
+            dfc_2phase_match, dfc_2phase_match_error = None, None
 
         matches = []
         errors = []
@@ -250,19 +275,24 @@ class TPCHPolicyComplexityStrategy(ExperimentStrategy):
 
         correctness_match = all(matches) if matches else False
         correctness_error = "; ".join(errors) if errors else None
-        if dfc_error or logical_error or physical_error:
+        if dfc_1phase_error or dfc_2phase_error or logical_error or physical_error:
             correctness_error = (
-                f"Errors: dfc={dfc_error}, logical={logical_error}, physical={physical_error}"
+                "Errors: "
+                f"dfc_1phase={dfc_1phase_error}, "
+                f"dfc_2phase={dfc_2phase_error}, "
+                f"logical={logical_error}, physical={physical_error}"
             )
 
         no_policy_match = False
         no_policy_compare_error = None
-        if dfc_error is None and no_policy_error is None:
-            match, error = compare_results_exact(dfc_results, no_policy_results)
+        if dfc_1phase_error is None and no_policy_error is None:
+            match, error = compare_results_exact(dfc_1phase_results, no_policy_results)
             no_policy_match = match
             no_policy_compare_error = error
         else:
-            no_policy_compare_error = f"Errors: dfc={dfc_error}, no_policy={no_policy_error}"
+            no_policy_compare_error = (
+                f"Errors: dfc_1phase={dfc_1phase_error}, no_policy={no_policy_error}"
+            )
 
         custom_metrics = {
             "query_num": query_num,
@@ -272,9 +302,12 @@ class TPCHPolicyComplexityStrategy(ExperimentStrategy):
             "run_num": run_num or 0,
             "no_policy_time_ms": no_policy_time,
             "no_policy_exec_time_ms": no_policy_time,
-            "dfc_time_ms": dfc_time,
-            "dfc_rewrite_time_ms": dfc_rewrite_time,
-            "dfc_exec_time_ms": dfc_exec_time,
+            "dfc_1phase_time_ms": dfc_1phase_time,
+            "dfc_1phase_rewrite_time_ms": dfc_1phase_rewrite_time,
+            "dfc_1phase_exec_time_ms": dfc_1phase_exec_time,
+            "dfc_2phase_time_ms": dfc_2phase_time,
+            "dfc_2phase_rewrite_time_ms": dfc_2phase_rewrite_time,
+            "dfc_2phase_exec_time_ms": dfc_2phase_exec_time,
             "logical_time_ms": logical_time,
             "logical_rewrite_time_ms": logical_rewrite_time,
             "logical_exec_time_ms": logical_exec_time,
@@ -285,23 +318,27 @@ class TPCHPolicyComplexityStrategy(ExperimentStrategy):
             "physical_base_capture_time_ms": physical_base_capture_time,
             "physical_lineage_query_time_ms": physical_lineage_query_time,
             "no_policy_rows": no_policy_rows,
-            "dfc_rows": dfc_rows,
+            "dfc_1phase_rows": dfc_1phase_rows,
+            "dfc_2phase_rows": dfc_2phase_rows,
             "logical_rows": logical_rows,
             "physical_rows": physical_rows,
             "correctness_match": correctness_match,
             "correctness_error": correctness_error or "",
             "no_policy_match": no_policy_match,
             "no_policy_error": no_policy_compare_error or "",
+            "dfc_2phase_match": dfc_2phase_match if dfc_2phase_match is not None else "",
+            "dfc_2phase_match_error": dfc_2phase_match_error or "",
             "logical_match": logical_match if logical_match is not None else "",
             "logical_match_error": logical_match_error or "",
             "physical_match": physical_match if physical_match is not None else "",
             "physical_match_error": physical_match_error or "",
-            "dfc_error": dfc_error or "",
+            "dfc_1phase_error": dfc_1phase_error or "",
+            "dfc_2phase_error": dfc_2phase_error or "",
             "logical_error": logical_error or "",
             "physical_error": physical_error or "",
         }
 
-        total_time = no_policy_time + dfc_time + logical_time + physical_time
+        total_time = no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_time
         return ExperimentResult(duration_ms=total_time, custom_metrics=custom_metrics)
 
     def teardown(self, _context: ExperimentContext) -> None:
@@ -321,9 +358,12 @@ class TPCHPolicyComplexityStrategy(ExperimentStrategy):
             "run_num",
             "no_policy_time_ms",
             "no_policy_exec_time_ms",
-            "dfc_time_ms",
-            "dfc_rewrite_time_ms",
-            "dfc_exec_time_ms",
+            "dfc_1phase_time_ms",
+            "dfc_1phase_rewrite_time_ms",
+            "dfc_1phase_exec_time_ms",
+            "dfc_2phase_time_ms",
+            "dfc_2phase_rewrite_time_ms",
+            "dfc_2phase_exec_time_ms",
             "logical_time_ms",
             "logical_rewrite_time_ms",
             "logical_exec_time_ms",
@@ -334,18 +374,22 @@ class TPCHPolicyComplexityStrategy(ExperimentStrategy):
             "physical_base_capture_time_ms",
             "physical_lineage_query_time_ms",
             "no_policy_rows",
-            "dfc_rows",
+            "dfc_1phase_rows",
+            "dfc_2phase_rows",
             "logical_rows",
             "physical_rows",
             "correctness_match",
             "correctness_error",
             "no_policy_match",
             "no_policy_error",
+            "dfc_2phase_match",
+            "dfc_2phase_match_error",
             "logical_match",
             "logical_match_error",
             "physical_match",
             "physical_match_error",
-            "dfc_error",
+            "dfc_1phase_error",
+            "dfc_2phase_error",
             "logical_error",
             "physical_error",
         ]

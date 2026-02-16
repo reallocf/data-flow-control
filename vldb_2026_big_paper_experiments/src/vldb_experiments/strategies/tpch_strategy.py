@@ -215,27 +215,47 @@ class TPCHStrategy(ExperimentStrategy):
             no_policy_rows = 0
             no_policy_error = str(e)
 
-        # 1. Run DFC approach (SQLRewriter with policy)
-        dfc_rewrite_start = time.perf_counter()
+        # 1. Run DFC one-phase approach (SQLRewriter with policy)
+        dfc_1phase_rewrite_start = time.perf_counter()
         try:
-            dfc_transformed = self.dfc_rewriter.transform_query(query)
-            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
-            dfc_exec_start = time.perf_counter()
-            dfc_cursor = self.dfc_conn.execute(dfc_transformed)
-            dfc_results = dfc_cursor.fetchall()
-            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
-            dfc_time = dfc_rewrite_time + dfc_exec_time
-            dfc_rows = len(dfc_results)
-            dfc_error = None
+            dfc_1phase_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_1phase_rewrite_time = (time.perf_counter() - dfc_1phase_rewrite_start) * 1000.0
+            dfc_1phase_exec_start = time.perf_counter()
+            dfc_1phase_cursor = self.dfc_conn.execute(dfc_1phase_transformed)
+            dfc_1phase_results = dfc_1phase_cursor.fetchall()
+            dfc_1phase_exec_time = (time.perf_counter() - dfc_1phase_exec_start) * 1000.0
+            dfc_1phase_time = dfc_1phase_rewrite_time + dfc_1phase_exec_time
+            dfc_1phase_rows = len(dfc_1phase_results)
+            dfc_1phase_error = None
         except Exception as e:
-            dfc_rewrite_time = 0.0
-            dfc_exec_time = 0.0
-            dfc_time = 0.0
-            dfc_results = []
-            dfc_rows = 0
-            dfc_error = str(e)
+            dfc_1phase_rewrite_time = 0.0
+            dfc_1phase_exec_time = 0.0
+            dfc_1phase_time = 0.0
+            dfc_1phase_results = []
+            dfc_1phase_rows = 0
+            dfc_1phase_error = str(e)
 
-        # 2. Run Logical baseline
+        # 2. Run DFC two-phase approach
+        dfc_2phase_rewrite_start = time.perf_counter()
+        try:
+            dfc_2phase_transformed = self.dfc_rewriter.transform_query(query, use_two_phase=True)
+            dfc_2phase_rewrite_time = (time.perf_counter() - dfc_2phase_rewrite_start) * 1000.0
+            dfc_2phase_exec_start = time.perf_counter()
+            dfc_2phase_cursor = self.dfc_conn.execute(dfc_2phase_transformed)
+            dfc_2phase_results = dfc_2phase_cursor.fetchall()
+            dfc_2phase_exec_time = (time.perf_counter() - dfc_2phase_exec_start) * 1000.0
+            dfc_2phase_time = dfc_2phase_rewrite_time + dfc_2phase_exec_time
+            dfc_2phase_rows = len(dfc_2phase_results)
+            dfc_2phase_error = None
+        except Exception as e:
+            dfc_2phase_rewrite_time = 0.0
+            dfc_2phase_exec_time = 0.0
+            dfc_2phase_time = 0.0
+            dfc_2phase_results = []
+            dfc_2phase_rows = 0
+            dfc_2phase_error = str(e)
+
+        # 3. Run Logical baseline
         try:
             logical_rewrite_start = time.perf_counter()
             logical_query = rewrite_query_logical(query, policy)
@@ -255,7 +275,7 @@ class TPCHStrategy(ExperimentStrategy):
             logical_rows = 0
             logical_error = str(e)
 
-        # 3. Run Physical baseline (SmokedDuck REQUIRED)
+        # 4. Run Physical baseline (SmokedDuck REQUIRED)
         if query_num in _PHYSICAL_SKIP_QUERIES:
             physical_results = []
             physical_error = "skipped_for_physical"
@@ -302,10 +322,16 @@ class TPCHStrategy(ExperimentStrategy):
         physical_match = None
         physical_match_error = None
 
-        if dfc_error is None and logical_error is None:
-            logical_match, logical_match_error = compare_results_exact(dfc_results, logical_results)
-        if dfc_error is None and physical_error is None:
-            physical_match, physical_match_error = compare_results_exact(dfc_results, physical_results)
+        if dfc_1phase_error is None and logical_error is None:
+            logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
+        if dfc_1phase_error is None and physical_error is None:
+            physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+        if dfc_1phase_error is None and dfc_2phase_error is None:
+            dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
+                dfc_1phase_results, dfc_2phase_results
+            )
+        else:
+            dfc_2phase_match, dfc_2phase_match_error = None, None
 
         matches = []
         errors = []
@@ -321,11 +347,16 @@ class TPCHStrategy(ExperimentStrategy):
             correctness_match = all(matches)
         if errors:
             correctness_error = "; ".join(errors)
-        if dfc_error is not None:
-            correctness_error = f"Errors: dfc={dfc_error}, logical={logical_error}, physical={physical_error}"
+        if dfc_1phase_error is not None or dfc_2phase_error is not None:
+            correctness_error = (
+                "Errors: "
+                f"dfc_1phase={dfc_1phase_error}, "
+                f"dfc_2phase={dfc_2phase_error}, "
+                f"logical={logical_error}, physical={physical_error}"
+            )
 
-        # Total execution time (all three approaches)
-        total_time = no_policy_time + dfc_time + logical_time + physical_time
+        # Total execution time
+        total_time = no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_time
 
         # Build custom metrics
         custom_metrics = {
@@ -334,9 +365,12 @@ class TPCHStrategy(ExperimentStrategy):
             "tpch_sf": self.scale_factor,
             "no_policy_time_ms": no_policy_time,
             "no_policy_exec_time_ms": no_policy_time,
-            "dfc_time_ms": dfc_time,
-            "dfc_rewrite_time_ms": dfc_rewrite_time,
-            "dfc_exec_time_ms": dfc_exec_time,
+            "dfc_1phase_time_ms": dfc_1phase_time,
+            "dfc_1phase_rewrite_time_ms": dfc_1phase_rewrite_time,
+            "dfc_1phase_exec_time_ms": dfc_1phase_exec_time,
+            "dfc_2phase_time_ms": dfc_2phase_time,
+            "dfc_2phase_rewrite_time_ms": dfc_2phase_rewrite_time,
+            "dfc_2phase_exec_time_ms": dfc_2phase_exec_time,
             "logical_time_ms": logical_time,
             "logical_rewrite_time_ms": logical_rewrite_time,
             "logical_exec_time_ms": logical_exec_time,
@@ -346,13 +380,17 @@ class TPCHStrategy(ExperimentStrategy):
             "physical_base_capture_time_ms": physical_base_capture_time,
             "physical_lineage_query_time_ms": physical_lineage_query_time,
             "no_policy_rows": no_policy_rows,
-            "dfc_rows": dfc_rows,
+            "dfc_1phase_rows": dfc_1phase_rows,
+            "dfc_2phase_rows": dfc_2phase_rows,
             "logical_rows": logical_rows,
             "physical_rows": physical_rows,
             "correctness_match": correctness_match,
             "correctness_error": correctness_error or "",
             "no_policy_error": no_policy_error or "",
-            "dfc_error": dfc_error or "",
+            "dfc_1phase_error": dfc_1phase_error or "",
+            "dfc_2phase_error": dfc_2phase_error or "",
+            "dfc_2phase_match": dfc_2phase_match if dfc_2phase_match is not None else "",
+            "dfc_2phase_match_error": dfc_2phase_match_error or "",
             "logical_error": logical_error or "",
             "physical_error": physical_error or "",
         }
@@ -389,9 +427,12 @@ class TPCHStrategy(ExperimentStrategy):
             "tpch_sf",
             "no_policy_time_ms",
             "no_policy_exec_time_ms",
-            "dfc_time_ms",
-            "dfc_rewrite_time_ms",
-            "dfc_exec_time_ms",
+            "dfc_1phase_time_ms",
+            "dfc_1phase_rewrite_time_ms",
+            "dfc_1phase_exec_time_ms",
+            "dfc_2phase_time_ms",
+            "dfc_2phase_rewrite_time_ms",
+            "dfc_2phase_exec_time_ms",
             "logical_time_ms",
             "logical_rewrite_time_ms",
             "logical_exec_time_ms",
@@ -401,13 +442,17 @@ class TPCHStrategy(ExperimentStrategy):
             "physical_base_capture_time_ms",
             "physical_lineage_query_time_ms",
             "no_policy_rows",
-            "dfc_rows",
+            "dfc_1phase_rows",
+            "dfc_2phase_rows",
             "logical_rows",
             "physical_rows",
             "correctness_match",
             "correctness_error",
             "no_policy_error",
-            "dfc_error",
+            "dfc_1phase_error",
+            "dfc_2phase_error",
+            "dfc_2phase_match",
+            "dfc_2phase_match_error",
             "logical_error",
             "physical_error",
         ]

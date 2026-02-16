@@ -9,6 +9,7 @@ import sqlglot
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical_multi
 from vldb_experiments.baselines.physical_rewriter import rewrite_query_physical
+from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.strategies.tpch_policy_complexity_strategy import (
     build_tpch_q01_complexity_policy,
 )
@@ -1201,6 +1202,9 @@ def test_tpch_q01_policy_complexity_100_dfc_sql_matches():
         rewriter = SQLRewriter(conn=conn)
         rewriter.register_policy(policy)
         rewritten = rewriter.transform_query(query)
+        rewritten_2phase = rewriter.transform_query(query, use_two_phase=True)
+        dfc_1phase_results = conn.execute(rewritten).fetchall()
+        dfc_2phase_results = conn.execute(rewritten_2phase).fetchall()
         base_query, filter_query_template, _ = rewrite_query_physical(
             query,
             policy,
@@ -1213,6 +1217,11 @@ def test_tpch_q01_policy_complexity_100_dfc_sql_matches():
         "DFC SQL does not match expected for complexity=100.\n"
         f"Expected SQL:\n{COMPLEXITY_100_DFC_SQL}\n\n"
         f"Actual SQL:\n{rewritten}"
+    )
+    dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+    assert dfc_2phase_match, (
+        "Two-phase DFC results do not match one-phase DFC for complexity=100.\n"
+        f"Details: {dfc_2phase_error}"
     )
     assert base_query == query, (
         "Physical base SQL does not match expected for complexity=100.\n"
@@ -1250,6 +1259,9 @@ def test_tpch_q01_policy_or_100_dfc_sql_matches():
         rewriter = SQLRewriter(conn=conn)
         rewriter.register_policy(policy)
         rewritten = rewriter.transform_query(query)
+        rewritten_2phase = rewriter.transform_query(query, use_two_phase=True)
+        dfc_1phase_results = conn.execute(rewritten).fetchall()
+        dfc_2phase_results = conn.execute(rewritten_2phase).fetchall()
         base_query, filter_query_template, _ = rewrite_query_physical(
             query,
             policy,
@@ -1262,6 +1274,11 @@ def test_tpch_q01_policy_or_100_dfc_sql_matches():
         "DFC SQL does not match expected for or_count=100.\n"
         f"Expected SQL:\n{OR_100_DFC_SQL}\n\n"
         f"Actual SQL:\n{rewritten}"
+    )
+    dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+    assert dfc_2phase_match, (
+        "Two-phase DFC results do not match one-phase DFC for or_count=100.\n"
+        f"Details: {dfc_2phase_error}"
     )
     assert base_query == query, (
         "Physical base SQL does not match expected for or_count=100.\n"

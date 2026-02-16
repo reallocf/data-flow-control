@@ -25,7 +25,8 @@ def _filter_to_engine(df: pd.DataFrame, engine: str, include_duckdb: bool) -> pd
         keep_cols.update(
             {
                 "no_policy_exec_time_ms",
-                "dfc_exec_time_ms",
+                "dfc_1phase_exec_time_ms",
+                "dfc_2phase_exec_time_ms",
                 "logical_exec_time_ms",
             }
         )
@@ -33,7 +34,8 @@ def _filter_to_engine(df: pd.DataFrame, engine: str, include_duckdb: bool) -> pd
     keep_cols.update(
         {
             f"{engine_prefix}_time_ms",
-            f"{engine_prefix}_dfc_time_ms",
+            f"{engine_prefix}_dfc_1phase_time_ms",
+            f"{engine_prefix}_dfc_2phase_time_ms",
             f"{engine_prefix}_logical_time_ms",
         }
     )
@@ -48,7 +50,7 @@ def _drop_duckdb_columns(df: pd.DataFrame) -> pd.DataFrame:
         for c in df.columns
         if c.startswith(("no_policy_", "dfc_", "logical_"))
         or c in {"correctness_match", "correctness_error"}
-        or c in {"no_policy_rows", "dfc_rows", "logical_rows"}
+        or c in {"no_policy_rows", "dfc_1phase_rows", "dfc_2phase_rows", "logical_rows"}
     ]
     return df.drop(columns=drop_cols, errors="ignore")
 

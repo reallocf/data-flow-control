@@ -1248,16 +1248,30 @@ def tpch_connections():
             conn.close()
 
 
+def _execute_dfc_1phase_and_validate_2phase(
+    conn: duckdb.DuckDBPyConnection,
+    query: str,
+    policy: DFCPolicy,
+) -> list:
+    """Run DFC 1-phase as source of truth and assert DFC 2-phase matches exactly."""
+    rewriter = SQLRewriter(conn=conn)
+    rewriter.register_policy(policy)
+    dfc_1phase_results = rewriter.execute(query).fetchall()
+    dfc_2phase_results = rewriter.execute(query, use_two_phase=True).fetchall()
+    rewriter.close()
+
+    match, error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+    assert match, f"DFC 2-phase mismatch vs DFC 1-phase: {error}"
+    return dfc_1phase_results
+
+
 def test_tpch_q01(tpch_connections):
     """Test TPC-H Q1: Pricing Summary Report Query."""
     query = load_tpch_query(1)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1275,11 +1289,8 @@ def test_tpch_q03(tpch_connections):
     query = load_tpch_query(3)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1298,11 +1309,8 @@ def test_tpch_q04(tpch_connections):
     query = load_tpch_query(4)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1320,11 +1328,8 @@ def test_tpch_q05(tpch_connections):
     query = load_tpch_query(5)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1342,11 +1347,8 @@ def test_tpch_q06(tpch_connections):
     query = load_tpch_query(6)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1364,11 +1366,8 @@ def test_tpch_q07(tpch_connections):
     query = load_tpch_query(7)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1386,11 +1385,8 @@ def test_tpch_q08(tpch_connections):
     query = load_tpch_query(8)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1408,11 +1404,8 @@ def test_tpch_q09(tpch_connections):
     query = load_tpch_query(9)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1430,11 +1423,8 @@ def test_tpch_q10(tpch_connections):
     query = load_tpch_query(10)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1452,11 +1442,8 @@ def test_tpch_q12(tpch_connections):
     query = load_tpch_query(12)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1474,11 +1461,8 @@ def test_tpch_q14(tpch_connections):
     query = load_tpch_query(14)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1497,11 +1481,8 @@ def test_tpch_q18(tpch_connections):
     query = load_tpch_query(18)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)
@@ -1519,11 +1500,8 @@ def test_tpch_q19(tpch_connections):
     query = load_tpch_query(19)
     policy = lineitem_policy
 
-    # DFC approach (source of truth)
-    dfc_rewriter = SQLRewriter(conn=tpch_connections["dfc"])
-    dfc_rewriter.register_policy(policy)
-    dfc_results = dfc_rewriter.execute(query).fetchall()
-    dfc_rewriter.close()
+    # DFC 1-phase source of truth; DFC 2-phase must match
+    dfc_results = _execute_dfc_1phase_and_validate_2phase(tpch_connections["dfc"], query, policy)
 
     # Logical approach
     logical_sql = rewrite_query_logical(query, policy)

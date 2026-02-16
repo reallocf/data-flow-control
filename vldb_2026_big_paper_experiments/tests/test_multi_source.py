@@ -68,7 +68,8 @@ def test_multi_source_32_join_32_sources_rewrite() -> None:
     rewriter.register_policy(policy)
 
     query = _build_chain_query(join_count)
-    transformed = rewriter.transform_query(query)
+    transformed_1phase = rewriter.transform_query(query)
+    transformed_2phase = rewriter.transform_query(query, use_two_phase=True)
 
     expected = """SELECT
   t1.id % 10 AS bucket,
@@ -178,12 +179,14 @@ HAVING
     AND MAX(t32.id) >= 1
   )"""
 
-    assert transformed == expected, (
+    assert transformed_1phase == expected, (
         "Transformed SQL does not match expected.\n"
         f"Expected SQL:\n{expected}\n\n"
-        f"Actual SQL:\n{transformed}"
+        f"Actual SQL:\n{transformed_1phase}"
     )
 
     expected_results = conn.execute(query).fetchall()
-    transformed_results = conn.execute(transformed).fetchall()
-    assert sorted(transformed_results) == sorted(expected_results)
+    transformed_1phase_results = conn.execute(transformed_1phase).fetchall()
+    transformed_2phase_results = conn.execute(transformed_2phase).fetchall()
+    assert sorted(transformed_1phase_results) == sorted(expected_results)
+    assert sorted(transformed_2phase_results) == sorted(transformed_1phase_results)

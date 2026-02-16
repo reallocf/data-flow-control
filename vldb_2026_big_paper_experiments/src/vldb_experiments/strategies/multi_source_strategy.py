@@ -189,21 +189,40 @@ class MultiSourceStrategy(ExperimentStrategy):
             no_policy_error = str(exc)
 
         try:
-            dfc_rewrite_start = time.perf_counter()
-            dfc_transformed = self.dfc_rewriter.transform_query(query)
-            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
-            dfc_exec_start = time.perf_counter()
-            dfc_results = self.dfc_conn.execute(dfc_transformed).fetchall()
-            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
-            dfc_rows = len(dfc_results)
-            dfc_time = dfc_rewrite_time + dfc_exec_time
-            dfc_error = None
+            dfc_1phase_rewrite_start = time.perf_counter()
+            dfc_1phase_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_1phase_rewrite_time = (time.perf_counter() - dfc_1phase_rewrite_start) * 1000.0
+            dfc_1phase_exec_start = time.perf_counter()
+            dfc_1phase_results = self.dfc_conn.execute(dfc_1phase_transformed).fetchall()
+            dfc_1phase_exec_time = (time.perf_counter() - dfc_1phase_exec_start) * 1000.0
+            dfc_1phase_rows = len(dfc_1phase_results)
+            dfc_1phase_time = dfc_1phase_rewrite_time + dfc_1phase_exec_time
+            dfc_1phase_error = None
         except Exception as exc:
-            dfc_rewrite_time = 0.0
-            dfc_exec_time = 0.0
-            dfc_time = 0.0
-            dfc_rows = 0
-            dfc_error = str(exc)
+            dfc_1phase_rewrite_time = 0.0
+            dfc_1phase_exec_time = 0.0
+            dfc_1phase_time = 0.0
+            dfc_1phase_results = []
+            dfc_1phase_rows = 0
+            dfc_1phase_error = str(exc)
+
+        try:
+            dfc_2phase_rewrite_start = time.perf_counter()
+            dfc_2phase_transformed = self.dfc_rewriter.transform_query(query, use_two_phase=True)
+            dfc_2phase_rewrite_time = (time.perf_counter() - dfc_2phase_rewrite_start) * 1000.0
+            dfc_2phase_exec_start = time.perf_counter()
+            dfc_2phase_results = self.dfc_conn.execute(dfc_2phase_transformed).fetchall()
+            dfc_2phase_exec_time = (time.perf_counter() - dfc_2phase_exec_start) * 1000.0
+            dfc_2phase_rows = len(dfc_2phase_results)
+            dfc_2phase_time = dfc_2phase_rewrite_time + dfc_2phase_exec_time
+            dfc_2phase_error = None
+        except Exception as exc:
+            dfc_2phase_rewrite_time = 0.0
+            dfc_2phase_exec_time = 0.0
+            dfc_2phase_time = 0.0
+            dfc_2phase_results = []
+            dfc_2phase_rows = 0
+            dfc_2phase_error = str(exc)
 
         total_time = (time.perf_counter() - total_start) * 1000.0
 
@@ -214,13 +233,18 @@ class MultiSourceStrategy(ExperimentStrategy):
             "run_num": run_num or 0,
             "num_rows": self.num_rows,
             "no_policy_exec_time_ms": no_policy_exec_time,
-            "dfc_time_ms": dfc_time,
-            "dfc_rewrite_time_ms": dfc_rewrite_time,
-            "dfc_exec_time_ms": dfc_exec_time,
+            "dfc_1phase_time_ms": dfc_1phase_time,
+            "dfc_1phase_rewrite_time_ms": dfc_1phase_rewrite_time,
+            "dfc_1phase_exec_time_ms": dfc_1phase_exec_time,
+            "dfc_2phase_time_ms": dfc_2phase_time,
+            "dfc_2phase_rewrite_time_ms": dfc_2phase_rewrite_time,
+            "dfc_2phase_exec_time_ms": dfc_2phase_exec_time,
             "no_policy_rows": no_policy_rows,
-            "dfc_rows": dfc_rows,
+            "dfc_1phase_rows": dfc_1phase_rows,
+            "dfc_2phase_rows": dfc_2phase_rows,
             "no_policy_error": no_policy_error or "",
-            "dfc_error": dfc_error or "",
+            "dfc_1phase_error": dfc_1phase_error or "",
+            "dfc_2phase_error": dfc_2phase_error or "",
         }
 
         return ExperimentResult(duration_ms=total_time, custom_metrics=custom_metrics)
@@ -241,13 +265,18 @@ class MultiSourceStrategy(ExperimentStrategy):
             "run_num",
             "num_rows",
             "no_policy_exec_time_ms",
-            "dfc_time_ms",
-            "dfc_rewrite_time_ms",
-            "dfc_exec_time_ms",
+            "dfc_1phase_time_ms",
+            "dfc_1phase_rewrite_time_ms",
+            "dfc_1phase_exec_time_ms",
+            "dfc_2phase_time_ms",
+            "dfc_2phase_rewrite_time_ms",
+            "dfc_2phase_exec_time_ms",
             "no_policy_rows",
-            "dfc_rows",
+            "dfc_1phase_rows",
+            "dfc_2phase_rows",
             "no_policy_error",
-            "dfc_error",
+            "dfc_1phase_error",
+            "dfc_2phase_error",
         ]
 
     def get_setting_key(self, context: ExperimentContext) -> tuple[int, int]:

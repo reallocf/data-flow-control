@@ -4,10 +4,12 @@ import contextlib
 import re
 
 import pytest
+from sql_rewriter import SQLRewriter
 import sqlglot
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical_multi
 from vldb_experiments.baselines.physical_rewriter import rewrite_query_physical
+from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.strategies.tpch_policy_count_strategy import build_tpch_q01_policies
 from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck, load_tpch_query
 
@@ -3570,4 +3572,33 @@ def test_tpch_q01_logical_policy_counts_rewrite(tpch_conn, policy_count):
         PHYSICAL_EXPECTED_SQL_Q01[policy_count],
         filter_query_template,
         f"Physical filter SQL does not match expected for Q01 (count={policy_count}).\n",
+    )
+
+
+@pytest.mark.parametrize("policy_count", POLICY_COUNTS)
+def test_tpch_q01_dfc_2phase_matches_1phase(policy_count):
+    """Ensure two-phase DFC returns identical results to one-phase DFC for Q01."""
+    conn = _ensure_smokedduck().connect(":memory:")
+    with contextlib.suppress(Exception):
+        conn.execute("INSTALL tpch")
+    conn.execute("LOAD tpch")
+    conn.execute("CALL dbgen(sf=0.1)")
+
+    try:
+        query = load_tpch_query(1)
+        policies = build_tpch_q01_policies(policy_count)
+        rewriter = SQLRewriter(conn=conn)
+        for policy in policies:
+            rewriter.register_policy(policy)
+
+        dfc_1phase_results = rewriter.execute(query).fetchall()
+        dfc_2phase_results = rewriter.execute(query, use_two_phase=True).fetchall()
+    finally:
+        conn.close()
+
+    match, error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+    assert match, (
+        "Two-phase DFC results do not match one-phase DFC.\n"
+        f"Policy count: {policy_count}\n"
+        f"Details: {error}"
     )

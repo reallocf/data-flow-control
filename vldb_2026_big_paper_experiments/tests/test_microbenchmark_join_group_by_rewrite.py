@@ -60,7 +60,7 @@ def _build_join_group_by_query(join_count: int) -> str:
     return MicrobenchmarkStrategy()._build_join_group_by_query(join_count)
 
 
-def _build_rewrites(join_count: int) -> tuple[str, str, str]:
+def _build_rewrites(join_count: int) -> tuple[str, str, str, str]:
     conn = _ensure_smokedduck().connect(":memory:")
     setup_test_data_with_join_group_by(conn, join_count=join_count, num_rows=10)
     query = _build_join_group_by_query(join_count)
@@ -68,7 +68,8 @@ def _build_rewrites(join_count: int) -> tuple[str, str, str]:
 
     rewriter = SQLRewriter(conn=conn)
     rewriter.register_policy(policy)
-    dfc_sql = rewriter.transform_query(query)
+    dfc_1phase_sql = rewriter.transform_query(query)
+    dfc_2phase_sql = rewriter.transform_query(query, use_two_phase=True)
     logical_sql = rewrite_query_logical(query, policy)
     _, physical_template, _ = rewrite_query_physical(
         query,
@@ -77,10 +78,10 @@ def _build_rewrites(join_count: int) -> tuple[str, str, str]:
         output_columns=["category", "count", "total_amount"],
     )
     conn.close()
-    return dfc_sql, logical_sql, physical_template
+    return dfc_1phase_sql, dfc_2phase_sql, logical_sql, physical_template
 
 
-def _build_rewrites_multi_policy(join_count: int, policy_count: int) -> tuple[str, str, str]:
+def _build_rewrites_multi_policy(join_count: int, policy_count: int) -> tuple[str, str, str, str]:
     conn = _ensure_smokedduck().connect(":memory:")
     setup_test_data_with_join_group_by(conn, join_count=join_count, num_rows=10)
     query = _build_join_group_by_query(join_count)
@@ -89,7 +90,8 @@ def _build_rewrites_multi_policy(join_count: int, policy_count: int) -> tuple[st
     rewriter = SQLRewriter(conn=conn)
     for policy in policies:
         rewriter.register_policy(policy)
-    dfc_sql = rewriter.transform_query(query)
+    dfc_1phase_sql = rewriter.transform_query(query)
+    dfc_2phase_sql = rewriter.transform_query(query, use_two_phase=True)
     logical_sql = rewrite_query_logical_multi(query, policies)
     _, physical_template, _ = rewrite_query_physical(
         query,
@@ -98,13 +100,13 @@ def _build_rewrites_multi_policy(join_count: int, policy_count: int) -> tuple[st
         output_columns=["category", "count", "total_amount"],
     )
     conn.close()
-    return dfc_sql, logical_sql, physical_template
+    return dfc_1phase_sql, dfc_2phase_sql, logical_sql, physical_template
 
 
 def _execute_rewrites(
     join_count: int,
     policy_count: int = 1,
-) -> tuple[list[tuple], list[tuple], list[tuple]]:
+) -> tuple[list[tuple], list[tuple], list[tuple], list[tuple]]:
     query = _build_join_group_by_query(join_count)
     policies = create_test_policies(threshold=0, policy_count=policy_count)
     local_duckdb = _ensure_smokedduck()
@@ -119,8 +121,10 @@ def _execute_rewrites(
     rewriter = SQLRewriter(conn=dfc_conn)
     for policy in policies:
         rewriter.register_policy(policy)
-    dfc_sql = rewriter.transform_query(query)
-    dfc_results = dfc_conn.execute(dfc_sql).fetchall()
+    dfc_1phase_sql = rewriter.transform_query(query)
+    dfc_1phase_results = dfc_conn.execute(dfc_1phase_sql).fetchall()
+    dfc_2phase_sql = rewriter.transform_query(query, use_two_phase=True)
+    dfc_2phase_results = dfc_conn.execute(dfc_2phase_sql).fetchall()
 
     if len(policies) == 1:
         logical_sql = rewrite_query_logical(query, policies[0])
@@ -138,7 +142,7 @@ def _execute_rewrites(
     for conn in [dfc_conn, logical_conn, physical_conn]:
         conn.close()
 
-    return dfc_results, logical_results, physical_results
+    return dfc_1phase_results, dfc_2phase_results, logical_results, physical_results
 
 
 def test_join_group_by_query_expansion_for_1_and_10() -> None:
@@ -156,45 +160,56 @@ def test_join_group_by_query_expansion_for_1_and_10() -> None:
 
 def test_join_group_by_rewrite_sql_snapshots_for_1_and_10() -> None:
     for join_count in [1, 10]:
-        dfc_sql, logical_sql, physical_template = _build_rewrites(join_count)
+        dfc_1phase_sql, dfc_2phase_sql, logical_sql, physical_template = _build_rewrites(join_count)
 
-        assert _normalize_sql(dfc_sql) == EXPECTED_DFC_SQL[join_count]
+        assert _normalize_sql(dfc_1phase_sql) == EXPECTED_DFC_SQL[join_count]
+        # Ensure two-phase SQL is valid SQL and generated for the same query.
+        assert _normalize_sql(dfc_2phase_sql)
         assert _normalize_sql(logical_sql) == EXPECTED_LOGICAL_SQL[join_count]
         assert _normalize_sql(physical_template) == EXPECTED_PHYSICAL_SQL[join_count]
 
 
 def test_join_group_by_rewrite_sql_snapshots_for_1_and_10_with_10_policies() -> None:
     for join_count in [1, 10]:
-        dfc_sql, logical_sql, physical_template = _build_rewrites_multi_policy(
+        dfc_1phase_sql, dfc_2phase_sql, logical_sql, physical_template = _build_rewrites_multi_policy(
             join_count=join_count,
             policy_count=10,
         )
 
-        assert _normalize_sql(dfc_sql) == EXPECTED_DFC_SQL_10_POLICIES[join_count]
+        assert _normalize_sql(dfc_1phase_sql) == EXPECTED_DFC_SQL_10_POLICIES[join_count]
+        assert _normalize_sql(dfc_2phase_sql)
         assert _normalize_sql(logical_sql) == EXPECTED_LOGICAL_SQL_10_POLICIES[join_count]
         assert _normalize_sql(physical_template) == EXPECTED_PHYSICAL_SQL_10_POLICIES[join_count]
 
 
 def test_join_group_by_results_match_for_1_and_10() -> None:
     for join_count in [1, 10]:
-        dfc_results, logical_results, physical_results = _execute_rewrites(join_count)
+        dfc_1phase_results, dfc_2phase_results, logical_results, physical_results = _execute_rewrites(join_count)
 
-        logical_match, logical_error = compare_results_exact(dfc_results, logical_results)
+        dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+        assert dfc_2phase_match, f"DFC 2-phase mismatch for join_count={join_count}: {dfc_2phase_error}"
+
+        logical_match, logical_error = compare_results_exact(dfc_1phase_results, logical_results)
         assert logical_match, f"Logical mismatch for join_count={join_count}: {logical_error}"
 
-        physical_match, physical_error = compare_results_exact(dfc_results, physical_results)
+        physical_match, physical_error = compare_results_exact(dfc_1phase_results, physical_results)
         assert physical_match, f"Physical mismatch for join_count={join_count}: {physical_error}"
 
 
 def test_join_group_by_results_match_for_1_and_10_with_10_policies() -> None:
     for join_count in [1, 10]:
-        dfc_results, logical_results, physical_results = _execute_rewrites(
+        dfc_1phase_results, dfc_2phase_results, logical_results, physical_results = _execute_rewrites(
             join_count=join_count,
             policy_count=10,
         )
 
-        logical_match, logical_error = compare_results_exact(dfc_results, logical_results)
+        dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+        assert dfc_2phase_match, (
+            f"DFC 2-phase mismatch for join_count={join_count}, policies=10: {dfc_2phase_error}"
+        )
+
+        logical_match, logical_error = compare_results_exact(dfc_1phase_results, logical_results)
         assert logical_match, f"Logical mismatch for join_count={join_count}, policies=10: {logical_error}"
 
-        physical_match, physical_error = compare_results_exact(dfc_results, physical_results)
+        physical_match, physical_error = compare_results_exact(dfc_1phase_results, physical_results)
         assert physical_match, f"Physical mismatch for join_count={join_count}, policies=10: {physical_error}"

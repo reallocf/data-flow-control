@@ -53,7 +53,8 @@ def main() -> int:
     required = {
         "table_width",
         "no_policy_exec_time_ms",
-        "dfc_exec_time_ms",
+        "dfc_1phase_exec_time_ms",
+        "dfc_2phase_exec_time_ms",
         "logical_exec_time_ms",
         "physical_exec_time_ms",
     }
@@ -68,7 +69,8 @@ def main() -> int:
     fig, ax = plt.subplots(figsize=(10, 7))
     series = [
         ("no_policy_exec_time_ms", "No Policy", "#1f77b4"),
-        ("dfc_exec_time_ms", "DFC", "#ff7f0e"),
+        ("dfc_1phase_exec_time_ms", "1Phase", "#ff7f0e"),
+        ("dfc_2phase_exec_time_ms", "2Phase", "#9467bd"),
         ("logical_exec_time_ms", "Logical", "#2ca02c"),
         ("physical_exec_time_ms", "Physical", "#d62728"),
     ]
@@ -103,13 +105,15 @@ def main() -> int:
 
     baseline = grouped["no_policy_exec_time_ms"]
     overhead = pd.DataFrame(index=grouped.index)
-    overhead["DFC"] = ((grouped["dfc_exec_time_ms"] - baseline) / baseline) * 100.0
+    overhead["1Phase"] = ((grouped["dfc_1phase_exec_time_ms"] - baseline) / baseline) * 100.0
+    overhead["2Phase"] = ((grouped["dfc_2phase_exec_time_ms"] - baseline) / baseline) * 100.0
     overhead["Logical"] = ((grouped["logical_exec_time_ms"] - baseline) / baseline) * 100.0
     overhead["Physical"] = ((grouped["physical_exec_time_ms"] - baseline) / baseline) * 100.0
 
     fig_overhead, ax_overhead = plt.subplots(figsize=(10, 7))
     overhead_series = [
-        ("DFC", "#ff7f0e"),
+        ("1Phase", "#ff7f0e"),
+        ("2Phase", "#9467bd"),
         ("Logical", "#2ca02c"),
         ("Physical", "#d62728"),
     ]
