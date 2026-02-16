@@ -65,7 +65,7 @@ def main() -> int:
             warmup_mode="per_setting",
             warmup_runs_per_setting=warmup_per_query,
             database_config={
-                "database": db_path,
+                "database": ":memory:",
             },
             strategy_config={
                 "tpch_sf": scale_factor,

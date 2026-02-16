@@ -44,7 +44,7 @@ def main():
     parser.add_argument(
         "--warmup-runs",
         type=int,
-        default=2,
+        default=1,
         help="Warm-up runs per query variation setting.",
     )
     parser.add_argument(

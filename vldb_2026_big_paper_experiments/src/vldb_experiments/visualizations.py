@@ -1337,6 +1337,8 @@ def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.Dat
         plot_df = plot_df[plot_df["run_num"].fillna(0) > 0].copy()
 
     plot_cols = list(required_cols)
+    if "dfc_2phase_exec_time_ms" in plot_df.columns:
+        plot_cols.append("dfc_2phase_exec_time_ms")
     if "physical_exec_time_ms" in plot_df.columns:
         plot_cols.append("physical_exec_time_ms")
     plot_df = plot_df[plot_cols].copy()
@@ -1705,19 +1707,20 @@ def create_multi_db_engine_summary_chart(
         return None
 
     records: list[dict[str, float | str]] = []
+    valid_engines: list[str] = []
     for engine, (dfc_1phase_col, dfc_2phase_col, logical_col, baseline_col) in available.items():
-        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(
-            numeric_only=True
-        )
+        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(numeric_only=True)
+        baseline_by_query = baseline_by_query[baseline_by_query > 0]
         if baseline_by_query.empty:
             continue
+        engine_added = False
         for label, col in [("1Phase", dfc_1phase_col), ("2Phase", dfc_2phase_col), ("Logical", logical_col)]:
-            approach_by_query = df.groupby("query_num", as_index=True)[col].mean(
-                numeric_only=True
-            )
-            overhead_by_query = (approach_by_query / baseline_by_query).replace(
-                [float("inf"), float("-inf")], pd.NA
-            ).dropna()
+            approach_by_query = df.groupby("query_num", as_index=True)[col].mean(numeric_only=True)
+            approach_by_query = approach_by_query.reindex(baseline_by_query.index)
+            valid_mask = approach_by_query > 0
+            overhead_by_query = (
+                approach_by_query[valid_mask] / baseline_by_query[valid_mask]
+            ).replace([float("inf"), float("-inf")], pd.NA).dropna()
             if overhead_by_query.empty:
                 continue
             overall_avg = float((overhead_by_query.mean() - 1.0) * 100.0)
@@ -1728,20 +1731,23 @@ def create_multi_db_engine_summary_chart(
                     "avg_overhead": overall_avg,
                 }
             )
+            engine_added = True
+        if engine_added:
+            valid_engines.append(engine)
 
     if not records:
         print("No data available for multi-db engine summary chart.")
         return None
 
     summary_df = pd.DataFrame.from_records(records)
-    engine_order = list(available.keys())
+    engine_order = [engine for engine in engines if engine in valid_engines]
     summary_df["engine"] = pd.Categorical(summary_df["engine"], categories=engine_order, ordered=True)
     summary_df = summary_df.sort_values(["engine", "approach"])
 
     fig, ax = plt.subplots(figsize=(9, 6))
 
     x_positions = range(len(engine_order))
-    bar_width = 0.36
+    bar_width = 0.24
     offsets = {"1Phase": -bar_width, "2Phase": 0.0, "Logical": bar_width}
     colors = {"1Phase": "#ff7f0e", "2Phase": "#9467bd", "Logical": "#2ca02c"}
 
@@ -1816,19 +1822,20 @@ def create_multi_db_engine_summary_capped_chart(
         return None
 
     records: list[dict[str, float | str]] = []
+    valid_engines: list[str] = []
     for engine, (dfc_1phase_col, dfc_2phase_col, logical_col, baseline_col) in available.items():
-        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(
-            numeric_only=True
-        )
+        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(numeric_only=True)
+        baseline_by_query = baseline_by_query[baseline_by_query > 0]
         if baseline_by_query.empty:
             continue
+        engine_added = False
         for label, col in [("1Phase", dfc_1phase_col), ("2Phase", dfc_2phase_col), ("Logical", logical_col)]:
-            approach_by_query = df.groupby("query_num", as_index=True)[col].mean(
-                numeric_only=True
-            )
-            overhead_by_query = (approach_by_query / baseline_by_query).replace(
-                [float("inf"), float("-inf")], pd.NA
-            ).dropna()
+            approach_by_query = df.groupby("query_num", as_index=True)[col].mean(numeric_only=True)
+            approach_by_query = approach_by_query.reindex(baseline_by_query.index)
+            valid_mask = approach_by_query > 0
+            overhead_by_query = (
+                approach_by_query[valid_mask] / baseline_by_query[valid_mask]
+            ).replace([float("inf"), float("-inf")], pd.NA).dropna()
             if overhead_by_query.empty:
                 continue
             overall_avg = float((overhead_by_query.mean() - 1.0) * 100.0)
@@ -1841,20 +1848,23 @@ def create_multi_db_engine_summary_capped_chart(
                     "avg_overhead": overall_avg,
                 }
             )
+            engine_added = True
+        if engine_added:
+            valid_engines.append(engine)
 
     if not records:
         print("No data available for multi-db engine summary chart.")
         return None
 
     summary_df = pd.DataFrame.from_records(records)
-    engine_order = list(available.keys())
+    engine_order = [engine for engine in engines if engine in valid_engines]
     summary_df["engine"] = pd.Categorical(summary_df["engine"], categories=engine_order, ordered=True)
     summary_df = summary_df.sort_values(["engine", "approach"])
 
     fig, ax = plt.subplots(figsize=(9, 6))
 
     x_positions = range(len(engine_order))
-    bar_width = 0.36
+    bar_width = 0.24
     offsets = {"1Phase": -bar_width, "2Phase": 0.0, "Logical": bar_width}
     colors = {"1Phase": "#ff7f0e", "2Phase": "#9467bd", "Logical": "#2ca02c"}
 

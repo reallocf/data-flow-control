@@ -1,6 +1,7 @@
 """TPC-H Q01 policy OR-chain strategy for DFC vs Logical overhead."""
 
 import contextlib
+import pathlib
 import time
 
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
@@ -50,53 +51,46 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
     """Strategy for measuring performance vs number of OR clauses on TPC-H Q01."""
 
     def setup(self, context: ExperimentContext) -> None:
-        main_conn = context.database_connection
-        if main_conn is None:
-            raise ValueError("Database connection required in context")
-
         self.scale_factor = float(context.strategy_config.get("tpch_sf", 1))
         db_path = context.strategy_config.get("tpch_db_path")
+        if not db_path:
+            db_path = f"./results/tpch_q01_policy_many_ors_sf{self.scale_factor}.db"
+        pathlib.Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = db_path
+        self.physical_db_path = f"{db_path}_physical"
 
         or_counts = context.strategy_config.get("or_counts", DEFAULT_OR_COUNTS)
         warmup_per_level = int(context.strategy_config.get("warmup_per_level", DEFAULT_WARMUP_PER_LEVEL))
         runs_per_level = int(context.strategy_config.get("runs_per_level", DEFAULT_RUNS_PER_LEVEL))
 
+        self.local_duckdb = _ensure_smokedduck()
+        main_conn = self.local_duckdb.connect(self.db_path)
+
         with contextlib.suppress(Exception):
             main_conn.execute("INSTALL tpch")
         main_conn.execute("LOAD tpch")
-        if db_path:
-            table_exists = main_conn.execute(
-                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
-            ).fetchone()[0]
-            if table_exists == 0:
-                main_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
-        else:
+        table_exists = main_conn.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
+        ).fetchone()[0]
+        if table_exists == 0:
             main_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
 
-        target_db = db_path or ":memory:"
-        local_duckdb = _ensure_smokedduck()
-        self.local_duckdb = local_duckdb
-        self.no_policy_conn = self.local_duckdb.connect(target_db)
-        self.dfc_conn = self.local_duckdb.connect(target_db)
-        self.logical_conn = self.local_duckdb.connect(target_db)
-        physical_db_path = f"{db_path}_physical" if db_path else None
-        self.physical_conn = local_duckdb.connect(physical_db_path or ":memory:")
+        self.no_policy_conn = main_conn
+        self.dfc_conn = main_conn
+        self.logical_conn = main_conn
+        self.physical_conn = self.local_duckdb.connect(self.physical_db_path)
 
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
+        for conn in [self.physical_conn]:
             with contextlib.suppress(Exception):
                 conn.execute("INSTALL tpch")
             conn.execute("LOAD tpch")
-            if not db_path:
-                conn.execute(f"CALL dbgen(sf={self.scale_factor})")
-
-        if physical_db_path:
-            table_exists = self.physical_conn.execute(
+            table_exists = conn.execute(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
             ).fetchone()[0]
             if table_exists == 0:
-                self.physical_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
+                conn.execute(f"CALL dbgen(sf={self.scale_factor})")
 
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
+        for conn in [main_conn, self.physical_conn]:
             try:
                 conn.execute("COMMIT")
             except Exception:
@@ -144,11 +138,17 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
                 )
             self.dfc_rewriter.register_policy(policy)
         except Exception:
-            self.dfc_conn = self.local_duckdb.connect(":memory:")
+            self.dfc_conn = self.local_duckdb.connect(self.db_path)
+            self.no_policy_conn = self.dfc_conn
+            self.logical_conn = self.dfc_conn
             with contextlib.suppress(Exception):
                 self.dfc_conn.execute("INSTALL tpch")
             self.dfc_conn.execute("LOAD tpch")
-            self.dfc_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
+            table_exists = self.dfc_conn.execute(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
+            ).fetchone()[0]
+            if table_exists == 0:
+                self.dfc_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
             self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
             self.dfc_rewriter.register_policy(policy)
 
@@ -341,10 +341,15 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
     def teardown(self, _context: ExperimentContext) -> None:
         if hasattr(self, "dfc_rewriter"):
             self.dfc_rewriter.close()
+        seen = set()
         for conn_name in ["no_policy_conn", "dfc_conn", "logical_conn", "physical_conn"]:
             if hasattr(self, conn_name):
+                conn = getattr(self, conn_name)
+                if id(conn) in seen:
+                    continue
+                seen.add(id(conn))
                 with contextlib.suppress(Exception):
-                    getattr(self, conn_name).close()
+                    conn.close()
 
     def get_metrics(self) -> list:
         return [

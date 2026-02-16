@@ -84,58 +84,47 @@ class TPCHStrategy(ExperimentStrategy):
         Args:
             context: Experiment context with database connection
         """
-        # Use the connection from context to set up data
-        # But create separate connections for each rewriter to avoid UDF conflicts
-        main_conn = context.database_connection
-        if main_conn is None:
-            raise ValueError("Database connection required in context")
-
         self.scale_factor = float(context.strategy_config.get("tpch_sf", 0.1))
         db_path = context.strategy_config.get("tpch_db_path")
+        if not db_path:
+            db_path = f"./results/tpch_sf{self.scale_factor}.db"
+        pathlib.Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = db_path
+        self.physical_db_path = f"{db_path}_physical"
 
-        # Set up TPC-H data on the main connection
+        self.local_duckdb = _ensure_smokedduck()
+        main_conn = self.local_duckdb.connect(self.db_path)
+
+        # Set up TPC-H data on the shared disk-backed connection.
         with contextlib.suppress(Exception):
             main_conn.execute("INSTALL tpch")
         main_conn.execute("LOAD tpch")
-        if db_path:
-            table_exists = main_conn.execute(
-                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
-            ).fetchone()[0]
-            if table_exists == 0:
-                main_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
-        else:
+        table_exists = main_conn.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
+        ).fetchone()[0]
+        if table_exists == 0:
             main_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
 
-        # Create separate connections for each approach to avoid conflicts
-        target_db = db_path or ":memory:"
-        physical_db_path = None
-        if db_path:
-            physical_db_path = f"{db_path}_physical"
-        self.local_duckdb = _ensure_smokedduck()
-        self.no_policy_conn = self.local_duckdb.connect(target_db)
-        self.dfc_conn = self.local_duckdb.connect(target_db)
-        self.logical_conn = self.local_duckdb.connect(target_db)
-        local_duckdb = self.local_duckdb
-        self.physical_conn = local_duckdb.connect(physical_db_path or ":memory:")
+        # Keep all non-physical approaches on the exact same connection.
+        self.no_policy_conn = main_conn
+        self.dfc_conn = main_conn
+        self.logical_conn = main_conn
+        self.physical_conn = self.local_duckdb.connect(self.physical_db_path)
 
-        # Ensure TPC-H extension is available for connections
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
+        # Ensure TPC-H extension is available for physical connection.
+        for conn in [self.physical_conn]:
             with contextlib.suppress(Exception):
                 conn.execute("INSTALL tpch")
             conn.execute("LOAD tpch")
-            if not db_path:
-                conn.execute(f"CALL dbgen(sf={self.scale_factor})")
-
-        if physical_db_path:
-            table_exists = self.physical_conn.execute(
+            table_exists = conn.execute(
                 "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
             ).fetchone()[0]
             if table_exists == 0:
-                self.physical_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
+                conn.execute(f"CALL dbgen(sf={self.scale_factor})")
 
         # Commit any transactions before creating rewriters (needed for SmokedDuck lineage)
         # DuckDB auto-commits, but SmokedDuck lineage may leave transactions open
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
+        for conn in [main_conn, self.physical_conn]:
             try:
                 # Try to commit using SQL
                 conn.execute("COMMIT")
@@ -187,12 +176,18 @@ class TPCHStrategy(ExperimentStrategy):
                 )
             self.dfc_rewriter.register_policy(policy)
         except Exception:
-            # If rewriter/connection is broken, recreate it
-            self.dfc_conn = self.local_duckdb.connect(":memory:")
+            # If rewriter/connection is broken, recreate it on the shared disk DB.
+            self.dfc_conn = self.local_duckdb.connect(self.db_path)
+            self.no_policy_conn = self.dfc_conn
+            self.logical_conn = self.dfc_conn
             with contextlib.suppress(Exception):
                 self.dfc_conn.execute("INSTALL tpch")
             self.dfc_conn.execute("LOAD tpch")
-            self.dfc_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
+            table_exists = self.dfc_conn.execute(
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'lineitem'"
+            ).fetchone()[0]
+            if table_exists == 0:
+                self.dfc_conn.execute(f"CALL dbgen(sf={self.scale_factor})")
             self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
             self.dfc_rewriter.register_policy(policy)
 
@@ -410,10 +405,15 @@ class TPCHStrategy(ExperimentStrategy):
         if hasattr(self, "dfc_rewriter"):
             self.dfc_rewriter.close()
         # Close all connections
+        seen = set()
         for conn_name in ["no_policy_conn", "dfc_conn", "logical_conn", "physical_conn"]:
             if hasattr(self, conn_name):
+                conn = getattr(self, conn_name)
+                if id(conn) in seen:
+                    continue
+                seen.add(id(conn))
                 with contextlib.suppress(Exception):
-                    getattr(self, conn_name).close()
+                    conn.close()
 
     def get_metrics(self) -> list:
         """Return list of custom metric names.

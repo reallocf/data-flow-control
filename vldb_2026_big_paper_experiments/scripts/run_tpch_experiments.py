@@ -60,7 +60,6 @@ def main():
 
     for scale_factor in args.sf:
         print(f"\n=== Scale factor {scale_factor} ===", flush=True)
-
         db_path = f"./results/tpch_sf{scale_factor}.db"
 
         config = ExperimentConfig(
@@ -69,7 +68,7 @@ def main():
             warmup_mode="per_setting",
             warmup_runs_per_setting=warmup_per_query,
             database_config={
-                "database": db_path,
+                "database": ":memory:",
             },
             strategy_config={
                 "tpch_sf": scale_factor,
