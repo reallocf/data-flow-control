@@ -29,7 +29,7 @@ def create_tpch_duckdb_capped_overhead_chart(
     output_path: Path,
     title_suffix: str = "",
 ) -> None:
-    """Create a per-query capped overhead bar chart for DuckDB 1Phase, 2Phase, and Logical."""
+    """Create a per-query capped overhead bar chart for DuckDB 1Phase, 2Phase, Logical, and Physical."""
     if "no_policy_exec_time_ms" not in df.columns and "no_policy_time_ms" in df.columns:
         df["no_policy_exec_time_ms"] = df["no_policy_time_ms"]
     if "dfc_1phase_exec_time_ms" not in df.columns and "dfc_exec_time_ms" in df.columns:
@@ -40,6 +40,22 @@ def create_tpch_duckdb_capped_overhead_chart(
         df["dfc_2phase_exec_time_ms"] = df["dfc_2phase_time_ms"]
     if "logical_exec_time_ms" not in df.columns and "logical_time_ms" in df.columns:
         df["logical_exec_time_ms"] = df["logical_time_ms"]
+    if "physical_exec_time_ms" not in df.columns:
+        if {"physical_base_capture_time_ms", "physical_lineage_query_time_ms", "physical_runtime_ms"}.issubset(df.columns):
+            df["physical_exec_time_ms"] = (
+                df["physical_base_capture_time_ms"].fillna(0.0)
+                + df["physical_lineage_query_time_ms"].fillna(0.0)
+                + df["physical_runtime_ms"].fillna(0.0)
+            )
+        elif {"physical_base_capture_time_ms", "physical_lineage_query_time_ms"}.issubset(df.columns):
+            df["physical_exec_time_ms"] = (
+                df["physical_base_capture_time_ms"].fillna(0.0)
+                + df["physical_lineage_query_time_ms"].fillna(0.0)
+            )
+        elif "physical_runtime_ms" in df.columns:
+            df["physical_exec_time_ms"] = df["physical_runtime_ms"]
+        elif "physical_time_ms" in df.columns:
+            df["physical_exec_time_ms"] = df["physical_time_ms"]
 
     required_cols = {
         "query_num",
@@ -47,6 +63,7 @@ def create_tpch_duckdb_capped_overhead_chart(
         "dfc_1phase_exec_time_ms",
         "dfc_2phase_exec_time_ms",
         "logical_exec_time_ms",
+        "physical_exec_time_ms",
     }
     if not required_cols.issubset(df.columns):
         missing = sorted(required_cols - set(df.columns))
@@ -59,6 +76,7 @@ def create_tpch_duckdb_capped_overhead_chart(
                 "dfc_1phase_exec_time_ms",
                 "dfc_2phase_exec_time_ms",
                 "logical_exec_time_ms",
+                "physical_exec_time_ms",
             ]
         ]
         .mean()
@@ -77,14 +95,20 @@ def create_tpch_duckdb_capped_overhead_chart(
         (grouped["logical_exec_time_ms"] - grouped["no_policy_exec_time_ms"])
         / grouped["no_policy_exec_time_ms"]
     ) * 100.0
+    physical_overhead = (
+        (grouped["physical_exec_time_ms"] - grouped["no_policy_exec_time_ms"])
+        / grouped["no_policy_exec_time_ms"]
+    ) * 100.0
 
     # Cap only the top-end to preserve negative-overhead visibility.
     dfc_1phase_plot = dfc_1phase_overhead.clip(upper=cap_pct)
     dfc_2phase_plot = dfc_2phase_overhead.clip(upper=cap_pct)
     logical_plot = logical_overhead.clip(upper=cap_pct)
+    # Physical baseline is intentionally skipped for Q04 and Q18; suppress those bars.
+    physical_plot = physical_overhead.where(~grouped.index.isin([4, 18])).clip(upper=cap_pct)
 
     x_positions = list(range(len(grouped.index)))
-    bar_width = 0.25
+    bar_width = 0.2
 
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.bar(
@@ -107,6 +131,13 @@ def create_tpch_duckdb_capped_overhead_chart(
         width=bar_width,
         label="Logical",
         color="#2ca02c",
+    )
+    ax.bar(
+        [x + (2 * bar_width) for x in x_positions],
+        physical_plot,
+        width=bar_width,
+        label="Physical",
+        color="#d62728",
     )
 
     ax.set_xticks(x_positions)
