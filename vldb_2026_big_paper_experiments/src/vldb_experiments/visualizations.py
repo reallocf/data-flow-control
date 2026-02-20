@@ -1323,6 +1323,105 @@ def create_microbenchmark_policy_count_chart(
     return fig
 
 
+def create_llm_validation_accuracy_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "llm_validation_accuracy.png",
+) -> Optional[plt.Figure]:
+    """Create per-policy-count accuracy bars for LLM validation approaches.
+
+    Accuracy is computed over all measured runs and queries:
+    mean(correct_identification) * 100 for each (policy_count, approach).
+    """
+    required_cols = {"policy_count", "approach", "correct_identification"}
+    if not required_cols.issubset(df.columns):
+        print(f"Skipping LLM validation chart; missing columns: {required_cols - set(df.columns)}")
+        return None
+
+    plot_df = df[list(required_cols)].copy()
+    plot_df = plot_df.dropna(subset=["policy_count", "approach", "correct_identification"])
+    if plot_df.empty:
+        print("Skipping LLM validation chart; no usable rows.")
+        return None
+
+    plot_df["policy_count"] = plot_df["policy_count"].astype(int)
+    plot_df["correct_bool"] = plot_df["correct_identification"].astype(str).str.lower().eq("true")
+
+    summary = (
+        plot_df.groupby(["policy_count", "approach"], as_index=False)["correct_bool"]
+        .mean()
+    ).rename(columns={"correct_bool": "accuracy_pct"})
+    summary["accuracy_pct"] = summary["accuracy_pct"] * 100.0
+    if summary.empty:
+        print("Skipping LLM validation chart; summary is empty.")
+        return None
+
+    approach_order = [
+        "dfc_1phase",
+        "gpt_query_only",
+        "gpt_query_results",
+        "opus_query_only",
+        "opus_query_results",
+    ]
+    approaches_present = [a for a in approach_order if a in summary["approach"].unique()]
+    if not approaches_present:
+        approaches_present = sorted(summary["approach"].unique().tolist())
+
+    label_map = {
+        "dfc_1phase": "1Phase",
+        "gpt_query_only": "GPT Query Only",
+        "gpt_query_results": "GPT Query + Results",
+        "opus_query_only": "Opus Query Only",
+        "opus_query_results": "Opus Query + Results",
+    }
+    color_map = {
+        "dfc_1phase": "#ff7f0e",
+        "gpt_query_only": "#1f77b4",
+        "gpt_query_results": "#17becf",
+        "opus_query_only": "#2ca02c",
+        "opus_query_results": "#9467bd",
+    }
+
+    policy_counts = sorted(summary["policy_count"].unique().tolist())
+
+    x = list(range(len(policy_counts)))
+    width = 0.8 / max(len(approaches_present), 1)
+
+    fig, ax = plt.subplots(figsize=(11, 7))
+    for i, approach in enumerate(approaches_present):
+        approach_summary = summary[summary["approach"] == approach]
+        lookup = {
+            int(row["policy_count"]): float(row["accuracy_pct"])
+            for _, row in approach_summary.iterrows()
+        }
+        y_vals = [lookup.get(pc, 0) for pc in policy_counts]
+        x_vals = [v - 0.4 + width * i + (width / 2) for v in x]
+        ax.bar(
+            x_vals,
+            y_vals,
+            width=width,
+            label=label_map.get(approach, approach),
+            color=color_map.get(approach),
+            alpha=0.9,
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(pc) for pc in policy_counts])
+    ax.set_xlabel("Policy Count", fontsize=12)
+    ax.set_ylabel("Accuracy (%)", fontsize=12)
+    ax.set_title("LLM Validation Accuracy by Policy Count", fontsize=14, fontweight="bold")
+    ax.set_ylim(0, 100)
+    ax.grid(True, axis="y", alpha=0.3)
+    ax.legend(loc="best", fontsize=10)
+    plt.tight_layout()
+
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved LLM validation accuracy chart to {output_path}")
+    return fig
+
+
 def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.DataFrame]:
     required_cols = {x_col, "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}
     if not required_cols.issubset(df.columns):

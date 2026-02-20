@@ -483,6 +483,72 @@ def _add_invalidate_column_to_select(
     parsed.expressions.append(valid_alias)
 
 
+def _add_invalidate_message_column_to_select(
+    parsed: exp.Select,
+    constraint_expr: exp.Expression,
+    policy_message: str,
+    replace_existing: bool = False,
+) -> None:
+    """Add an 'invalid_string' column to a SELECT statement.
+
+    The column is empty when the policy passes and set to policy_message when the
+    policy fails. Multiple INVALIDATE_MESSAGE policies are combined as:
+    "message1 | message2 | ...".
+    """
+    constraint_sql = constraint_expr.sql()
+    constraint_copy = sqlglot.parse_one(constraint_sql, read="duckdb")
+
+    new_message_expr = exp.Case(
+        ifs=[
+            exp.If(
+                this=constraint_copy,
+                true=exp.Literal.string(""),
+            )
+        ],
+        default=exp.Literal.string(policy_message),
+    )
+
+    existing_invalid_string_expr = None
+    for expr in parsed.expressions:
+        if isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "invalid_string":
+            existing_invalid_string_expr = expr.this
+            break
+        if isinstance(expr, exp.Column) and get_column_name(expr).lower() == "invalid_string":
+            existing_invalid_string_expr = expr
+            break
+
+    if existing_invalid_string_expr and not replace_existing:
+        existing_sql = existing_invalid_string_expr.sql()
+        new_sql = new_message_expr.sql()
+        combined_sql = (
+            f"CONCAT_WS(' | ', NULLIF({existing_sql}, ''), NULLIF({new_sql}, ''))"
+        )
+        invalid_string_expr = sqlglot.parse_one(combined_sql, read="duckdb")
+    else:
+        invalid_string_expr = new_message_expr
+
+    invalid_string_alias = exp.Alias(
+        this=invalid_string_expr,
+        alias=exp.Identifier(this="invalid_string", quoted=False),
+    )
+
+    expressions_to_remove = []
+    for i, expr in enumerate(parsed.expressions):
+        if (
+            isinstance(expr, exp.Alias)
+            and expr.alias
+            and expr.alias.lower() == "invalid_string"
+        ) or (
+            isinstance(expr, exp.Column) and get_column_name(expr).lower() == "invalid_string"
+        ):
+            expressions_to_remove.append(i)
+
+    for i in reversed(expressions_to_remove):
+        parsed.expressions.pop(i)
+
+    parsed.expressions.append(invalid_string_alias)
+
+
 def apply_policy_constraints_to_aggregation(
     parsed: exp.Select,
     policies: list[DFCPolicy],
@@ -491,6 +557,7 @@ def apply_policy_constraints_to_aggregation(
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
+    replace_existing_invalid_string: bool = False,
     insert_columns: Optional[list[str]] = None
 ) -> None:
     """Apply policy constraints to an aggregation query.
@@ -551,6 +618,14 @@ def apply_policy_constraints_to_aggregation(
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
         elif policy.on_fail == Resolution.INVALIDATE:
             _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+        elif policy.on_fail == Resolution.INVALIDATE_MESSAGE:
+            policy_message = policy.description or policy.constraint
+            _add_invalidate_message_column_to_select(
+                parsed,
+                constraint_expr,
+                policy_message=policy_message,
+                replace_existing=replace_existing_invalid_string,
+            )
         else:
             # REMOVE resolution - add HAVING clause
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
@@ -1567,6 +1642,7 @@ def apply_policy_constraints_to_scan(
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
+    replace_existing_invalid_string: bool = False,
     insert_columns: Optional[list[str]] = None
 ) -> None:
     """Apply policy constraints to a non-aggregation query (table scan).
@@ -1626,6 +1702,14 @@ def apply_policy_constraints_to_scan(
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
         elif policy.on_fail == Resolution.INVALIDATE:
             _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+        elif policy.on_fail == Resolution.INVALIDATE_MESSAGE:
+            policy_message = policy.description or policy.constraint
+            _add_invalidate_message_column_to_select(
+                parsed,
+                constraint_expr,
+                policy_message=policy_message,
+                replace_existing=replace_existing_invalid_string,
+            )
         else:
             # REMOVE resolution - add WHERE clause
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)

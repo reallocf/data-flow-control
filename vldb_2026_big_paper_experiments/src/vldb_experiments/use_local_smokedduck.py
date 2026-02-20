@@ -16,6 +16,19 @@ def setup_local_smokedduck():
         duckdb module with lineage extension available
     """
     os.environ.setdefault("DUCKDB_ALLOW_UNSIGNED_EXTENSIONS", "1")
+
+    lineage_duckdb_version = os.getenv("LINEAGE_DUCKDB_VERSION")
+    if lineage_duckdb_version:
+        expected = lineage_duckdb_version.lstrip("v")
+        actual = duckdb.__version__
+        if expected != actual:
+            raise RuntimeError(
+                "SmokedDuck lineage extension version mismatch: "
+                f"LINEAGE_DUCKDB_VERSION={lineage_duckdb_version}, "
+                f"but installed duckdb=={actual}. "
+                "Install matching duckdb version in this environment or update LINEAGE_DUCKDB_VERSION."
+            )
+
     smokedduck_helper.ensure_lineage_extension()
 
     if not hasattr(duckdb, "_original_connect"):

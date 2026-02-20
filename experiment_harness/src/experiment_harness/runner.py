@@ -118,8 +118,8 @@ class ExperimentRunner:
         self.context.is_warmup = is_warmup
         with time_execution() as timing:
             result = self.strategy.execute(self.context)
-            if result.duration_ms == 0.0:
-                result.duration_ms = timing["duration_ms"]
+        if result.duration_ms == 0.0:
+            result.duration_ms = timing["duration_ms"]
         return result
 
     def _run_global(self) -> None:

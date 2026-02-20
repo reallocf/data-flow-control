@@ -1,0 +1,4 @@
+execution_number,timestamp,duration_ms,error,approach,correct_identification,dfc_1phase_exec_time_ms,dfc_1phase_rewrite_time_ms,effective_policy_count,ground_truth_violation,llm_chars_sent,model_name,policy_count,predicted_violation,provider,query_num,query_results_cache_hit,query_results_rows,raw_response,runtime_ms,tpch_sf
+1,2026-02-20T00:04:44.339228,59.06541598960757,,dfc_1phase,True,59.06541598960757,1.95629196241498,1,False,0,none,1,False,none,1,True,0,,59.06541598960757,1.0
+2,2026-02-20T00:04:45.676086,1336.1840841826051,,gpt_query_only,True,0.0,0.0,1,False,778,gpt-5.2,1,False,openai,1,True,0,"{""violates_policy"":false}",1336.1840841826051,1.0
+3,2026-02-20T00:04:46.982046,1274.1584591567516,,gpt_query_results,True,0.0,0.0,1,False,2036,gpt-5.2,1,False,openai,1,False,4,"{""violates_policy"":false}",1274.1584591567516,1.0

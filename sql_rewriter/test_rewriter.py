@@ -721,6 +721,93 @@ def test_policy_invalidate_resolution_false_when_constraint_fails(rewriter):
     assert result[0][1] is False  # valid should be False since max(id) = 3 is not > 10 (constraint fails)
 
 
+def test_policy_invalidate_message_resolution_adds_column_to_aggregation(rewriter):
+    """Test that INVALIDATE_MESSAGE adds an invalid_string column to aggregations."""
+    policy = DFCPolicy(
+        sources=["foo"],
+        constraint="max(foo.id) > 10",
+        on_fail=Resolution.INVALIDATE_MESSAGE,
+        description="id must be > 10",
+    )
+    rewriter.register_policy(policy)
+
+    query = "SELECT max(foo.id) FROM foo"
+    transformed = rewriter.transform_query(query)
+
+    assert transformed == "SELECT\n  MAX(foo.id),\n  CASE WHEN MAX(foo.id) > 10 THEN '' ELSE 'id must be > 10' END AS invalid_string\nFROM foo"
+
+    result = rewriter.conn.execute(transformed).fetchall()
+    assert len(result) == 1
+    assert result[0][0] == 3
+    assert result[0][1] == "id must be > 10"
+
+
+def test_policy_invalidate_message_resolution_combines_multiple_messages(rewriter):
+    """Test multiple INVALIDATE_MESSAGE policies concatenate failures with separators."""
+    policy1 = DFCPolicy(
+        sources=["foo"],
+        constraint="max(foo.id) > 10",
+        on_fail=Resolution.INVALIDATE_MESSAGE,
+        description="fail_a",
+    )
+    policy2 = DFCPolicy(
+        sources=["foo"],
+        constraint="max(foo.id) < 10",
+        on_fail=Resolution.INVALIDATE_MESSAGE,
+        description="fail_b",
+    )
+    rewriter.register_policy(policy1)
+    rewriter.register_policy(policy2)
+
+    query = "SELECT max(foo.id) FROM foo"
+    transformed = rewriter.transform_query(query)
+
+    assert transformed == "SELECT\n  MAX(foo.id),\n  CONCAT_WS(\n    ' | ',\n    NULLIF(CASE WHEN MAX(foo.id) > 10 THEN '' ELSE 'fail_a' END, ''),\n    NULLIF(CASE WHEN MAX(foo.id) < 10 THEN '' ELSE 'fail_b' END, '')\n  ) AS invalid_string\nFROM foo"
+
+    result = rewriter.conn.execute(transformed).fetchall()
+    assert len(result) == 1
+    assert result[0][0] == 3
+    # First policy fails, second policy passes.
+    assert result[0][1] == "fail_a"
+
+
+def test_invalidate_message_policy_with_sink_requires_invalid_string_column(rewriter):
+    """Test INVALIDATE_MESSAGE with sink requires invalid_string column."""
+    rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
+
+    policy = DFCPolicy(
+        sources=["foo"],
+        sink="reports",
+        constraint="max(foo.id) > 1",
+        on_fail=Resolution.INVALIDATE_MESSAGE,
+        description="msg",
+    )
+
+    with pytest.raises(ValueError, match="must have a string column named 'invalid_string'"):
+        rewriter.register_policy(policy)
+
+
+def test_insert_with_invalidate_message_policy_adds_invalid_string_column(rewriter):
+    """Test INSERT with INVALIDATE_MESSAGE adds invalid_string to INSERT/SELECT."""
+    rewriter.execute(
+        "CREATE TABLE reports (id INTEGER, status VARCHAR, invalid_string VARCHAR)"
+    )
+
+    policy = DFCPolicy(
+        sources=["foo"],
+        sink="reports",
+        constraint="max(foo.id) > 1",
+        on_fail=Resolution.INVALIDATE_MESSAGE,
+        description="msg",
+    )
+    rewriter.register_policy(policy)
+
+    query = "INSERT INTO reports (id, status) SELECT id, 'pending' FROM foo"
+    transformed = rewriter.transform_query(query)
+
+    assert transformed == "INSERT INTO reports (\n  id,\n  status,\n  invalid_string\n)\nSELECT\n  id,\n  'pending' AS status,\n  CASE WHEN foo.id > 1 THEN '' ELSE 'msg' END AS invalid_string\nFROM foo"
+
+
 def test_invalidate_policy_with_sink_requires_valid_column(rewriter):
     """Test that INVALIDATE policy with sink table requires a boolean 'valid' column."""
     # Create a sink table without 'valid' column

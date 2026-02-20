@@ -8,6 +8,7 @@ from pathlib import Path
 import platform
 import ssl
 import tempfile
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -96,12 +97,40 @@ def ensure_lineage_extension() -> Path:
             f"{LINEAGE_EXTENSION_RELEASE}/{filename}"
         )
 
-    try:
-        ssl_context = None
+    def _download_ssl_context() -> ssl.SSLContext | None:
         if os.getenv("LINEAGE_INSECURE_SSL") == "1":
-            ssl_context = ssl._create_unverified_context()
-        with urllib.request.urlopen(download_url, context=ssl_context) as response:
+            return ssl._create_unverified_context()
+        # Use certifi bundle when available to avoid local trust-store issues.
+        with contextlib.suppress(Exception):
+            import certifi  # type: ignore
+
+            return ssl.create_default_context(cafile=certifi.where())
+        return None
+
+    try:
+        with urllib.request.urlopen(download_url, context=_download_ssl_context()) as response:
             data = response.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise RuntimeError(
+                "Failed to download lineage extension: release asset not found (404). "
+                f"Requested asset URL: {download_url}. "
+                f"Current DuckDB version: {duckdb.__version__}. "
+                "Lineage assets are typically built for specific DuckDB versions. "
+                "Set LINEAGE_DUCKDB_VERSION/LINEAGE_EXTENSION_ARCH/LINEAGE_EXTENSION_URL "
+                "or align DuckDB to a supported version."
+            ) from exc
+        raise RuntimeError(
+            "Failed to download lineage extension. "
+            f"Tried URL: {download_url}. "
+            "Set LINEAGE_DUCKDB_VERSION, LINEAGE_EXTENSION_ARCH, or LINEAGE_EXTENSION_URL to override."
+        ) from exc
+    except ssl.SSLCertVerificationError as exc:
+        raise RuntimeError(
+            "Failed to download lineage extension due to SSL certificate verification. "
+            "Try setting SSL_CERT_FILE to a CA bundle (for example certifi) or set "
+            "LINEAGE_INSECURE_SSL=1 if your environment requires insecure TLS."
+        ) from exc
     except Exception as exc:
         raise RuntimeError(
             "Failed to download lineage extension. "

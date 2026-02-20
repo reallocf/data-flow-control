@@ -1,0 +1,56 @@
+execution_number,timestamp,duration_ms,error,agent_error,agent_output,agent_time_ms,agent_turns,approach,dfc_1phase_exec_time_ms,dfc_1phase_rewrite_time_ms,expenses_cannot_categorize_safely_rows,expenses_invalid_rows,expenses_row_count,expenses_rows,llm_input_chars,model_name,num_differing_rows,policy_count,policy_failure_counts_json,policy_violation_count,provider,query_type,run_num,tool_calls
+1,2026-02-19T22:45:12.691317,91347.38412499428,,,"```json
+{
+  ""insert"": {
+    ""rows_inserted"": 100,
+    ""method"": ""INSERT INTO expenses (...) SELECT ... FROM receipts"",
+    ""key_transforms"": {
+      ""expense_id"": ""receipt_id"",
+      ""receipt_id"": ""receipt_id"",
+      ""expense_date"": ""COALESCE(tx_date, CAST(created_at AS DATE))"",
+      ""vendor_name"": ""merchant (blank->UNKNOWN)"",
+      ""net_amount"": ""amount (rounded)"",
+      ""tax_amount"": ""0.00 (receipts table has no tax field)"",
+      ""gross_amount"": ""amount (rounded)"",
+      ""currency_code"": ""currency (blank->USD)"",
+      ""expense_category"": ""mapped from receipts.category (+ miles hint -> VEHICLE_MILEAGE, else UNCATEGORIZED)"",
+      ""deductible_pct"": ""MEALS=50%, else 100%"",
+      ""payment_channel"": ""payment_method (blank->UNKNOWN)"",
+      ""jurisdiction"": ""country if present else state||'-US' else UNKNOWN"",
+      ""billable_flag"": ""client_billable"",
+      ""project_tag"": ""project_code"",
+      ""documentation_quality"": ""HIGH if has_receipt_image+core fields; MEDIUM if core fields; else LOW""",91347.38412499428,6,no_policy,26.139584137126803,27.189582120627165,0,0,100,100,76460,gpt-5.2,100,0,{},0,openai,TAX_AGENT,1,5
+2,2026-02-19T22:45:54.323036,41576.832333114,,,"```sql
+INSERT INTO expenses (
+  expense_id,
+  receipt_id,
+  expense_date,
+  vendor_name,
+  net_amount,
+  tax_amount,
+  gross_amount,
+  currency_code,
+  expense_category,
+  deductible_pct,
+  payment_channel,
+  jurisdiction,
+  billable_flag,
+  project_tag,
+  documentation_quality,
+  compliance_notes,
+  cannot_categorize_safely
+)
+SELECT
+  r.receipt_id AS expense_id,
+  r.receipt_id AS receipt_id,
+  r.tx_date AS expense_date,
+  r.merchant AS vendor_name,
+  r.amount AS net_amount,
+  0 AS tax_amount,
+  r.amount AS gross_amount,
+  COALESCE(r.currency, 'USD') AS currency_code,
+  CASE
+    WHEN LOWER(COALESCE(r.category,'')) IN ('meals','meal','restaurant','dining') THEN 'MEALS'
+    WHEN LOWER(COALESCE(r.category,'')) IN ('travel','airfare','flight','hotel','lodging','taxi','rideshare','uber','lyft','car rental','train') THEN 'TRAVEL'
+    WHEN LOWER(COALESCE(r.category,'')) IN ('office','office supplies','supplies','stationery') THEN 'OFFICE_SUPPLIES'
+    WHEN LOWER(COALESCE(r.category,'')) IN ('",41576.832333114,5,dfc_1phase,12.069833930581808,18.288459861651063,0,0,100,100,40813,gpt-5.2,100,0,{},0,openai,TAX_AGENT,1,4

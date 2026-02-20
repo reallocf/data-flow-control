@@ -240,10 +240,16 @@ class SQLRewriter:
                     p.on_fail == Resolution.INVALIDATE and p.sink
                     for p in matching_policies
                 )
+                has_invalidate_message_with_sink = any(
+                    p.on_fail == Resolution.INVALIDATE_MESSAGE and p.sink
+                    for p in matching_policies
+                )
 
                 if select_expr:
                     if has_invalidate_with_sink and sink_table:
                         self._add_valid_column_to_insert(parsed)
+                    if has_invalidate_message_with_sink and sink_table:
+                        self._add_invalid_string_column_to_insert(parsed)
 
                     if not sink_to_output_mapping and sink_table:
                         sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
@@ -255,6 +261,7 @@ class SQLRewriter:
                     )
 
                     insert_has_valid = False
+                    insert_has_invalid_string = False
                     if (
                         hasattr(parsed, "this")
                         and isinstance(parsed.this, exp.Schema)
@@ -271,6 +278,9 @@ class SQLRewriter:
                                 col_name = col.lower()
                             if col_name == "valid":
                                 insert_has_valid = True
+                            if col_name == "invalid_string":
+                                insert_has_invalid_string = True
+                            if insert_has_valid and insert_has_invalid_string:
                                 break
 
                     if self._has_aggregations(select_expr):
@@ -280,6 +290,7 @@ class SQLRewriter:
                             sink_table=sink_table,
                             sink_to_output_mapping=sink_to_output_mapping,
                             replace_existing_valid=insert_has_valid,
+                            replace_existing_invalid_string=insert_has_invalid_string,
                             insert_columns=insert_columns
                         )
                     else:
@@ -289,6 +300,7 @@ class SQLRewriter:
                             sink_table=sink_table,
                             sink_to_output_mapping=sink_to_output_mapping,
                             replace_existing_valid=insert_has_valid,
+                            replace_existing_invalid_string=insert_has_invalid_string,
                             insert_columns=insert_columns
                         )
 
@@ -626,6 +638,9 @@ class SQLRewriter:
         group_keys = [key_name for key_name, _ in group_specs]
 
         include_valid = any(policy.on_fail == Resolution.INVALIDATE for policy in policies)
+        include_invalid_string = any(
+            policy.on_fail == Resolution.INVALIDATE_MESSAGE for policy in policies
+        )
         base_query = parsed.copy()
         policy_eval = parsed.copy()
         rewrite_in_subqueries_as_joins(policy_eval, policies, source_tables)
@@ -666,6 +681,8 @@ class SQLRewriter:
         select_list = "base_query.*"
         if include_valid:
             select_list += ", policy_eval.valid AS valid"
+        if include_invalid_string:
+            select_list += ", policy_eval.invalid_string AS invalid_string"
         if group_keys:
             join_keys = ", ".join(group_keys)
             outer_sql = (
@@ -765,6 +782,9 @@ class SQLRewriter:
             )
 
         include_valid = any(policy.on_fail == Resolution.INVALIDATE for policy in policies)
+        include_invalid_string = any(
+            policy.on_fail == Resolution.INVALIDATE_MESSAGE for policy in policies
+        )
 
         base_query = parsed.copy()
         policy_eval = parsed.copy()
@@ -847,6 +867,8 @@ class SQLRewriter:
             select_list = "base_query.*"
         if include_valid:
             select_list += ", policy_eval.valid AS valid"
+        if include_invalid_string:
+            select_list += ", policy_eval.invalid_string AS invalid_string"
         join_key_names = "__dfc_rowid" if use_rowid_join else ", ".join([key for key, _ in join_keys])
         outer_sql = (
             f"SELECT {select_list} FROM base_query "
@@ -1164,6 +1186,24 @@ class SQLRewriter:
                 raise ValueError(
                     f"Column 'valid' in sink table '{policy.sink}' must be of type BOOLEAN, "
                     f"but found type '{valid_column_type}'"
+                )
+        if (policy.on_fail == Resolution.INVALIDATE_MESSAGE and policy.sink and
+            not isinstance(policy, AggregateDFCPolicy)):
+            if sink_columns is None:
+                raise ValueError(f"Sink table '{policy.sink}' has no columns")
+            if "invalid_string" not in sink_columns:
+                raise ValueError(
+                    f"Sink table '{policy.sink}' must have a string column named "
+                    f"'invalid_string' for INVALIDATE_MESSAGE resolution policies"
+                )
+            invalid_string_column_type = self._get_column_type(policy.sink, "invalid_string")
+            if not any(
+                token in invalid_string_column_type.upper()
+                for token in ("CHAR", "VARCHAR", "STRING", "TEXT")
+            ):
+                raise ValueError(
+                    f"Column 'invalid_string' in sink table '{policy.sink}' must be a "
+                    f"string type, but found type '{invalid_string_column_type}'"
                 )
 
         columns = list(policy._constraint_parsed.find_all(exp.Column))
@@ -1767,6 +1807,43 @@ class SQLRewriter:
             if "valid" not in column_names:
                 valid_identifier = exp.Identifier(this="valid", quoted=False)
                 insert_parsed.columns.append(valid_identifier)
+            return
+
+    def _add_invalid_string_column_to_insert(self, insert_parsed: exp.Insert) -> None:
+        """Add 'invalid_string' column to INSERT column list if not already present."""
+        if (
+            hasattr(insert_parsed, "this")
+            and isinstance(insert_parsed.this, exp.Schema)
+            and hasattr(insert_parsed.this, "expressions")
+            and insert_parsed.this.expressions
+        ):
+            column_names = []
+            for col in insert_parsed.this.expressions:
+                if isinstance(col, exp.Identifier):
+                    column_names.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    column_names.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    column_names.append(col.lower())
+
+            if "invalid_string" not in column_names:
+                invalid_string_identifier = exp.Identifier(this="invalid_string", quoted=False)
+                insert_parsed.this.expressions.append(invalid_string_identifier)
+            return
+
+        if hasattr(insert_parsed, "columns") and insert_parsed.columns:
+            column_names = []
+            for col in insert_parsed.columns:
+                if isinstance(col, exp.Identifier):
+                    column_names.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    column_names.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    column_names.append(col.lower())
+
+            if "invalid_string" not in column_names:
+                invalid_string_identifier = exp.Identifier(this="invalid_string", quoted=False)
+                insert_parsed.columns.append(invalid_string_identifier)
             return
 
     def _add_aggregate_temp_columns_to_insert(
