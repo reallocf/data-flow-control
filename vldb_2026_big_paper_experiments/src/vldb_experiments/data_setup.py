@@ -104,21 +104,22 @@ def setup_test_data_with_groups(
 
 def setup_test_data_with_join_matches(
     conn: duckdb.DuckDBPyConnection,
-    num_rows: int = 1_000_000,  # noqa: ARG001
+    num_rows: int = 1_000_000,
     join_matches: int = 1_000_000
 ) -> None:
     """Set up test data with specified number of join matches for JOIN tests.
 
-    The JOIN query does: test_data JOIN test_data other ON test_data.id = other.id
-    This is a self-join where each row matches itself, so the number of matches equals
-    the number of rows. To vary join matches, we vary the number of rows in the table.
+    The JOIN query does: test_data JOIN join_data other ON test_data.id = other.id.
+    `test_data` is always created with `num_rows` rows (default 1,000,000).
+    `join_data` is created with `join_matches` rows so that join cardinality is
+    controlled by the second table size.
 
     Args:
         conn: DuckDB connection
-        num_rows: Maximum number of rows (not used, kept for compatibility)
-        join_matches: Number of rows to create (determines join matches)
+        num_rows: Number of rows in primary table `test_data`
+        join_matches: Number of rows in secondary table `join_data`
     """
-    # Create table
+    # Create primary table with fixed cardinality.
     conn.execute("""
         CREATE TABLE test_data (
             id INTEGER,
@@ -130,14 +131,10 @@ def setup_test_data_with_join_matches(
 
     categories = ["A", "B", "C", "D", "E"]
 
-    # Use join_matches as the actual number of rows to create
-    # This directly controls the number of join matches since it's a self-join on id=id
-    actual_rows = min(join_matches, 1_000_000)  # Cap at 1M for performance
-
-    # Insert data in batches
-    batch_size = 10000 if actual_rows > 10000 else 100
-    for batch_start in range(0, actual_rows, batch_size):
-        batch_end = min(batch_start + batch_size, actual_rows)
+    # Insert primary table rows.
+    batch_size = 10000 if num_rows > 10000 else 100
+    for batch_start in range(0, num_rows, batch_size):
+        batch_end = min(batch_start + batch_size, num_rows)
         values = []
         for i in range(batch_start + 1, batch_end + 1):
             category = categories[(i - 1) % len(categories)]
@@ -149,9 +146,33 @@ def setup_test_data_with_join_matches(
         """
         conn.execute(insert_sql)
 
-    # Verify data was inserted
+    # Create secondary join table.
+    conn.execute("""
+        CREATE TABLE join_data (
+            id INTEGER,
+            value INTEGER
+        )
+    """)
+
+    secondary_rows = min(join_matches, num_rows)
+    batch_size = 10000 if secondary_rows > 10000 else 100
+    for batch_start in range(0, secondary_rows, batch_size):
+        batch_end = min(batch_start + batch_size, secondary_rows)
+        values = []
+        for i in range(batch_start + 1, batch_end + 1):
+            values.append(f"({i}, {i})")
+
+        insert_sql = f"""
+            INSERT INTO join_data (id, value)
+            VALUES {', '.join(values)}
+        """
+        conn.execute(insert_sql)
+
+    # Verify data was inserted.
     result = conn.execute("SELECT COUNT(*) FROM test_data").fetchone()
-    assert result[0] == actual_rows, f"Expected {actual_rows} rows, got {result[0]}"
+    assert result[0] == num_rows, f"Expected {num_rows} rows in test_data, got {result[0]}"
+    result = conn.execute("SELECT COUNT(*) FROM join_data").fetchone()
+    assert result[0] == secondary_rows, f"Expected {secondary_rows} rows in join_data, got {result[0]}"
 
 
 def setup_test_data_with_join_group_by(

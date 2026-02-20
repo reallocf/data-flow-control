@@ -89,7 +89,7 @@ def main() -> int:
     ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
     ax.set_title("Wide-Table Aggregation Performance vs Table Width", fontsize=14, fontweight="bold")
     ax.set_xscale("log")
-    ax.set_yscale("log")
+    ax.set_ylim(bottom=0)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="best", fontsize=10)
 
@@ -137,6 +137,7 @@ def main() -> int:
         fontweight="bold",
     )
     ax_overhead.set_xscale("log")
+    ax_overhead.set_ylim(bottom=0)
     ax_overhead.grid(True, alpha=0.3)
     ax_overhead.legend(loc="best", fontsize=10)
 

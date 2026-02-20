@@ -42,6 +42,8 @@ def get_variation_x_axis(query_type: str) -> tuple[str, str]:
         return "variation_join_matches", "Join Matches"
     if query_type == "GROUP_BY":
         return "variation_num_groups", "Number of Groups"
+    if query_type == "SIMPLE_AGG":
+        return "variation_num_rows", "Input Rows"
     if query_type == "JOIN_GROUP_BY":
         return "variation_join_count", "Number of Joins"
     return "variation_num", "Variation Number"
@@ -189,16 +191,6 @@ def create_operator_chart(
     # Sort by Approach and then X-axis value so lines connect properly
     plot_df_averaged = plot_df_averaged.sort_values(["Approach", x_label])
 
-    # Determine if we should use log scale for Y-axis
-    # Only use log scale if all values are positive and range is large
-    max_time = plot_df_averaged["Execution Time (ms)"].max()
-    min_time = plot_df_averaged["Execution Time (ms)"].min()
-    use_log_scale = (
-        min_time > 0 and
-        max_time > 1000 and
-        max_time / min_time > 10
-    )
-
     # Create matplotlib figure
     fig, ax = plt.subplots(figsize=(10, 7))
 
@@ -239,12 +231,12 @@ def create_operator_chart(
     ax.set_ylabel("Execution Time (ms)", fontsize=12)
     ax.set_title(f"{query_type} Query Performance", fontsize=14, fontweight="bold")
 
-    # Set log scale for x-axis (variation parameters often span large ranges)
-    ax.set_xscale("log")
+    # Use linear x-axis for WHERE to keep row-drop spacing explicit.
+    if query_type != "WHERE":
+        ax.set_xscale("log")
 
-    # Set log scale for y-axis if needed
-    if use_log_scale:
-        ax.set_yscale("log")
+    # Keep microbenchmark charts anchored at zero on the y-axis.
+    ax.set_ylim(bottom=0)
 
     # Add legend
     ax.legend(loc="best", fontsize=10)
@@ -370,8 +362,10 @@ def create_operator_overhead_chart(
     ax.set_xlabel(x_label, fontsize=12)
     ax.set_ylabel("Percent Overhead (%)", fontsize=12)
     ax.set_title(f"{query_type} Percent Overhead vs No Policy", fontsize=14, fontweight="bold")
-    ax.set_xscale("log")
+    if query_type != "WHERE":
+        ax.set_xscale("log")
     ax.axhline(y=0.0, color="#555555", linestyle="--", linewidth=1)
+    ax.set_ylim(bottom=0)
     ax.legend(loc="best", fontsize=10)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -485,8 +479,10 @@ def create_operator_overhead_chart_dfc_physical(
     ax.set_xlabel(x_label, fontsize=12)
     ax.set_ylabel("Percent Overhead (%)", fontsize=12)
     ax.set_title(f"{query_type} Percent Overhead vs No Policy (1Phase/Physical)", fontsize=14, fontweight="bold")
-    ax.set_xscale("log")
+    if query_type != "WHERE":
+        ax.set_xscale("log")
     ax.axhline(y=0.0, color="#555555", linestyle="--", linewidth=1)
+    ax.set_ylim(bottom=0)
     ax.legend(loc="best", fontsize=10)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
@@ -1315,6 +1311,7 @@ def create_microbenchmark_policy_count_chart(
         fontweight="bold",
     )
     ax.set_xscale("log")
+    ax.set_ylim(bottom=0)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="best", fontsize=10)
 
@@ -1622,11 +1619,6 @@ def create_multi_source_heatmap_chart(
     heatmap = pd.DataFrame(index=source_values, columns=join_values, dtype=float)
     for _, row in grouped.iterrows():
         heatmap.at[row["source_count"], row["join_count"]] = row["relative_perf"]
-
-    for source in source_values:
-        for join in join_values:
-            if source > join:
-                heatmap.at[source, join] = float("nan")
 
     fig, ax = plt.subplots(figsize=(8, 6))
     cmap = matplotlib.colors.LinearSegmentedColormap.from_list(

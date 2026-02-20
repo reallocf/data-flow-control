@@ -348,6 +348,7 @@ def _execute_query_physical_impl(
         # Execute query - lineage should capture the exact result semantics (including ORDER/LIMIT)
         cursor = conn.execute(base_query)
         base_results = cursor.fetchall()
+        base_capture_time = (time.perf_counter() - base_capture_start) * 1000.0
 
         # Get column names
         column_names = [desc[0] for desc in cursor.description] if cursor.description else []
@@ -378,8 +379,6 @@ def _execute_query_physical_impl(
             conn.executemany(f"INSERT INTO {temp_table_name} VALUES ({placeholders})", base_results)
         else:
             filtered_results = []
-
-        base_capture_time = (time.perf_counter() - base_capture_start) * 1000.0
 
         rewrite_start = time.perf_counter()
         lineage_query = build_lineage_query(conn, base_policy.sources[0], query_id)

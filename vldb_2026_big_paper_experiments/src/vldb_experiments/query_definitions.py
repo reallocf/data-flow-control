@@ -16,10 +16,15 @@ def get_query_definitions() -> dict[str, str]:
             SELECT * FROM test_data WHERE value > 50
         """,
 
+        "SIMPLE_AGG": """
+            SELECT SUM(amount)
+            FROM test_data
+        """,
+
         "JOIN": """
             SELECT test_data.id, other.value
             FROM test_data
-            JOIN test_data other ON test_data.id = other.id
+            JOIN join_data other ON test_data.id = other.id
         """,
 
         "GROUP_BY": """
@@ -52,4 +57,4 @@ def get_query_order() -> list[str]:
     Returns:
         List of operator names in execution order
     """
-    return ["SELECT", "WHERE", "JOIN", "GROUP_BY", "JOIN_GROUP_BY", "ORDER_BY"]
+    return ["SELECT", "WHERE", "SIMPLE_AGG", "JOIN", "GROUP_BY", "JOIN_GROUP_BY", "ORDER_BY"]

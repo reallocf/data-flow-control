@@ -7,6 +7,7 @@ from .microbenchmark_phase_competition_strategy import (
 )
 from .microbenchmark_strategy import MicrobenchmarkStrategy
 from .multi_source_strategy import MultiSourceStrategy
+from .multi_source_tpch_strategy import MultiSourceTPCHStrategy
 from .tpch_multi_db_strategy import TPCHMultiDBStrategy
 from .tpch_policy_complexity_strategy import TPCHPolicyComplexityStrategy
 from .tpch_policy_count_strategy import TPCHPolicyCountStrategy
@@ -19,6 +20,7 @@ __all__ = [
     "MicrobenchmarkStrategy",
     "MicrobenchmarkTableWidthStrategy",
     "MultiSourceStrategy",
+    "MultiSourceTPCHStrategy",
     "TPCHMultiDBStrategy",
     "TPCHPolicyComplexityStrategy",
     "TPCHPolicyCountStrategy",

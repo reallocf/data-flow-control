@@ -202,17 +202,10 @@ class SQLRewriter:
                                     stream_file_path=self._stream_file_path
                                 )
                         else:
-                            if use_two_phase:
-                                parsed = self._rewrite_scan_with_two_phase(
-                                    parsed,
-                                    matching_policies,
-                                    from_tables,
-                                )
-                            else:
-                                apply_policy_constraints_to_scan(
-                                    parsed, matching_policies, from_tables,
-                                    stream_file_path=self._stream_file_path
-                                )
+                            apply_policy_constraints_to_scan(
+                                parsed, matching_policies, from_tables,
+                                stream_file_path=self._stream_file_path
+                            )
 
                 if matching_aggregate_policies:
                     if self._has_aggregations(parsed):

@@ -36,13 +36,14 @@ def sample_zipfian(a: float, size: int, min_val: int = 1, max_val: Optional[int]
 def get_policy_threshold_for_rows(
     target_rows_removed: int,
     total_rows: int = 1_000_000,
-    value_range: tuple[int, int] = (1, 1000)
+    value_range: tuple[int, int] = (1, 1_000_000)
 ) -> int:
     """Calculate policy threshold to remove approximately target_rows_removed rows.
 
     For a policy like "max(test_data.value) > threshold", we want to remove
-    approximately target_rows_removed rows. Since values are uniformly distributed
-    in [1, 1000], we can calculate the threshold.
+    approximately target_rows_removed rows. With the microbenchmark data now using
+    value=i for i in [1, total_rows], we can map directly:
+    threshold == target_rows_removed.
 
     Args:
         target_rows_removed: Target number of rows to remove
@@ -52,25 +53,12 @@ def get_policy_threshold_for_rows(
     Returns:
         Threshold value for the policy constraint
     """
-    min_val, max_val = value_range
-    value_span = max_val - min_val + 1
-
-    # For "max(value) > threshold", we remove rows where max(value) <= threshold
-    # If values are uniformly distributed, threshold should be approximately:
-    # threshold = min_val + (target_rows_removed / total_rows) * value_span
-    # But we want max(value) > threshold, so we need to invert:
-    # We want to keep rows where max(value) > threshold
-    # So we remove rows where max(value) <= threshold
-    # threshold = min_val + (target_rows_removed / total_rows) * value_span - 1
-
-    # Actually, for max(value) > threshold, we keep rows where the max value in
-    # the group/source is > threshold. If we want to remove X rows, we need to
-    # set threshold such that X rows have max(value) <= threshold.
-    # For uniform distribution: threshold ≈ min_val + (X / total_rows) * value_span
-
-    threshold = min_val + int((target_rows_removed / total_rows) * value_span)
-    # Ensure threshold is in valid range
-    return max(min_val, min(threshold, max_val - 1))
+    min_val, _max_val = value_range
+    max_val = max(total_rows, _max_val)
+    if target_rows_removed <= 0:
+        return min_val - 1
+    # Use direct mapping and clamp to valid domain.
+    return max(min_val, min(int(target_rows_removed), max_val - 1))
 
 
 def generate_variation_parameters(
@@ -128,15 +116,15 @@ def generate_variation_parameters(
 
     if query_type in ["SELECT", "WHERE", "ORDER_BY"]:
         # Vary policy to remove X rows (fixed logarithmic spacing)
-        # Values: [100, 1000, 10000, 100000] rows removed
-        rows_to_remove_values = [100, 1000, 10000, 100000]
+        # Values: [0, 1_000_000, 2_000_000, 4_000_000, 8_000_000] rows removed
+        rows_to_remove_values = [0, 1_000_000, 2_000_000, 4_000_000, 8_000_000]
         rows_to_remove = rows_to_remove_values[variation_index]
 
         # Calculate policy threshold
         threshold = get_policy_threshold_for_rows(
             target_rows_removed=rows_to_remove,
-            total_rows=1_000_000,
-            value_range=(1, 1000)
+            total_rows=10_000_000,
+            value_range=(1, 10_000_000),
         )
 
         return {
@@ -151,9 +139,9 @@ def generate_variation_parameters(
 
     if query_type == "JOIN":
         # Vary number of join matches (fixed logarithmic spacing)
-        # This affects the data, not the policy
-        # Values: [1000, 10000, 100000, 1000000] matches
-        join_matches_values = [1000, 10000, 100000, 1000000]
+        # This controls secondary table cardinality in JOIN benchmark.
+        # Values: [100, 1000, 10000, 100000, 1000000] rows
+        join_matches_values = [100, 1000, 10000, 100000, 1000000]
         join_matches = join_matches_values[variation_index]
 
         return {
@@ -175,6 +163,21 @@ def generate_variation_parameters(
         return {
             "variation_type": "num_groups",
             "num_groups": num_groups,
+            "variation_index": variation_index,
+            "variation_num": variation_num,
+            "run_index": run_index,
+            "run_num": run_num,
+        }
+
+    if query_type == "SIMPLE_AGG":
+        # Vary input rows for simple aggregation without GROUP BY.
+        # Values: [1k, 10k, 100k, 1m, 10m]
+        num_rows_values = [1_000, 10_000, 100_000, 1_000_000, 10_000_000]
+        num_rows = num_rows_values[variation_index]
+
+        return {
+            "variation_type": "num_rows",
+            "num_rows": num_rows,
             "variation_index": variation_index,
             "variation_num": variation_num,
             "run_index": run_index,

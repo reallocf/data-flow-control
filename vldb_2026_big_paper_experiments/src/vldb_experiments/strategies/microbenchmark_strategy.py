@@ -74,6 +74,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         self.num_runs_per_variation = num_runs_per_variation
         self.enable_physical_override = enable_physical
         self.query_types = query_types
+        self.base_num_rows = 10_000_000
         self._policy_cache: dict[tuple[str, int], list] = {}
         self._active_policy_signature: tuple[str, int] | None = None
 
@@ -169,7 +170,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             raise ValueError("Database connection required in context")
 
         # Set up fixed test data on the main connection
-        setup_test_data(main_conn, num_rows=1_000_000)
+        setup_test_data(main_conn, num_rows=self.base_num_rows)
 
         # Create separate connections for each approach to avoid conflicts
         # Use local DuckDB for physical connection (SmokedDuck build)
@@ -179,11 +180,11 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         self.physical_conn = local_duckdb.connect(":memory:") if local_duckdb else None
 
         # Set up data in each connection
-        setup_test_data(self.no_policy_conn, num_rows=1_000_000)
-        setup_test_data(self.dfc_conn, num_rows=1_000_000)
-        setup_test_data(self.logical_conn, num_rows=1_000_000)
+        setup_test_data(self.no_policy_conn, num_rows=self.base_num_rows)
+        setup_test_data(self.dfc_conn, num_rows=self.base_num_rows)
+        setup_test_data(self.logical_conn, num_rows=self.base_num_rows)
         if self.physical_conn is not None:
-            setup_test_data(self.physical_conn, num_rows=1_000_000)
+            setup_test_data(self.physical_conn, num_rows=self.base_num_rows)
         for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
             if conn is None:
                 continue
@@ -248,6 +249,8 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         variation_info = ""
         if query_type in ["SELECT", "WHERE", "ORDER_BY"]:
             variation_info = f"rows_to_remove={variation_params.get('rows_to_remove', 'N/A')}"
+        elif query_type == "SIMPLE_AGG":
+            variation_info = f"num_rows={variation_params.get('num_rows', 'N/A')}"
         elif query_type == "JOIN":
             variation_info = f"join_matches={variation_params.get('join_matches', 'N/A')}"
         elif query_type == "GROUP_BY":
@@ -268,16 +271,41 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             policies = self._get_policies("threshold", threshold=policy_threshold)
             self._ensure_policies(("threshold", policy_threshold), policies)
 
+        elif query_type == "SIMPLE_AGG":
+            # Vary input rows for simple aggregation benchmark.
+            num_rows = variation_params["num_rows"]
+            if context.is_warmup:
+                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
+                    if conn is None:
+                        continue
+                    with contextlib.suppress(Exception):
+                        conn.execute("DROP TABLE IF EXISTS test_data")
+                    setup_test_data(conn, num_rows=num_rows)
+            # Keep default policy fixed; with these row counts it should pass.
+            policies = self._get_policies("default")
+            try:
+                self._ensure_policies(("default", 0), policies)
+            except Exception:
+                self.dfc_conn = self.local_duckdb.connect(":memory:")
+                self._configure_connection(self.dfc_conn)
+                setup_test_data(self.dfc_conn, num_rows=num_rows)
+                self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
+                self._active_policy_signature = None
+                self._ensure_policies(("default", 0), policies)
+
         elif query_type == "JOIN":
             # Vary join matches - regenerate data
             join_matches = variation_params["join_matches"]
-            # Drop and recreate tables with new data
-            for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                if conn is None:
-                    continue
-                with contextlib.suppress(Exception):
-                    conn.execute("DROP TABLE IF EXISTS test_data")
-                setup_test_data_with_join_matches(conn, num_rows=1_000_000, join_matches=join_matches)
+            if context.is_warmup:
+                # Drop and recreate tables with new data
+                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
+                    if conn is None:
+                        continue
+                    with contextlib.suppress(Exception):
+                        conn.execute("DROP TABLE IF EXISTS test_data")
+                    with contextlib.suppress(Exception):
+                        conn.execute("DROP TABLE IF EXISTS join_data")
+                    setup_test_data_with_join_matches(conn, num_rows=1_000_000, join_matches=join_matches)
             # Use default policies for JOIN
             policies = self._get_policies("default")
             # Delete old policies
@@ -287,6 +315,8 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                 # If rewriter/connection is broken, recreate it
                 self.dfc_conn = self.local_duckdb.connect(":memory:")
                 self._configure_connection(self.dfc_conn)
+                with contextlib.suppress(Exception):
+                    self.dfc_conn.execute("DROP TABLE IF EXISTS join_data")
                 setup_test_data_with_join_matches(self.dfc_conn, num_rows=1_000_000, join_matches=join_matches)
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
                 self._active_policy_signature = None
@@ -295,13 +325,14 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         elif query_type == "GROUP_BY":
             # Vary number of groups - regenerate data
             num_groups = variation_params["num_groups"]
-            # Drop and recreate tables with new data
-            for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                if conn is None:
-                    continue
-                with contextlib.suppress(Exception):
-                    conn.execute("DROP TABLE IF EXISTS test_data")
-                setup_test_data_with_groups(conn, num_rows=1_000_000, num_groups=num_groups)
+            if context.is_warmup:
+                # Drop and recreate tables with new data
+                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
+                    if conn is None:
+                        continue
+                    with contextlib.suppress(Exception):
+                        conn.execute("DROP TABLE IF EXISTS test_data")
+                    setup_test_data_with_groups(conn, num_rows=1_000_000, num_groups=num_groups)
             # Use default policies for GROUP_BY
             policies = self._get_policies("default")
             # Delete old policies
@@ -319,26 +350,26 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         elif query_type == "JOIN_GROUP_BY":
             join_count = variation_params["join_count"]
             query = self._build_join_group_by_query(join_count)
-
-            drop_join_limit = max(self._max_join_group_by_count_seen, join_count)
-            for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                if conn is None:
-                    continue
-                with contextlib.suppress(Exception):
-                    conn.execute("DROP TABLE IF EXISTS test_data")
-                for idx in range(1, drop_join_limit + 1):
+            if context.is_warmup:
+                drop_join_limit = max(self._max_join_group_by_count_seen, join_count)
+                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
+                    if conn is None:
+                        continue
                     with contextlib.suppress(Exception):
-                        conn.execute(f"DROP TABLE IF EXISTS join_data_{idx}")
-                setup_test_data_with_join_group_by(
-                    conn=conn,
-                    join_count=join_count,
-                    num_rows=1_000,
+                        conn.execute("DROP TABLE IF EXISTS test_data")
+                    for idx in range(1, drop_join_limit + 1):
+                        with contextlib.suppress(Exception):
+                            conn.execute(f"DROP TABLE IF EXISTS join_data_{idx}")
+                    setup_test_data_with_join_group_by(
+                        conn=conn,
+                        join_count=join_count,
+                        num_rows=1_000,
+                    )
+                    self._configure_connection(conn)
+                self._max_join_group_by_count_seen = max(
+                    self._max_join_group_by_count_seen,
+                    join_count,
                 )
-                self._configure_connection(conn)
-            self._max_join_group_by_count_seen = max(
-                self._max_join_group_by_count_seen,
-                join_count,
-            )
 
             policies = self._get_policies("default")
             try:
@@ -365,7 +396,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
                 # If rewriter/connection is broken, recreate it
                 self.dfc_conn = self.local_duckdb.connect(":memory:")
                 self._configure_connection(self.dfc_conn)
-                setup_test_data(self.dfc_conn, num_rows=1_000_000)
+                setup_test_data(self.dfc_conn, num_rows=self.base_num_rows)
                 self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
                 self._active_policy_signature = None
                 self._ensure_policies(("default", 0), policies)
@@ -612,6 +643,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "variation_policy_threshold": variation_params.get("policy_threshold"),
             "variation_join_matches": variation_params.get("join_matches"),
             "variation_num_groups": variation_params.get("num_groups"),
+            "variation_num_rows": variation_params.get("num_rows"),
             "variation_join_count": variation_params.get("join_count"),
         }
 
