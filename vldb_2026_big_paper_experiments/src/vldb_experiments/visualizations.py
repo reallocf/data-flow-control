@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.metrics import f1_score
 
 
 def load_results(csv_path: str) -> pd.DataFrame:
@@ -1323,35 +1324,52 @@ def create_microbenchmark_policy_count_chart(
     return fig
 
 
-def create_llm_validation_accuracy_chart(
+def create_llm_validation_f1_chart(
     df: pd.DataFrame,
     output_dir: str = "./results",
-    output_filename: str = "llm_validation_accuracy.png",
+    output_filename: str = "llm_validation_f1.png",
 ) -> Optional[plt.Figure]:
-    """Create per-policy-count accuracy bars for LLM validation approaches.
+    """Create per-policy-count F1 bars for LLM validation approaches.
 
-    Accuracy is computed over all measured runs and queries:
-    mean(correct_identification) * 100 for each (policy_count, approach).
+    Uses `ground_truth_violation` (1Phase truth) and `predicted_violation`
+    to compute TP/FP/FN and binary F1 (positive class = violation).
     """
-    required_cols = {"policy_count", "approach", "correct_identification"}
+    required_cols = {"policy_count", "approach", "ground_truth_violation", "predicted_violation"}
     if not required_cols.issubset(df.columns):
         print(f"Skipping LLM validation chart; missing columns: {required_cols - set(df.columns)}")
         return None
 
     plot_df = df[list(required_cols)].copy()
-    plot_df = plot_df.dropna(subset=["policy_count", "approach", "correct_identification"])
+    plot_df = plot_df.dropna(subset=["policy_count", "approach", "ground_truth_violation", "predicted_violation"])
     if plot_df.empty:
         print("Skipping LLM validation chart; no usable rows.")
         return None
 
+    def _to_bool(value) -> bool | None:
+        text = str(value).strip().lower()
+        if text in {"true", "1", "t", "yes"}:
+            return True
+        if text in {"false", "0", "f", "no"}:
+            return False
+        return None
+
     plot_df["policy_count"] = plot_df["policy_count"].astype(int)
-    plot_df["correct_bool"] = plot_df["correct_identification"].astype(str).str.lower().eq("true")
+    plot_df["truth_bool"] = plot_df["ground_truth_violation"].map(_to_bool)
+    plot_df["pred_bool"] = plot_df["predicted_violation"].map(_to_bool)
+    plot_df = plot_df.dropna(subset=["truth_bool", "pred_bool"]).copy()
+    if plot_df.empty:
+        print("Skipping LLM validation chart; no rows with parseable truth/prediction.")
+        return None
+
+    def _f1_for_group(group: pd.DataFrame) -> float:
+        truth = group["truth_bool"].astype(bool)
+        pred = group["pred_bool"].astype(bool)
+        return float(f1_score(truth, pred, pos_label=True, zero_division=0))
 
     summary = (
-        plot_df.groupby(["policy_count", "approach"], as_index=False)["correct_bool"]
-        .mean()
-    ).rename(columns={"correct_bool": "accuracy_pct"})
-    summary["accuracy_pct"] = summary["accuracy_pct"] * 100.0
+        plot_df.groupby(["policy_count", "approach"], as_index=False)
+        .apply(lambda g: pd.Series({"f1_pct": _f1_for_group(g) * 100.0}), include_groups=False)
+    )
     if summary.empty:
         print("Skipping LLM validation chart; summary is empty.")
         return None
@@ -1391,7 +1409,7 @@ def create_llm_validation_accuracy_chart(
     for i, approach in enumerate(approaches_present):
         approach_summary = summary[summary["approach"] == approach]
         lookup = {
-            int(row["policy_count"]): float(row["accuracy_pct"])
+            int(row["policy_count"]): float(row["f1_pct"])
             for _, row in approach_summary.iterrows()
         }
         y_vals = [lookup.get(pc, 0) for pc in policy_counts]
@@ -1408,8 +1426,8 @@ def create_llm_validation_accuracy_chart(
     ax.set_xticks(x)
     ax.set_xticklabels([str(pc) for pc in policy_counts])
     ax.set_xlabel("Policy Count", fontsize=12)
-    ax.set_ylabel("Accuracy (%)", fontsize=12)
-    ax.set_title("LLM Validation Accuracy by Policy Count", fontsize=14, fontweight="bold")
+    ax.set_ylabel("F1 Score (%)", fontsize=12)
+    ax.set_title("LLM Validation F1 by Policy Count", fontsize=14, fontweight="bold")
     ax.set_ylim(0, 100)
     ax.grid(True, axis="y", alpha=0.3)
     ax.legend(loc="best", fontsize=10)
@@ -1418,7 +1436,7 @@ def create_llm_validation_accuracy_chart(
     output_path = Path(output_dir) / output_filename
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"Saved LLM validation accuracy chart to {output_path}")
+    print(f"Saved LLM validation F1 chart to {output_path}")
     return fig
 
 

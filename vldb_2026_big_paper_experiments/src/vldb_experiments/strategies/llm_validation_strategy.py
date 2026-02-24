@@ -37,10 +37,10 @@ APPROACH_GPT_QUERY_RESULTS = "gpt_query_results"
 
 def _policy_catalog() -> list[tuple[str, str]]:
     return [
-        ("max(lineitem.l_quantity) <= 50", "No line item quantity should exceed 50 units."),
-        ("min(lineitem.l_quantity) >= 1", "All line item quantities must be at least 1."),
         ("avg(lineitem.l_quantity) <= 30", "Average quantity should remain at or below 30."),
         ("avg(lineitem.l_quantity) >= 20", "Average quantity should be at least 20."),
+        ("max(lineitem.l_quantity) <= 50", "No line item quantity should exceed 50 units."),
+        ("min(lineitem.l_quantity) >= 1", "All line item quantities must be at least 1."),
         ("avg(lineitem.l_discount) <= 0.06", "Average discount should not exceed 6%."),
         ("max(lineitem.l_discount) <= 0.07", "No single discount should exceed 7%."),
         ("min(lineitem.l_discount) >= 0.00", "Discount should be non-negative."),

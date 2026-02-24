@@ -1,8 +1,8 @@
 policy_index,policy_constraint,q01,q03,q04,q05,q06,q07,q08,q09,q10,q12,q14,q18,q19,fails_any
-1,max(lineitem.l_quantity) <= 50,False,False,False,False,False,False,False,False,False,False,False,False,False,False
-2,min(lineitem.l_quantity) >= 1,False,False,False,False,False,False,False,False,False,False,False,False,False,False
-3,avg(lineitem.l_quantity) <= 30,False,True,True,False,False,False,False,False,True,False,False,True,False,True
-4,avg(lineitem.l_quantity) >= 20,False,False,False,False,True,False,False,False,False,False,False,False,True,True
+1,avg(lineitem.l_quantity) <= 30,False,True,True,False,False,False,False,False,True,False,False,True,False,True
+2,avg(lineitem.l_quantity) >= 20,False,False,False,False,True,False,False,False,False,False,False,False,True,True
+3,max(lineitem.l_quantity) <= 50,False,False,False,False,False,False,False,False,False,False,False,False,False,False
+4,min(lineitem.l_quantity) >= 1,False,False,False,False,False,False,False,False,False,False,False,False,False,False
 5,avg(lineitem.l_discount) <= 0.06,False,True,True,False,False,False,False,False,False,False,False,True,False,True
 6,max(lineitem.l_discount) <= 0.07,True,True,True,True,False,True,True,True,True,True,True,True,True,True
 7,min(lineitem.l_discount) >= 0.00,False,False,False,False,False,False,False,False,False,False,False,False,False,False

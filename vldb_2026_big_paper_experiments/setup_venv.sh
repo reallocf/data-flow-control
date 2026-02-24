@@ -37,6 +37,7 @@ pip install -e . --no-deps
 echo "Installing other dependencies..."
 pip install pandas>=2.0.0
 pip install matplotlib>=3.8.0
+pip install scikit-learn>=1.3.0
 pip install pytest>=8.0.0
 
 # Align DuckDB with the lineage extension build

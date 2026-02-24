@@ -11,7 +11,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src" / "vldb_experiments"))
 
 from visualizations import (  # noqa: E402
-    create_llm_validation_accuracy_chart,
+    create_llm_validation_f1_chart,
     load_results,
 )
 
@@ -25,8 +25,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--output-filename",
-        default="llm_validation_accuracy.png",
-        help="Output image filename (default: llm_validation_accuracy.png)",
+        default="llm_validation_f1.png",
+        help="Output image filename (default: llm_validation_f1.png)",
     )
     parser.add_argument(
         "--output-dir",
@@ -40,7 +40,7 @@ def main() -> int:
         raise FileNotFoundError(f"CSV not found: {csv_path}")
 
     df = load_results(str(csv_path))
-    create_llm_validation_accuracy_chart(
+    create_llm_validation_f1_chart(
         df,
         output_dir=args.output_dir,
         output_filename=args.output_filename,
