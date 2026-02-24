@@ -18,7 +18,7 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
 # LangChain
-from langchain_aws import BedrockLLM
+from langchain_aws import ChatBedrock
 from langchain_core.messages import HumanMessage
 
 # ✅ Correct model ID (change if needed)
@@ -148,13 +148,14 @@ def get_llm():
     """
     region = os.environ.get("AWS_REGION", "us-east-1")
 
-    return BedrockLLM(
+    return ChatBedrock(
         model_id=BEDROCK_MODEL_ID,
+        base_model_id='us.anthropic.claude-haiku-4-5-20251001-v1:0',
         region_name=region,
-        provider="meta",
+        provider="anthropic",
         model_kwargs={
             "temperature": 0,
-            "max_tokens": 500
+            "max_tokens": 500,
         }
     )
     # return ToolBindingLLM(basellm)

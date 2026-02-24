@@ -1,29 +1,28 @@
-from langchain_core.callbacks import BaseCallbackHandler
+try:
+    from langchain.callbacks.base import BaseCallbackHandler
+except ModuleNotFoundError:
+    from langchain_core.callbacks import BaseCallbackHandler
+
 import time
 
 
 class SQLToolCallback(BaseCallbackHandler):
+    def __init__(self):
+        self.start_time = None
 
-    def on_tool_start(self, serialized, input_str, **kwargs):
+    def on_tool_start(self, serialized, input_str=None, **kwargs):
+        tool_input = input_str or kwargs.get("tool_input") or kwargs.get("input") or ""
         print("\n==============================")
         print("🔹 TOOL START")
         print("Tool Name:", serialized.get("name"))
-        print("Input SQL:", input_str)
-
-        sql_upper = input_str.upper()
-
-        # 🚫 Block dangerous operations
-        forbidden = ["DROP", "DELETE", "UPDATE", "INSERT"]
-        if any(word in sql_upper for word in forbidden):
-            raise ValueError("❌ Write operations are not allowed.")
-
+        print("Input:", tool_input)
         self.start_time = time.time()
 
     def on_tool_end(self, output, **kwargs):
-        duration = time.time() - self.start_time
-
+        duration = time.time() - self.start_time if self.start_time else None
         print("🔹 TOOL END")
-        print("Execution Time:", round(duration, 4), "seconds")
+        if duration is not None:
+            print("Execution Time:", round(duration, 4), "seconds")
         print("Output:", output)
         print("==============================\n")
 

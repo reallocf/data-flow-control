@@ -1,49 +1,49 @@
-import duckdb
+import re
 from pathlib import Path
 
+import duckdb
 from langchain_core.tools import tool
-
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "database" / "finance.db"
+
+WRITE_SQL_RE = re.compile(r"^\s*(insert|update|delete|drop|alter|create|truncate)\b", re.IGNORECASE)
 
 
 @tool
 def query_duckdb(sql: str) -> str:
     """
-    Execute a read-only SQL query against the local DuckDB database.
+    Execute a READ-ONLY SQL query against the local DuckDB database at `database/finance.db`.
 
-    The database file is expected at ``database/finance.db`` relative to this
-    module. Results are returned as a formatted string for LLM consumption.
+    Rules:
+    - Only SELECT queries are allowed.
+    - INSERT/UPDATE/DELETE/DROP/ALTER/CREATE/TRUNCATE are forbidden.
+    - If you don't know the schema, use:
+        - SHOW TABLES;
+        - DESCRIBE <table>;
+        - SELECT table_name FROM information_schema.tables;
     """
-    # Open a short-lived connection for each call to keep things simple.
-    conn = duckdb.connect(str(DB_PATH))
-    tables = conn.execute("SHOW TABLES").fetchall()
-    print("Available tables:", tables)
+    # Enforce read-only here (do NOT raise)
+    if WRITE_SQL_RE.match(sql or ""):
+        return "FORBIDDEN_OPERATION: Write queries are not allowed. Use SELECT only."
+
+    if not DB_PATH.exists():
+        return f"SQL_ERROR: DuckDB file not found at {DB_PATH}. Create it or point DB_PATH to the correct location."
+
     try:
-        # Enforce read-only behaviour at the tool level;
-        # write attempts should already be blocked by SQLToolCallback.
-        sql_upper = sql.upper()
-        forbidden = ["DROP", "DELETE", "UPDATE", "INSERT"]
-        if any(word in sql_upper for word in forbidden):
-            return "ERROR: Write operations (INSERT, UPDATE, DELETE, DROP, ALTER, CREATE) are not allowed. Only SELECT queries are permitted."
+        with duckdb.connect(str(DB_PATH), read_only=True) as conn:
+            # DuckDB supports SHOW TABLES; allow it
+            res = conn.execute(sql).fetchall()
+            cols = [c[0] for c in conn.description] if conn.description else []
 
-        try:
-            result = conn.execute(sql).fetchall()
-            columns = [col[0] for col in conn.description] if conn.description else []
+        # Format result
+        if not cols:
+            return "OK (no result set)."
 
-        except Exception as e:
-            return f"ERROR: Failed to execute query. {str(e)}"
-
-        if not columns:
-            return "Query executed successfully (no result set)."
-
-        # Simple tab-separated representation
-        lines = ["\t".join(map(str, columns))]
-        for row in result:
+        lines = ["\t".join(cols)]
+        for row in res:
             lines.append("\t".join(map(str, row)))
-
         return "\n".join(lines)
-    finally:
-        conn.close()
 
+    except Exception as e:
+        return f"SQL_ERROR: {e}"
