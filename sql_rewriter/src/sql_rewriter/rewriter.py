@@ -106,7 +106,7 @@ class SQLRewriter:
         """
         self._replay_manager = replay_manager
 
-    def transform_query(self, query: str) -> str:
+    def transform_query(self, query: str, use_two_phase: bool = False) -> str:
         """Transform a SQL query according to the rewriter's rules.
 
         Applies DFC policies to queries over source tables. For aggregation queries,
@@ -118,204 +118,841 @@ class SQLRewriter:
 
         Args:
             query: The original SQL query string.
+            use_two_phase: If True, route through the two-phase rewrite path.
+                Two-phase currently mirrors standard DFC behavior for non-aggregation
+                queries but uses a separate
+                dispatch path to support future strategy selection.
 
         Returns:
             The transformed SQL query string.
         """
-        try:
-            parsed = sqlglot.parse_one(query, read="duckdb")
+        parsed = sqlglot.parse_one(query, read="duckdb")
+        if use_two_phase:
+            transformed = self._transform_query_two_phase(parsed)
+        else:
+            transformed = self._transform_query_standard(parsed)
+        return transformed.sql(pretty=True, dialect="duckdb")
 
-            if isinstance(parsed, exp.Select):
-                from_tables = self._get_source_tables(parsed)
+    def _transform_query_standard(self, parsed: exp.Expression) -> exp.Expression:
+        """Apply standard DFC rewriting rules to a parsed query."""
+        return self._transform_query_common(parsed, use_two_phase=False)
 
-                if from_tables:
-                    matching_policies = self._find_matching_policies(
-                        source_tables=from_tables, sink_table=None
-                    )
-                    matching_aggregate_policies = self._find_matching_aggregate_policies(
-                        source_tables=from_tables, sink_table=None
-                    )
+    def _transform_query_two_phase(self, parsed: exp.Expression) -> exp.Expression:
+        """Apply two-phase rewriting rules to a parsed query."""
+        return self._transform_query_common(parsed, use_two_phase=True)
 
-                    if matching_policies:
+    def _transform_query_common(self, parsed: exp.Expression, use_two_phase: bool) -> exp.Expression:
+        """Apply rewriting rules shared by standard DFC and two-phase paths."""
+        if isinstance(parsed, exp.Select):
+            from_tables = self._get_source_tables(parsed)
+
+            if from_tables:
+                matching_policies = self._find_matching_policies(
+                    source_tables=from_tables, sink_table=None
+                )
+                matching_aggregate_policies = self._find_matching_aggregate_policies(
+                    source_tables=from_tables, sink_table=None
+                )
+
+                if matching_policies:
+                    if not use_two_phase:
                         rewrite_in_subqueries_as_joins(parsed, matching_policies, from_tables)
                         rewrite_exists_subqueries_as_joins(parsed, matching_policies, from_tables)
-
                         from_tables = self._get_source_tables(parsed)
 
-                        has_limit = parsed.args.get("limit") is not None
-                        has_remove_policy = any(p.on_fail == Resolution.REMOVE for p in matching_policies)
+                    has_limit = parsed.args.get("limit") is not None
+                    has_remove_policy = any(p.on_fail == Resolution.REMOVE for p in matching_policies)
 
-                        if has_limit and has_remove_policy:
-                            remove_policy = next(p for p in matching_policies if p.on_fail == Resolution.REMOVE)
+                    if has_limit and has_remove_policy:
+                        remove_policy = next(p for p in matching_policies if p.on_fail == Resolution.REMOVE)
+                        if use_two_phase:
+                            if self._has_aggregations(parsed):
+                                parsed = self._rewrite_limit_aggregation_with_two_phase(
+                                    parsed,
+                                    matching_policies,
+                                    from_tables,
+                                    remove_policy,
+                                )
+                            else:
+                                wrap_query_with_limit_in_cte_for_remove_policy(
+                                    parsed,
+                                    remove_policy,
+                                    from_tables,
+                                    is_aggregation=False,
+                                )
+                        else:
                             is_aggregation = self._has_aggregations(parsed)
                             wrap_query_with_limit_in_cte_for_remove_policy(
                                 parsed, remove_policy, from_tables, is_aggregation
                             )
-                        else:
+                    else:
+                        if not (use_two_phase and self._has_aggregations(parsed)):
                             ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
 
-                            if self._has_aggregations(parsed):
+                        if self._has_aggregations(parsed):
+                            if use_two_phase:
+                                parsed = self._rewrite_aggregation_with_two_phase(
+                                    parsed,
+                                    matching_policies,
+                                    from_tables,
+                                )
+                            else:
                                 apply_policy_constraints_to_aggregation(
                                     parsed, matching_policies, from_tables,
                                     stream_file_path=self._stream_file_path
                                 )
-                            else:
-                                apply_policy_constraints_to_scan(
-                                    parsed, matching_policies, from_tables,
-                                    stream_file_path=self._stream_file_path
-                                )
-
-                    if matching_aggregate_policies:
-                        if self._has_aggregations(parsed):
-                            apply_aggregate_policy_constraints_to_aggregation(
-                                parsed, matching_aggregate_policies, from_tables
-                            )
-                        else:
-                            apply_aggregate_policy_constraints_to_scan(
-                                parsed, matching_aggregate_policies, from_tables
-                            )
-
-            elif isinstance(parsed, exp.Insert):
-                sink_table = self._get_sink_table(parsed)
-                source_tables = self._get_insert_source_tables(parsed)
-
-                matching_policies = self._find_matching_policies(
-                    source_tables=source_tables, sink_table=sink_table
-                )
-                matching_aggregate_policies = self._find_matching_aggregate_policies(
-                    source_tables=source_tables, sink_table=sink_table
-                )
-
-                select_expr = parsed.find(exp.Select)
-
-                sink_to_output_mapping = None
-                if select_expr and sink_table:
-                    self._add_aliases_to_insert_select_outputs(parsed, select_expr)
-                    sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
-
-                if matching_policies:
-                    has_invalidate_with_sink = any(
-                        p.on_fail == Resolution.INVALIDATE and p.sink
-                        for p in matching_policies
-                    )
-
-                    if select_expr:
-                        if has_invalidate_with_sink and sink_table:
-                            self._add_valid_column_to_insert(parsed)
-
-                        if not sink_to_output_mapping and sink_table:
-                            sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
-
-                        insert_columns = self._get_insert_column_list(parsed)
-
-                        ensure_subqueries_have_constraint_columns(
-                            select_expr, matching_policies, source_tables
-                        )
-
-                        insert_has_valid = False
-                        if (
-                            hasattr(parsed, "this")
-                            and isinstance(parsed.this, exp.Schema)
-                            and hasattr(parsed.this, "expressions")
-                            and parsed.this.expressions
-                        ):
-                            for col in parsed.this.expressions:
-                                col_name = None
-                                if isinstance(col, exp.Identifier):
-                                    col_name = col.name.lower()
-                                elif isinstance(col, exp.Column):
-                                    col_name = get_column_name(col).lower()
-                                elif isinstance(col, str):
-                                    col_name = col.lower()
-                                if col_name == "valid":
-                                    insert_has_valid = True
-                                    break
-
-                        if self._has_aggregations(select_expr):
-                            apply_policy_constraints_to_aggregation(
-                                select_expr, matching_policies, source_tables,
-                                stream_file_path=self._stream_file_path,
-                                sink_table=sink_table,
-                                sink_to_output_mapping=sink_to_output_mapping,
-                                replace_existing_valid=insert_has_valid,
-                                insert_columns=insert_columns
-                            )
                         else:
                             apply_policy_constraints_to_scan(
-                                select_expr, matching_policies, source_tables,
-                                stream_file_path=self._stream_file_path,
-                                sink_table=sink_table,
-                                sink_to_output_mapping=sink_to_output_mapping,
-                                replace_existing_valid=insert_has_valid,
-                                insert_columns=insert_columns
+                                parsed, matching_policies, from_tables,
+                                stream_file_path=self._stream_file_path
                             )
 
-                if matching_aggregate_policies and select_expr:
-                        has_aggs = self._has_aggregations(select_expr)
-                        if has_aggs:
-                            apply_aggregate_policy_constraints_to_aggregation(
-                                select_expr, matching_aggregate_policies, source_tables,
-                                sink_table=sink_table,
-                                sink_to_output_mapping=sink_to_output_mapping
-                            )
-                        else:
-                            apply_aggregate_policy_constraints_to_scan(
-                                select_expr, matching_aggregate_policies, source_tables,
-                                sink_table=sink_table,
-                                sink_to_output_mapping=sink_to_output_mapping
-                            )
+                if matching_aggregate_policies:
+                    if self._has_aggregations(parsed):
+                        apply_aggregate_policy_constraints_to_aggregation(
+                            parsed, matching_aggregate_policies, from_tables
+                        )
+                    else:
+                        apply_aggregate_policy_constraints_to_scan(
+                            parsed, matching_aggregate_policies, from_tables
+                        )
 
-                        # Add temp columns to INSERT column list so they're included in the table
-                        self._add_aggregate_temp_columns_to_insert(parsed, matching_aggregate_policies, select_expr)
+        elif isinstance(parsed, exp.Insert):
+            sink_table = self._get_sink_table(parsed)
+            source_tables = self._get_insert_source_tables(parsed)
 
-            return parsed.sql(pretty=True, dialect="duckdb")
-        except Exception:
-            return query
+            matching_policies = self._find_matching_policies(
+                source_tables=source_tables, sink_table=sink_table
+            )
+            matching_aggregate_policies = self._find_matching_aggregate_policies(
+                source_tables=source_tables, sink_table=sink_table
+            )
 
-    def _execute_transformed(self, query: str):
+            select_expr = parsed.find(exp.Select)
+
+            sink_to_output_mapping = None
+            if select_expr and sink_table:
+                self._add_aliases_to_insert_select_outputs(parsed, select_expr)
+                sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
+
+            if matching_policies:
+                has_invalidate_with_sink = any(
+                    p.on_fail == Resolution.INVALIDATE and p.sink
+                    for p in matching_policies
+                )
+                has_invalidate_message_with_sink = any(
+                    p.on_fail == Resolution.INVALIDATE_MESSAGE and p.sink
+                    for p in matching_policies
+                )
+
+                if select_expr:
+                    if has_invalidate_with_sink and sink_table:
+                        self._add_valid_column_to_insert(parsed)
+                    if has_invalidate_message_with_sink and sink_table:
+                        self._add_invalid_string_column_to_insert(parsed)
+
+                    if not sink_to_output_mapping and sink_table:
+                        sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
+
+                    insert_columns = self._get_insert_column_list(parsed)
+
+                    ensure_subqueries_have_constraint_columns(
+                        select_expr, matching_policies, source_tables
+                    )
+
+                    insert_has_valid = False
+                    insert_has_invalid_string = False
+                    if (
+                        hasattr(parsed, "this")
+                        and isinstance(parsed.this, exp.Schema)
+                        and hasattr(parsed.this, "expressions")
+                        and parsed.this.expressions
+                    ):
+                        for col in parsed.this.expressions:
+                            col_name = None
+                            if isinstance(col, exp.Identifier):
+                                col_name = col.name.lower()
+                            elif isinstance(col, exp.Column):
+                                col_name = get_column_name(col).lower()
+                            elif isinstance(col, str):
+                                col_name = col.lower()
+                            if col_name == "valid":
+                                insert_has_valid = True
+                            if col_name == "invalid_string":
+                                insert_has_invalid_string = True
+                            if insert_has_valid and insert_has_invalid_string:
+                                break
+
+                    if self._has_aggregations(select_expr):
+                        apply_policy_constraints_to_aggregation(
+                            select_expr, matching_policies, source_tables,
+                            stream_file_path=self._stream_file_path,
+                            sink_table=sink_table,
+                            sink_to_output_mapping=sink_to_output_mapping,
+                            replace_existing_valid=insert_has_valid,
+                            replace_existing_invalid_string=insert_has_invalid_string,
+                            insert_columns=insert_columns
+                        )
+                    else:
+                        apply_policy_constraints_to_scan(
+                            select_expr, matching_policies, source_tables,
+                            stream_file_path=self._stream_file_path,
+                            sink_table=sink_table,
+                            sink_to_output_mapping=sink_to_output_mapping,
+                            replace_existing_valid=insert_has_valid,
+                            replace_existing_invalid_string=insert_has_invalid_string,
+                            insert_columns=insert_columns
+                        )
+
+            if matching_aggregate_policies and select_expr:
+                has_aggs = self._has_aggregations(select_expr)
+                if has_aggs:
+                    apply_aggregate_policy_constraints_to_aggregation(
+                        select_expr, matching_aggregate_policies, source_tables,
+                        sink_table=sink_table,
+                        sink_to_output_mapping=sink_to_output_mapping
+                    )
+                else:
+                    apply_aggregate_policy_constraints_to_scan(
+                        select_expr, matching_aggregate_policies, source_tables,
+                        sink_table=sink_table,
+                        sink_to_output_mapping=sink_to_output_mapping
+                    )
+
+                # Add temp columns to INSERT column list so they're included in the table
+                self._add_aggregate_temp_columns_to_insert(parsed, matching_aggregate_policies, select_expr)
+        return parsed
+
+    def _extract_policy_comparison(
+        self,
+        policy: DFCPolicy,
+    ) -> tuple[exp.Expression, exp.Expression, type[exp.Expression]]:
+        """Extract left and right sides of the policy comparison expression."""
+        constraint_expr = policy._constraint_parsed.copy()
+        for op_class in (exp.GT, exp.GTE, exp.LT, exp.LTE, exp.EQ, exp.NEQ):
+            comparisons = list(constraint_expr.find_all(op_class))
+            if comparisons:
+                comparison = comparisons[0]
+                return comparison.this.copy(), comparison.expression.copy(), op_class
+        raise ValueError(f"Unsupported constraint shape for two-phase LIMIT rewrite: {policy.constraint}")
+
+    def _build_comparison_expr(
+        self,
+        left: exp.Expression,
+        right: exp.Expression,
+        op_class: type[exp.Expression],
+    ) -> exp.Expression:
+        """Build a comparison expression from left/right operands and operator class."""
+        if op_class == exp.GT:
+            return exp.GT(this=left, expression=right)
+        if op_class == exp.GTE:
+            return exp.GTE(this=left, expression=right)
+        if op_class == exp.LT:
+            return exp.LT(this=left, expression=right)
+        if op_class == exp.LTE:
+            return exp.LTE(this=left, expression=right)
+        if op_class == exp.EQ:
+            return exp.EQ(this=left, expression=right)
+        if op_class == exp.NEQ:
+            return exp.NEQ(this=left, expression=right)
+        raise ValueError(f"Unsupported comparison operator for two-phase LIMIT rewrite: {op_class}")
+
+    def _auto_alias_name_for_expression(self, expr: exp.Expression) -> str:
+        """Generate a stable alias for non-column projection expressions."""
+        alias_name = (
+            expr.sql()
+            .lower()
+            .replace("(", "_")
+            .replace(")", "")
+            .replace(" ", "_")
+            .replace(",", "_")
+        )
+        if alias_name and not alias_name[0].isalpha():
+            alias_name = f"expr_{alias_name}"
+        return alias_name[:50]
+
+    def _ensure_projection_aliases(self, parsed: exp.Select) -> None:
+        """Ensure projected expressions are columns or aliases with stable names."""
+        aliased_exprs: list[exp.Expression] = []
+        for expr in parsed.expressions:
+            if isinstance(expr, (exp.Star, exp.Alias, exp.Column)):
+                aliased_exprs.append(expr)
+            else:
+                aliased_exprs.append(
+                    exp.Alias(
+                        this=expr.copy(),
+                        alias=exp.Identifier(
+                            this=self._auto_alias_name_for_expression(expr),
+                            quoted=False,
+                        ),
+                    )
+                )
+        parsed.set("expressions", aliased_exprs)
+
+    def _outer_projection_from_original(self, parsed: exp.Select) -> list[exp.Expression]:
+        """Build outer SELECT projection that references CTE output columns by name."""
+        outer_expressions: list[exp.Expression] = []
+        for expr in parsed.expressions:
+            if isinstance(expr, exp.Star):
+                outer_expressions.append(expr.copy())
+            elif isinstance(expr, exp.Alias):
+                alias_name = get_column_name(expr.alias)
+                outer_expressions.append(
+                    exp.Column(this=exp.Identifier(this=alias_name, quoted=False))
+                )
+            elif isinstance(expr, exp.Column):
+                col_name = get_column_name(expr)
+                outer_expressions.append(
+                    exp.Column(this=exp.Identifier(this=col_name, quoted=False))
+                )
+            else:
+                raise ValueError("Outer projection must be normalized before building")
+        return outer_expressions
+
+    def _rewrite_limit_aggregation_with_two_phase(
+        self,
+        parsed: exp.Select,
+        policies: list[DFCPolicy],
+        source_tables: set[str],
+        remove_policy: DFCPolicy,
+    ) -> exp.Select:
+        """Rewrite LIMIT+REMOVE aggregation queries using two-phase evaluation."""
+        group_specs = self._group_by_join_specs(parsed)
+        if group_specs is None:
+            raise ValueError(
+                "Two-phase LIMIT rewrite requires GROUP BY expressions to be projected in SELECT "
+                "with stable output names"
+            )
+        group_keys = [key_name for key_name, _ in group_specs]
+
+        projection_query = parsed.copy()
+        self._ensure_projection_aliases(projection_query)
+
+        base_query = projection_query.copy()
+
+        base_query.set("order", None)
+        base_query.set("limit", None)
+
+        policy_eval = parsed.copy()
+        rewrite_in_subqueries_as_joins(policy_eval, policies, source_tables)
+        rewrite_exists_subqueries_as_joins(policy_eval, policies, source_tables)
+        ensure_subqueries_have_constraint_columns(policy_eval, policies, source_tables)
+        policy_eval.set("order", None)
+        policy_eval.set("limit", None)
+        policy_eval.set("having", None)
+
+        extra_dfc_aliases: list[exp.Expression] = []
+        extra_dfc_filters: list[tuple[str, type[exp.Expression], exp.Expression]] = []
+        if hasattr(policy_eval, "meta"):
+            extra_dfc_aliases = [alias.copy() for alias in policy_eval.meta.get("extra_dfc_aliases", [])]
+            extra_dfc_filters = policy_eval.meta.get("extra_dfc_filters", [])
+
+        dfc_expr, threshold_expr, op_class = self._extract_policy_comparison(remove_policy)
+
+        policy_select_exprs: list[exp.Expression] = []
+        if group_keys:
+            for key_name, key_expr in group_specs:
+                policy_select_exprs.append(
+                    exp.Alias(
+                        this=key_expr.copy(),
+                        alias=exp.Identifier(this=key_name, quoted=False),
+                    )
+                )
+        else:
+            policy_select_exprs.append(
+                exp.Alias(
+                    this=exp.Literal.number(1),
+                    alias=exp.Identifier(this="__dfc_two_phase_key", quoted=False),
+                )
+            )
+
+        policy_select_exprs.append(
+            exp.Alias(
+                this=dfc_expr,
+                alias=exp.Identifier(this="dfc", quoted=False),
+            )
+        )
+        policy_select_exprs.extend(extra_dfc_aliases)
+        policy_eval.set("expressions", policy_select_exprs)
+
+        base_query_star = sqlglot.parse_one("SELECT base_query.*", read="duckdb").expressions[0]
+        cte_select_exprs: list[exp.Expression] = [
+            base_query_star,
+            exp.Alias(
+                this=exp.Column(
+                    this=exp.Identifier(this="dfc", quoted=False),
+                    table=exp.Identifier(this="policy_eval", quoted=False),
+                ),
+                alias=exp.Identifier(this="dfc", quoted=False),
+            ),
+        ]
+        for extra_alias in extra_dfc_aliases:
+            if not isinstance(extra_alias, exp.Alias) or not extra_alias.alias:
+                continue
+            extra_alias_name = get_column_name(extra_alias.alias)
+            cte_select_exprs.append(
+                exp.Alias(
+                    this=exp.Column(
+                        this=exp.Identifier(this=extra_alias_name, quoted=False),
+                        table=exp.Identifier(this="policy_eval", quoted=False),
+                    ),
+                    alias=exp.Identifier(this=extra_alias_name, quoted=False),
+                )
+            )
+
+        if group_keys:
+            join_keys = ", ".join(group_keys)
+            cte_body_sql = f"FROM base_query JOIN policy_eval USING ({join_keys})"
+        else:
+            cte_body_sql = "FROM base_query CROSS JOIN policy_eval"
+
+        cte_body = sqlglot.parse_one(f"SELECT 1 {cte_body_sql}", read="duckdb")
+        if not isinstance(cte_body, exp.Select):
+            raise ValueError("Two-phase LIMIT rewrite failed to build CTE body")
+        cte_body.set("expressions", cte_select_exprs)
+        cte_body.set("order", parsed.args.get("order").copy() if parsed.args.get("order") else None)
+        cte_body.set("limit", parsed.args.get("limit").copy() if parsed.args.get("limit") else None)
+
+        cte = exp.CTE(
+            this=cte_body,
+            alias=exp.TableAlias(this=exp.Identifier(this="cte", quoted=False)),
+        )
+
+        outer_from = exp.From(this=exp.Table(this=exp.Identifier(this="cte", quoted=False)))
+        combined_where = self._build_comparison_expr(
+            exp.Column(this=exp.Identifier(this="dfc", quoted=False)),
+            threshold_expr,
+            op_class,
+        )
+        for dfc_name, extra_op_class, extra_threshold in extra_dfc_filters:
+            combined_where = exp.And(
+                this=combined_where,
+                expression=self._build_comparison_expr(
+                    exp.Column(this=exp.Identifier(this=dfc_name, quoted=False)),
+                    extra_threshold.copy(),
+                    extra_op_class,
+                ),
+            )
+
+        outer_where = exp.Where(this=combined_where)
+        outer_select = exp.Select(
+            expressions=self._outer_projection_from_original(projection_query),
+            from_=outer_from,
+            where=outer_where,
+        )
+
+        existing_with = parsed.args.get("with_")
+        with_exprs = []
+        if existing_with:
+            with_exprs.extend(existing_with.expressions)
+        with_exprs.extend(
+            [
+                exp.CTE(
+                    this=base_query,
+                    alias=exp.TableAlias(
+                        this=exp.Identifier(this="base_query", quoted=False)
+                    ),
+                ),
+                exp.CTE(
+                    this=policy_eval,
+                    alias=exp.TableAlias(
+                        this=exp.Identifier(this="policy_eval", quoted=False)
+                    ),
+                ),
+                cte,
+            ]
+        )
+        outer_select.set("with_", exp.With(expressions=with_exprs))
+        return outer_select
+
+    def _group_by_join_specs(self, parsed: exp.Select) -> list[tuple[str, exp.Expression]] | None:
+        """Map GROUP BY expressions to output key names and policy-eval expressions."""
+        group_clause = parsed.args.get("group")
+        if not group_clause or not group_clause.expressions:
+            return []
+
+        select_exprs = list(parsed.expressions or [])
+        alias_expr_map: dict[str, exp.Expression] = {}
+        for select_expr in select_exprs:
+            if isinstance(select_expr, exp.Alias) and select_expr.alias:
+                alias_expr_map[select_expr.alias.lower()] = select_expr.this.copy()
+            elif isinstance(select_expr, exp.Column):
+                alias_expr_map[get_column_name(select_expr).lower()] = select_expr.copy()
+
+        keys: list[tuple[str, exp.Expression]] = []
+        for group_expr in group_clause.expressions:
+            target_sql = group_expr.sql(dialect="duckdb")
+            matched_key = None
+            matched_expr = None
+            for select_expr in select_exprs:
+                if isinstance(select_expr, exp.Alias):
+                    if select_expr.this.sql(dialect="duckdb") == target_sql and select_expr.alias:
+                        matched_key = select_expr.alias
+                        matched_expr = select_expr.this.copy()
+                        break
+                elif (
+                    select_expr.sql(dialect="duckdb") == target_sql
+                    and isinstance(select_expr, exp.Column)
+                ):
+                    matched_key = get_column_name(select_expr)
+                    matched_expr = select_expr.copy()
+                    break
+
+            if matched_key is None:
+                alias_ref = None
+                if isinstance(group_expr, exp.Identifier):
+                    alias_ref = group_expr.this
+                elif (
+                    isinstance(group_expr, exp.Column)
+                    and get_table_name_from_column(group_expr) is None
+                ):
+                    alias_ref = get_column_name(group_expr)
+                if alias_ref:
+                    alias_expr = alias_expr_map.get(alias_ref.lower())
+                    if alias_expr is not None:
+                        matched_key = alias_ref
+                        matched_expr = alias_expr.copy()
+
+            if matched_key is None:
+                return None
+            keys.append((matched_key, matched_expr if matched_expr is not None else group_expr.copy()))
+        return keys
+
+    def _rewrite_aggregation_with_two_phase(
+        self,
+        parsed: exp.Select,
+        policies: list[DFCPolicy],
+        source_tables: set[str],
+    ) -> exp.Select:
+        """Rewrite aggregation using two-phase policy evaluation.
+
+        Two-phase evaluates base query aggregates and policy aggregates in separate scans,
+        then joins the results.
+        """
+        group_specs = self._group_by_join_specs(parsed)
+        if group_specs is None:
+            raise ValueError(
+                "Two-phase rewrite requires GROUP BY expressions to be projected in SELECT "
+                "with stable output names"
+            )
+        group_keys = [key_name for key_name, _ in group_specs]
+
+        include_valid = any(policy.on_fail == Resolution.INVALIDATE for policy in policies)
+        include_invalid_string = any(
+            policy.on_fail == Resolution.INVALIDATE_MESSAGE for policy in policies
+        )
+        base_query = parsed.copy()
+        policy_eval = parsed.copy()
+        rewrite_in_subqueries_as_joins(policy_eval, policies, source_tables)
+        rewrite_exists_subqueries_as_joins(policy_eval, policies, source_tables)
+        ensure_subqueries_have_constraint_columns(policy_eval, policies, source_tables)
+        policy_eval.set("order", None)
+        policy_eval.set("limit", None)
+        policy_eval.set("having", None)
+
+        if group_keys:
+            policy_select_exprs: list[exp.Expression] = []
+            for key_name, key_expr in group_specs:
+                policy_select_exprs.append(
+                    exp.Alias(
+                        this=key_expr.copy(),
+                        alias=exp.Identifier(this=key_name, quoted=False),
+                    )
+                )
+            policy_eval.set("expressions", policy_select_exprs)
+        else:
+            policy_eval.set(
+                "expressions",
+                [
+                    exp.Alias(
+                        this=exp.Literal.number(1),
+                        alias=exp.Identifier(this="__dfc_two_phase_key", quoted=False),
+                    )
+                ],
+            )
+
+        apply_policy_constraints_to_aggregation(
+            policy_eval,
+            policies,
+            source_tables,
+            stream_file_path=self._stream_file_path,
+        )
+
+        select_list = "base_query.*"
+        if include_valid:
+            select_list += ", policy_eval.valid AS valid"
+        if include_invalid_string:
+            select_list += ", policy_eval.invalid_string AS invalid_string"
+        if group_keys:
+            join_keys = ", ".join(group_keys)
+            outer_sql = (
+                f"SELECT {select_list} "
+                f"FROM base_query JOIN policy_eval USING ({join_keys})"
+            )
+        else:
+            outer_sql = f"SELECT {select_list} FROM base_query CROSS JOIN policy_eval"
+
+        rewritten = sqlglot.parse_one(outer_sql, read="duckdb")
+        if not isinstance(rewritten, exp.Select):
+            raise ValueError("Two-phase aggregation rewrite must produce a SELECT statement")
+        rewritten.set(
+            "with_",
+            exp.With(
+                expressions=[
+                    exp.CTE(
+                        this=base_query,
+                        alias=exp.TableAlias(
+                            this=exp.Identifier(this="base_query", quoted=False)
+                        ),
+                    ),
+                    exp.CTE(
+                        this=policy_eval,
+                        alias=exp.TableAlias(
+                            this=exp.Identifier(this="policy_eval", quoted=False)
+                        ),
+                    ),
+                ]
+            ),
+        )
+        return rewritten
+
+    def _scan_join_keys(self, parsed: exp.Select) -> list[tuple[str, exp.Expression]] | None:
+        """Extract join keys from SELECT outputs for two-phase scan rewrites."""
+        keys: list[tuple[str, exp.Expression]] = []
+        for select_expr in parsed.expressions or []:
+            if isinstance(select_expr, exp.Star):
+                return None
+
+            if isinstance(select_expr, exp.Alias):
+                if not select_expr.alias:
+                    return None
+                key_name = select_expr.alias
+                key_expr = select_expr.this.copy()
+            elif isinstance(select_expr, exp.Column):
+                key_name = get_column_name(select_expr)
+                key_expr = select_expr.copy()
+            else:
+                # Non-aliased computed expressions cannot be referenced in USING.
+                return None
+
+            if not key_name:
+                return None
+            keys.append((key_name, key_expr))
+
+        return keys if keys else None
+
+    def _can_use_rowid_scan_join(self, parsed: exp.Select) -> bool:
+        """Whether we can safely use rowid as the two-phase scan join key."""
+        if parsed.args.get("distinct") is not None:
+            return False
+
+        from_clause = parsed.args.get("from_")
+        if not isinstance(from_clause, exp.From):
+            return False
+
+        joins = parsed.args.get("joins") or []
+        return len(joins) == 0
+
+    def _select_has_named_projection(self, parsed: exp.Select, name: str) -> bool:
+        target = name.lower()
+        for select_expr in parsed.expressions or []:
+            if isinstance(select_expr, exp.Alias):
+                if select_expr.alias and select_expr.alias.lower() == target:
+                    return True
+            elif isinstance(select_expr, exp.Column) and get_column_name(select_expr).lower() == target:
+                return True
+        return False
+
+    def _rewrite_scan_with_two_phase(
+        self,
+        parsed: exp.Select,
+        policies: list[DFCPolicy],
+        source_tables: set[str],
+    ) -> exp.Select:
+        """Rewrite non-aggregation query using two-phase policy evaluation."""
+        join_keys = self._scan_join_keys(parsed)
+        use_rowid_join = self._can_use_rowid_scan_join(parsed) and (
+            join_keys is None or len(join_keys) > 1
+        )
+
+        if join_keys is None and not use_rowid_join:
+            raise ValueError(
+                "Two-phase rewrite requires explicit projected join keys "
+                "(no SELECT *, and computed expressions must be aliased)"
+            )
+
+        include_valid = any(policy.on_fail == Resolution.INVALIDATE for policy in policies)
+        include_invalid_string = any(
+            policy.on_fail == Resolution.INVALIDATE_MESSAGE for policy in policies
+        )
+
+        base_query = parsed.copy()
+        policy_eval = parsed.copy()
+        policy_eval.set("order", None)
+        policy_eval.set("limit", None)
+        base_has_star = False
+        rowid_source_name = None
+
+        if use_rowid_join:
+            policy_eval.set("distinct", None)
+            from_clause = parsed.args.get("from_")
+            from_source = from_clause.this if isinstance(from_clause, exp.From) else None
+            if isinstance(from_source, exp.Table):
+                rowid_source_name = from_source.name.lower()
+
+            if rowid_source_name is not None and rowid_source_name in source_tables:
+                rowid_expr = exp.Column(this=exp.Identifier(this="rowid", quoted=False))
+            else:
+                # For non-base-table sources (subqueries/CTEs), propagate __dfc_rowid.
+                for policy in policies:
+                    for source in policy.sources:
+                        source_lower = source.lower()
+                        if source_lower in policy._source_columns_needed:
+                            policy._source_columns_needed[source_lower].add("__dfc_rowid")
+                ensure_subqueries_have_constraint_columns(policy_eval, policies, source_tables)
+                ensure_subqueries_have_constraint_columns(base_query, policies, source_tables)
+                rowid_expr = exp.Column(this=exp.Identifier(this="__dfc_rowid", quoted=False))
+
+            rowid_alias = "__dfc_rowid"
+            base_has_star = any(isinstance(expr, exp.Star) for expr in (base_query.expressions or []))
+            should_append_rowid = (
+                not self._select_has_named_projection(base_query, rowid_alias)
+                and not (rowid_source_name is None and base_has_star)
+            )
+            if should_append_rowid:
+                base_exprs = list(base_query.expressions or [])
+                base_exprs.append(
+                    exp.Alias(
+                        this=rowid_expr.copy(),
+                        alias=exp.Identifier(this=rowid_alias, quoted=False),
+                    )
+                )
+                base_query.set("expressions", base_exprs)
+
+            policy_eval.set(
+                "expressions",
+                [
+                    exp.Alias(
+                        this=rowid_expr,
+                        alias=exp.Identifier(this=rowid_alias, quoted=False),
+                    )
+                ],
+            )
+        else:
+            policy_eval.set("distinct", exp.Distinct())
+            policy_eval.set(
+                "expressions",
+                [
+                    exp.Alias(
+                        this=expr.copy(),
+                        alias=exp.Identifier(this=key_name, quoted=False),
+                    )
+                    for key_name, expr in join_keys
+                ],
+            )
+
+        apply_policy_constraints_to_scan(
+            policy_eval,
+            policies,
+            source_tables,
+            stream_file_path=self._stream_file_path,
+        )
+
+        if use_rowid_join:
+            if base_has_star and rowid_source_name is None:
+                select_list = "base_query.*"
+            else:
+                select_list = "base_query.* EXCLUDE (__dfc_rowid)"
+        else:
+            select_list = "base_query.*"
+        if include_valid:
+            select_list += ", policy_eval.valid AS valid"
+        if include_invalid_string:
+            select_list += ", policy_eval.invalid_string AS invalid_string"
+        join_key_names = "__dfc_rowid" if use_rowid_join else ", ".join([key for key, _ in join_keys])
+        outer_sql = (
+            f"SELECT {select_list} FROM base_query "
+            f"JOIN policy_eval USING ({join_key_names})"
+        )
+
+        rewritten = sqlglot.parse_one(outer_sql, read="duckdb")
+        if not isinstance(rewritten, exp.Select):
+            raise ValueError("Two-phase scan rewrite must produce a SELECT statement")
+        rewritten.set(
+            "with_",
+            exp.With(
+                expressions=[
+                    exp.CTE(
+                        this=base_query,
+                        alias=exp.TableAlias(
+                            this=exp.Identifier(this="base_query", quoted=False)
+                        ),
+                    ),
+                    exp.CTE(
+                        this=policy_eval,
+                        alias=exp.TableAlias(
+                            this=exp.Identifier(this="policy_eval", quoted=False)
+                        ),
+                    ),
+                ]
+            ),
+        )
+        return rewritten
+
+    def _execute_transformed(self, query: str, use_two_phase: bool = False):
         """Execute a transformed query and return the cursor.
 
         Args:
             query: The SQL query string to execute.
+            use_two_phase: If True, use the two-phase rewrite path.
 
         Returns:
             The DuckDB cursor from executing the transformed query.
         """
-        transformed_query = self.transform_query(query)
+        transformed_query = self.transform_query(query, use_two_phase=use_two_phase)
         return self.conn.execute(transformed_query)
 
-    def execute(self, query: str) -> Any:
+    def execute(self, query: str, use_two_phase: bool = False) -> Any:
         """Execute a SQL query after transforming it.
 
         Args:
             query: The SQL query string to execute.
+            use_two_phase: If True, use the two-phase rewrite path.
 
         Returns:
             The result of executing the query.
         """
-        return self._execute_transformed(query)
+        return self._execute_transformed(query, use_two_phase=use_two_phase)
 
-    def fetchall(self, query: str) -> list[tuple]:
+    def fetchall(self, query: str, use_two_phase: bool = False) -> list[tuple]:
         """Execute a query and fetch all results.
 
         Args:
             query: The SQL query string to execute.
+            use_two_phase: If True, use the two-phase rewrite path.
 
         Returns:
             List of tuples containing the query results.
         """
-        return self._execute_transformed(query).fetchall()
+        return self._execute_transformed(
+            query,
+            use_two_phase=use_two_phase,
+        ).fetchall()
 
-    def fetchone(self, query: str) -> Optional[tuple]:
+    def fetchone(self, query: str, use_two_phase: bool = False) -> Optional[tuple]:
         """Execute a query and fetch one result.
 
         Args:
             query: The SQL query string to execute.
+            use_two_phase: If True, use the two-phase rewrite path.
 
         Returns:
             A single tuple containing one row of results, or None if no results.
         """
-        return self._execute_transformed(query).fetchone()
+        return self._execute_transformed(
+            query,
+            use_two_phase=use_two_phase,
+        ).fetchone()
 
     def _table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the database.
@@ -549,6 +1186,24 @@ class SQLRewriter:
                 raise ValueError(
                     f"Column 'valid' in sink table '{policy.sink}' must be of type BOOLEAN, "
                     f"but found type '{valid_column_type}'"
+                )
+        if (policy.on_fail == Resolution.INVALIDATE_MESSAGE and policy.sink and
+            not isinstance(policy, AggregateDFCPolicy)):
+            if sink_columns is None:
+                raise ValueError(f"Sink table '{policy.sink}' has no columns")
+            if "invalid_string" not in sink_columns:
+                raise ValueError(
+                    f"Sink table '{policy.sink}' must have a string column named "
+                    f"'invalid_string' for INVALIDATE_MESSAGE resolution policies"
+                )
+            invalid_string_column_type = self._get_column_type(policy.sink, "invalid_string")
+            if not any(
+                token in invalid_string_column_type.upper()
+                for token in ("CHAR", "VARCHAR", "STRING", "TEXT")
+            ):
+                raise ValueError(
+                    f"Column 'invalid_string' in sink table '{policy.sink}' must be a "
+                    f"string type, but found type '{invalid_string_column_type}'"
                 )
 
         columns = list(policy._constraint_parsed.find_all(exp.Column))
@@ -1152,6 +1807,43 @@ class SQLRewriter:
             if "valid" not in column_names:
                 valid_identifier = exp.Identifier(this="valid", quoted=False)
                 insert_parsed.columns.append(valid_identifier)
+            return
+
+    def _add_invalid_string_column_to_insert(self, insert_parsed: exp.Insert) -> None:
+        """Add 'invalid_string' column to INSERT column list if not already present."""
+        if (
+            hasattr(insert_parsed, "this")
+            and isinstance(insert_parsed.this, exp.Schema)
+            and hasattr(insert_parsed.this, "expressions")
+            and insert_parsed.this.expressions
+        ):
+            column_names = []
+            for col in insert_parsed.this.expressions:
+                if isinstance(col, exp.Identifier):
+                    column_names.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    column_names.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    column_names.append(col.lower())
+
+            if "invalid_string" not in column_names:
+                invalid_string_identifier = exp.Identifier(this="invalid_string", quoted=False)
+                insert_parsed.this.expressions.append(invalid_string_identifier)
+            return
+
+        if hasattr(insert_parsed, "columns") and insert_parsed.columns:
+            column_names = []
+            for col in insert_parsed.columns:
+                if isinstance(col, exp.Identifier):
+                    column_names.append(col.name.lower())
+                elif isinstance(col, exp.Column):
+                    column_names.append(get_column_name(col).lower())
+                elif isinstance(col, str):
+                    column_names.append(col.lower())
+
+            if "invalid_string" not in column_names:
+                invalid_string_identifier = exp.Identifier(this="invalid_string", quoted=False)
+                insert_parsed.columns.append(invalid_string_identifier)
             return
 
     def _add_aggregate_temp_columns_to_insert(

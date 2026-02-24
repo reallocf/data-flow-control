@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import duckdb
 
 from vldb_experiments.correctness import compare_results_approx, rows_equal_approx
-from vldb_experiments.multi_db import DataFusionClient, PostgresClient, SQLiteClient, UmbraClient
+from vldb_experiments.multi_db import DataFusionClient, PostgresClient, SQLServerClient, UmbraClient
 from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES, load_tpch_query
 
 MULTI_DB_DATA_DIR = Path("results") / "multi_db"
@@ -91,10 +91,10 @@ def _get_client(engine: str, data_dir: Path):
         return UmbraClient(data_dir)
     if engine == "postgres":
         return PostgresClient(data_dir)
-    if engine == "sqlite":
-        return SQLiteClient(data_dir)
     if engine == "datafusion":
         return DataFusionClient(data_dir)
+    if engine == "sqlserver":
+        return SQLServerClient(data_dir)
     raise ValueError(f"Unsupported engine: {engine}")
 
 
@@ -103,7 +103,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     parser.add_argument(
         "--engine",
         default="umbra",
-        choices=["umbra", "postgres", "sqlite", "datafusion"],
+        choices=["umbra", "postgres", "datafusion", "sqlserver"],
         help="External engine to compare against DuckDB.",
     )
     parser.add_argument(

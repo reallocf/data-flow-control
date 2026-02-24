@@ -1,5 +1,6 @@
 """Experiment runner that executes strategies and manages lifecycle."""
 
+from collections import OrderedDict
 from typing import Optional
 
 import duckdb
@@ -32,7 +33,23 @@ class ExperimentRunner:
             ResultCollector with all collected results
         """
         if self.config.verbose:
-            print(f"Starting experiment: {self.config.num_executions} executions, {self.config.num_warmup_runs} warm-up runs")
+            if self.config.warmup_mode == "per_setting":
+                warmups = (
+                    self.config.warmup_runs_per_setting
+                    if self.config.warmup_runs_per_setting is not None
+                    else self.config.num_warmup_runs
+                )
+                print(
+                    "Starting experiment: "
+                    f"{self.config.num_executions} executions, "
+                    f"{warmups} warm-up runs per setting"
+                )
+            else:
+                print(
+                    "Starting experiment: "
+                    f"{self.config.num_executions} executions, "
+                    f"{self.config.num_warmup_runs} warm-up runs"
+                )
 
         try:
             # Run setup steps
@@ -61,43 +78,10 @@ class ExperimentRunner:
                 print("Calling strategy.setup()")
             self.strategy.setup(self.context)
 
-            # Run warm-up executions
-            if self.config.num_warmup_runs > 0:
-                if self.config.verbose:
-                    print(f"Running {self.config.num_warmup_runs} warm-up executions...")
-                for i in range(self.config.num_warmup_runs):
-                    self.context.execution_number = i + 1
-                    try:
-                        with time_execution() as timing:
-                            self.strategy.execute(self.context)
-                    except Exception as e:
-                        if self.config.verbose:
-                            print(f"Warm-up execution {i + 1} failed: {e}")
-
-            # Run actual executions
-            if self.config.verbose:
-                print(f"Running {self.config.num_executions} experiment executions...")
-            for i in range(self.config.num_executions):
-                self.context.execution_number = i + 1
-                try:
-                    with time_execution() as timing:
-                        result = self.strategy.execute(self.context)
-                        # Override duration if strategy returned one
-                        if result.duration_ms == 0.0:
-                            result.duration_ms = timing["duration_ms"]
-                except Exception as e:
-                    if self.config.verbose:
-                        print(f"Execution {i + 1} failed: {e}")
-                    result = ExperimentResult(
-                        duration_ms=0.0,
-                        error=str(e)
-                    )
-
-                self.collector.add_result(result)
-
-                if self.config.verbose:
-                    status = "✓" if not result.error else "✗"
-                    print(f"  {status} Execution {i + 1}/{self.config.num_executions}: {result.duration_ms:.3f}ms")
+            if self.config.warmup_mode == "per_setting":
+                self._run_per_setting()
+            else:
+                self._run_global()
 
             # Call strategy teardown
             if self.config.verbose:
@@ -127,6 +111,96 @@ class ExperimentRunner:
             raise
 
         return self.collector
+
+    def _execute_once(self, execution_number: int, is_warmup: bool) -> ExperimentResult:
+        assert self.context is not None
+        self.context.execution_number = execution_number
+        self.context.is_warmup = is_warmup
+        with time_execution() as timing:
+            result = self.strategy.execute(self.context)
+        if result.duration_ms == 0.0:
+            result.duration_ms = timing["duration_ms"]
+        return result
+
+    def _run_global(self) -> None:
+        assert self.context is not None
+        if self.config.num_warmup_runs > 0:
+            if self.config.verbose:
+                print(f"Running {self.config.num_warmup_runs} warm-up executions...")
+            for i in range(self.config.num_warmup_runs):
+                try:
+                    self._execute_once(execution_number=i + 1, is_warmup=True)
+                except Exception as e:
+                    if self.config.verbose:
+                        print(f"Warm-up execution {i + 1} failed: {e}")
+
+        if self.config.verbose:
+            print(f"Running {self.config.num_executions} experiment executions...")
+        for i in range(self.config.num_executions):
+            try:
+                result = self._execute_once(execution_number=i + 1, is_warmup=False)
+            except Exception as e:
+                if self.config.verbose:
+                    print(f"Execution {i + 1} failed: {e}")
+                result = ExperimentResult(duration_ms=0.0, error=str(e))
+
+            self.collector.add_result(result)
+            if self.config.verbose:
+                status = "✓" if not result.error else "✗"
+                print(f"  {status} Execution {i + 1}/{self.config.num_executions}: {result.duration_ms:.3f}ms")
+
+    def _run_per_setting(self) -> None:
+        assert self.context is not None
+        warmups_per_setting = (
+            self.config.warmup_runs_per_setting
+            if self.config.warmup_runs_per_setting is not None
+            else self.config.num_warmup_runs
+        )
+
+        execution_groups: OrderedDict[object, list[int]] = OrderedDict()
+        for execution_number in range(1, self.config.num_executions + 1):
+            self.context.execution_number = execution_number
+            self.context.is_warmup = False
+            key = self.strategy.get_setting_key(self.context)
+            if key is None:
+                raise ValueError(
+                    "warmup_mode='per_setting' requires strategy.get_setting_key() "
+                    "to return a non-None key"
+                )
+            execution_groups.setdefault(key, []).append(execution_number)
+
+        if self.config.verbose:
+            print(
+                f"Running per-setting schedule across {len(execution_groups)} settings "
+                f"with {warmups_per_setting} warm-up runs each..."
+            )
+
+        completed = 0
+        for key, execution_numbers in execution_groups.items():
+            representative = execution_numbers[0]
+            for warmup_index in range(warmups_per_setting):
+                try:
+                    self._execute_once(execution_number=representative, is_warmup=True)
+                except Exception as e:
+                    if self.config.verbose:
+                        print(
+                            f"Warm-up execution failed for setting={key} "
+                            f"(warmup {warmup_index + 1}/{warmups_per_setting}): {e}"
+                        )
+
+            for execution_number in execution_numbers:
+                try:
+                    result = self._execute_once(execution_number=execution_number, is_warmup=False)
+                except Exception as e:
+                    if self.config.verbose:
+                        print(f"Execution {execution_number} failed: {e}")
+                    result = ExperimentResult(duration_ms=0.0, error=str(e))
+
+                self.collector.add_result(result)
+                completed += 1
+                if self.config.verbose:
+                    status = "✓" if not result.error else "✗"
+                    print(f"  {status} Execution {completed}/{self.config.num_executions}: {result.duration_ms:.3f}ms")
 
     def _create_database_connection(self) -> duckdb.DuckDBPyConnection:
         """Create database connection from configuration.

@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Run TPC-H policy count experiments across all supported queries."""
 
-import sys
-from pathlib import Path
 import argparse
+from pathlib import Path
+import sys
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from experiment_harness import ExperimentRunner, ExperimentConfig
+from experiment_harness import ExperimentConfig, ExperimentRunner
+
 from vldb_experiments import TPCHPolicyCountAllQueriesStrategy
 from vldb_experiments.strategies.tpch_strategy import TPCH_QUERIES
 

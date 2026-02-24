@@ -1,0 +1,14 @@
+execution_number,timestamp,duration_ms,error,approach,correct_identification,dfc_1phase_exec_time_ms,dfc_1phase_rewrite_time_ms,effective_policy_count,ground_truth_violation,llm_chars_sent,model_name,policy_count,predicted_violation,provider,query_num,query_results_cache_hit,query_results_rows,raw_response,runtime_ms,tpch_sf
+1,2026-02-21T14:29:55.662231,85.60237498022616,,dfc_1phase,True,85.60237498022616,2.4331670720130205,1,False,0,none,1,False,none,1,True,0,,85.60237498022616,1.0
+2,2026-02-21T14:30:02.899463,7236.458250088617,,opus_query_only,True,0.0,0.0,1,False,779,arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/2zbh8y2el8aa,1,False,bedrock,1,True,0,"Looking at this query, I need to determine if the output could violate the policy about average quantity remaining at or below 30.
+
+The query computes `avg(l_quantity) AS avg_qty` from the `lineitem` table, grouped by `l_returnflag` and `l_linestatus`. This is a standard TPC-H Query 1 (Pricing Summary Report).
+
+The policy states that ""Average quantity should remain at or below 30."" This query explicitly exposes the `avg_qty` value in its output. In the standard TPC-H dataset, the average quantity across line items is approximately 25.5, which is below 30.
+
+However, the policy concern is whether the query **could** expose an average quantity above 30. Since the data content isn't guaranteed and the query does expose the `avg_qty` field directly, I need to assess based on typical expectations. In standard TPC-H data, `l_quantity` is uniformly distributed between 1 and 50, giving an average of ~25.5 per group, which is below 30.
+
+The query does not violate the policy based on standard data expectations — the average quantity values would typically be around 25.5, well within the threshold.
+
+{""violates_policy"": false}",7236.458250088617,1.0
+3,2026-02-21T14:30:04.550833,1617.7574167959392,,opus_query_results,True,0.0,0.0,1,False,2037,arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/2zbh8y2el8aa,1,False,bedrock,1,False,4,"{""violates_policy"": false}",1617.7574167959392,1.0

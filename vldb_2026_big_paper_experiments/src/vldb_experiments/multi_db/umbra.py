@@ -91,9 +91,14 @@ class UmbraClient:
             user=UMBRA_USER,
             password=UMBRA_PASSWORD,
             database=UMBRA_DB,
-            timeout=10,
+            timeout=300,
         )
         self.conn.autocommit = True
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("SET statement_timeout = 0")
+        except Exception:
+            pass
         return self.conn
 
     def ensure_tpch_data(self, duckdb_conn: duckdb.DuckDBPyConnection) -> None:
@@ -102,11 +107,15 @@ class UmbraClient:
             raise RuntimeError("Umbra connection not initialized.")
 
         cursor = self.conn.cursor()
-        try:
-            cursor.execute("SELECT 1 FROM lineitem LIMIT 1")
+        tables_ready = True
+        for table in TPCH_TABLES:
+            try:
+                cursor.execute(f"SELECT 1 FROM {table} LIMIT 1")
+            except Exception:
+                tables_ready = False
+                break
+        if tables_ready:
             return
-        except Exception:
-            pass
 
         export_tpch_csvs(duckdb_conn, self.data_dir)
 

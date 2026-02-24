@@ -16,16 +16,30 @@ def get_query_definitions() -> dict[str, str]:
             SELECT * FROM test_data WHERE value > 50
         """,
 
+        "SIMPLE_AGG": """
+            SELECT SUM(amount)
+            FROM test_data
+        """,
+
         "JOIN": """
             SELECT test_data.id, other.value
             FROM test_data
-            JOIN test_data other ON test_data.id = other.id
+            JOIN join_data other ON test_data.id = other.id
         """,
 
         "GROUP_BY": """
             SELECT category, COUNT(*), SUM(amount)
             FROM test_data
             GROUP BY category
+        """,
+
+        # Real query is generated dynamically in MicrobenchmarkStrategy based on
+        # variation_join_count. This placeholder keeps query type registration simple.
+        "JOIN_GROUP_BY": """
+            SELECT test_data.category, COUNT(*), SUM(test_data.amount + j1.amount)
+            FROM test_data
+            JOIN join_data_1 j1 ON test_data.id = j1.id
+            GROUP BY test_data.category
         """,
 
         "ORDER_BY": """
@@ -43,4 +57,4 @@ def get_query_order() -> list[str]:
     Returns:
         List of operator names in execution order
     """
-    return ["SELECT", "WHERE", "JOIN", "GROUP_BY", "ORDER_BY"]
+    return ["SELECT", "WHERE", "SIMPLE_AGG", "JOIN", "GROUP_BY", "JOIN_GROUP_BY", "ORDER_BY"]

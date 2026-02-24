@@ -2,12 +2,13 @@
 
 from .datafusion import DataFusionClient
 from .postgres import PostgresClient
-from .sqlite import SQLiteClient
+from .sqlserver import SQLServerClient, sqlserver_env_available
 from .umbra import UmbraClient
 
 __all__ = [
     "DataFusionClient",
     "PostgresClient",
-    "SQLiteClient",
+    "SQLServerClient",
     "UmbraClient",
+    "sqlserver_env_available",
 ]

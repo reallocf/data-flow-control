@@ -483,6 +483,72 @@ def _add_invalidate_column_to_select(
     parsed.expressions.append(valid_alias)
 
 
+def _add_invalidate_message_column_to_select(
+    parsed: exp.Select,
+    constraint_expr: exp.Expression,
+    policy_message: str,
+    replace_existing: bool = False,
+) -> None:
+    """Add an 'invalid_string' column to a SELECT statement.
+
+    The column is empty when the policy passes and set to policy_message when the
+    policy fails. Multiple INVALIDATE_MESSAGE policies are combined as:
+    "message1 | message2 | ...".
+    """
+    constraint_sql = constraint_expr.sql()
+    constraint_copy = sqlglot.parse_one(constraint_sql, read="duckdb")
+
+    new_message_expr = exp.Case(
+        ifs=[
+            exp.If(
+                this=constraint_copy,
+                true=exp.Literal.string(""),
+            )
+        ],
+        default=exp.Literal.string(policy_message),
+    )
+
+    existing_invalid_string_expr = None
+    for expr in parsed.expressions:
+        if isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "invalid_string":
+            existing_invalid_string_expr = expr.this
+            break
+        if isinstance(expr, exp.Column) and get_column_name(expr).lower() == "invalid_string":
+            existing_invalid_string_expr = expr
+            break
+
+    if existing_invalid_string_expr and not replace_existing:
+        existing_sql = existing_invalid_string_expr.sql()
+        new_sql = new_message_expr.sql()
+        combined_sql = (
+            f"CONCAT_WS(' | ', NULLIF({existing_sql}, ''), NULLIF({new_sql}, ''))"
+        )
+        invalid_string_expr = sqlglot.parse_one(combined_sql, read="duckdb")
+    else:
+        invalid_string_expr = new_message_expr
+
+    invalid_string_alias = exp.Alias(
+        this=invalid_string_expr,
+        alias=exp.Identifier(this="invalid_string", quoted=False),
+    )
+
+    expressions_to_remove = []
+    for i, expr in enumerate(parsed.expressions):
+        if (
+            isinstance(expr, exp.Alias)
+            and expr.alias
+            and expr.alias.lower() == "invalid_string"
+        ) or (
+            isinstance(expr, exp.Column) and get_column_name(expr).lower() == "invalid_string"
+        ):
+            expressions_to_remove.append(i)
+
+    for i in reversed(expressions_to_remove):
+        parsed.expressions.pop(i)
+
+    parsed.expressions.append(invalid_string_alias)
+
+
 def apply_policy_constraints_to_aggregation(
     parsed: exp.Select,
     policies: list[DFCPolicy],
@@ -491,6 +557,7 @@ def apply_policy_constraints_to_aggregation(
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
+    replace_existing_invalid_string: bool = False,
     insert_columns: Optional[list[str]] = None
 ) -> None:
     """Apply policy constraints to an aggregation query.
@@ -551,6 +618,14 @@ def apply_policy_constraints_to_aggregation(
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
         elif policy.on_fail == Resolution.INVALIDATE:
             _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+        elif policy.on_fail == Resolution.INVALIDATE_MESSAGE:
+            policy_message = policy.description or policy.constraint
+            _add_invalidate_message_column_to_select(
+                parsed,
+                constraint_expr,
+                policy_message=policy_message,
+                replace_existing=replace_existing_invalid_string,
+            )
         else:
             # REMOVE resolution - add HAVING clause
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
@@ -691,21 +766,29 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     if column_name.lower() in selected:
         return
 
-    # Check if SELECT * is used - in that case, we can't safely add columns
-    # because we don't know what columns are actually selected
     has_star = any(isinstance(expr, exp.Star) for expr in select_expr.expressions)
-    if has_star:
-        # Can't safely add columns when SELECT * is used
+    if has_star and column_name.lower() not in {"__dfc_rowid", "__dfc_rowid_passthrough"}:
+        # Can't safely add regular columns when SELECT * is used
         return
 
     # Get the table alias if one exists
     table_ref = _get_table_alias_in_subquery(subquery, table_name)
 
-    # Create a column expression with table qualification
-    col_expr = exp.Column(
-        this=exp.Identifier(this=column_name, quoted=False),
-        table=exp.Identifier(this=table_ref, quoted=False)
-    )
+    # Create a column expression with table qualification.
+    # __dfc_rowid is a synthetic key used by two-phase rewrites.
+    if column_name.lower() == "__dfc_rowid":
+        col_expr = exp.Alias(
+            this=exp.Column(
+                this=exp.Identifier(this="rowid", quoted=False),
+                table=exp.Identifier(this=table_ref, quoted=False),
+            ),
+            alias=exp.Identifier(this="__dfc_rowid", quoted=False),
+        )
+    else:
+        col_expr = exp.Column(
+            this=exp.Identifier(this=column_name, quoted=False),
+            table=exp.Identifier(this=table_ref, quoted=False)
+        )
 
     # Add the column to the SELECT list
     select_expr.expressions.append(col_expr)
@@ -714,11 +797,12 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     alias = subquery.args.get("alias")
     if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
         alias_columns = alias.args.get("columns")
+        alias_col_name = "__dfc_rowid" if column_name.lower() == "__dfc_rowid_passthrough" else column_name
         if all(
-            not (isinstance(col, exp.Identifier) and col.name.lower() == column_name.lower())
+            not (isinstance(col, exp.Identifier) and col.name.lower() == alias_col_name.lower())
             for col in alias_columns
         ):
-            alias_columns.append(exp.Identifier(this=column_name, quoted=False))
+            alias_columns.append(exp.Identifier(this=alias_col_name, quoted=False))
 
 
 def _get_ctes(parsed: exp.Select) -> list[tuple[exp.CTE, str]]:
@@ -848,21 +932,37 @@ def _add_column_to_cte(cte: exp.CTE, table_name: str, column_name: str) -> None:
     if column_name.lower() in selected:
         return
 
-    # Check if SELECT * is used - in that case, we can't safely add columns
-    # because we don't know what columns are actually selected
     has_star = any(isinstance(expr, exp.Star) for expr in select_expr.expressions)
-    if has_star:
-        # Can't safely add columns when SELECT * is used
+    if has_star and column_name.lower() != "__dfc_rowid":
+        # Can't safely add regular columns when SELECT * is used
         return
 
     # Get the table alias if one exists
     table_ref = _get_table_alias_in_select(select_expr, table_name)
 
-    # Create a column expression with table qualification
-    col_expr = exp.Column(
-        this=exp.Identifier(this=column_name, quoted=False),
-        table=exp.Identifier(this=table_ref, quoted=False)
-    )
+    # Create a column expression with table qualification.
+    # __dfc_rowid is a synthetic key used by two-phase rewrites.
+    if column_name.lower() == "__dfc_rowid":
+        col_expr = exp.Alias(
+            this=exp.Column(
+                this=exp.Identifier(this="rowid", quoted=False),
+                table=exp.Identifier(this=table_ref, quoted=False),
+            ),
+            alias=exp.Identifier(this="__dfc_rowid", quoted=False),
+        )
+    elif column_name.lower() == "__dfc_rowid_passthrough":
+        col_expr = exp.Alias(
+            this=exp.Column(
+                this=exp.Identifier(this="__dfc_rowid", quoted=False),
+                table=exp.Identifier(this=table_ref, quoted=False),
+            ),
+            alias=exp.Identifier(this="__dfc_rowid", quoted=False),
+        )
+    else:
+        col_expr = exp.Column(
+            this=exp.Identifier(this=column_name, quoted=False),
+            table=exp.Identifier(this=table_ref, quoted=False)
+        )
 
     # Add the column to the SELECT list
     select_expr.expressions.append(col_expr)
@@ -1283,6 +1383,42 @@ def ensure_subqueries_have_constraint_columns(
                 for col_name in needed_columns:
                     _add_column_to_cte(cte, source_table_lower, col_name)
 
+    # Propagate synthetic rowid keys across CTE dependency chains.
+    cte_alias_to_select: dict[str, exp.Select] = {}
+    ctes_with_rowid: set[str] = set()
+    for cte, cte_alias in ctes:
+        cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
+        if not isinstance(cte_select, exp.Select):
+            continue
+        cte_alias_to_select[cte_alias] = cte_select
+        if "__dfc_rowid" in _get_selected_columns_from_select(cte_select):
+            ctes_with_rowid.add(cte_alias)
+
+    changed = True
+    while changed:
+        changed = False
+        for cte, cte_alias in ctes:
+            if cte_alias in ctes_with_rowid:
+                continue
+
+            cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
+            if not isinstance(cte_select, exp.Select):
+                continue
+
+            referenced_ctes = set()
+            for table in cte_select.find_all(exp.Table):
+                if table.find_ancestor(exp.From) or table.find_ancestor(exp.Join):
+                    referenced_ctes.add(table.name.lower())
+
+            rowid_sources = [name for name in referenced_ctes if name in ctes_with_rowid]
+            if not rowid_sources:
+                continue
+
+            _add_column_to_cte(cte, rowid_sources[0], "__dfc_rowid_passthrough")
+            if "__dfc_rowid" in _get_selected_columns_from_select(cte_select):
+                ctes_with_rowid.add(cte_alias)
+                changed = True
+
 
 def wrap_query_with_limit_in_cte_for_remove_policy(
     parsed: exp.Select,
@@ -1506,6 +1642,7 @@ def apply_policy_constraints_to_scan(
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
+    replace_existing_invalid_string: bool = False,
     insert_columns: Optional[list[str]] = None
 ) -> None:
     """Apply policy constraints to a non-aggregation query (table scan).
@@ -1565,6 +1702,14 @@ def apply_policy_constraints_to_scan(
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
         elif policy.on_fail == Resolution.INVALIDATE:
             _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+        elif policy.on_fail == Resolution.INVALIDATE_MESSAGE:
+            policy_message = policy.description or policy.constraint
+            _add_invalidate_message_column_to_select(
+                parsed,
+                constraint_expr,
+                policy_message=policy_message,
+                replace_existing=replace_existing_invalid_string,
+            )
         else:
             # REMOVE resolution - add WHERE clause
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)

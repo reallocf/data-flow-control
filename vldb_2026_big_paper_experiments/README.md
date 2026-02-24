@@ -123,6 +123,53 @@ The experiments test the following core relational operators:
    SELECT * FROM test_data ORDER BY value DESC
    ```
 
+## Supported Experiments and Strategies
+
+All experiment strategies live in `src/vldb_experiments/strategies/` and are used by the scripts below.
+
+### Microbenchmarks (core operators)
+
+- **Strategy:** `MicrobenchmarkStrategy`
+- **Focus:** DFC overhead on SELECT/WHERE/JOIN/GROUP BY/ORDER BY
+- **Approaches:** no_policy, DFC, logical (CTE), physical (SmokedDuck lineage)
+- **Script:** `scripts/run_microbenchmarks.py`
+
+### Multi-Source Join-Chain
+
+- **Strategy:** `MultiSourceStrategy`
+- **Focus:** DFC overhead as source-count and join-count scale (join chain with grouped SUM)
+- **Approaches:** no_policy, DFC
+- **Script:** `scripts/run_multi_source_experiment.py`
+- **Visualization:** `scripts/generate_multi_source_visualizations.py`
+
+### TPC-H Baseline (selected queries)
+
+- **Strategy:** `TPCHStrategy`
+- **Focus:** DFC overhead on supported TPC-H queries (Q01, Q03, Q04, Q05, Q06, Q07, Q08, Q09, Q10, Q12, Q14, Q18, Q19)
+- **Approaches:** no_policy, DFC, logical (CTE)
+- **Script:** `scripts/run_tpch_experiments.py`
+
+### TPC-H Policy Count (single query)
+
+- **Strategy:** `TPCHPolicyCountStrategy`
+- **Focus:** DFC vs logical overhead as policy count scales for a single TPC-H query (default Q01)
+- **Approaches:** DFC, logical
+- **Script:** `scripts/run_tpch_policy_count_experiment.py`
+
+### TPC-H Policy Count (all supported queries)
+
+- **Strategy:** `TPCHPolicyCountAllQueriesStrategy`
+- **Focus:** Fixed policy count applied across all supported TPC-H queries
+- **Approaches:** no_policy, DFC, logical
+- **Script:** `scripts/run_tpch_policy_count_all_queries.py`
+
+### TPC-H Multi-Database Comparison
+
+- **Strategy:** `TPCHMultiDBStrategy`
+- **Focus:** DuckDB (no_policy/DFC/logical) vs external engines (no_policy only)
+- **External engines:** Umbra, Postgres, DataFusion, SQL Server (AWS) (configured via `--engine`)
+- **Script:** `scripts/run_tpch_multi_db.py`
+
 ## Building and Using SmokedDuck
 
 The physical baseline uses SmokedDuck (a DuckDB fork with lineage support). Since SmokedDuck cannot be installed via pip, we build it from source and install it directly into the virtual environment.
@@ -207,6 +254,41 @@ Outputs are written to `results/` as:
 - `multi_source_results_<label>.csv`
 - `multi_source_exec_time_<label>.png`
 - `multi_source_heatmap_<label>.png`
+
+### TPC-H Baseline Experiment
+
+Run the supported TPC-H query suite at one or more scale factors:
+```bash
+python scripts/run_tpch_experiments.py --sf 1 10
+```
+
+### TPC-H Policy Count Experiments
+
+Single-query policy count scaling (defaults to Q01):
+```bash
+python scripts/run_tpch_policy_count_experiment.py --sf 1 --query 1 --policy-counts 1 10 100 1000
+```
+
+Fixed policy count across all supported queries:
+```bash
+python scripts/run_tpch_policy_count_all_queries.py --sf 1 10 --policy-count 1000
+```
+
+### TPC-H Multi-Database Comparison
+
+Compare DuckDB baselines vs external engines (Umbra/Postgres/DataFusion/SQL Server):
+```bash
+python scripts/run_tpch_multi_db.py --sf 1 --suffix _umbra --engine umbra
+```
+
+SQL Server requires AWS setup; see `aws_setup.md`.
+
+**Notes:** SQLite takes ~hours to run TPC-H at sf=0.1, so it was removed from the multi-database comparison. ClickHouse was removed because we could not get it working within our local machine's RAM limits.
+
+### Utility Scripts
+
+- **Diff rewritten SQL:** `scripts/diff_policy_count_sql.py <policy_count>`
+- **SmokedDuck wrapper:** `scripts/run_microbenchmarks_with_smokedduck.sh`
 
 ## Linting and Tests
 

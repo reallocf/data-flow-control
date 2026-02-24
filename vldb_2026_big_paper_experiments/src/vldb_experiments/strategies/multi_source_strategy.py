@@ -7,6 +7,8 @@ import duckdb
 from experiment_harness import ExperimentContext, ExperimentResult, ExperimentStrategy
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
+from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck
+
 DEFAULT_SOURCE_COUNTS = [2, 4, 8, 16, 32]
 DEFAULT_JOIN_COUNTS = [2, 4, 8, 16, 32]
 DEFAULT_NUM_ROWS = 10_000
@@ -108,8 +110,9 @@ class MultiSourceStrategy(ExperimentStrategy):
 
         max_join_count = max(self.join_counts)
         max_table_count = max_join_count + 1
-        self.no_policy_conn = duckdb.connect(":memory:")
-        self.dfc_conn = duckdb.connect(":memory:")
+        self.local_duckdb = _ensure_smokedduck()
+        self.no_policy_conn = self.local_duckdb.connect(":memory:")
+        self.dfc_conn = self.local_duckdb.connect(":memory:")
 
         _setup_chain_tables(self.no_policy_conn, max_table_count, self.num_rows)
         _setup_chain_tables(self.dfc_conn, max_table_count, self.num_rows)
@@ -130,45 +133,27 @@ class MultiSourceStrategy(ExperimentStrategy):
         context.shared_state["join_counts"] = self.join_counts
         context.shared_state["warmup_per_setting"] = self.warmup_per_setting
         context.shared_state["runs_per_setting"] = self.runs_per_setting
-        context.shared_state["global_execution_index"] = 0
-        context.shared_state["valid_pairs"] = [
+        self.valid_pairs = [
             (join_count, source_count)
             for join_count in self.join_counts
             for source_count in self.source_counts
             if source_count <= join_count
         ]
+        context.shared_state["valid_pairs"] = self.valid_pairs
 
-    def _get_source_count_for_execution(
-        self,
-        context: ExperimentContext,
-    ) -> tuple[int, int, int | None, bool]:
-        valid_pairs = context.shared_state["valid_pairs"]
-        warmup_per_setting = context.shared_state["warmup_per_setting"]
-        runs_per_setting = context.shared_state["runs_per_setting"]
-        warmup_total = len(valid_pairs) * warmup_per_setting
-
-        global_index = context.shared_state["global_execution_index"] + 1
-        context.shared_state["global_execution_index"] = global_index
-
-        if global_index <= warmup_total:
-            setting_index = (global_index - 1) // warmup_per_setting
-            join_count, source_count = valid_pairs[setting_index]
-            return join_count, source_count, None, True
-
-        run_index = global_index - warmup_total - 1
-        setting_index = run_index // runs_per_setting
-        run_num = (run_index % runs_per_setting) + 1
-
-        join_count, source_count = valid_pairs[setting_index]
-        return join_count, source_count, run_num, False
+    def _setting_and_run_for_execution(self, execution_number: int) -> tuple[int, int, int]:
+        setting_index = (execution_number - 1) // self.runs_per_setting
+        run_num = ((execution_number - 1) % self.runs_per_setting) + 1
+        join_count, source_count = self.valid_pairs[setting_index]
+        return join_count, source_count, run_num
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
-        join_count, source_count, run_num, is_warmup = self._get_source_count_for_execution(context)
+        join_count, source_count, run_num = self._setting_and_run_for_execution(context.execution_number)
         table_count = join_count + 1
 
-        phase_label = "warmup" if is_warmup else f"run {run_num}"
+        phase_label = "warmup" if context.is_warmup else f"run {run_num}"
         print(
-            f"[Execution {context.shared_state['global_execution_index']}] "
+            f"[Execution {context.execution_number}] "
             f"multi-source sources={source_count} joins={join_count} ({phase_label})"
         )
 
@@ -185,7 +170,7 @@ class MultiSourceStrategy(ExperimentStrategy):
                 )
             self.dfc_rewriter.register_policy(policy)
         except Exception:
-            self.dfc_conn = duckdb.connect(":memory:")
+            self.dfc_conn = self.local_duckdb.connect(":memory:")
             _setup_chain_tables(self.dfc_conn, max(self.join_counts) + 1, self.num_rows)
             self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
             self.dfc_rewriter.register_policy(policy)
@@ -204,21 +189,40 @@ class MultiSourceStrategy(ExperimentStrategy):
             no_policy_error = str(exc)
 
         try:
-            dfc_rewrite_start = time.perf_counter()
-            dfc_transformed = self.dfc_rewriter.transform_query(query)
-            dfc_rewrite_time = (time.perf_counter() - dfc_rewrite_start) * 1000.0
-            dfc_exec_start = time.perf_counter()
-            dfc_results = self.dfc_conn.execute(dfc_transformed).fetchall()
-            dfc_exec_time = (time.perf_counter() - dfc_exec_start) * 1000.0
-            dfc_rows = len(dfc_results)
-            dfc_time = dfc_rewrite_time + dfc_exec_time
-            dfc_error = None
+            dfc_1phase_rewrite_start = time.perf_counter()
+            dfc_1phase_transformed = self.dfc_rewriter.transform_query(query)
+            dfc_1phase_rewrite_time = (time.perf_counter() - dfc_1phase_rewrite_start) * 1000.0
+            dfc_1phase_exec_start = time.perf_counter()
+            dfc_1phase_results = self.dfc_conn.execute(dfc_1phase_transformed).fetchall()
+            dfc_1phase_exec_time = (time.perf_counter() - dfc_1phase_exec_start) * 1000.0
+            dfc_1phase_rows = len(dfc_1phase_results)
+            dfc_1phase_time = dfc_1phase_rewrite_time + dfc_1phase_exec_time
+            dfc_1phase_error = None
         except Exception as exc:
-            dfc_rewrite_time = 0.0
-            dfc_exec_time = 0.0
-            dfc_time = 0.0
-            dfc_rows = 0
-            dfc_error = str(exc)
+            dfc_1phase_rewrite_time = 0.0
+            dfc_1phase_exec_time = 0.0
+            dfc_1phase_time = 0.0
+            dfc_1phase_results = []
+            dfc_1phase_rows = 0
+            dfc_1phase_error = str(exc)
+
+        try:
+            dfc_2phase_rewrite_start = time.perf_counter()
+            dfc_2phase_transformed = self.dfc_rewriter.transform_query(query, use_two_phase=True)
+            dfc_2phase_rewrite_time = (time.perf_counter() - dfc_2phase_rewrite_start) * 1000.0
+            dfc_2phase_exec_start = time.perf_counter()
+            dfc_2phase_results = self.dfc_conn.execute(dfc_2phase_transformed).fetchall()
+            dfc_2phase_exec_time = (time.perf_counter() - dfc_2phase_exec_start) * 1000.0
+            dfc_2phase_rows = len(dfc_2phase_results)
+            dfc_2phase_time = dfc_2phase_rewrite_time + dfc_2phase_exec_time
+            dfc_2phase_error = None
+        except Exception as exc:
+            dfc_2phase_rewrite_time = 0.0
+            dfc_2phase_exec_time = 0.0
+            dfc_2phase_time = 0.0
+            dfc_2phase_results = []
+            dfc_2phase_rows = 0
+            dfc_2phase_error = str(exc)
 
         total_time = (time.perf_counter() - total_start) * 1000.0
 
@@ -229,13 +233,18 @@ class MultiSourceStrategy(ExperimentStrategy):
             "run_num": run_num or 0,
             "num_rows": self.num_rows,
             "no_policy_exec_time_ms": no_policy_exec_time,
-            "dfc_time_ms": dfc_time,
-            "dfc_rewrite_time_ms": dfc_rewrite_time,
-            "dfc_exec_time_ms": dfc_exec_time,
+            "dfc_1phase_time_ms": dfc_1phase_time,
+            "dfc_1phase_rewrite_time_ms": dfc_1phase_rewrite_time,
+            "dfc_1phase_exec_time_ms": dfc_1phase_exec_time,
+            "dfc_2phase_time_ms": dfc_2phase_time,
+            "dfc_2phase_rewrite_time_ms": dfc_2phase_rewrite_time,
+            "dfc_2phase_exec_time_ms": dfc_2phase_exec_time,
             "no_policy_rows": no_policy_rows,
-            "dfc_rows": dfc_rows,
+            "dfc_1phase_rows": dfc_1phase_rows,
+            "dfc_2phase_rows": dfc_2phase_rows,
             "no_policy_error": no_policy_error or "",
-            "dfc_error": dfc_error or "",
+            "dfc_1phase_error": dfc_1phase_error or "",
+            "dfc_2phase_error": dfc_2phase_error or "",
         }
 
         return ExperimentResult(duration_ms=total_time, custom_metrics=custom_metrics)
@@ -256,11 +265,20 @@ class MultiSourceStrategy(ExperimentStrategy):
             "run_num",
             "num_rows",
             "no_policy_exec_time_ms",
-            "dfc_time_ms",
-            "dfc_rewrite_time_ms",
-            "dfc_exec_time_ms",
+            "dfc_1phase_time_ms",
+            "dfc_1phase_rewrite_time_ms",
+            "dfc_1phase_exec_time_ms",
+            "dfc_2phase_time_ms",
+            "dfc_2phase_rewrite_time_ms",
+            "dfc_2phase_exec_time_ms",
             "no_policy_rows",
-            "dfc_rows",
+            "dfc_1phase_rows",
+            "dfc_2phase_rows",
             "no_policy_error",
-            "dfc_error",
+            "dfc_1phase_error",
+            "dfc_2phase_error",
         ]
+
+    def get_setting_key(self, context: ExperimentContext) -> tuple[int, int]:
+        join_count, source_count, _ = self._setting_and_run_for_execution(context.execution_number)
+        return (join_count, source_count)

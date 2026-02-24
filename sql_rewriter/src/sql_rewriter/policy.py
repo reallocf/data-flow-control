@@ -16,6 +16,7 @@ class Resolution(Enum):
     REMOVE = "REMOVE"
     KILL = "KILL"
     INVALIDATE = "INVALIDATE"
+    INVALIDATE_MESSAGE = "INVALIDATE_MESSAGE"
     LLM = "LLM"
 
 
@@ -42,7 +43,8 @@ class DFCPolicy:
 
         Args:
             constraint: A SQL expression that must evaluate to true for the policy to pass.
-            on_fail: Action to take when the policy fails (REMOVE, KILL, INVALIDATE, or LLM).
+            on_fail: Action to take when the policy fails
+                (REMOVE, KILL, INVALIDATE, INVALIDATE_MESSAGE, or LLM).
             sources: List of source table names (use an empty list for no sources).
             sink: Optional sink table name.
             description: Optional description of the policy.
@@ -164,7 +166,8 @@ class DFCPolicy:
                     on_fail = Resolution(value.upper())
                 except ValueError as e:
                     raise ValueError(
-                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'INVALIDATE', or 'LLM'"
+                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', "
+                        f"'INVALIDATE', 'INVALIDATE_MESSAGE', or 'LLM'"
                     ) from e
             elif keyword == "DESCRIPTION":
                 description = value if value else None
@@ -581,7 +584,8 @@ class AggregateDFCPolicy:
                     on_fail = Resolution(value.upper())
                 except ValueError as e:
                     raise ValueError(
-                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', 'INVALIDATE', or 'LLM'"
+                        f"Invalid ON FAIL value '{value}'. Must be 'REMOVE', 'KILL', "
+                        f"'INVALIDATE', 'INVALIDATE_MESSAGE', or 'LLM'"
                     ) from e
             elif keyword == "DESCRIPTION":
                 description = value if value else None

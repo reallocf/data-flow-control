@@ -11,9 +11,13 @@ uv sync
 
 
 download sources
-powershell (run inside tax\_rag):
+windows powershell (run inside tax\_rag):
 Invoke-WebRequest -Uri "https://www.govinfo.gov/bulkdata/ECFR/title-26/ECFR-title26.xml" -OutFile "ECFR-title26.xml"
 Invoke-WebRequest -Uri "https://www.govinfo.gov/content/pkg/USCODE-2023-title26/html/USCODE-2023-title26.htm" -OutFile "USCODE-2023-title26.htm"
+
+unix/mac (run inside tax\_rag):
+curl -L -o ECFR-title26.xml "https://www.govinfo.gov/bulkdata/ECFR/title-26/ECFR-title26.xml"
+curl -L -o USCODE-2023-title26.htm "https://www.govinfo.gov/content/pkg/USCODE-2023-title26/html/USCODE-2023-title26.htm"
 
 
 

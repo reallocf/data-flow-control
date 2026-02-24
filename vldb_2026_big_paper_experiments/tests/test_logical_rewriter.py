@@ -1,12 +1,12 @@
 """Test cases for logical rewriter (CTE-based baseline)."""
 
-import duckdb
 import pytest
 from sql_rewriter import DFCPolicy, Resolution
 
 from vldb_experiments.baselines.logical_baseline import rewrite_query_logical
 from vldb_experiments.data_setup import setup_test_data
 from vldb_experiments.policy_setup import create_test_policy
+from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck
 
 
 class TestLogicalRewriter:
@@ -15,7 +15,7 @@ class TestLogicalRewriter:
     @pytest.fixture
     def conn(cls):
         """Create a test database connection with test data."""
-        conn = duckdb.connect(":memory:")
+        conn = _ensure_smokedduck().connect(":memory:")
         setup_test_data(conn, num_rows=1000)
         yield conn
         conn.close()
@@ -113,7 +113,7 @@ class TestLogicalRewriterWithDifferentPolicies:
     @pytest.fixture
     def conn(cls):
         """Create a test database connection with test data."""
-        conn = duckdb.connect(":memory:")
+        conn = _ensure_smokedduck().connect(":memory:")
         setup_test_data(conn, num_rows=1000)
         yield conn
         conn.close()

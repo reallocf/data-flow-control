@@ -15,6 +15,7 @@ class ExperimentContext:
     """Context object passed to experiment strategy methods."""
 
     execution_number: int = 0
+    is_warmup: bool = False
     database_connection: Any | None = None
     strategy_config: dict[str, Any] | None = None
     shared_state: dict[str, Any] = field(default_factory=dict)
@@ -58,6 +59,21 @@ class ExperimentStrategy(ABC):
             context: Experiment context with database connection, system config, etc.
         """
         _ = _context
+
+    def get_setting_key(self, _context: ExperimentContext) -> Any | None:
+        """Return the setting key for the current execution.
+
+        Strategies can override this to enable per-setting warmup execution order
+        in the runner. The return value must be hashable.
+
+        Args:
+            _context: Experiment context with execution_number set.
+
+        Returns:
+            Hashable setting key for current execution, or None if unsupported.
+        """
+        _ = _context
+        return None
 
     def get_metrics(self) -> list[str]:
         """Return list of custom metric names this strategy collects.
