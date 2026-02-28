@@ -8,6 +8,13 @@ from shared_sql_utils import combine_constraints_balanced
 
 SUPPORTED_POLICY_COUNTS = (
     1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64,
+    128,
     10,
     100,
     256,
