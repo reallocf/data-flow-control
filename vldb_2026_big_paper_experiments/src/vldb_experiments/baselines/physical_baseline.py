@@ -356,7 +356,9 @@ def _execute_query_physical_impl(
         # Follow lineage API flow: disable capture before reading lineage metadata.
         disable_lineage(conn)
 
-        query_id_row = conn.execute("SELECT MAX(query_id) FROM lineage_meta()").fetchone()
+        query_id_row = conn.execute(
+            "SELECT query_id FROM lineage_meta() ORDER BY query_id DESC LIMIT 1"
+        ).fetchone()
         query_id = query_id_row[0] if query_id_row else None
         if query_id is None:
             raise RuntimeError("Failed to resolve query_id from lineage_meta()")
@@ -441,6 +443,86 @@ def execute_query_physical_detailed(
     policy: "DFCPolicy | list[DFCPolicy]",
 ) -> tuple[list[Any], dict[str, float], Optional[str], Optional[str], Optional[str]]:
     return _execute_query_physical_impl(conn, query, policy)
+
+
+def execute_precomputed_query_physical_detailed(
+    conn: duckdb.DuckDBPyConnection,
+    base_query: str,
+    filter_query_template: str,
+    policy_source: str,
+) -> tuple[list[Any], dict[str, float], Optional[str], Optional[str], Optional[str]]:
+    """Execute a physical-baseline query with precomputed SQL templates.
+
+    This bypasses runtime query rewriting. `filter_query_template` must accept
+    `{temp_table_name}` and `{lineage_query}` placeholders.
+    """
+    is_smokedduck_available()
+
+    try:
+        enable_lineage(conn)
+        with contextlib.suppress(Exception):
+            conn.execute("PRAGMA clear_lineage")
+        enable_lineage(conn)
+
+        base_query_sql = base_query.rstrip().rstrip(";")
+
+        total_start = time.perf_counter()
+        base_capture_start = time.perf_counter()
+        cursor = conn.execute(base_query_sql)
+        base_results = cursor.fetchall()
+        base_capture_time = (time.perf_counter() - base_capture_start) * 1000.0
+
+        column_names = [desc[0] for desc in cursor.description] if cursor.description else []
+
+        disable_lineage(conn)
+
+        query_id_row = conn.execute(
+            "SELECT query_id FROM lineage_meta() ORDER BY query_id DESC LIMIT 1"
+        ).fetchone()
+        query_id = query_id_row[0] if query_id_row else None
+        if query_id is None:
+            raise RuntimeError("Failed to resolve query_id from lineage_meta()")
+        conn.execute(f"PRAGMA PrepareLineage({query_id})")
+
+        import uuid
+
+        temp_table_name = f"query_results_{uuid.uuid4().hex[:8]}"
+
+        if base_results:
+            conn.execute(f"CREATE TEMP TABLE {temp_table_name} AS SELECT * FROM ({base_query_sql}) LIMIT 0")
+            placeholders = ", ".join(["?"] * len(column_names))
+            conn.executemany(f"INSERT INTO {temp_table_name} VALUES ({placeholders})", base_results)
+
+        lineage_query = build_lineage_query(conn, policy_source, query_id)
+        filtered_results = []
+        lineage_query_time = 0.0
+        filter_query_sql = filter_query_template.format(
+            temp_table_name=temp_table_name,
+            lineage_query=lineage_query,
+        )
+        if base_results:
+            lineage_query_start = time.perf_counter()
+            filtered_cursor = conn.execute(filter_query_sql)
+            filtered_results = filtered_cursor.fetchall()
+            lineage_query_time = (time.perf_counter() - lineage_query_start) * 1000.0
+
+        total_time = (time.perf_counter() - total_start) * 1000.0
+
+        with contextlib.suppress(Exception):
+            conn.execute(f"DROP TABLE IF EXISTS {temp_table_name}")
+        with contextlib.suppress(Exception):
+            conn.execute(f"DROP TEMP TABLE IF EXISTS {temp_table_name}")
+
+        timing = {
+            "rewrite_time_ms": 0.0,
+            "base_capture_time_ms": base_capture_time,
+            "lineage_query_time_ms": lineage_query_time,
+            "runtime_time_ms": base_capture_time + lineage_query_time,
+            "total_time_ms": total_time,
+        }
+        return filtered_results, timing, None, base_query_sql, filter_query_sql
+    except Exception as e:
+        return [], {}, str(e), None, None
 
 
 def execute_query_physical_simple(conn: duckdb.DuckDBPyConnection, query: str, policy: DFCPolicy) -> tuple[list[Any], float, Optional[str]]:

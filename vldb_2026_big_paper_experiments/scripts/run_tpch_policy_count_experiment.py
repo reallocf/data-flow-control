@@ -6,13 +6,17 @@ from pathlib import Path
 import sys
 
 project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "src"))
+sys.path.insert(0, str(project_root / "src" / "vldb_experiments" / "strategies"))
 
 from experiment_harness import ExperimentConfig, ExperimentRunner  # noqa: E402
+from tpch_policy_count_optimized_strategy import (  # noqa: E402
+    TPCHPolicyCountOptimizedStrategy,
+)
+from tpch_policy_count_strategy import TPCHPolicyCountStrategy  # noqa: E402
 
-from vldb_experiments import TPCHPolicyCountStrategy  # noqa: E402
-
-DEFAULT_POLICY_COUNTS = [1, 10, 100, 1000]
+DEFAULT_POLICY_COUNTS = [256, 512, 1024, 2048]
 DEFAULT_WARMUP_PER_POLICY = 1
 DEFAULT_RUNS_PER_POLICY = 5
 
@@ -36,7 +40,7 @@ def main() -> int:
         type=int,
         nargs="+",
         default=DEFAULT_POLICY_COUNTS,
-        help="Policy counts to test (default: 1 10 100 1000)",
+        help="Policy counts to test (default: 256 512 1024 2048)",
     )
     parser.add_argument(
         "--runs-per-policy",
@@ -49,6 +53,11 @@ def main() -> int:
         type=int,
         default=DEFAULT_WARMUP_PER_POLICY,
         help="Number of warmup runs per policy count (default: 1)",
+    )
+    parser.add_argument(
+        "--optimized",
+        action="store_true",
+        help="Run the optimized policy-count strategy instead of the baseline one.",
     )
     args = parser.parse_args()
 
@@ -64,10 +73,12 @@ def main() -> int:
     print(f"  Policy counts: {policy_counts}")
     print(f"  Warmup runs per setting: {warmup_per_policy}")
     print(f"  Measured runs: {num_executions} ({runs_per_policy} per policy count)")
-    print("  Approaches: DFC, Logical, Physical")
+    print("  Approaches: 1Phase, 1Phase Optimized")
+    print(f"  Optimized strategy: {args.optimized}")
 
-    db_path = f"./results/tpch_q01_policy_count_sf{args.sf}.db"
-    output_filename = f"tpch_q{args.query:02d}_policy_count_sf{args.sf}.csv"
+    output_suffix = "_optimized" if args.optimized else ""
+    db_path = f"./results/tpch_q01_policy_count{output_suffix}_sf{args.sf}.db"
+    output_filename = f"tpch_q{args.query:02d}_policy_count_sf{args.sf}{output_suffix}.csv"
 
     config = ExperimentConfig(
         num_executions=num_executions,
@@ -90,7 +101,7 @@ def main() -> int:
         verbose=True,
     )
 
-    strategy = TPCHPolicyCountStrategy()
+    strategy = TPCHPolicyCountOptimizedStrategy() if args.optimized else TPCHPolicyCountStrategy()
     runner = ExperimentRunner(strategy, config)
 
     print("Starting experiments...", flush=True)

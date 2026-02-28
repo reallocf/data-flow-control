@@ -7,6 +7,7 @@ import matplotlib
 
 matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 import pandas as pd
 from sklearn.metrics import f1_score
 
@@ -1143,14 +1144,18 @@ def create_policy_count_chart(
     output_filename: str = "tpch_q01_policy_count.png",
 ) -> Optional[plt.Figure]:
     """Create a line chart for TPC-H Q01 policy count experiment."""
-    required_cols = {"policy_count", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}
+    required_cols = {"policy_count", "dfc_1phase_exec_time_ms"}
     if not required_cols.issubset(df.columns):
         print("Missing required columns for policy count chart.")
         return None
 
-    plot_cols = ["policy_count", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"]
+    plot_cols = ["policy_count", "dfc_1phase_exec_time_ms"]
+    if "dfc_1phase_optimized_exec_time_ms" in df.columns:
+        plot_cols.append("dfc_1phase_optimized_exec_time_ms")
     if "dfc_2phase_exec_time_ms" in df.columns:
         plot_cols.append("dfc_2phase_exec_time_ms")
+    if "logical_exec_time_ms" in df.columns:
+        plot_cols.append("logical_exec_time_ms")
     if "physical_exec_time_ms" in df.columns:
         plot_cols.append("physical_exec_time_ms")
     plot_df = df[plot_cols].copy()
@@ -1173,6 +1178,16 @@ def create_policy_count_chart(
         label="1Phase",
         color="#ff7f0e",
     )
+    if "dfc_1phase_optimized_exec_time_ms" in grouped.columns:
+        ax.plot(
+            grouped.index,
+            grouped["dfc_1phase_optimized_exec_time_ms"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label="1Phase Optimized",
+            color="#8c564b",
+        )
     if "dfc_2phase_exec_time_ms" in grouped.columns:
         ax.plot(
             grouped.index,
@@ -1183,15 +1198,16 @@ def create_policy_count_chart(
             label="2Phase",
             color="#9467bd",
         )
-    ax.plot(
-        grouped.index,
-        grouped["logical_exec_time_ms"],
-        marker="o",
-        linewidth=2,
-        markersize=6,
-        label="Logical",
-        color="#2ca02c",
-    )
+    if "logical_exec_time_ms" in grouped.columns:
+        ax.plot(
+            grouped.index,
+            grouped["logical_exec_time_ms"],
+            marker="o",
+            linewidth=2,
+            markersize=6,
+            label="Logical",
+            color="#2ca02c",
+        )
     if "physical_exec_time_ms" in grouped.columns:
         ax.plot(
             grouped.index,
@@ -1219,12 +1235,98 @@ def create_policy_count_chart(
     else:
         ax.set_title("TPC-H Execution Time vs Policy Count", fontsize=14, fontweight="bold")
     ax.set_xscale("log")
+    y_formatter = ScalarFormatter(useOffset=False)
+    y_formatter.set_scientific(False)
+    ax.yaxis.set_major_formatter(y_formatter)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="best", fontsize=10)
 
     plt.tight_layout()
     if output_filename == "tpch_q01_policy_count.png" and query_label:
         output_filename = f"tpch_{query_label.lower()}_policy_count.png"
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved chart to {output_path}")
+    return fig
+
+
+def create_tpch_self_join_chart(
+    df: pd.DataFrame,
+    output_dir: str = "./results",
+    output_filename: str = "tpch_q01_self_join_policy.png",
+) -> Optional[plt.Figure]:
+    """Create a percent-overhead chart for the TPC-H Q01 self-join experiment."""
+    required_cols = {
+        "self_join_count",
+        "no_policy_time_ms",
+        "dfc_1phase_time_ms",
+        "dfc_1phase_optimized_time_ms",
+    }
+    if not required_cols.issubset(df.columns):
+        print("Missing required columns for TPC-H self-join chart.")
+        return None
+
+    plot_df = df[
+        [
+            "self_join_count",
+            "no_policy_time_ms",
+            "dfc_1phase_time_ms",
+            "dfc_1phase_optimized_time_ms",
+        ]
+    ].copy()
+    plot_df = plot_df.dropna(subset=["self_join_count"])
+    grouped = plot_df.groupby("self_join_count", as_index=True).mean(numeric_only=True)
+    grouped = grouped.sort_index()
+
+    if grouped.empty:
+        print("No data available for TPC-H self-join chart.")
+        return None
+
+    baseline = grouped["no_policy_time_ms"]
+    grouped["dfc_1phase_overhead_pct"] = (
+        (grouped["dfc_1phase_time_ms"] - baseline) / baseline
+    ) * 100.0
+    grouped["dfc_1phase_optimized_overhead_pct"] = (
+        (grouped["dfc_1phase_optimized_time_ms"] - baseline) / baseline
+    ) * 100.0
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.plot(
+        grouped.index,
+        grouped["dfc_1phase_overhead_pct"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="1Phase",
+        color="#ff7f0e",
+    )
+    ax.plot(
+        grouped.index,
+        grouped["dfc_1phase_optimized_overhead_pct"],
+        marker="o",
+        linewidth=2,
+        markersize=6,
+        label="1Phase Optimized",
+        color="#8c564b",
+    )
+
+    ax.set_xlabel("Number of Self-Joins", fontsize=12)
+    ax.set_ylabel("Overhead Relative to No Policy (%)", fontsize=12)
+    ax.set_title(
+        "TPC-H Q01 Self-Join Policy Overhead",
+        fontsize=14,
+        fontweight="bold",
+    )
+    ax.set_xscale("log")
+    ax.set_ylim(bottom=0)
+    y_formatter = ScalarFormatter(useOffset=False)
+    y_formatter.set_scientific(False)
+    ax.yaxis.set_major_formatter(y_formatter)
+    ax.grid(True, alpha=0.3)
+    ax.legend(loc="best", fontsize=10)
+
+    plt.tight_layout()
     output_path = Path(output_dir) / output_filename
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
     plt.close(fig)
