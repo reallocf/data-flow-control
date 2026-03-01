@@ -13,14 +13,12 @@ from vldb_experiments.baselines.logical_baseline import (
 from vldb_experiments.baselines.physical_baseline import execute_query_physical_detailed
 from vldb_experiments.correctness import compare_results_exact
 from vldb_experiments.data_setup import (
+    setup_join_data_only,
     setup_test_data,
-    setup_test_data_with_groups,
     setup_test_data_with_join_group_by,
-    setup_test_data_with_join_matches,
 )
 from vldb_experiments.policy_setup import create_test_policies
 from vldb_experiments.query_definitions import get_query_definitions, get_query_order
-from vldb_experiments.variations import generate_variation_parameters
 
 # SmokedDuck is REQUIRED for physical baseline
 # Only set up when actually needed (lazy import to allow testing without SmokedDuck)
@@ -77,6 +75,10 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         self.base_num_rows = 10_000_000
         self._policy_cache: dict[tuple[str, int], list] = {}
         self._active_policy_signature: tuple[str, int] | None = None
+        self.execution_plan: list[dict] = []
+        self._join_match_values = [100, 1000, 10000, 100000]
+        self._simple_agg_num_rows_values = [1_000, 10_000, 100_000, 1_000_000]
+        self._group_by_num_groups_values = [10, 100, 1000, 10000]
 
     def _get_policies(self, signature: str, threshold: int | None = None) -> list:
         cache_key = (signature, self.policy_count)
@@ -117,12 +119,132 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
     def _physical_supported_for_query(self, query_type: str) -> bool:
         """Return whether the physical baseline is supported for this query type."""
-        return query_type in {"GROUP_BY", "JOIN_GROUP_BY"}
+        return query_type in {"JOIN", "SIMPLE_AGG", "GROUP_BY", "JOIN_GROUP_BY"}
 
     def _configure_connection(self, conn) -> None:
         """Apply per-connection settings required by large generated queries."""
         with contextlib.suppress(Exception):
             conn.execute("SET max_expression_depth TO 20000")
+
+    def _benchmark_connections(self) -> list:
+        """Return unique active benchmark connections."""
+        connections = []
+        seen = set()
+        for conn in [
+            getattr(self, "no_policy_conn", None),
+            getattr(self, "dfc_conn", None),
+            getattr(self, "logical_conn", None),
+            getattr(self, "physical_conn", None),
+        ]:
+            if conn is None:
+                continue
+            conn_id = id(conn)
+            if conn_id in seen:
+                continue
+            seen.add(conn_id)
+            connections.append(conn)
+        return connections
+
+    def _variation_parameters_for(
+        self,
+        query_type: str,
+        variation_index: int,
+        run_index: int,
+    ) -> dict:
+        """Generate variation parameters for a specific setting and run."""
+        variation_num = variation_index + 1
+        run_num = run_index + 1
+
+        if query_type in ["SELECT", "WHERE", "ORDER_BY"]:
+            rows_to_remove_values = [0, 1_000_000, 2_000_000, 4_000_000, 8_000_000]
+            rows_to_remove = rows_to_remove_values[variation_index]
+            policy_threshold = rows_to_remove if rows_to_remove > 0 else 0
+            return {
+                "variation_type": "policy_threshold",
+                "rows_to_remove": rows_to_remove,
+                "policy_threshold": policy_threshold,
+                "variation_index": variation_index,
+                "variation_num": variation_num,
+                "run_index": run_index,
+                "run_num": run_num,
+            }
+
+        if query_type == "JOIN":
+            return {
+                "variation_type": "join_matches",
+                "join_matches": self._join_match_values[variation_index],
+                "variation_index": variation_index,
+                "variation_num": variation_num,
+                "run_index": run_index,
+                "run_num": run_num,
+            }
+
+        if query_type == "GROUP_BY":
+            return {
+                "variation_type": "num_groups",
+                "num_groups": self._group_by_num_groups_values[variation_index],
+                "variation_index": variation_index,
+                "variation_num": variation_num,
+                "run_index": run_index,
+                "run_num": run_num,
+            }
+
+        if query_type == "SIMPLE_AGG":
+            return {
+                "variation_type": "num_rows",
+                "num_rows": self._simple_agg_num_rows_values[variation_index],
+                "variation_index": variation_index,
+                "variation_num": variation_num,
+                "run_index": run_index,
+                "run_num": run_num,
+            }
+
+        if query_type == "JOIN_GROUP_BY":
+            join_count_values = [16, 32, 64, 128]
+            return {
+                "variation_type": "join_count",
+                "join_count": join_count_values[variation_index],
+                "variation_index": variation_index,
+                "variation_num": variation_num,
+                "run_index": run_index,
+                "run_num": run_num,
+            }
+
+        return {
+            "variation_type": "none",
+            "variation_index": variation_index,
+            "variation_num": variation_num,
+            "run_index": run_index,
+            "run_num": run_num,
+        }
+
+    def _build_execution_plan(self, query_order: list[str]) -> list[dict]:
+        """Build an execution plan grouped by setting, then run number."""
+        plan = []
+        for query_type in query_order:
+            for variation_index in range(self.num_variations):
+                for run_index in range(self.num_runs_per_variation):
+                    plan.append(
+                        {
+                            "query_type": query_type,
+                            "variation_params": self._variation_parameters_for(
+                                query_type,
+                                variation_index,
+                                run_index,
+                            ),
+                        }
+                    )
+        return plan
+
+    def _plan_entry(self, context: ExperimentContext) -> dict:
+        """Return the execution-plan entry for the current execution number."""
+        plan_index = context.execution_number - 1
+        if plan_index < 0 or plan_index >= len(self.execution_plan):
+            raise IndexError(
+                f"Execution number {context.execution_number} is out of bounds for "
+                f"execution plan of size {len(self.execution_plan)}"
+            )
+        return self.execution_plan[plan_index]
 
     def _build_join_group_by_query(self, join_count: int) -> str:
         """Build a JOIN->GROUP_BY query with the requested number of joins."""
@@ -143,6 +265,30 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         """
         return " ".join(query.split())
 
+    def _build_join_query(self, join_matches: int) -> str:
+        """Build a JOIN query against a prebuilt join-data table."""
+        return (
+            "SELECT test_data.id, other.value "
+            "FROM test_data "
+            f"JOIN join_data_{join_matches} other ON test_data.id = other.id"
+        )
+
+    def _build_simple_agg_query(self, num_rows: int) -> str:
+        """Build a SIMPLE_AGG query over a prefix of the base table."""
+        return f"SELECT SUM(amount) FROM test_data WHERE id <= {num_rows}"
+
+    def _build_group_by_query(self, num_groups: int) -> str:
+        """Build a GROUP_BY query with synthetic grouping over the base table."""
+        return (
+            "SELECT "
+            f"CAST(((id - 1) % {num_groups}) AS VARCHAR) AS category, "
+            "COUNT(*), "
+            "SUM(amount) "
+            "FROM test_data "
+            f"WHERE id <= {min(self.base_num_rows, 1_000_000)} "
+            f"GROUP BY CAST(((id - 1) % {num_groups}) AS VARCHAR)"
+        )
+
     def setup(self, context: ExperimentContext) -> None:
         """Set up test data and rewriter instances.
 
@@ -161,40 +307,26 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         )
         # Use locally built SmokedDuck DuckDB for all benchmark connections.
         self.local_duckdb = _ensure_smokedduck()
-        local_duckdb = self.local_duckdb if self._physical_enabled_for_run else None
+        # Use a single shared SmokedDuck connection for all approaches so large
+        # benchmark tables are populated once instead of once per approach.
+        self.shared_conn = self.local_duckdb.connect(":memory:")
+        self.no_policy_conn = self.shared_conn
+        self.dfc_conn = self.shared_conn
+        self.logical_conn = self.shared_conn
+        self.physical_conn = self.shared_conn if self._physical_enabled_for_run else None
 
-        # Use the connection from context to set up data
-        # But create separate connections for each rewriter to avoid UDF conflicts
-        main_conn = context.database_connection
-        if main_conn is None:
-            raise ValueError("Database connection required in context")
-
-        # Set up fixed test data on the main connection
-        setup_test_data(main_conn, num_rows=self.base_num_rows)
-
-        # Create separate connections for each approach to avoid conflicts
-        # Use local DuckDB for physical connection (SmokedDuck build)
-        self.no_policy_conn = self.local_duckdb.connect(":memory:")
-        self.dfc_conn = self.local_duckdb.connect(":memory:")
-        self.logical_conn = self.local_duckdb.connect(":memory:")
-        self.physical_conn = local_duckdb.connect(":memory:") if local_duckdb else None
-
-        # Set up data in each connection
-        setup_test_data(self.no_policy_conn, num_rows=self.base_num_rows)
-        setup_test_data(self.dfc_conn, num_rows=self.base_num_rows)
-        setup_test_data(self.logical_conn, num_rows=self.base_num_rows)
-        if self.physical_conn is not None:
-            setup_test_data(self.physical_conn, num_rows=self.base_num_rows)
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
-            if conn is None:
-                continue
-            self._configure_connection(conn)
+        setup_test_data(self.shared_conn, num_rows=self.base_num_rows)
+        for join_matches in self._join_match_values:
+            setup_join_data_only(
+                self.shared_conn,
+                join_matches=join_matches,
+                table_name=f"join_data_{join_matches}",
+            )
+        self._configure_connection(self.shared_conn)
 
         # Commit any transactions before creating rewriters (needed for SmokedDuck lineage)
         # DuckDB auto-commits, but SmokedDuck lineage may leave transactions open
-        for conn in [self.no_policy_conn, self.dfc_conn, self.logical_conn, self.physical_conn]:
-            if conn is None:
-                continue
+        for conn in self._benchmark_connections():
             try:
                 # Try to commit using SQL
                 conn.execute("COMMIT")
@@ -216,6 +348,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         context.shared_state["queries"] = get_query_definitions()
         context.shared_state["query_order"] = query_order
         context.shared_state["current_query_index"] = 0
+        self.execution_plan = self._build_execution_plan(query_order)
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
         """Execute microbenchmark for current query with all four approaches.
@@ -227,23 +360,10 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             ExperimentResult with timing and performance metrics for all approaches
         """
         queries = context.shared_state["queries"]
-        query_order = context.shared_state["query_order"]
-
-        # Determine which query to run based on execution number
-        # Each execution tests one query type
-        query_index = (context.execution_number - 1) % len(query_order)
-        query_type = query_order[query_index]
+        plan_entry = self._plan_entry(context)
+        query_type = plan_entry["query_type"]
         query = queries[query_type]
-
-        # Generate variation parameters for this execution
-        # Structure: 4 variations x 5 runs = 20 executions per query type
-        variation_params = generate_variation_parameters(
-            query_type=query_type,
-            execution_number=context.execution_number,
-            num_variations=self.num_variations,
-            num_runs_per_variation=self.num_runs_per_variation,
-            num_query_types=len(query_order)
-        )
+        variation_params = plan_entry["variation_params"]
 
         # Print execution details for logging
         variation_info = ""
@@ -274,132 +394,54 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         elif query_type == "SIMPLE_AGG":
             # Vary input rows for simple aggregation benchmark.
             num_rows = variation_params["num_rows"]
-            if context.is_warmup:
-                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                    if conn is None:
-                        continue
-                    with contextlib.suppress(Exception):
-                        conn.execute("DROP TABLE IF EXISTS test_data")
-                    setup_test_data(conn, num_rows=num_rows)
+            query = self._build_simple_agg_query(num_rows)
             # Keep default policy fixed; with these row counts it should pass.
             policies = self._get_policies("default")
-            try:
-                self._ensure_policies(("default", 0), policies)
-            except Exception:
-                self.dfc_conn = self.local_duckdb.connect(":memory:")
-                self._configure_connection(self.dfc_conn)
-                setup_test_data(self.dfc_conn, num_rows=num_rows)
-                self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self._active_policy_signature = None
-                self._ensure_policies(("default", 0), policies)
+            self._ensure_policies(("default", 0), policies)
 
         elif query_type == "JOIN":
             # Vary join matches - regenerate data
             join_matches = variation_params["join_matches"]
-            if context.is_warmup:
-                # Drop and recreate tables with new data
-                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                    if conn is None:
-                        continue
-                    with contextlib.suppress(Exception):
-                        conn.execute("DROP TABLE IF EXISTS test_data")
-                    with contextlib.suppress(Exception):
-                        conn.execute("DROP TABLE IF EXISTS join_data")
-                    setup_test_data_with_join_matches(conn, num_rows=1_000_000, join_matches=join_matches)
+            query = self._build_join_query(join_matches)
             # Use default policies for JOIN
             policies = self._get_policies("default")
-            # Delete old policies
-            try:
-                self._ensure_policies(("default", 0), policies)
-            except Exception:
-                # If rewriter/connection is broken, recreate it
-                self.dfc_conn = self.local_duckdb.connect(":memory:")
-                self._configure_connection(self.dfc_conn)
-                with contextlib.suppress(Exception):
-                    self.dfc_conn.execute("DROP TABLE IF EXISTS join_data")
-                setup_test_data_with_join_matches(self.dfc_conn, num_rows=1_000_000, join_matches=join_matches)
-                self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self._active_policy_signature = None
-                self._ensure_policies(("default", 0), policies)
+            self._ensure_policies(("default", 0), policies)
 
         elif query_type == "GROUP_BY":
             # Vary number of groups - regenerate data
             num_groups = variation_params["num_groups"]
-            if context.is_warmup:
-                # Drop and recreate tables with new data
-                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                    if conn is None:
-                        continue
-                    with contextlib.suppress(Exception):
-                        conn.execute("DROP TABLE IF EXISTS test_data")
-                    setup_test_data_with_groups(conn, num_rows=1_000_000, num_groups=num_groups)
+            query = self._build_group_by_query(num_groups)
             # Use default policies for GROUP_BY
             policies = self._get_policies("default")
-            # Delete old policies
-            try:
-                self._ensure_policies(("default", 0), policies)
-            except Exception:
-                # If rewriter/connection is broken, recreate it
-                self.dfc_conn = self.local_duckdb.connect(":memory:")
-                self._configure_connection(self.dfc_conn)
-                setup_test_data_with_groups(self.dfc_conn, num_rows=1_000_000, num_groups=num_groups)
-                self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self._active_policy_signature = None
-                self._ensure_policies(("default", 0), policies)
+            self._ensure_policies(("default", 0), policies)
 
         elif query_type == "JOIN_GROUP_BY":
             join_count = variation_params["join_count"]
             query = self._build_join_group_by_query(join_count)
             if context.is_warmup:
                 drop_join_limit = max(self._max_join_group_by_count_seen, join_count)
-                for conn in [no_policy_conn, self.dfc_conn, logical_conn, physical_conn]:
-                    if conn is None:
-                        continue
+                with contextlib.suppress(Exception):
+                    self.dfc_conn.execute("DROP TABLE IF EXISTS test_data")
+                for idx in range(1, drop_join_limit + 1):
                     with contextlib.suppress(Exception):
-                        conn.execute("DROP TABLE IF EXISTS test_data")
-                    for idx in range(1, drop_join_limit + 1):
-                        with contextlib.suppress(Exception):
-                            conn.execute(f"DROP TABLE IF EXISTS join_data_{idx}")
-                    setup_test_data_with_join_group_by(
-                        conn=conn,
-                        join_count=join_count,
-                        num_rows=1_000,
-                    )
-                    self._configure_connection(conn)
+                        self.dfc_conn.execute(f"DROP TABLE IF EXISTS join_data_{idx}")
+                self._reset_shared_connection(
+                    setup_test_data_with_join_group_by,
+                    join_count=join_count,
+                    num_rows=1_000,
+                )
                 self._max_join_group_by_count_seen = max(
                     self._max_join_group_by_count_seen,
                     join_count,
                 )
 
             policies = self._get_policies("default")
-            try:
-                self._ensure_policies(("default", 0), policies)
-            except Exception:
-                self.dfc_conn = self.local_duckdb.connect(":memory:")
-                self._configure_connection(self.dfc_conn)
-                setup_test_data_with_join_group_by(
-                    conn=self.dfc_conn,
-                    join_count=join_count,
-                    num_rows=1_000,
-                )
-                self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self._active_policy_signature = None
-                self._ensure_policies(("default", 0), policies)
+            self._ensure_policies(("default", 0), policies)
 
         else:
             # Default policy
             policies = self._get_policies("default")
-            # Delete old policies
-            try:
-                self._ensure_policies(("default", 0), policies)
-            except Exception:
-                # If rewriter/connection is broken, recreate it
-                self.dfc_conn = self.local_duckdb.connect(":memory:")
-                self._configure_connection(self.dfc_conn)
-                setup_test_data(self.dfc_conn, num_rows=self.base_num_rows)
-                self.dfc_rewriter = SQLRewriter(conn=self.dfc_conn)
-                self._active_policy_signature = None
-                self._ensure_policies(("default", 0), policies)
+            self._ensure_policies(("default", 0), policies)
 
         # 0. Run no_policy baseline (original query without any policy)
         no_policy_start = time.perf_counter()
@@ -660,12 +702,8 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         """
         # Close DFC rewriter and its connection
         if hasattr(self, "dfc_rewriter"):
-            self.dfc_rewriter.close()
-        # Close all connections
-        for conn_name in ["no_policy_conn", "dfc_conn", "logical_conn", "physical_conn"]:
-            if hasattr(self, conn_name):
-                with contextlib.suppress(Exception):
-                    getattr(self, conn_name).close()
+            with contextlib.suppress(Exception):
+                self.dfc_rewriter.close()
 
     def get_metrics(self) -> list:
         """Return list of custom metric names.
@@ -718,16 +756,9 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
     def get_setting_key(self, context: ExperimentContext) -> tuple:
         """Group warmups/runs by query variation setting."""
-        query_order = context.shared_state.get("query_order", self.query_types or get_query_order())
-        query_index = (context.execution_number - 1) % len(query_order)
-        query_type = query_order[query_index]
-        variation_params = generate_variation_parameters(
-            query_type=query_type,
-            execution_number=context.execution_number,
-            num_variations=self.num_variations,
-            num_runs_per_variation=self.num_runs_per_variation,
-            num_query_types=len(query_order),
-        )
+        plan_entry = self._plan_entry(context)
+        query_type = plan_entry["query_type"]
+        variation_params = plan_entry["variation_params"]
         return (
             query_type,
             variation_params.get("variation_type"),

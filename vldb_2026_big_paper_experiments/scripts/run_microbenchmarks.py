@@ -87,9 +87,16 @@ def main():
     print("  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
     print(f"  Policy count: {args.policy_count}")
     print("  Variations:")
-    print("    - SELECT/WHERE/ORDER_BY: Vary policy threshold (zipfian, 4 values)")
-    print("    - JOIN: Vary join matches (zipfian, 4 values)")
-    print("    - GROUP_BY: Vary number of groups (zipfian, 4 values)")
+    if "SIMPLE_AGG" in query_order:
+        print("    - SIMPLE_AGG: Vary input rows (1k, 10k, 100k, 1m, 10m)")
+    if "JOIN" in query_order:
+        print("    - JOIN: Vary join matches (zipfian, 4 values)")
+    if "GROUP_BY" in query_order:
+        print("    - GROUP_BY: Vary number of groups (zipfian, 4 values)")
+    if "JOIN_GROUP_BY" in query_order:
+        print("    - JOIN_GROUP_BY: Vary join count (16, 32, 64, 128)")
+    if any(q in query_order for q in ["SELECT", "WHERE", "ORDER_BY"]):
+        print("    - SELECT/WHERE/ORDER_BY: Vary policy threshold (zipfian, 4 values)")
     print(f"  Charts will show averages of {num_runs_per_variation} runs per x value")
     print()
 

@@ -466,7 +466,7 @@ SELECT
   policy_eval.valid AS valid
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
 
     # Execute and check results
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -663,7 +663,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
 
     # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -804,7 +804,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id, x)""")
+  ON base_query.id = policy_eval.id
+  AND base_query.x = policy_eval.x""")
 
     def test_multi_source_scan_missing_source_no_rewrite(self, rewriter):
         """Test multi-source policy does not apply when a source is missing."""
@@ -866,7 +867,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (name)""")
+  ON base_query.name = policy_eval.name""")
 
     def test_multi_source_subquery_join_propagates_columns(self, rewriter):
         """Test multi-source policy adds missing columns in subquery JOINs."""
@@ -912,7 +913,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (name)""")
+  ON base_query.name = policy_eval.name""")
 
     def test_multi_source_insert_select_applies_where(self, rewriter):
         """Test multi-source policy on INSERT...SELECT with join sources."""
@@ -1000,7 +1001,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (name, q)""")
+  ON base_query.name = policy_eval.name AND base_query.q = policy_eval.q""")
 
     def test_multi_source_group_by_with_distinct_and_join(self, rewriter):
         """Test multi-source policy with DISTINCT and GROUP BY."""
@@ -1043,7 +1044,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (name)""")
+  ON base_query.name = policy_eval.name""")
 
     def test_multi_source_scan_with_multiple_joins(self, rewriter):
         """Test multi-source policy on scan with multiple joins."""
@@ -1092,7 +1093,9 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id, x, q)""")
+  ON base_query.id = policy_eval.id
+  AND base_query.x = policy_eval.x
+  AND base_query.q = policy_eval.q""")
 
     def test_multi_source_group_by_on_join_key(self, rewriter):
         """Test multi-source policy with group by on join key."""
@@ -1135,7 +1138,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     def test_multi_source_multi_join_group_by_with_alias(self, rewriter):
         """Test multi-source policy with aliased joins and group by."""
@@ -1178,7 +1181,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (name)""")
+  ON base_query.name = policy_eval.name""")
 
 
 def test_policy_applied_to_scan_query(rewriter):
@@ -1214,7 +1217,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
 
     # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1255,7 +1258,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
 
     # Should filter out all rows since id > 10 is false for all (max id is 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1293,7 +1296,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return all rows (constraint is always true)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1330,7 +1333,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return all rows
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1367,7 +1370,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return all rows
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1404,7 +1407,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return rows where id > 2 (id values 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1443,7 +1446,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return no rows (no id > 10)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1480,7 +1483,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return rows where id = 2
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1519,7 +1522,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return all rows
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1559,7 +1562,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
 
     # Should return rows where id <= 2 (id values 1 and 2)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1597,7 +1600,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
 
     # Should return rows where id > 1 AND id < 10 (id values 2 and 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1867,7 +1870,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
 
         # Query should abort when executed because constraint fails for all rows
         exc = assert_transformed_invalid_input_matches_standard(rewriter, transformed)
@@ -1911,7 +1914,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
 
         # Query should succeed because constraint passes for all rows
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -2034,7 +2037,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2071,7 +2074,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2106,7 +2109,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         # Cross join with policy filter should return fewer rows
         assert result is not None
@@ -2182,7 +2185,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -2217,7 +2220,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id, name)""")
+  ON base_query.id = policy_eval.id
+  AND base_query.name = policy_eval.name""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -2302,7 +2306,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2352,7 +2356,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2402,7 +2406,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2488,7 +2492,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (o_orderpriority)""")
+  ON base_query.o_orderpriority = policy_eval.o_orderpriority""")
 
         # Should execute without error
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -2553,7 +2557,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (o_orderkey)""")
+  ON base_query.o_orderkey = policy_eval.o_orderkey""")
 
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
@@ -2615,7 +2619,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (o_orderkey)""")
+  ON base_query.o_orderkey = policy_eval.o_orderkey""")
 
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
@@ -2665,7 +2669,7 @@ LIMIT 3"""
     policy_eval.dfc AS dfc
   FROM base_query
   JOIN policy_eval
-    USING (id)
+    ON base_query.id = policy_eval.id
   ORDER BY
     total DESC
   LIMIT 3
@@ -2791,7 +2795,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2836,7 +2840,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2886,7 +2890,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         # All rows since baz.x is 10, not > 100, but policy filters id > 1
         assert len(result) == 2
@@ -2924,7 +2928,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         # Policy filters id > 1, so only 2 and 3 match
         assert len(result) == 2
@@ -2970,7 +2974,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -3020,7 +3024,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -3070,7 +3074,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id)""")
+  ON base_query.id = policy_eval.id""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -3112,7 +3116,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -3215,7 +3219,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (name)""")
+  ON base_query.name = policy_eval.name""")
 
         # Execute the query - should work if rewriter handles subqueries correctly
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -3283,7 +3287,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (name)""")
+  ON base_query.name = policy_eval.name""")
 
         # Execute the query - should work if rewriter handles CTEs correctly
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -3527,7 +3531,7 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  USING (__dfc_rowid)""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
         # The query may fail execution if policy is applied incorrectly, but structure should be preserved
         try:
             result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -3595,7 +3599,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (id, x)""")
+  ON base_query.id = policy_eval.id
+  AND base_query.x = policy_eval.x""")
         try:
             result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
             assert result is not None

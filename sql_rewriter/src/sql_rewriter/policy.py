@@ -37,6 +37,7 @@ class DFCPolicy:
         on_fail: Resolution,
         sources: list[str],
         sink: Optional[str] = None,
+        sink_alias: Optional[str] = None,
         description: Optional[str] = None,
     ) -> None:
         """Initialize a DFC policy.
@@ -47,6 +48,8 @@ class DFCPolicy:
                 (REMOVE, KILL, INVALIDATE, INVALIDATE_MESSAGE, or LLM).
             sources: List of source table names (use an empty list for no sources).
             sink: Optional sink table name.
+            sink_alias: Optional alias name that may be used to reference the sink table
+                within the constraint.
             description: Optional description of the policy.
 
         Raises:
@@ -56,6 +59,8 @@ class DFCPolicy:
             raise ValueError("Sources must be provided (use an empty list for no sources)")
         if not sources and sink is None:
             raise ValueError("Either sources or sink must be provided")
+        if sink_alias is not None and sink is None:
+            raise ValueError("sink_alias requires sink to be provided")
         if not isinstance(sources, list):
             raise ValueError("Sources must be provided as a list of table names")
         if any(source is None for source in sources):
@@ -75,10 +80,19 @@ class DFCPolicy:
 
         self.sources = normalized_sources
         self.sink = sink
+        self.sink_alias = sink_alias.strip() if isinstance(sink_alias, str) else sink_alias
         self.constraint = constraint
         self.on_fail = on_fail
         self.description = description
         self._sources_lower = {source.lower() for source in self.sources}
+        self._sink_reference_names = set()
+        sink_overlaps_source = self.sink and self.sink.lower() in self._sources_lower
+        if self.sink and not (sink_overlaps_source and self.sink_alias):
+            self._sink_reference_names.add(self.sink.lower())
+        if self.sink_alias:
+            if not self.sink_alias:
+                raise ValueError("sink_alias must be a non-empty string")
+            self._sink_reference_names.add(self.sink_alias.lower())
 
         self._constraint_parsed = self._parse_constraint()
         self._validate()
@@ -202,6 +216,8 @@ class DFCPolicy:
             self._validate_table_name(source, "Source")
         if self.sink:
             self._validate_table_name(self.sink, "Sink")
+        if self.sink_alias:
+            self._validate_identifier_name(self.sink_alias, "Sink alias")
 
         if isinstance(self._constraint_parsed, exp.Select):
             raise ValueError("Constraint must be an expression, not a SELECT statement")
@@ -209,12 +225,18 @@ class DFCPolicy:
         try:
             if self.sources and self.sink:
                 sources_from = ", ".join(self.sources)
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {self.sink}"
+                sink_ref = self.sink
+                if self.sink_alias:
+                    sink_ref = f"{self.sink} AS {self.sink_alias}"
+                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {sink_ref}"
             elif self.sources:
                 sources_from = ", ".join(self.sources)
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}"
             else:
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {self.sink}"
+                sink_ref = self.sink
+                if self.sink_alias:
+                    sink_ref = f"{self.sink} AS {self.sink_alias}"
+                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sink_ref}"
 
             sqlglot.parse_one(test_query, read="duckdb")
         except sqlglot.errors.ParseError as e:
@@ -250,6 +272,16 @@ class DFCPolicy:
             if "Invalid" not in str(e):
                 raise ValueError(f"Invalid {table_type.lower()} table '{table_name}': {e}") from e
             raise
+
+    def _validate_identifier_name(self, identifier: str, identifier_type: str) -> None:
+        """Validate that an identifier is syntactically valid."""
+        try:
+            sqlglot.parse_one(
+                f"SELECT 1 FROM dummy_table AS {identifier}",
+                read="duckdb",
+            )
+        except sqlglot.errors.ParseError as e:
+            raise ValueError(f"Invalid {identifier_type.lower()} '{identifier}': {e}") from e
 
     def _parse_constraint(self) -> exp.Expression:
         """Parse the constraint SQL expression.
@@ -362,9 +394,9 @@ class DFCPolicy:
                     if table_name is None:
                         continue
 
-                    if self.sink and table_name == self.sink.lower():
+                    if table_name in self._sink_reference_names:
                         raise ValueError(
-                            f"Aggregation '{agg_func.sql()}' references sink table '{self.sink}', "
+                            f"Aggregation '{agg_func.sql()}' references sink table '{table_name}', "
                             "but aggregations can only reference source tables"
                         )
                     if table_name not in self._sources_lower:
@@ -397,6 +429,8 @@ class DFCPolicy:
             parts.append(f"sources={self.sources}")
         if self.sink:
             parts.append(f"sink={self.sink}")
+        if self.sink_alias:
+            parts.append(f"sink_alias={self.sink_alias}")
         parts.append(f"constraint={self.constraint}")
         return f"DFCPolicy({', '.join(parts)})"
 
@@ -407,6 +441,8 @@ class DFCPolicy:
             parts.append(f"sources={self.sources!r}")
         if self.sink:
             parts.append(f"sink={self.sink!r}")
+        if self.sink_alias:
+            parts.append(f"sink_alias={self.sink_alias!r}")
         parts.append(f"constraint={self.constraint!r}")
         parts.append(f"on_fail={self.on_fail.value}")
         if self.description:
@@ -420,6 +456,7 @@ class DFCPolicy:
         return (
             self.sources == other.sources
             and self.sink == other.sink
+            and self.sink_alias == other.sink_alias
             and self.constraint == other.constraint
             and self.on_fail == other.on_fail
             and self.description == other.description

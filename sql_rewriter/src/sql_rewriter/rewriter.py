@@ -20,6 +20,7 @@ from .rewrite_rule import (
     apply_aggregate_policy_constraints_to_scan,
     apply_policy_constraints_to_aggregation,
     apply_policy_constraints_to_scan,
+    apply_policy_constraints_to_update,
     ensure_subqueries_have_constraint_columns,
     get_policy_identifier,
     rewrite_exists_subqueries_as_joins,
@@ -321,6 +322,30 @@ class SQLRewriter:
 
                 # Add temp columns to INSERT column list so they're included in the table
                 self._add_aggregate_temp_columns_to_insert(parsed, matching_aggregate_policies, select_expr)
+        elif isinstance(parsed, exp.Update):
+            sink_table = self._get_update_target_table(parsed)
+            source_tables = self._get_update_source_tables(parsed)
+
+            matching_policies = self._find_matching_policies(
+                source_tables=source_tables, sink_table=sink_table
+            )
+            matching_aggregate_policies = self._find_matching_aggregate_policies(
+                source_tables=source_tables, sink_table=sink_table
+            )
+
+            if matching_aggregate_policies:
+                raise ValueError("Aggregate policies are not supported for UPDATE statements")
+
+            if matching_policies and sink_table:
+                apply_policy_constraints_to_update(
+                    parsed,
+                    matching_policies,
+                    source_tables,
+                    sink_table=sink_table,
+                    sink_assignments=self._get_update_assignment_mapping(parsed),
+                    target_reference_name=self._get_update_target_reference_name(parsed),
+                    stream_file_path=self._stream_file_path,
+                )
         return parsed
 
     def _extract_policy_comparison(
@@ -500,17 +525,16 @@ class SQLRewriter:
                 )
             )
 
-        if group_keys:
-            join_keys = ", ".join(group_keys)
-            cte_body_sql = f"FROM base_query JOIN policy_eval USING ({join_keys})"
-        else:
-            cte_body_sql = "FROM base_query CROSS JOIN policy_eval"
+        cte_body_sql = self._two_phase_join_clause(group_keys)
 
         cte_body = sqlglot.parse_one(f"SELECT 1 {cte_body_sql}", read="duckdb")
         if not isinstance(cte_body, exp.Select):
             raise ValueError("Two-phase LIMIT rewrite failed to build CTE body")
         cte_body.set("expressions", cte_select_exprs)
-        cte_body.set("order", parsed.args.get("order").copy() if parsed.args.get("order") else None)
+        cte_body.set(
+            "order",
+            self._qualify_two_phase_order_columns(parsed.args.get("order"), group_keys),
+        )
         cte_body.set("limit", parsed.args.get("limit").copy() if parsed.args.get("limit") else None)
 
         cte = exp.CTE(
@@ -683,14 +707,7 @@ class SQLRewriter:
             select_list += ", policy_eval.valid AS valid"
         if include_invalid_string:
             select_list += ", policy_eval.invalid_string AS invalid_string"
-        if group_keys:
-            join_keys = ", ".join(group_keys)
-            outer_sql = (
-                f"SELECT {select_list} "
-                f"FROM base_query JOIN policy_eval USING ({join_keys})"
-            )
-        else:
-            outer_sql = f"SELECT {select_list} FROM base_query CROSS JOIN policy_eval"
+        outer_sql = f"SELECT {select_list} {self._two_phase_join_clause(group_keys)}"
 
         rewritten = sqlglot.parse_one(outer_sql, read="duckdb")
         if not isinstance(rewritten, exp.Select):
@@ -715,6 +732,32 @@ class SQLRewriter:
             ),
         )
         return rewritten
+
+    def _two_phase_join_clause(self, key_names: list[str]) -> str:
+        if not key_names:
+            return "FROM base_query CROSS JOIN policy_eval"
+        join_conditions = " AND ".join(
+            [
+                f"base_query.{key_name} = policy_eval.{key_name}"
+                for key_name in key_names
+            ]
+        )
+        return f"FROM base_query JOIN policy_eval ON {join_conditions}"
+
+    def _qualify_two_phase_order_columns(
+        self, order_expr: exp.Order | None, key_names: list[str]
+    ) -> exp.Order | None:
+        if order_expr is None or not key_names:
+            return order_expr
+        qualified = order_expr.copy()
+        key_name_set = {key.lower() for key in key_names}
+        for column in qualified.find_all(exp.Column):
+            if column.table:
+                continue
+            column_name = get_column_name(column)
+            if column_name.lower() in key_name_set:
+                column.set("table", exp.Identifier(this="base_query", quoted=False))
+        return qualified
 
     def _scan_join_keys(self, parsed: exp.Select) -> list[tuple[str, exp.Expression]] | None:
         """Extract join keys from SELECT outputs for two-phase scan rewrites."""
@@ -869,11 +912,10 @@ class SQLRewriter:
             select_list += ", policy_eval.valid AS valid"
         if include_invalid_string:
             select_list += ", policy_eval.invalid_string AS invalid_string"
-        join_key_names = "__dfc_rowid" if use_rowid_join else ", ".join([key for key, _ in join_keys])
-        outer_sql = (
-            f"SELECT {select_list} FROM base_query "
-            f"JOIN policy_eval USING ({join_key_names})"
+        join_key_names = (
+            ["__dfc_rowid"] if use_rowid_join else [key for key, _ in join_keys]
         )
+        outer_sql = f"SELECT {select_list} {self._two_phase_join_clause(join_key_names)}"
 
         rewritten = sqlglot.parse_one(outer_sql, read="duckdb")
         if not isinstance(rewritten, exp.Select):
@@ -1113,7 +1155,7 @@ class SQLRewriter:
 
         if policy.sources and table_name in policy._sources_lower:
             return "source"
-        if policy.sink and table_name == policy.sink.lower():
+        if policy.sink and table_name in getattr(policy, "_sink_reference_names", {policy.sink.lower()}):
             return "sink"
         return None
 
@@ -1224,7 +1266,9 @@ class SQLRewriter:
                     and hasattr(parent, "this")
                     and parent.this == column
                     and policy.sink
-                    and col_name == policy.sink.lower()
+                    and col_name in getattr(
+                        policy, "_sink_reference_names", {policy.sink.lower()}
+                    )
                 ):
                     continue
 
@@ -1247,7 +1291,7 @@ class SQLRewriter:
             elif table_type == "sink":
                 if sink_columns is None:
                     raise ValueError(f"Sink table '{policy.sink}' has no columns")
-                self._validate_column_in_table(column, table_name, sink_columns, "sink")
+                self._validate_column_in_table(column, policy.sink, sink_columns, "sink")
             else:
                 raise ValueError(
                     f"Column '{table_name}.{col_name}' referenced in constraint "
@@ -1639,6 +1683,47 @@ class SQLRewriter:
                 return result
 
         return None
+
+    def _get_update_target_table(self, parsed: exp.Update) -> Optional[str]:
+        """Extract the target table name from an UPDATE statement."""
+        if not isinstance(parsed, exp.Update):
+            return None
+        if isinstance(parsed.this, exp.Table) and parsed.this.name:
+            return str(parsed.this.name).lower()
+        return None
+
+    def _get_update_target_reference_name(self, parsed: exp.Update) -> str:
+        """Return the identifier used to reference the UPDATE target table."""
+        if not isinstance(parsed, exp.Update) or not isinstance(parsed.this, exp.Table):
+            return ""
+        return parsed.this.alias_or_name
+
+    def _get_update_source_tables(self, parsed: exp.Update) -> set[str]:
+        """Extract source tables from an UPDATE statement, excluding the target table node."""
+        if not isinstance(parsed, exp.Update):
+            return set()
+
+        source_tables = set()
+        target_node = parsed.this
+        for table in parsed.find_all(exp.Table):
+            if table is target_node:
+                continue
+            source_tables.add(table.name.lower())
+        return source_tables
+
+    def _get_update_assignment_mapping(self, parsed: exp.Update) -> dict[str, exp.Expression]:
+        """Map updated sink columns to their assigned expressions."""
+        mapping: dict[str, exp.Expression] = {}
+        if not isinstance(parsed, exp.Update):
+            return mapping
+
+        for assignment in parsed.expressions or []:
+            if not isinstance(assignment, exp.EQ):
+                continue
+            if not isinstance(assignment.this, exp.Column) or assignment.expression is None:
+                continue
+            mapping[get_column_name(assignment.this).lower()] = assignment.expression.copy()
+        return mapping
 
     def _get_insert_source_tables(self, parsed: exp.Insert) -> set[str]:
         """Extract source table names from an INSERT ... SELECT statement.

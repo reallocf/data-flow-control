@@ -33,7 +33,8 @@ def normalize_filter_query(filter_query: str) -> str:
     normalized = re.sub(r"LINEAGE_\d+_", "LINEAGE_1_", normalized)
     normalized = re.sub(r"opid_\d+_test_data", "test_data_iid", normalized)
     normalized = normalized.replace('"output_id"', "output_id")
-    return re.sub(r"CAST\((LINEAGE_[^\s)]+) AS VARCHAR\)", r"\1", normalized)
+    normalized = re.sub(r"CAST\((LINEAGE_[^\s)]+) AS VARCHAR\)", r"\1", normalized)
+    return normalized.strip()
 
 
 LINEAGE_QUERY_BASE = 'SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)'
@@ -44,125 +45,157 @@ LINEAGE_QUERY_ORDER = LINEAGE_QUERY_BASE
 
 FILTER_QUERY_SELECT = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.value) > 100
 )
 SELECT
     generated_table."id", generated_table."value", generated_table."category", generated_table."amount"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."id", generated_table."value", generated_table."category", generated_table."amount"
-HAVING MAX(test_data.value) > 100
 """.strip()
 
 FILTER_QUERY_JOIN = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.value) > 100
 )
 SELECT
     generated_table."id", generated_table."value"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."id", generated_table."value"
-HAVING MAX(test_data.value) > 100
 """.strip()
 
 FILTER_QUERY_GROUP = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.value) > 100
 )
 SELECT
     generated_table."category", generated_table."count_star()", generated_table."sum(amount)"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."category", generated_table."count_star()", generated_table."sum(amount)"
-HAVING MAX(test_data.value) > 100
 """.strip()
 
 FILTER_QUERY_ORDER = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.value) > 100
 )
 SELECT
     generated_table."id", generated_table."value", generated_table."category", generated_table."amount"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."id", generated_table."value", generated_table."category", generated_table."amount"
-HAVING MAX(test_data.value) > 100
 ORDER BY generated_table.value DESC
 """.strip()
 
 FILTER_QUERY_SELECT_SPECIFIC = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.value) > 100
 )
 SELECT
     generated_table."id", generated_table."value", generated_table."category"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."id", generated_table."value", generated_table."category"
-HAVING MAX(test_data.value) > 100
 """.strip()
 
 FILTER_QUERY_JOIN_AMOUNT = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.amount) > 5000
 )
 SELECT
     generated_table."id", generated_table."amount", generated_table."value"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."id", generated_table."amount", generated_table."value"
-HAVING MAX(test_data.value) > 100
 """.strip()
 
 FILTER_QUERY_ORDER_LIMIT = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.value) > 100
 )
 SELECT
     generated_table."id", generated_table."value", generated_table."category", generated_table."amount"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."id", generated_table."value", generated_table."category", generated_table."amount"
-HAVING MAX(test_data.value) > 100
 ORDER BY generated_table.value DESC
 LIMIT 10
 """.strip()
 
 FILTER_QUERY_GROUP_MULTI = """
 WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
 SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)
+) AS lineage
+JOIN test_data
+    ON test_data.rowid::bigint = lineage.test_data::bigint
+GROUP BY lineage.out_index
+HAVING MAX(test_data.value) > 100
 )
 SELECT
     generated_table."category", generated_table."count_star()", generated_table."sum(amount)", generated_table."avg(""value"")", generated_table."max(""value"")", generated_table."min(""value"")"
 FROM temp_table_name AS generated_table
 JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
-JOIN test_data
-    ON test_data.rowid::bigint = lineage.test_data::bigint
-GROUP BY generated_table.rowid, generated_table."category", generated_table."count_star()", generated_table."sum(amount)", generated_table."avg(""value"")", generated_table."max(""value"")", generated_table."min(""value"")"
-HAVING MAX(test_data.value) > 100
 """.strip()
 
 

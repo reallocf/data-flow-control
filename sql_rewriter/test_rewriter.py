@@ -3629,6 +3629,271 @@ WHERE
   )"""
 
         assert transformed == expected
+        rewriter.conn.execute(transformed)
+        inserted = rewriter.conn.execute(
+            "SELECT txn_id, amount, kind, business_use_pct FROM irs_form ORDER BY txn_id"
+        ).fetchall()
+        assert inserted == [(6, 100.0, "Expense", 0.0)]
+
+    def test_register_policy_with_sink_alias_validates_sink_columns(self, rewriter):
+        """Test that sink_alias references are validated against the sink schema."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
+
+        policy = DFCPolicy(
+            sources=[],
+            sink="reports",
+            sink_alias="out",
+            constraint="out.missing_col = 'approved'",
+            on_fail=Resolution.REMOVE,
+        )
+
+        with pytest.raises(ValueError, match="does not exist in sink table 'reports'"):
+            rewriter.register_policy(policy)
+
+    def test_insert_with_sink_only_policy_remove_uses_sink_alias(self, rewriter):
+        """Test that sink_alias references rewrite against INSERT output columns."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
+
+        policy = DFCPolicy(
+            sources=[],
+            sink="reports",
+            sink_alias="out",
+            constraint="out.status = 'approved'",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "INSERT INTO reports (id, status) SELECT id, 'pending' FROM foo WHERE id > 1"
+        transformed = rewriter.transform_query(query)
+
+        expected = """INSERT INTO reports (
+  id,
+  status
+)
+SELECT
+  id,
+  'pending' AS status
+FROM foo
+WHERE
+  (
+    id > 1
+  ) AND (
+    status = 'approved'
+  )"""
+
+        assert transformed == expected
+        rewriter.conn.execute(transformed)
+        assert rewriter.conn.execute("SELECT COUNT(*) FROM reports").fetchone() == (0,)
+
+    def test_insert_with_source_and_sink_policy_remove_uses_sink_alias(self, rewriter):
+        """Test that sink_alias works with mixed source and sink constraints."""
+        rewriter.execute("CREATE TABLE bank_txn (txn_id INTEGER, amount DECIMAL, category VARCHAR)")
+        rewriter.execute("INSERT INTO bank_txn VALUES (6, 100.0, 'meal'), (7, 200.0, 'office')")
+        rewriter.execute(
+            "CREATE TABLE irs_form (txn_id INTEGER, amount DECIMAL, kind VARCHAR, business_use_pct DECIMAL)"
+        )
+
+        policy1 = DFCPolicy(
+            sources=["bank_txn"],
+            sink="irs_form",
+            sink_alias="dst",
+            constraint="min(bank_txn.txn_id) = dst.txn_id",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy1)
+        policy2 = DFCPolicy(
+            sources=["bank_txn"],
+            sink="irs_form",
+            sink_alias="dst",
+            constraint="NOT min(LOWER(bank_txn.category)) = 'meal' OR dst.business_use_pct <= 50.0",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy2)
+        policy3 = DFCPolicy(
+            sources=["bank_txn"],
+            sink="irs_form",
+            sink_alias="dst",
+            constraint="count(distinct bank_txn.txn_id) = 1",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy3)
+
+        query = """INSERT INTO irs_form (
+  txn_id,
+  amount,
+  kind,
+  business_use_pct
+)
+SELECT txn_id, ABS(amount), 'Expense', 0.0
+FROM bank_txn WHERE txn_id = 6"""
+
+        transformed = rewriter.transform_query(query)
+
+        expected = """INSERT INTO irs_form (
+  txn_id,
+  amount,
+  kind,
+  business_use_pct
+)
+SELECT
+  txn_id,
+  ABS(amount) AS amount,
+  'Expense' AS kind,
+  0.0 AS business_use_pct
+FROM bank_txn
+WHERE
+  (
+    NOT LOWER(bank_txn.category) = 'meal' OR business_use_pct <= 50.0
+  )
+  AND (
+    txn_id = 6
+  )
+  AND (
+    bank_txn.txn_id = txn_id
+  )
+  AND (
+    1 = 1
+  )"""
+
+        assert transformed == expected
+        rewriter.conn.execute(transformed)
+        inserted = rewriter.conn.execute(
+            "SELECT txn_id, amount, kind, business_use_pct FROM irs_form ORDER BY txn_id"
+        ).fetchall()
+        assert inserted == [(6, 100.0, "Expense", 0.0)]
+
+
+class TestUpdateStatements:
+    """Tests for UPDATE statement handling with sink policies."""
+
+    def test_update_with_sink_only_policy_remove_uses_sink_alias(self, rewriter):
+        """Test sink-only UPDATE rewriting against assigned sink values."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
+        rewriter.execute("INSERT INTO reports VALUES (1, 'old'), (2, 'old')")
+
+        policy = DFCPolicy(
+            sources=[],
+            sink="reports",
+            sink_alias="out",
+            constraint="out.status = 'approved'",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "UPDATE reports AS out SET status = 'pending' WHERE id = 1"
+        transformed = rewriter.transform_query(query)
+
+        expected = """UPDATE reports AS out SET status = 'pending'
+WHERE
+  (
+    id = 1
+  ) AND (
+    'pending' = 'approved'
+  )"""
+
+        assert transformed == expected
+        rewriter.conn.execute(transformed)
+        rows = rewriter.conn.execute("SELECT id, status FROM reports ORDER BY id").fetchall()
+        assert rows == [(1, "old"), (2, "old")]
+
+    def test_update_with_source_and_sink_policy_remove_uses_sink_alias(self, rewriter):
+        """Test source+sink UPDATE rewriting with target alias and FROM source tables."""
+        rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
+        rewriter.execute("INSERT INTO reports VALUES (1, 'old'), (2, 'old')")
+
+        policy1 = DFCPolicy(
+            sources=["foo"],
+            sink="reports",
+            sink_alias="out",
+            constraint="max(foo.id) = out.id",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy1)
+        policy2 = DFCPolicy(
+            sources=["foo"],
+            sink="reports",
+            sink_alias="out",
+            constraint="out.status = 'Alice'",
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy2)
+
+        query = "UPDATE reports AS out SET status = foo.name FROM foo WHERE out.id = foo.id AND foo.id = 1"
+        transformed = rewriter.transform_query(query)
+
+        expected = """UPDATE reports AS out SET status = foo.name
+FROM foo
+WHERE
+  (
+    foo.id = out.id
+  )
+  AND (
+    out.id = foo.id
+  )
+  AND (
+    foo.id = 1
+  )
+  AND (
+    foo.name = 'Alice'
+  )"""
+
+        assert transformed == expected
+        rewriter.conn.execute(transformed)
+        rows = rewriter.conn.execute("SELECT id, status FROM reports ORDER BY id").fetchall()
+        assert rows == [(1, "Alice"), (2, "old")]
+
+    def test_update_same_table_source_and_sink_uses_sink_alias_only_for_sink(self, rewriter):
+        """Test UPDATE rewriting keeps source refs on the base table when sink alias disambiguates sink refs."""
+        rewriter.execute("CREATE TABLE t (id INTEGER, state VARCHAR)")
+        rewriter.execute("INSERT INTO t VALUES (1, 'A'), (2, 'A'), (3, 'A')")
+
+        policy = DFCPolicy(
+            sources=["t"],
+            sink="t",
+            sink_alias="t2",
+            constraint=(
+                "count(distinct t.id) = 1 AND "
+                "max(t.id) = t2.id AND "
+                "case "
+                "when max(t.state) = 'A' then t2.state = 'B' "
+                "when max(t.state) = 'B' then t2.state in ('A', 'C') "
+                "when max(t.state) = 'C' then false "
+                "end"
+            ),
+            on_fail=Resolution.REMOVE,
+        )
+        rewriter.register_policy(policy)
+
+        query = "UPDATE t AS t2 SET state = 'B' FROM t WHERE t.id = t2.id AND t.id = 1"
+        transformed = rewriter.transform_query(query)
+
+        expected = """UPDATE t AS t2 SET state = 'B'
+FROM t
+WHERE
+  (
+    t.id = 1
+  )
+  AND (
+    t.id = t2.id
+  )
+  AND (
+    CASE
+      WHEN t.state = 'A'
+      THEN 'B' = 'B'
+      WHEN t.state = 'B'
+      THEN 'B' IN ('A', 'C')
+      WHEN t.state = 'C'
+      THEN FALSE
+    END
+  )
+  AND (
+    t.id = t2.id
+  )
+  AND (
+    1 = 1
+  )"""
+
+        assert transformed == expected
 
 
 class TestDeletePolicy:

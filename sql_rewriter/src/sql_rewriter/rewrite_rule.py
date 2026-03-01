@@ -588,7 +588,10 @@ def apply_policy_constraints_to_aggregation(
             # Replace sink table references with SELECT output column references if needed
             if sink_table and sink_to_output_mapping:
                 constraint_expr = _replace_sink_table_references_in_constraint(
-                    constraint_expr, sink_table, sink_to_output_mapping
+                    constraint_expr,
+                    sink_table,
+                    sink_to_output_mapping,
+                    getattr(policy, "sink_alias", None),
                 )
 
             # Replace table references with subquery/CTE aliases if needed
@@ -971,7 +974,8 @@ def _add_column_to_cte(cte: exp.CTE, table_name: str, column_name: str) -> None:
 def _replace_sink_table_references_in_constraint(
     constraint_expr: exp.Expression,
     sink_table: str,
-    sink_to_output_mapping: dict[str, str]
+    sink_to_output_mapping: dict[str, str],
+    sink_alias: Optional[str] = None,
 ) -> exp.Expression:
     """Replace sink table column references in a constraint with SELECT output column references.
 
@@ -989,13 +993,17 @@ def _replace_sink_table_references_in_constraint(
     if not sink_to_output_mapping:
         return constraint_expr
 
+    sink_reference_names = {sink_table.lower()}
+    if sink_alias:
+        sink_reference_names.add(sink_alias.lower())
+
     def replace_sink_column(node):
         if isinstance(node, exp.Column):
             table_name = get_table_name_from_column(node)
             col_name = get_column_name(node).lower()
 
             # Check if this is a qualified sink table column (e.g., irs_form.amount)
-            if table_name and table_name == sink_table:
+            if table_name and table_name in sink_reference_names:
                 if col_name in sink_to_output_mapping:
                     # Replace with unqualified column reference to SELECT output
                     output_col_name = sink_to_output_mapping[col_name]
@@ -1004,7 +1012,7 @@ def _replace_sink_table_references_in_constraint(
                     )
             # Check if this is an unqualified column that matches the sink table name
             # This handles cases like sum(irs_form) where irs_form is shorthand
-            elif not table_name and col_name == sink_table.lower():
+            elif not table_name and col_name in sink_reference_names:
                 # For unqualified sink table name, we need to determine which column to use
                 # In aggregate functions, this typically means we should use a specific column
                 # For now, if there's only one column in the mapping, use it; otherwise use the first one
@@ -1677,7 +1685,10 @@ def apply_policy_constraints_to_scan(
             # Replace sink table references with SELECT output column references if needed
             if sink_table and sink_to_output_mapping:
                 constraint_expr = _replace_sink_table_references_in_constraint(
-                    constraint_expr, sink_table, sink_to_output_mapping
+                    constraint_expr,
+                    sink_table,
+                    sink_to_output_mapping,
+                    getattr(policy, "sink_alias", None),
                 )
 
             # Replace table references with subquery/CTE aliases if needed
@@ -1712,6 +1723,100 @@ def apply_policy_constraints_to_scan(
             )
         else:
             # REMOVE resolution - add WHERE clause
+            _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
+
+
+def _replace_sink_table_references_in_update_constraint(
+    constraint_expr: exp.Expression,
+    sink_table: str,
+    sink_assignments: dict[str, exp.Expression],
+    sink_alias: Optional[str] = None,
+    target_reference_name: Optional[str] = None,
+    sink_reference_names: Optional[set[str]] = None,
+) -> exp.Expression:
+    """Replace sink references in UPDATE constraints with assigned or target-row values."""
+    if sink_reference_names is None:
+        sink_reference_names = {sink_table.lower()}
+        if sink_alias:
+            sink_reference_names.add(sink_alias.lower())
+
+    target_name = target_reference_name or sink_alias or sink_table
+
+    def replace_sink_column(node: exp.Expression) -> exp.Expression:
+        if not isinstance(node, exp.Column):
+            return node
+
+        table_name = get_table_name_from_column(node)
+        if not table_name or table_name.lower() not in sink_reference_names:
+            return node
+
+        column_name = get_column_name(node).lower()
+        if column_name in sink_assignments:
+            return sink_assignments[column_name].copy()
+
+        return exp.Column(
+            this=exp.Identifier(this=column_name, quoted=False),
+            table=exp.Identifier(this=target_name, quoted=False),
+        )
+
+    return constraint_expr.transform(replace_sink_column, copy=True)
+
+
+def apply_policy_constraints_to_update(
+    parsed: exp.Update,
+    policies: list[DFCPolicy],
+    source_tables: set[str],
+    sink_table: str,
+    sink_assignments: dict[str, exp.Expression],
+    target_reference_name: str,
+    stream_file_path: Optional[str] = None,
+) -> None:
+    """Apply DFC policies to an UPDATE whose target table is the sink."""
+    for policy in policies:
+        policy_sources = policy._sources_lower
+        if policy_sources and not policy_sources.issubset(source_tables):
+            constraint_expr = exp.Literal(this="false", is_string=False)
+        else:
+            constraint_expr = transform_aggregations_to_columns(
+                policy._constraint_parsed, source_tables
+            )
+            constraint_expr = _replace_sink_table_references_in_update_constraint(
+                constraint_expr,
+                sink_table=sink_table,
+                sink_assignments=sink_assignments,
+                sink_alias=getattr(policy, "sink_alias", None),
+                target_reference_name=target_reference_name,
+                sink_reference_names=set(
+                    getattr(
+                        policy,
+                        "_sink_reference_names",
+                        {
+                            name
+                            for name in [
+                                policy.sink.lower() if policy.sink else None,
+                                getattr(policy, "sink_alias", "").lower() or None,
+                            ]
+                            if name
+                        },
+                    )
+                ),
+            )
+
+        if policy.on_fail == Resolution.KILL:
+            constraint_expr = _wrap_kill_constraint(constraint_expr)
+            _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
+        elif policy.on_fail == Resolution.LLM:
+            constraint_expr = _wrap_llm_constraint(
+                constraint_expr,
+                policy,
+                source_tables,
+                stream_file_path,
+            )
+            _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
+        elif policy.on_fail in (Resolution.INVALIDATE, Resolution.INVALIDATE_MESSAGE):
+            msg = "INVALIDATE resolutions are not supported for UPDATE statements"
+            raise ValueError(msg)
+        else:
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
 
 
@@ -1816,7 +1921,9 @@ def get_policy_identifier(policy: AggregateDFCPolicy) -> str:
     # Use a hash of the constraint and source/sink to create a unique identifier
     import hashlib
     sources_part = ",".join(policy.sources) if policy.sources else ""
-    policy_str = f"{sources_part}_{policy.sink or ''}_{policy.constraint}"
+    policy_str = (
+        f"{sources_part}_{policy.sink or ''}_{getattr(policy, 'sink_alias', '')}_{policy.constraint}"
+    )
     hash_obj = hashlib.md5(policy_str.encode())
     return f"policy_{hash_obj.hexdigest()[:8]}"
 
@@ -1921,7 +2028,8 @@ def _find_outer_aggregate_for_inner(
 def _extract_sink_expressions_from_constraint(
     constraint_expr: exp.Expression,
     sink_table: str,
-    sink_to_output_mapping: Optional[dict[str, str]] = None
+    sink_to_output_mapping: Optional[dict[str, str]] = None,
+    sink_alias: Optional[str] = None,
 ) -> list[exp.Expression]:
     """Extract all sink column/expression references from a constraint.
 
@@ -1935,6 +2043,9 @@ def _extract_sink_expressions_from_constraint(
     """
     expressions = []
     seen = set()
+    sink_reference_names = {sink_table.lower()}
+    if sink_alias:
+        sink_reference_names.add(sink_alias.lower())
 
     # First, find all aggregate functions that reference the sink table
     # This handles cases like sum(irs_form) where irs_form is unqualified
@@ -1950,10 +2061,10 @@ def _extract_sink_expressions_from_constraint(
                 col_name = get_column_name(this_expr).lower()
 
                 # Check if column references sink table (qualified or unqualified match)
-                if table_name == sink_table.lower():
+                if table_name in sink_reference_names:
                     references_sink = True
                 # Check if unqualified column matches sink table name (shorthand like sum(irs_form))
-                elif not table_name and col_name == sink_table.lower():
+                elif not table_name and col_name in sink_reference_names:
                     # The direct argument to an aggregate is never inside a FILTER clause
                     # (FILTER is a separate attribute of the aggregate, not a parent of 'this')
                     references_sink = True
@@ -1963,7 +2074,7 @@ def _extract_sink_expressions_from_constraint(
             columns = list(agg_func.find_all(exp.Column))
             for column in columns:
                 table_name = get_table_name_from_column(column)
-                if table_name == sink_table.lower() and column.find_ancestor(exp.Filter) is None:
+                if table_name in sink_reference_names and column.find_ancestor(exp.Filter) is None:
                     # Skip columns inside FILTER clauses (they're part of the filter, not the aggregate expression)
                     references_sink = True
                     break
@@ -1991,7 +2102,7 @@ def _extract_sink_expressions_from_constraint(
     # Skip columns that are already part of aggregates we extracted (including those in FILTER clauses)
     for column in constraint_expr.find_all(exp.Column):
         table_name = get_table_name_from_column(column)
-        if table_name == sink_table.lower():
+        if table_name in sink_reference_names:
             # Skip if this column is already part of an aggregate we extracted
             agg_ancestor = column.find_ancestor(exp.AggFunc)
             if agg_ancestor:
@@ -2222,7 +2333,10 @@ def apply_aggregate_policy_constraints_to_aggregation(
             # Extract sink expressions BEFORE replacement (they need to reference the sink table)
             constraint_expr_orig = sqlglot.parse_one(policy.constraint, read="duckdb")
             sink_expressions = _extract_sink_expressions_from_constraint(
-                constraint_expr_orig, sink_table, sink_to_output_mapping
+                constraint_expr_orig,
+                sink_table,
+                sink_to_output_mapping,
+                getattr(policy, "sink_alias", None),
             )
 
             for sink_expr in sink_expressions:
@@ -2230,7 +2344,10 @@ def apply_aggregate_policy_constraints_to_aggregation(
                 # This is needed because sink table columns need to reference SELECT output columns
                 if sink_to_output_mapping:
                     sink_expr = _replace_sink_table_references_in_constraint(
-                        sink_expr, sink_table, sink_to_output_mapping
+                        sink_expr,
+                        sink_table,
+                        sink_to_output_mapping,
+                        getattr(policy, "sink_alias", None),
                     )
 
                 temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"
@@ -3046,7 +3163,10 @@ def apply_aggregate_policy_constraints_to_scan(
             # Extract sink expressions BEFORE replacement (they need to reference the sink table)
             constraint_expr_orig = sqlglot.parse_one(policy.constraint, read="duckdb")
             sink_expressions = _extract_sink_expressions_from_constraint(
-                constraint_expr_orig, sink_table, sink_to_output_mapping
+                constraint_expr_orig,
+                sink_table,
+                sink_to_output_mapping,
+                getattr(policy, "sink_alias", None),
             )
 
             for sink_expr in sink_expressions:
@@ -3054,7 +3174,10 @@ def apply_aggregate_policy_constraints_to_scan(
                 # This is needed because sink table columns need to reference SELECT output columns
                 if sink_to_output_mapping:
                     sink_expr = _replace_sink_table_references_in_constraint(
-                        sink_expr, sink_table, sink_to_output_mapping
+                        sink_expr,
+                        sink_table,
+                        sink_to_output_mapping,
+                        getattr(policy, "sink_alias", None),
                     )
 
                 temp_col_name = f"_{policy_id}_tmp{temp_col_counter}"

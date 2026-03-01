@@ -57,4 +57,4 @@ def get_query_order() -> list[str]:
     Returns:
         List of operator names in execution order
     """
-    return ["SELECT", "WHERE", "SIMPLE_AGG", "JOIN", "GROUP_BY", "JOIN_GROUP_BY", "ORDER_BY"]
+    return ["SIMPLE_AGG", "JOIN", "GROUP_BY"]

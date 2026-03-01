@@ -736,324 +736,227 @@ ORDER BY
 }
 
 PHYSICAL_EXPECTED_SQL = {
-    1: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_8_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."l_returnflag",
-          generated_table."l_linestatus",
-          generated_table."sum_qty",
-          generated_table."sum_base_price",
-          generated_table."sum_disc_price",
-          generated_table."sum_charge",
-          generated_table."avg_qty",
-          generated_table."avg_price",
-          generated_table."avg_disc",
-          generated_table."count_order"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."l_returnflag",
-          generated_table."l_linestatus",
-          generated_table."sum_qty",
-          generated_table."sum_base_price",
-          generated_table."sum_disc_price",
-          generated_table."sum_charge",
-          generated_table."avg_qty",
-          generated_table."avg_price",
-          generated_table."avg_disc",
-          generated_table."count_order"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.l_returnflag,
-          generated_table.l_linestatus
-    """,
-    3: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."l_orderkey",
-          generated_table."revenue",
-          generated_table."o_orderdate",
-          generated_table."o_shippriority"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."l_orderkey",
-          generated_table."revenue",
-          generated_table."o_orderdate",
-          generated_table."o_shippriority"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.revenue DESC,
-          generated_table.o_orderdate
-        LIMIT 10
-    """,
-    4: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_9_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."o_orderpriority",
-          generated_table."order_count"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."o_orderpriority",
-          generated_table."order_count"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.o_orderpriority
-    """,
-    5: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_9_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."n_name",
-          generated_table."revenue"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."n_name",
-          generated_table."revenue"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.revenue DESC
-    """,
-    6: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_2_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."revenue"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."revenue"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-    """,
-    7: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_14_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."supp_nation",
-          generated_table."cust_nation",
-          generated_table."l_year",
-          generated_table."revenue"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."supp_nation",
-          generated_table."cust_nation",
-          generated_table."l_year",
-          generated_table."revenue"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.supp_nation,
-          generated_table.cust_nation,
-          generated_table.l_year
-    """,
-    8: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_17_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."o_year",
-          generated_table."mkt_share"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."o_year",
-          generated_table."mkt_share"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.o_year
-    """,
-    9: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_11_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."nation",
-          generated_table."o_year",
-          generated_table."sum_profit"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."nation",
-          generated_table."o_year",
-          generated_table."sum_profit"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.nation,
-          generated_table.o_year DESC
-    """,
-    10: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."c_custkey",
-          generated_table."c_name",
-          generated_table."revenue",
-          generated_table."c_acctbal",
-          generated_table."n_name",
-          generated_table."c_address",
-          generated_table."c_phone",
-          generated_table."c_comment"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."c_custkey",
-          generated_table."c_name",
-          generated_table."revenue",
-          generated_table."c_acctbal",
-          generated_table."n_name",
-          generated_table."c_address",
-          generated_table."c_phone",
-          generated_table."c_comment"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.revenue DESC
-        LIMIT 20
-    """,
-    12: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_10_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."l_shipmode",
-          generated_table."high_line_count",
-          generated_table."low_line_count"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."l_shipmode",
-          generated_table."high_line_count",
-          generated_table."low_line_count"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.l_shipmode
-    """,
-    14: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_3_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."promo_revenue"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."promo_revenue"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-    """,
-    18: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."c_name",
-          generated_table."c_custkey",
-          generated_table."o_orderkey",
-          generated_table."o_orderdate",
-          generated_table."o_totalprice",
-          generated_table."sum(l_quantity)"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."c_name",
-          generated_table."c_custkey",
-          generated_table."o_orderkey",
-          generated_table."o_orderdate",
-          generated_table."o_totalprice",
-          generated_table."sum(l_quantity)"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-        ORDER BY
-          generated_table.o_totalprice DESC,
-          generated_table.o_orderdate
-        LIMIT 100
-    """,
-    19: """
-        WITH lineage AS (
-          SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
-        )
-        SELECT
-          generated_table."revenue"
-        FROM temp_table_name AS generated_table
-        JOIN lineage
-          ON generated_table.rowid::bigint = lineage.out_index::bigint
-        JOIN lineitem
-          ON lineitem.rowid::bigint = lineage.lineitem::bigint
-        GROUP BY
-          generated_table.rowid,
-          generated_table."revenue"
-        HAVING
-          AVG(lineitem.l_quantity) >= 30
-    """,
+    1: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_8_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."l_returnflag", generated_table."l_linestatus", generated_table."sum_qty", generated_table."sum_base_price", generated_table."sum_disc_price", generated_table."sum_charge", generated_table."avg_qty", generated_table."avg_price", generated_table."avg_disc", generated_table."count_order"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.l_returnflag, generated_table.l_linestatus""",
+    3: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."l_orderkey", generated_table."revenue", generated_table."o_orderdate", generated_table."o_shippriority"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.revenue DESC, generated_table.o_orderdate
+LIMIT 10""",
+    4: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_9_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."o_orderpriority", generated_table."order_count"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.o_orderpriority""",
+    5: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_9_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."n_name", generated_table."revenue"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.revenue DESC""",
+    6: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_2_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."revenue"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint""",
+    7: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_14_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."supp_nation", generated_table."cust_nation", generated_table."l_year", generated_table."revenue"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.supp_nation, generated_table.cust_nation, generated_table.l_year""",
+    8: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_17_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."o_year", generated_table."mkt_share"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.o_year""",
+    9: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_11_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."nation", generated_table."o_year", generated_table."sum_profit"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.nation, generated_table.o_year DESC""",
+    10: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."c_custkey", generated_table."c_name", generated_table."revenue", generated_table."c_acctbal", generated_table."n_name", generated_table."c_address", generated_table."c_phone", generated_table."c_comment"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.revenue DESC
+LIMIT 20""",
+    12: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_10_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."l_shipmode", generated_table."high_line_count", generated_table."low_line_count"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.l_shipmode""",
+    14: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_3_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."promo_revenue"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint""",
+    18: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."c_name", generated_table."c_custkey", generated_table."o_orderkey", generated_table."o_orderdate", generated_table."o_totalprice"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint
+ORDER BY generated_table.o_totalprice DESC, generated_table.o_orderdate
+LIMIT 100""",
+    19: """WITH lineage AS (
+SELECT
+    lineage.out_index
+FROM (
+SELECT "output_id" AS out_index, "opid_6_lineitem" AS "lineitem" FROM read_block(0)
+) AS lineage
+JOIN lineitem
+    ON lineitem.rowid::bigint = lineage.lineitem::bigint
+GROUP BY lineage.out_index
+HAVING AVG(lineitem.l_quantity) >= 30
+)
+SELECT
+    generated_table."revenue"
+FROM {temp_table_name} AS generated_table
+JOIN lineage
+    ON generated_table.rowid::bigint = lineage.out_index::bigint""",
 }
 
 def _normalize_sql(sql: str) -> str:

@@ -426,28 +426,36 @@ def build_lineage_filter_query(
         return f'"{escaped}"'
 
     select_cols = [f"generated_table.{_quote_identifier(col)}" for col in output_columns]
-    group_by_cols = ["generated_table.rowid", *select_cols]
     constraint_expr = sqlglot.parse_one(policy.constraint, read="duckdb")
     constraint_sql = constraint_expr.sql(dialect="duckdb")
 
-    order_by_sql = f"\n{order_by}" if order_by else ""
-    limit_sql = f"\n{limit}" if limit else ""
+    suffix_lines: list[str] = []
+    if order_by:
+        suffix_lines.append(order_by)
+    if limit:
+        suffix_lines.append(limit)
+    suffix_sql = ""
+    if suffix_lines:
+        suffix_sql = "\n" + "\n".join(suffix_lines)
 
     return (
         "WITH lineage AS (\n"
+        "SELECT\n"
+        "    lineage.out_index\n"
+        "FROM (\n"
         f"{lineage_query}\n"
+        ") AS lineage\n"
+        f"JOIN {policy.sources[0]}\n"
+        f"    ON {policy.sources[0]}.rowid::bigint = lineage.{policy.sources[0]}::bigint\n"
+        "GROUP BY lineage.out_index\n"
+        f"HAVING {constraint_sql}\n"
         ")\n"
         "SELECT\n"
         f"    {', '.join(select_cols)}\n"
         f"FROM {temp_table_name} AS generated_table\n"
         "JOIN lineage\n"
-        "    ON generated_table.rowid::bigint = lineage.out_index::bigint\n"
-        f"JOIN {policy.sources[0]}\n"
-        f"    ON {policy.sources[0]}.rowid::bigint = lineage.{policy.sources[0]}::bigint\n"
-        f"GROUP BY {', '.join(group_by_cols)}\n"
-        f"HAVING {constraint_sql}"
-        f"{order_by_sql}"
-        f"{limit_sql}"
+        "    ON generated_table.rowid::bigint = lineage.out_index::bigint"
+        f"{suffix_sql}"
     )
 
 

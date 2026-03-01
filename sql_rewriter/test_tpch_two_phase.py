@@ -67,7 +67,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (l_returnflag, l_linestatus)""",
+  ON base_query.l_returnflag = policy_eval.l_returnflag
+  AND base_query.l_linestatus = policy_eval.l_linestatus""",
     3: """WITH base_query AS (
   SELECT
     l_orderkey,
@@ -110,10 +111,12 @@ JOIN policy_eval
     policy_eval.dfc AS dfc
   FROM base_query
   JOIN policy_eval
-    USING (l_orderkey, o_orderdate, o_shippriority)
+    ON base_query.l_orderkey = policy_eval.l_orderkey
+    AND base_query.o_orderdate = policy_eval.o_orderdate
+    AND base_query.o_shippriority = policy_eval.o_shippriority
   ORDER BY
     revenue DESC,
-    o_orderdate
+    base_query.o_orderdate
   LIMIT 10
 )
 SELECT
@@ -172,7 +175,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (o_orderpriority)""",
+  ON base_query.o_orderpriority = policy_eval.o_orderpriority""",
     5: """WITH base_query AS (
   SELECT
     n_name,
@@ -219,7 +222,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (n_name)""",
+  ON base_query.n_name = policy_eval.n_name""",
     6: """WITH base_query AS (
   SELECT
     SUM(l_extendedprice * l_discount) AS revenue
@@ -330,7 +333,9 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (supp_nation, cust_nation, l_year)""",
+  ON base_query.supp_nation = policy_eval.supp_nation
+  AND base_query.cust_nation = policy_eval.cust_nation
+  AND base_query.l_year = policy_eval.l_year""",
     8: """WITH base_query AS (
   SELECT
     o_year,
@@ -394,7 +399,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (o_year)""",
+  ON base_query.o_year = policy_eval.o_year""",
     9: """WITH base_query AS (
   SELECT
     nation,
@@ -457,7 +462,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (nation, o_year)""",
+  ON base_query.nation = policy_eval.nation AND base_query.o_year = policy_eval.o_year""",
     10: """WITH base_query AS (
   SELECT
     c_custkey,
@@ -518,7 +523,13 @@ JOIN policy_eval
     policy_eval.dfc AS dfc
   FROM base_query
   JOIN policy_eval
-    USING (c_custkey, c_name, c_acctbal, c_phone, n_name, c_address, c_comment)
+    ON base_query.c_custkey = policy_eval.c_custkey
+    AND base_query.c_name = policy_eval.c_name
+    AND base_query.c_acctbal = policy_eval.c_acctbal
+    AND base_query.c_phone = policy_eval.c_phone
+    AND base_query.n_name = policy_eval.n_name
+    AND base_query.c_address = policy_eval.c_address
+    AND base_query.c_comment = policy_eval.c_comment
   ORDER BY
     revenue DESC
   LIMIT 20
@@ -586,7 +597,7 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  USING (l_shipmode)""",
+  ON base_query.l_shipmode = policy_eval.l_shipmode""",
     14: """WITH base_query AS (
   SELECT
     100.00 * SUM(
@@ -687,10 +698,14 @@ CROSS JOIN policy_eval""",
     policy_eval.dfc2 AS dfc2
   FROM base_query
   JOIN policy_eval
-    USING (c_name, c_custkey, o_orderkey, o_orderdate, o_totalprice)
+    ON base_query.c_name = policy_eval.c_name
+    AND base_query.c_custkey = policy_eval.c_custkey
+    AND base_query.o_orderkey = policy_eval.o_orderkey
+    AND base_query.o_orderdate = policy_eval.o_orderdate
+    AND base_query.o_totalprice = policy_eval.o_totalprice
   ORDER BY
-    o_totalprice DESC,
-    o_orderdate
+    base_query.o_totalprice DESC,
+    base_query.o_orderdate
   LIMIT 100
 )
 SELECT

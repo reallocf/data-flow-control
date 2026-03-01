@@ -175,6 +175,44 @@ def setup_test_data_with_join_matches(
     assert result[0] == secondary_rows, f"Expected {secondary_rows} rows in join_data, got {result[0]}"
 
 
+def setup_join_data_only(
+    conn: duckdb.DuckDBPyConnection,
+    join_matches: int = 1_000_000,
+    table_name: str = "join_data",
+) -> None:
+    """Create only the secondary join table used by JOIN microbenchmarks.
+
+    Args:
+        conn: DuckDB connection
+        join_matches: Number of rows in secondary table `join_data`
+        table_name: Name of secondary join table
+    """
+    conn.execute(
+        f"""
+        CREATE TABLE {table_name} (
+            id INTEGER,
+            value INTEGER
+        )
+        """
+    )
+
+    batch_size = 10000 if join_matches > 10000 else 100
+    for batch_start in range(0, join_matches, batch_size):
+        batch_end = min(batch_start + batch_size, join_matches)
+        values = []
+        for i in range(batch_start + 1, batch_end + 1):
+            values.append(f"({i}, {i})")
+
+        insert_sql = f"""
+            INSERT INTO {table_name} (id, value)
+            VALUES {', '.join(values)}
+        """
+        conn.execute(insert_sql)
+
+    result = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+    assert result[0] == join_matches, f"Expected {join_matches} rows in {table_name}, got {result[0]}"
+
+
 def setup_test_data_with_join_group_by(
     conn: duckdb.DuckDBPyConnection,
     join_count: int,
