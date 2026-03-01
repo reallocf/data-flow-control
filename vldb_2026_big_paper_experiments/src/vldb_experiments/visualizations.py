@@ -11,6 +11,13 @@ from matplotlib.ticker import ScalarFormatter
 import pandas as pd
 from sklearn.metrics import f1_score
 
+FULL_PUSH_LABEL = "Full-Push"
+PARTIAL_PUSH_LABEL = "Partial-Push"
+FINAL_AXIS_LABEL_FONTSIZE = 18
+FINAL_TICK_FONTSIZE = 14
+FINAL_ANNOTATION_FONTSIZE = 14
+FINAL_LEGEND_FONTSIZE = 14
+
 
 def load_results(csv_path: str) -> pd.DataFrame:
     """Load experiment results from CSV file.
@@ -163,8 +170,8 @@ def create_operator_chart(
             # Map column names directly to approach names
             approach_map = {
                 "no_policy_exec_time_ms": "No Policy",
-                "dfc_1phase_exec_time_ms": "1Phase",
-                "dfc_2phase_exec_time_ms": "2Phase",
+                "dfc_1phase_exec_time_ms": FULL_PUSH_LABEL,
+                "dfc_2phase_exec_time_ms": PARTIAL_PUSH_LABEL,
                 "logical_exec_time_ms": "Logical",
                 "physical_exec_time_ms": "Physical",
             }
@@ -200,10 +207,10 @@ def create_operator_chart(
     colors = {
         "No Policy": "#1f77b4",
         "No Policy exec": "#1f77b4",
-        "1Phase": "#ff7f0e",
-        "1Phase rewrite": "#ff7f0e",
-        "1Phase exec": "#ffbb78",
-        "2Phase": "#9467bd",
+        FULL_PUSH_LABEL: "#ff7f0e",
+        f"{FULL_PUSH_LABEL} rewrite": "#ff7f0e",
+        f"{FULL_PUSH_LABEL} exec": "#ffbb78",
+        PARTIAL_PUSH_LABEL: "#9467bd",
         "Logical": "#2ca02c",
         "Logical rewrite": "#2ca02c",
         "Logical exec": "#98df8a",
@@ -211,7 +218,7 @@ def create_operator_chart(
     }
 
     # Plot each approach (using averaged data)
-    approaches = ["No Policy", "1Phase", "2Phase", "Logical", "Physical"]
+    approaches = ["No Policy", FULL_PUSH_LABEL, PARTIAL_PUSH_LABEL, "Logical", "Physical"]
 
     for approach in approaches:
         approach_data = plot_df_averaged[plot_df_averaged["Approach"] == approach]
@@ -229,10 +236,8 @@ def create_operator_chart(
             )
 
     # Set labels and title
-    ax.set_xlabel(x_label, fontsize=12)
-    ax.set_ylabel("Execution Time (ms)", fontsize=12)
-    ax.set_title(f"{query_type} Query Performance", fontsize=14, fontweight="bold")
-
+    ax.set_xlabel(x_label, fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel("Execution Time (ms)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     # Use linear x-axis for WHERE to keep row-drop spacing explicit.
     if query_type != "WHERE":
         ax.set_xscale("log")
@@ -241,10 +246,11 @@ def create_operator_chart(
     ax.set_ylim(bottom=0)
 
     # Add legend
-    ax.legend(loc="best", fontsize=10)
+    ax.legend(loc="best", fontsize=FINAL_LEGEND_FONTSIZE)
 
     # Add grid
     ax.grid(True, alpha=0.3)
+    ax.tick_params(axis="both", labelsize=FINAL_TICK_FONTSIZE)
 
     # Tight layout
     plt.tight_layout()
@@ -286,8 +292,8 @@ def create_operator_overhead_chart(
 
     physical_time_col = "physical_exec_time_ms"
     overhead_sources = {
-        "1Phase": "dfc_1phase_exec_time_ms",
-        "2Phase": "dfc_2phase_exec_time_ms",
+        FULL_PUSH_LABEL: "dfc_1phase_exec_time_ms",
+        PARTIAL_PUSH_LABEL: "dfc_2phase_exec_time_ms",
         "Logical": "logical_exec_time_ms",
         "Physical": physical_time_col,
     }
@@ -341,12 +347,12 @@ def create_operator_overhead_chart(
 
     fig, ax = plt.subplots(figsize=(10, 7))
     colors = {
-        "1Phase": "#ff7f0e",
-        "2Phase": "#9467bd",
+        FULL_PUSH_LABEL: "#ff7f0e",
+        PARTIAL_PUSH_LABEL: "#9467bd",
         "Logical": "#2ca02c",
         "Physical": "#d62728",
     }
-    for approach in ["1Phase", "2Phase", "Logical", "Physical"]:
+    for approach in [FULL_PUSH_LABEL, PARTIAL_PUSH_LABEL, "Logical", "Physical"]:
         approach_data = plot_df_averaged[plot_df_averaged["Approach"] == approach]
         if len(approach_data) == 0:
             continue
@@ -368,7 +374,7 @@ def create_operator_overhead_chart(
         ax.set_xscale("log")
     ax.axhline(y=0.0, color="#555555", linestyle="--", linewidth=1)
     ax.set_ylim(bottom=0)
-    ax.legend(loc="best", fontsize=10)
+    ax.legend(loc="best", fontsize=14)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
 
@@ -407,7 +413,7 @@ def create_operator_overhead_chart_dfc_physical(
 
     physical_time_col = "physical_exec_time_ms"
     overhead_sources = {
-        "1Phase": "dfc_1phase_exec_time_ms",
+        FULL_PUSH_LABEL: "dfc_1phase_exec_time_ms",
         "Physical": physical_time_col,
     }
 
@@ -460,10 +466,10 @@ def create_operator_overhead_chart_dfc_physical(
 
     fig, ax = plt.subplots(figsize=(10, 7))
     colors = {
-        "1Phase": "#ff7f0e",
+        FULL_PUSH_LABEL: "#ff7f0e",
         "Physical": "#d62728",
     }
-    for approach in ["1Phase", "Physical"]:
+    for approach in [FULL_PUSH_LABEL, "Physical"]:
         approach_data = plot_df_averaged[plot_df_averaged["Approach"] == approach]
         if len(approach_data) == 0:
             continue
@@ -485,7 +491,7 @@ def create_operator_overhead_chart_dfc_physical(
         ax.set_xscale("log")
     ax.axhline(y=0.0, color="#555555", linestyle="--", linewidth=1)
     ax.set_ylim(bottom=0)
-    ax.legend(loc="best", fontsize=10)
+    ax.legend(loc="best", fontsize=14)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
 
@@ -770,14 +776,14 @@ def create_tpch_summary_chart(
             [x - bar_width for x in x_positions],
             grouped[time_columns[1]],
             width=bar_width,
-            label="1Phase",
+            label=FULL_PUSH_LABEL,
             color=colors[1],
         )
         ax.bar(
             x_positions,
             grouped[time_columns[2]],
             width=bar_width,
-            label="2Phase",
+            label=PARTIAL_PUSH_LABEL,
             color=colors[2],
         )
         ax.bar(
@@ -805,14 +811,14 @@ def create_tpch_summary_chart(
             [x - 1.5 * bar_width for x in x_positions],
             grouped["dfc_overhead_pct"],
             width=bar_width,
-            label="1Phase",
+            label=FULL_PUSH_LABEL,
             color=colors[0],
         )
         ax.bar(
             [x - 0.5 * bar_width for x in x_positions],
             grouped["dfc_2phase_overhead_pct"],
             width=bar_width,
-            label="2Phase",
+            label=PARTIAL_PUSH_LABEL,
             color=colors[1],
         )
         ax.bar(
@@ -863,8 +869,8 @@ def create_tpch_multi_db_chart(
 
     base_series = [
         ("no_policy_exec_time_ms", "DuckDB No Policy", "#1f77b4"),
-        ("dfc_1phase_exec_time_ms", "DuckDB 1Phase", "#ff7f0e"),
-        ("dfc_2phase_exec_time_ms", "DuckDB 2Phase", "#9467bd"),
+        ("dfc_1phase_exec_time_ms", f"DuckDB {FULL_PUSH_LABEL}", "#ff7f0e"),
+        ("dfc_2phase_exec_time_ms", f"DuckDB {PARTIAL_PUSH_LABEL}", "#9467bd"),
         ("logical_exec_time_ms", "DuckDB Logical", "#2ca02c"),
     ]
 
@@ -1075,7 +1081,7 @@ def create_tpch_rewrite_exec_breakdown_chart(
         list(x_positions),
         grouped["dfc_1phase_rewrite_time_ms"],
         width=bar_width,
-        label="1Phase rewrite",
+        label=f"{FULL_PUSH_LABEL} rewrite",
         color="#ff7f0e",
     )
     ax.bar(
@@ -1083,7 +1089,7 @@ def create_tpch_rewrite_exec_breakdown_chart(
         grouped["dfc_1phase_exec_time_ms"],
         width=bar_width,
         bottom=grouped["dfc_1phase_rewrite_time_ms"],
-        label="1Phase exec",
+        label=f"{FULL_PUSH_LABEL} exec",
         color="#ffbb78",
     )
 
@@ -1093,7 +1099,7 @@ def create_tpch_rewrite_exec_breakdown_chart(
             [x + bar_width for x in x_positions],
             grouped["dfc_2phase_exec_time_ms"],
             width=bar_width,
-            label="2Phase exec",
+            label=f"{PARTIAL_PUSH_LABEL} exec",
             color="#9467bd",
         )
 
@@ -1175,7 +1181,7 @@ def create_policy_count_chart(
         marker="o",
         linewidth=2,
         markersize=6,
-        label="1Phase",
+        label=FULL_PUSH_LABEL,
         color="#ff7f0e",
     )
     if "dfc_1phase_optimized_exec_time_ms" in grouped.columns:
@@ -1185,7 +1191,7 @@ def create_policy_count_chart(
             marker="o",
             linewidth=2,
             markersize=6,
-            label="1Phase Optimized",
+            label=f"{FULL_PUSH_LABEL} Optimized",
             color="#8c564b",
         )
     if "dfc_2phase_exec_time_ms" in grouped.columns:
@@ -1195,7 +1201,7 @@ def create_policy_count_chart(
             marker="o",
             linewidth=2,
             markersize=6,
-            label="2Phase",
+            label=PARTIAL_PUSH_LABEL,
             color="#9467bd",
         )
     if "logical_exec_time_ms" in grouped.columns:
@@ -1219,27 +1225,20 @@ def create_policy_count_chart(
             color="#1f77b4",
         )
 
-    ax.set_xlabel("Number of Policies", fontsize=12)
-    ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
+    ax.set_xlabel("Number of Policies", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel("Average Execution Time (ms)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     query_label = None
     if "query_num" in df.columns:
         unique_queries = df["query_num"].dropna().unique().tolist()
         if len(unique_queries) == 1:
             query_label = f"Q{int(unique_queries[0]):02d}"
-    if query_label:
-        ax.set_title(
-            f"TPC-H {query_label} Execution Time vs Policy Count",
-            fontsize=14,
-            fontweight="bold",
-        )
-    else:
-        ax.set_title("TPC-H Execution Time vs Policy Count", fontsize=14, fontweight="bold")
     ax.set_xscale("log")
     y_formatter = ScalarFormatter(useOffset=False)
     y_formatter.set_scientific(False)
     ax.yaxis.set_major_formatter(y_formatter)
     ax.grid(True, alpha=0.3)
-    ax.legend(loc="best", fontsize=10)
+    ax.legend(loc="best", fontsize=FINAL_LEGEND_FONTSIZE)
+    ax.tick_params(axis="both", labelsize=FINAL_TICK_FONTSIZE)
 
     plt.tight_layout()
     if output_filename == "tpch_q01_policy_count.png" and query_label:
@@ -1298,7 +1297,7 @@ def create_tpch_self_join_chart(
         marker="o",
         linewidth=2,
         markersize=6,
-        label="1Phase",
+        label=FULL_PUSH_LABEL,
         color="#ff7f0e",
     )
     ax.plot(
@@ -1307,24 +1306,20 @@ def create_tpch_self_join_chart(
         marker="o",
         linewidth=2,
         markersize=6,
-        label="1Phase Optimized",
+        label=f"{FULL_PUSH_LABEL} Optimized",
         color="#8c564b",
     )
 
-    ax.set_xlabel("Number of Self-Joins", fontsize=12)
-    ax.set_ylabel("Overhead Relative to No Policy (%)", fontsize=12)
-    ax.set_title(
-        "TPC-H Q01 Self-Join Policy Overhead",
-        fontsize=14,
-        fontweight="bold",
-    )
+    ax.set_xlabel("Number of Self-Joins", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel("Overhead vs No Policy (%)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     ax.set_xscale("log")
     ax.set_ylim(bottom=0)
     y_formatter = ScalarFormatter(useOffset=False)
     y_formatter.set_scientific(False)
     ax.yaxis.set_major_formatter(y_formatter)
     ax.grid(True, alpha=0.3)
-    ax.legend(loc="best", fontsize=10)
+    ax.legend(loc="best", fontsize=FINAL_LEGEND_FONTSIZE)
+    ax.tick_params(axis="both", labelsize=FINAL_TICK_FONTSIZE)
 
     plt.tight_layout()
     output_path = Path(output_dir) / output_filename
@@ -1373,7 +1368,7 @@ def create_microbenchmark_policy_count_chart(
         marker="o",
         linewidth=2,
         markersize=6,
-        label="1Phase",
+        label=FULL_PUSH_LABEL,
         color="#ff7f0e",
     )
     if "dfc_2phase_exec_time_ms" in grouped.columns:
@@ -1383,7 +1378,7 @@ def create_microbenchmark_policy_count_chart(
             marker="o",
             linewidth=2,
             markersize=6,
-            label="2Phase",
+            label=PARTIAL_PUSH_LABEL,
             color="#9467bd",
         )
     ax.plot(
@@ -1488,7 +1483,7 @@ def create_llm_validation_f1_chart(
         approaches_present = sorted(summary["approach"].unique().tolist())
 
     label_map = {
-        "dfc_1phase": "1Phase",
+        "dfc_1phase": FULL_PUSH_LABEL,
         "gpt_query_only": "GPT Query Only",
         "gpt_query_results": "GPT Query + Results",
         "opus_query_only": "Opus Query Only",
@@ -1619,7 +1614,7 @@ def create_policy_complexity_overhead_chart(
         marker="o",
         linewidth=2,
         markersize=6,
-        label="1Phase / No Policy",
+        label=f"{FULL_PUSH_LABEL} / No Policy",
         color="#ff7f0e",
     )
     if "dfc_2phase_overhead" in grouped.columns:
@@ -1629,7 +1624,7 @@ def create_policy_complexity_overhead_chart(
             marker="o",
             linewidth=2,
             markersize=6,
-            label="2Phase / No Policy",
+            label=f"{PARTIAL_PUSH_LABEL} / No Policy",
             color="#9467bd",
         )
     ax.plot(
@@ -1685,7 +1680,7 @@ def create_policy_many_ors_overhead_chart(
         marker="o",
         linewidth=2,
         markersize=6,
-        label="1Phase / No Policy",
+        label=f"{FULL_PUSH_LABEL} / No Policy",
         color="#ff7f0e",
     )
     if "dfc_2phase_overhead" in grouped.columns:
@@ -1695,7 +1690,7 @@ def create_policy_many_ors_overhead_chart(
             marker="o",
             linewidth=2,
             markersize=6,
-            label="2Phase / No Policy",
+            label=f"{PARTIAL_PUSH_LABEL} / No Policy",
             color="#9467bd",
         )
     ax.plot(
@@ -1776,7 +1771,7 @@ def create_multi_source_exec_time_chart(
         marker="o",
         linewidth=2,
         markersize=6,
-        label="1Phase",
+        label=FULL_PUSH_LABEL,
         color="#ff7f0e",
     )
     if "dfc_2phase_exec_time_ms" in grouped.columns:
@@ -1786,7 +1781,7 @@ def create_multi_source_exec_time_chart(
             marker="o",
             linewidth=2,
             markersize=6,
-            label="2Phase",
+            label=PARTIAL_PUSH_LABEL,
             color="#9467bd",
         )
 
@@ -1841,8 +1836,8 @@ def create_multi_source_heatmap_chart(
 
     fig, ax = plt.subplots(figsize=(8, 6))
     cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-        "light_red_yellow",
-        ["#e38b8b", "#fff3b0"],
+        "light_blue_red",
+        ["#8bb6e3", "#e38b8b"],
     )
     cmap.set_bad(color="#f0f0f0")
 
@@ -1851,24 +1846,33 @@ def create_multi_source_heatmap_chart(
         origin="lower",
         aspect="auto",
         cmap=cmap,
+        vmin=0.5,
+        vmax=2.0,
     )
 
     ax.set_xticks(range(len(join_values)))
     ax.set_xticklabels(join_values)
     ax.set_yticks(range(len(source_values)))
     ax.set_yticklabels(source_values)
-    ax.set_xlabel("Number of Joins", fontsize=12)
-    ax.set_ylabel("Number of Sources", fontsize=12)
-    ax.set_title("Multi-Source Relative Performance (1Phase / No Policy)", fontsize=14, fontweight="bold")
-
+    ax.set_xlabel("Number of Joins", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel("Number of Sources", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.tick_params(axis="both", labelsize=FINAL_TICK_FONTSIZE)
     for y_idx, source in enumerate(source_values):
         for x_idx, join in enumerate(join_values):
             value = heatmap.at[source, join]
             if pd.notna(value):
-                ax.text(x_idx, y_idx, f"{value:.2f}", ha="center", va="center", fontsize=9)
+                ax.text(
+                    x_idx,
+                    y_idx,
+                    f"{value:.2f}",
+                    ha="center",
+                    va="center",
+                    fontsize=FINAL_ANNOTATION_FONTSIZE,
+                )
 
     cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label("Execution Time Ratio", fontsize=11)
+    cbar.set_label("Execution Time Ratio", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    cbar.ax.tick_params(labelsize=FINAL_TICK_FONTSIZE)
 
     ax.grid(False)
     plt.tight_layout()
@@ -1886,6 +1890,7 @@ def create_multi_db_engine_summary_chart(
     title_suffix: str | None = None,
 ) -> Optional[plt.Figure]:
     """Create a per-engine summary chart of average overhead."""
+    _ = title_suffix
     df = _with_exec_time_columns(df)
     if "query_num" not in df.columns:
         print("Missing query_num column for multi-db engine summary chart.")
@@ -1925,7 +1930,7 @@ def create_multi_db_engine_summary_chart(
         if baseline_by_query.empty:
             continue
         engine_added = False
-        for label, col in [("1Phase", dfc_1phase_col), ("2Phase", dfc_2phase_col), ("Logical", logical_col)]:
+        for label, col in [(FULL_PUSH_LABEL, dfc_1phase_col), (PARTIAL_PUSH_LABEL, dfc_2phase_col), ("Logical", logical_col)]:
             approach_by_query = df.groupby("query_num", as_index=True)[col].mean(numeric_only=True)
             approach_by_query = approach_by_query.reindex(baseline_by_query.index)
             valid_mask = approach_by_query > 0
@@ -1957,33 +1962,31 @@ def create_multi_db_engine_summary_chart(
 
     fig, ax = plt.subplots(figsize=(9, 6))
 
-    x_positions = range(len(engine_order))
-    bar_width = 0.24
-    offsets = {"1Phase": -bar_width, "2Phase": 0.0, "Logical": bar_width}
-    colors = {"1Phase": "#ff7f0e", "2Phase": "#9467bd", "Logical": "#2ca02c"}
+    y_positions = range(len(engine_order))
+    bar_height = 0.24
+    offsets = {FULL_PUSH_LABEL: -bar_height, PARTIAL_PUSH_LABEL: 0.0, "Logical": bar_height}
+    colors = {FULL_PUSH_LABEL: "#ff7f0e", PARTIAL_PUSH_LABEL: "#9467bd", "Logical": "#2ca02c"}
 
-    for approach in ["1Phase", "2Phase", "Logical"]:
+    for approach in [FULL_PUSH_LABEL, PARTIAL_PUSH_LABEL, "Logical"]:
         subset = summary_df[summary_df["approach"] == approach]
         if subset.empty:
             continue
-        xs = [engine_order.index(e) + offsets[approach] for e in subset["engine"]]
-        ax.bar(
-            xs,
+        ys = [engine_order.index(e) + offsets[approach] for e in subset["engine"]]
+        ax.barh(
+            ys,
             subset["avg_overhead"],
-            width=bar_width,
+            height=bar_height,
             label=approach,
             color=colors[approach],
         )
 
-    ax.set_xticks(list(x_positions))
-    ax.set_xticklabels(engine_order, fontsize=10)
-    ax.set_ylabel("Avg Overhead (%)", fontsize=12)
-    title = "TPC-H Average Overhead by Engine (Per-Query Avg)"
-    if title_suffix:
-        title = f"{title} ({title_suffix})"
-    ax.set_title(title, fontsize=14, fontweight="bold")
-    ax.grid(axis="y", alpha=0.3)
-    ax.legend(loc="best", fontsize=10)
+    ax.set_yticks(list(y_positions))
+    ax.set_yticklabels(engine_order, fontsize=FINAL_TICK_FONTSIZE)
+    ax.invert_yaxis()
+    ax.set_xlabel("Overhead vs No Policy (%)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.grid(axis="x", alpha=0.3)
+    ax.legend(loc="upper left", fontsize=FINAL_LEGEND_FONTSIZE)
+    ax.tick_params(axis="x", labelsize=FINAL_TICK_FONTSIZE)
 
     plt.tight_layout()
     output_path = Path(output_dir) / output_filename
@@ -2001,6 +2004,7 @@ def create_multi_db_engine_summary_capped_chart(
     title_suffix: str | None = None,
 ) -> Optional[plt.Figure]:
     """Create a per-engine summary chart with DuckDB overhead capped."""
+    _ = title_suffix
     df = _with_exec_time_columns(df)
     if "query_num" not in df.columns:
         print("Missing query_num column for multi-db engine summary chart.")
@@ -2040,7 +2044,7 @@ def create_multi_db_engine_summary_capped_chart(
         if baseline_by_query.empty:
             continue
         engine_added = False
-        for label, col in [("1Phase", dfc_1phase_col), ("2Phase", dfc_2phase_col), ("Logical", logical_col)]:
+        for label, col in [(FULL_PUSH_LABEL, dfc_1phase_col), (PARTIAL_PUSH_LABEL, dfc_2phase_col), ("Logical", logical_col)]:
             approach_by_query = df.groupby("query_num", as_index=True)[col].mean(numeric_only=True)
             approach_by_query = approach_by_query.reindex(baseline_by_query.index)
             valid_mask = approach_by_query > 0
@@ -2050,13 +2054,13 @@ def create_multi_db_engine_summary_capped_chart(
             if overhead_by_query.empty:
                 continue
             overall_avg = float((overhead_by_query.mean() - 1.0) * 100.0)
-            if engine == "DuckDB":
-                overall_avg = min(overall_avg, duckdb_cap_pct)
+            plot_overhead = min(overall_avg, duckdb_cap_pct) if engine == "DuckDB" else overall_avg
             records.append(
                 {
                     "engine": engine,
                     "approach": label,
                     "avg_overhead": overall_avg,
+                    "plot_overhead": plot_overhead,
                 }
             )
             engine_added = True
@@ -2074,34 +2078,44 @@ def create_multi_db_engine_summary_capped_chart(
 
     fig, ax = plt.subplots(figsize=(9, 6))
 
-    x_positions = range(len(engine_order))
-    bar_width = 0.24
-    offsets = {"1Phase": -bar_width, "2Phase": 0.0, "Logical": bar_width}
-    colors = {"1Phase": "#ff7f0e", "2Phase": "#9467bd", "Logical": "#2ca02c"}
+    y_positions = range(len(engine_order))
+    bar_height = 0.24
+    offsets = {FULL_PUSH_LABEL: -bar_height, PARTIAL_PUSH_LABEL: 0.0, "Logical": bar_height}
+    colors = {FULL_PUSH_LABEL: "#ff7f0e", PARTIAL_PUSH_LABEL: "#9467bd", "Logical": "#2ca02c"}
 
-    for approach in ["1Phase", "2Phase", "Logical"]:
+    for approach in [FULL_PUSH_LABEL, PARTIAL_PUSH_LABEL, "Logical"]:
         subset = summary_df[summary_df["approach"] == approach]
         if subset.empty:
             continue
-        xs = [engine_order.index(e) + offsets[approach] for e in subset["engine"]]
-        ax.bar(
-            xs,
-            subset["avg_overhead"],
-            width=bar_width,
+        ys = [engine_order.index(e) + offsets[approach] for e in subset["engine"]]
+        bars = ax.barh(
+            ys,
+            subset["plot_overhead"],
+            height=bar_height,
             label=approach,
             color=colors[approach],
         )
+        for bar, original in zip(bars, subset["avg_overhead"]):
+            if original <= duckdb_cap_pct:
+                continue
+            ax.text(
+                duckdb_cap_pct,
+                bar.get_y() + bar.get_height() / 2.0,
+                f"{original:.0f}%",
+                ha="right",
+                va="center",
+                fontsize=FINAL_ANNOTATION_FONTSIZE,
+                clip_on=False,
+            )
 
-    ax.set_xticks(list(x_positions))
-    ax.set_xticklabels(engine_order, fontsize=10)
-    ax.set_ylabel("Avg Overhead (%)", fontsize=12)
-    title = f"TPC-H Average Overhead by Engine (DuckDB capped at {duckdb_cap_pct:.0f}%)"
-    if title_suffix:
-        title = f"{title} ({title_suffix})"
-    ax.set_title(title, fontsize=14, fontweight="bold")
-    ax.grid(axis="y", alpha=0.3)
-    ax.legend(loc="best", fontsize=10)
-    ax.set_ylim(top=duckdb_cap_pct)
+    ax.set_yticks(list(y_positions))
+    ax.set_yticklabels(engine_order, fontsize=FINAL_TICK_FONTSIZE)
+    ax.invert_yaxis()
+    ax.set_xlabel("Overhead vs No Policy (%)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.grid(axis="x", alpha=0.3)
+    ax.legend(loc="upper left", fontsize=FINAL_LEGEND_FONTSIZE)
+    ax.set_xlim(right=duckdb_cap_pct)
+    ax.tick_params(axis="x", labelsize=FINAL_TICK_FONTSIZE)
 
     plt.tight_layout()
     output_path = Path(output_dir) / output_filename

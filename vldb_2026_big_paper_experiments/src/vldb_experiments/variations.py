@@ -64,7 +64,7 @@ def get_policy_threshold_for_rows(
 def generate_variation_parameters(
     query_type: str,
     execution_number: int,
-    num_variations: int = 4,
+    num_variations: int = 5,
     num_runs_per_variation: int = 5,
     num_query_types: int = 6
 ) -> dict:
@@ -156,8 +156,8 @@ def generate_variation_parameters(
     if query_type == "GROUP_BY":
         # Vary number of groups (fixed logarithmic spacing)
         # This affects the data, not the policy
-        # Values: [10, 100, 1000, 10000] groups
-        num_groups_values = [10, 100, 1000, 10000]
+        # Values: [10, 100, 1000, 10000, 100000] groups
+        num_groups_values = [10, 100, 1000, 10000, 100000]
         num_groups = num_groups_values[variation_index]
 
         return {

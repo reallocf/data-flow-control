@@ -58,7 +58,7 @@ def main() -> int:
     fig, ax = plt.subplots(figsize=(9, 5))
 
     ax.bar(labels, means, color=colors, width=0.6)
-    ax.set_ylabel("Average Time Per Update (ms)")
+    ax.set_ylabel("Update Time (ms)")
     ax.set_yscale("log")
     ax.grid(axis="y", alpha=0.3)
 

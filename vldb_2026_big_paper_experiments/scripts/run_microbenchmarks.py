@@ -32,7 +32,7 @@ def main():
     parser.add_argument(
         "--num-variations",
         type=int,
-        default=4,
+        default=5,
         help="Number of variation values per query type.",
     )
     parser.add_argument(
@@ -63,7 +63,7 @@ def main():
     if output_filename is None:
         output_filename = f"microbenchmark_results_policy{args.policy_count}.csv"
 
-    # Experiment structure: 4 variations x 5 runs = 20 executions per query type
+    # Experiment structure: num_variations x num_runs_per_variation executions per query type
     num_variations = args.num_variations
     num_runs_per_variation = args.num_runs_per_variation
     num_executions_per_query = num_variations * num_runs_per_variation
@@ -90,9 +90,9 @@ def main():
     if "SIMPLE_AGG" in query_order:
         print("    - SIMPLE_AGG: Vary input rows (1k, 10k, 100k, 1m, 10m)")
     if "JOIN" in query_order:
-        print("    - JOIN: Vary join matches (zipfian, 4 values)")
+        print("    - JOIN: Vary join matches (100, 1k, 10k, 100k, 1m)")
     if "GROUP_BY" in query_order:
-        print("    - GROUP_BY: Vary number of groups (zipfian, 4 values)")
+        print("    - GROUP_BY: Vary number of groups (10, 100, 1k, 10k, 100k)")
     if "JOIN_GROUP_BY" in query_order:
         print("    - JOIN_GROUP_BY: Vary join count (16, 32, 64, 128)")
     if any(q in query_order for q in ["SELECT", "WHERE", "ORDER_BY"]):

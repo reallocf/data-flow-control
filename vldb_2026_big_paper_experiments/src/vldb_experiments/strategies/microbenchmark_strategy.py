@@ -55,7 +55,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
     def __init__(
         self,
         policy_count: int = 1,
-        num_variations: int = 4,
+        num_variations: int = 5,
         num_runs_per_variation: int = 5,
         enable_physical: bool | None = None,
         query_types: list[str] | None = None,
@@ -76,9 +76,9 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
         self._policy_cache: dict[tuple[str, int], list] = {}
         self._active_policy_signature: tuple[str, int] | None = None
         self.execution_plan: list[dict] = []
-        self._join_match_values = [100, 1000, 10000, 100000]
-        self._simple_agg_num_rows_values = [1_000, 10_000, 100_000, 1_000_000]
-        self._group_by_num_groups_values = [10, 100, 1000, 10000]
+        self._join_match_values = [100, 1000, 10000, 100000, 1_000_000]
+        self._simple_agg_num_rows_values = [1_000, 10_000, 100_000, 1_000_000, 10_000_000]
+        self._group_by_num_groups_values = [10, 100, 1000, 10000, 100000]
 
     def _get_policies(self, signature: str, threshold: int | None = None) -> list:
         cache_key = (signature, self.policy_count)
