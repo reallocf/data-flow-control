@@ -1,0 +1,13 @@
+# One policy per line. Lines starting with '#' are ignored.
+#
+# DFCPolicy format:
+#   SOURCES <source1, source2> [SINK <sink>] CONSTRAINT <expr> ON FAIL <REMOVE|KILL|INVALIDATE|INVALIDATE_MESSAGE|LLM> [DESCRIPTION <text>]
+#
+# Notes:
+# - All columns in constraints MUST be qualified (e.g. transactions.revenue).
+# - If you reference a source-table column, it must be inside an aggregate (e.g. max(transactions.revenue)).
+#   For non-aggregation queries, the rewriter will transform aggregates to their underlying columns.
+#
+# Example: filter out rows where revenue >= 200000 (REMOVE resolution)
+SOURCES transactions CONSTRAINT max(transactions.revenue) < 200000 ON FAIL REMOVE DESCRIPTION Revenue under 200k
+

@@ -20,16 +20,13 @@ from botocore.exceptions import BotoCoreError, ClientError
 from langchain_classic.agents import initialize_agent, AgentType
 
 # LangChain imports
-from langchain_aws import ChatBedrock
 from langchain_core.messages import HumanMessage
 from langchain_classic.agents import AgentExecutor
-from langchain_classic.agents import create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents import create_agent
+
 # Your local modules
 from duckdb_tool import query_duckdb
 from hooks import SQLToolCallback
-from test_beadrock import get_llm, main
+from test_beadrock import get_llm
 
 
 # ============================================================
@@ -60,12 +57,12 @@ def test_langchain_llm():
             ]
         )
 
-        print("✓ LangChain test successful")
+        print("[OK] LangChain test successful")
         print("Response:", response.content.strip(), "\n")
         return True
 
     except Exception:
-        print("❌ LangChain test failed")
+        print("[FAIL] LangChain test failed")
         print(traceback.format_exc())
         return False
 
@@ -75,63 +72,72 @@ def test_langchain_llm():
 # ============================================================
 
 def run_agent():
-    print("Running full agent...\n")
+    """Run the SQL agent with ChatBedrockConverse, hooks, and DuckDB tool."""
+    print("Running SQL Agent with ChatBedrockConverse...\n")
 
+    # Get LLM
     llm = get_llm()
-    tools = [query_duckdb]
+    print("[OK] LLM initialized (ChatBedrockConverse)\n")
 
+    # Define tools
+    tools = [query_duckdb]
+    print(f"[OK] Tools available: {[tool.name for tool in tools]}\n")
+
+    # Create system prompt
+    system_prompt = """You are a SQL expert assistant. Your task is to help users query a DuckDB database.
+
+Guidelines:
+1. Always use the query_duckdb tool to execute SQL queries.
+2. First, inspect the database schema if you don't know the tables:
+   - Run: SHOW TABLES;
+   - Then: DESCRIBE <table_name>;
+3. Only execute SELECT queries - no INSERT, UPDATE, DELETE, CREATE, ALTER, or DROP.
+4. Explain your findings clearly to the user.
+5. If something goes wrong, ask the user for clarification."""
+
+    # Create callbacks
     callback_handler = SQLToolCallback()
 
-    template = '''You have access to the following tools:
-{tools}
-
-Use the following format:
-
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action, MUST be valid JSON format
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question
-
-Rules:
-- Use the tool to query DuckDB whenever you need real data.
-- Never guess table names. If unsure, first inspect schema using information_schema 
-  (e.g., select table_name from information_schema.tables).
-- Write operations are forbidden. Do not attempt DELETE, UPDATE, or INSERT.
-
-'''
-    prompt = ChatPromptTemplate.from_messages(template)
-    agent = create_agent(
+    # Use older initialize_agent API for better non-streaming support
+    agent = initialize_agent(
+        tools=tools,
         llm=llm,
-        tools=tools,
-        prompt=prompt,
-    )
-
-    executor = AgentExecutor(
-        agent=agent,
-        tools=tools,
+        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
         verbose=True,
-        callbacks=[callback_handler]
+        callbacks=[callback_handler],
+        max_iterations=5,
+        agent_kwargs={
+            "prefix": system_prompt,
+        }
     )
+    print("[OK] Agent created using initialize_agent\n")
 
-    response = agent_executor.ainvoke(
-        {"input": "select revenue from transactions"},
-        config={"callbacks": [callback_handler]}
-    )
+    # Run the agent
+    user_input = "show all data from transactions?"
+    
+    print("=" * 60)
+    print(f"USER: {user_input}")
+    print("=" * 60)
+    print("(Tool calls will appear as [TOOL] START / [TOOL] END below if the model uses query_duckdb)\n")
 
-    print("\nFinal Agent Output:")
+    try:
+        # Pass callbacks at run time so they propagate to tool execution (on_tool_start/on_tool_end)
+        result = agent.invoke(
+            {"input": user_input},
+            config={"callbacks": [callback_handler]},
+        )
+        output = result.get("output", "") if isinstance(result, dict) else str(result)
+    except Exception as e:
+        output = f"Error: {str(e)}"
 
-    print(response)
+    print("\n" + "=" * 60)
+    print(f"ASSISTANT: {output}")
+    print("=" * 60)
 
-run_agent()
 
-'''First iteration does tool call for schema info 
-second tool call for making query and then final response with query results.'''
+# ============================================================
+# Main Entry
+# ============================================================
 
-'''Agentic loop
-1.Special tool agent can select and return results
-2. How is the callback triggered in the agentic loop?
-3. '''
+if __name__ == "__main__":
+    run_agent()

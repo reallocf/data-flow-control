@@ -237,15 +237,6 @@ wheels = [
 ]
 
 [[package]]
-name = "antlr4-python3-runtime"
-version = "4.13.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/33/5f/2cdf6f7aca3b20d3f316e9f505292e1f256a32089bd702034c29ebde6242/antlr4_python3_runtime-4.13.2.tar.gz", hash = "sha256:909b647e1d2fc2b70180ac586df3933e38919c85f98ccc656a96cd3f25ef3916", size = 117467, upload-time = "2024-08-03T19:00:12.757Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/89/03/a851e84fcbb85214dc637b6378121ef9a0dd61b4c65264675d8a5c9b1ae7/antlr4_python3_runtime-4.13.2-py3-none-any.whl", hash = "sha256:fe3835eb8d33daece0e799090eda89719dbccee7aa39ef94eed3818cafa5a7e8", size = 144462, upload-time = "2024-08-03T19:00:11.134Z" },
-]
-
-[[package]]
 name = "anyio"
 version = "4.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1288,7 +1279,7 @@ requires-dist = [
     { name = "langchain-core", specifier = ">=0.2.0" },
     { name = "numpy", specifier = ">=1.24.4" },
     { name = "pandas", specifier = ">=2.0.0" },
-    { name = "sql-rewriter" },
+    { name = "sql-rewriter", editable = "../sql_rewriter" },
     { name = "sqlglot", specifier = ">=24.0.0" },
     { name = "streamlit", specifier = ">=1.28.0" },
 ]
@@ -3508,13 +3499,30 @@ wheels = [
 [[package]]
 name = "sql-rewriter"
 version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
+source = { editable = "../sql_rewriter" }
 dependencies = [
-    { name = "antlr4-python3-runtime" },
+    { name = "boto3" },
+    { name = "duckdb" },
+    { name = "numpy", version = "1.26.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.10.*'" },
+    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "sqlglot" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/5f/967a74d296273919d9d113823648bf0367b1e5dbd324186ff5dbc874bfff/sql_rewriter-0.1.0.tar.gz", hash = "sha256:358458f25bc1fae8f764e797f56a641e733111d2cac0827795704e9bd9b7cda8", size = 221830, upload-time = "2026-01-13T05:50:59.64Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/d1/a60a6bc9eba95261278cde437b9b06c6d87f1a894a5bad9dd86519f4cff9/sql_rewriter-0.1.0-py3-none-any.whl", hash = "sha256:dceb5fb429aead5fb76a98e415b4f257e53a8c2b7115d3bae942f05e60426074", size = 223267, upload-time = "2026-01-13T05:50:57.793Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.26.0" },
+    { name = "duckdb", specifier = ">=1.3.0" },
+    { name = "numpy", specifier = ">=1.24.4" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
+    { name = "sqlglot", specifier = ">=24.0.0" },
+]
+provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "ruff", specifier = ">=0.1.0" },
 ]
 
 [[package]]

@@ -18,7 +18,7 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
 # LangChain
-from langchain_aws import ChatBedrock
+from langchain_aws import ChatBedrockConverse
 from langchain_core.messages import HumanMessage
 
 # ✅ Correct model ID (change if needed)
@@ -144,21 +144,22 @@ class ToolBindingLLM:
     
 def get_llm():
     """
-    Proper LangChain Bedrock LLM wrapper
+    Proper LangChain Bedrock LLM wrapper.
+    Uses Claude Sonnet 4 for better tool support.
     """
     region = os.environ.get("AWS_REGION", "us-east-1")
 
-    return ChatBedrock(
+    llm = ChatBedrockConverse(
         model_id=BEDROCK_MODEL_ID,
-        base_model_id='us.anthropic.claude-haiku-4-5-20251001-v1:0',
+        base_model_id='us.anthropic.claude-sonnet-4-20250514',
         region_name=region,
         provider="anthropic",
         model_kwargs={
             "temperature": 0,
-            "max_tokens": 500,
-        }
+        },
     )
-    # return ToolBindingLLM(basellm)
+    
+    return llm
 
 
 # ============================================================
@@ -171,8 +172,9 @@ def test_langchain_llm():
     try:
         llm = get_llm()
 
-        response = llm.invoke
-        ("Say 'LangChain test successful!' and nothing else.")
+        response = llm.invoke(
+            [HumanMessage(content="Say 'LangChain test successful!' and nothing else.")]
+        )
 
 
         print("  ✓ LangChain invocation successful")

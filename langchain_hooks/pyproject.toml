@@ -19,3 +19,7 @@ dependencies = [
     "langchain-aws>=0.1.0",
     "langchain-community>=0.2.0"
 ]
+
+# Use local sql_rewriter from the repo (install from repo root: uv sync)
+[tool.uv.sources]
+sql-rewriter = { path = "../sql_rewriter", editable = true }
