@@ -87,6 +87,14 @@ def _column_prefix(approach: str) -> str:
     return approach
 
 
+def _effective_runtime_ms(row: dict[str, str]) -> float:
+    if row["approach"] == "dfc_1phase":
+        exec_only = row.get("dfc_1phase_exec_time_ms", "")
+        if exec_only:
+            return _parse_float(exec_only)
+    return _parse_float(row["runtime_ms"])
+
+
 def generate_table(input_csv: Path, output_csv: Path) -> Path:
     grouped: dict[tuple[str, int], dict[str, object]] = defaultdict(
         lambda: {
@@ -112,7 +120,7 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
             group["provider"] = row["provider"]
             group["model_name"] = row["model_name"]
             group["policy_count"] = policy_count
-            group["runtime_sum"] += _parse_float(row["runtime_ms"])
+            group["runtime_sum"] += _effective_runtime_ms(row)
             group["count"] += 1
 
             truth = _parse_bool(row["ground_truth_violation"])
@@ -140,7 +148,7 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
         "opus_query_only": 3,
         "opus_query_results": 4,
     }
-    metric_names = ("f1", "avg_runtime_ms", "total_cost_usd")
+    metric_names = ("f1", "avg_runtime_ms", "avg_cost_usd")
     ordered_approaches = [
         approach for approach, _ in sorted(grouped.keys(), key=lambda item: (sort_order.get(item[0], 99), item[1]))
     ]
@@ -169,7 +177,7 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
             row = rows_by_policy_count.setdefault(policy_count, {"policy_count": policy_count})
             row[f"{prefix}_f1"] = f"{f1_score(group['y_true'], group['y_pred'], zero_division=0):.6f}"
             row[f"{prefix}_avg_runtime_ms"] = f"{(total_runtime_ms / count):.6f}"
-            row[f"{prefix}_total_cost_usd"] = f"{(float(group['cost_sum']) + infra_cost):.8f}"
+            row[f"{prefix}_avg_cost_usd"] = f"{((float(group['cost_sum']) + infra_cost) / count):.8f}"
 
         for policy_count in sorted(rows_by_policy_count):
             writer.writerow(rows_by_policy_count[policy_count])

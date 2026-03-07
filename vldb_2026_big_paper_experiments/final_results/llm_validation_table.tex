@@ -1,68 +1,19 @@
 \begin{table}[t]
 \centering
-\begin{minipage}[t]{0.48\columnwidth}
-\centering
-\textbf{DFC Rewriter}
-\vspace{0.25em}
 \resizebox{\columnwidth}{!}{%
-\begin{tabular}{l|rrr}
-\toprule
-Policy Cnt & F1 & Runtime (ms) & Cost (\$) \\
-\midrule
-1 & 1.000 & 48.39 & 0.0003 \\
-2 & 1.000 & 36.44 & 0.0002 \\
-4 & 1.000 & 42.30 & 0.0002 \\
-8 & 1.000 & 47.95 & 0.0003 \\
-16 & 1.000 & 116.94 & 0.0007 \\
-32 & 1.000 & 275.07 & 0.0016 \\
-\bottomrule
+\begin{tabular}{lrrrrrrrrr}
+& \multicolumn{3}{c}{\textbf{DFC (us)}} & \multicolumn{3}{c}{\textbf{GPT-5.2}} & \multicolumn{3}{c}{\textbf{Opus 4.6}} \\
+\arrayrulecolor{gray!80}
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+\textbf{\#} & \textbf{F1} & \textbf{ms} & \textbf{\textcent} & \textbf{F1} & \textbf{ms} & \textbf{\textcent} & \textbf{F1} & \textbf{sec} & \textbf{\textcent} \\
+1 & \blue{100\%} & \blue{48} & \blue{.000\textcent} & 40\% & 825 & .114\textcent & 40\% & 2.2s & .365\textcent \\
+2 & \blue{100\%} & \blue{36} & \blue{.000\textcent} & 41\% & 834 & .116\textcent & 37\% & 3.2s & .482\textcent \\
+4 & \blue{100\%} & \blue{42} & \blue{.000\textcent} & 28\% & 796 & .119\textcent & 53\% & 4.2s & .591\textcent \\
+8 & \blue{100\%} & \blue{47} & \blue{.000\textcent} & 14\% & 752 & .124\textcent & 26\% & 4.6s & .656\textcent \\
+16 & \blue{100\%} & \blue{116} & \blue{.001\textcent} & 24\% & 807 & .137\textcent & 33\% & 6.1s & .845\textcent \\
+32 & \blue{100\%} & \blue{275} & \blue{.002\textcent} & 45\% & 826 & .163\textcent & 52\% & 6.3s & .919\textcent \\
 \end{tabular}%
 }
-\end{minipage}
-\vspace{0.75em}
-
-\begin{minipage}[t]{\columnwidth}
-\centering
-\textbf{GPT 5.2}
-\vspace{0.25em}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{l|rrr|rrr}
-\toprule
-\multirow{2}{*}{Policy Cnt} & \multicolumn{3}{c|}{\textbf{Query Only}} & \multicolumn{3}{c}{\textbf{Query + Results}} \\
-& F1 & Runtime (ms) & Cost (\$) & F1 & Runtime (ms) & Cost (\$) \\
-\midrule
-1 & 0.357 & 853.29 & 0.0288 & 0.400 & 825.95 & 0.0745 \\
-2 & 0.278 & 834.00 & 0.0296 & 0.410 & 834.26 & 0.0755 \\
-4 & 0.359 & 814.32 & 0.0317 & 0.286 & 796.55 & 0.0775 \\
-8 & 0.243 & 803.51 & 0.0353 & 0.143 & 752.65 & 0.0809 \\
-16 & 0.267 & 784.98 & 0.0433 & 0.243 & 807.63 & 0.0893 \\
-32 & 0.267 & 789.04 & 0.0604 & 0.452 & 826.05 & 0.1064 \\
-\bottomrule
-\end{tabular}%
-}
-\end{minipage}
-\vspace{0.75em}
-
-\begin{minipage}[t]{\columnwidth}
-\centering
-\textbf{Opus 4.6}
-\vspace{0.25em}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{l|rrr|rrr}
-\toprule
-\multirow{2}{*}{Policy Cnt} & \multicolumn{3}{c|}{\textbf{Query Only}} & \multicolumn{3}{c}{\textbf{Query + Results}} \\
-& F1 & Runtime (ms) & Cost (\$) & F1 & Runtime (ms) & Cost (\$) \\
-\midrule
-1 & 0.320 & 2642.44 & 0.1446 & 0.400 & 2168.04 & 0.2373 \\
-2 & 0.182 & 2118.14 & 0.1113 & 0.378 & 3207.19 & 0.3139 \\
-4 & 0.333 & 3220.55 & 0.2060 & 0.537 & 4231.14 & 0.3843 \\
-8 & 0.030 & 1882.96 & 0.1137 & 0.267 & 4557.40 & 0.4266 \\
-16 & 0.143 & 2385.12 & 0.1694 & 0.333 & 6120.45 & 0.5496 \\
-32 & 0.267 & 2221.80 & 0.2040 & 0.523 & 6337.04 & 0.5976 \\
-\bottomrule
-\end{tabular}%
-}
-\end{minipage}
-\caption{We compare \code{DFC Rewriter} to LLM-based approaches to check whether TPC-H queries are allowed under 1-32 data flow control policies. Each policy checks aggregate qualities of the \code{lineitem} table like \code{Average quantity should remain at or below 30}. When given the query with or without the first 100 rows of query results, GPT-5.2 and Claude Opus 4.6 report an F1 of at most 53.7\% but with orders of magnitude higher cost and latency.}
+\caption{DFC vs LLM calls check 13 TPC-H queries against 1-32 trivial data flow control policies over \code{lineitem} (5 runs per query). Policies check simple aggregate statistics e.g., {\it ``Average quantity $\leq$30''}. LLMs are given the query and first 100 result tuples\tablefootnote{When given only the query, F1 is worse, latency is similar, and cost is roughly half.}. DFC is correct and orders of magnitude faster and cheaper.}
 \label{tbl:llm}
 \end{table}

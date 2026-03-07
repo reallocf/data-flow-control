@@ -24,6 +24,15 @@ from vldb_experiments.visualizations import (
     load_results,
 )
 
+FINAL_MARKERS = {
+    "No Policy": "o",
+    FULL_PUSH_LABEL: "s",
+    f"{FULL_PUSH_LABEL} Optimized": "^",
+    PARTIAL_PUSH_LABEL: "D",
+    "Logical": "P",
+    "Physical": "X",
+}
+
 
 def create_tpch_duckdb_capped_overhead_chart(
     df: pd.DataFrame,
@@ -161,41 +170,49 @@ def create_phase_competition_heatmap(
         y_idx = policy_counts.index(int(row["policy_column_count"]))
         heatmap.iat[y_idx, x_idx] = float(row["relative_perf"])
 
+    log_heatmap = np.log2(heatmap.astype(float))
+
     fig, ax = plt.subplots(figsize=(10, 7))
     cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-        "light_blue_red",
-        ["#8bb6e3", "#e38b8b"],
+        "bright_blue_red",
+        ["#0000ff", "#ff0000"],
     )
     cmap.set_bad(color="#f0f0f0")
-    im = ax.imshow(
-        heatmap.values,
-        aspect="auto",
-        origin="lower",
-        cmap=cmap,
-        vmin=0.5,
-        vmax=2.0,
-    )
+    finite_vals = log_heatmap.values[np.isfinite(log_heatmap.values)]
+    norm = matplotlib.colors.Normalize(vmin=float(finite_vals.min()), vmax=float(finite_vals.max()))
+    ax.set_facecolor("white")
     ax.set_xticks(range(len(fanouts)))
     ax.set_xticklabels(fanouts, fontsize=FINAL_TICK_FONTSIZE)
     ax.set_yticks(range(len(policy_counts)))
     ax.set_yticklabels(policy_counts, fontsize=FINAL_TICK_FONTSIZE)
+    ax.set_xticks(np.arange(-0.5, len(fanouts), 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, len(policy_counts), 1), minor=True)
     ax.set_xlabel("Join Fanout", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     ax.set_ylabel("Policy Columns Summed", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.set_xlim(-0.5, len(fanouts) - 0.5)
+    ax.set_ylim(-0.5, len(policy_counts) - 0.5)
+    ax.grid(which="minor", color="#d0d0d0", linestyle="-", linewidth=0.8)
+    ax.tick_params(which="minor", bottom=False, left=False)
     for y_idx in range(len(policy_counts)):
         for x_idx in range(len(fanouts)):
             val = heatmap.iat[y_idx, x_idx]
             if np.isfinite(val):
+                log_val = log_heatmap.iat[y_idx, x_idx]
+                color = cmap(norm(log_val))
                 ax.text(
                     x_idx,
                     y_idx,
-                    f"{val:.2f}",
+                    f"{log_val:.2f}",
                     ha="center",
                     va="center",
                     fontsize=FINAL_ANNOTATION_FONTSIZE,
+                    color=color,
                 )
 
-    cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label("Execution Time Ratio", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax)
+    cbar.set_label("Relative Execution Time", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     cbar.ax.tick_params(labelsize=FINAL_TICK_FONTSIZE)
     plt.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -227,7 +244,7 @@ def create_state_transition_chart(
         means.append((df["opus_4_6_time_ms"] / df["num_updates"]).mean())
         colors.append("#B279A2")
 
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(9, 2.75))
     ax.bar(labels, means, color=colors, width=0.6)
     ax.set_ylabel("Update Time (ms)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     ax.set_yscale("log")
@@ -278,9 +295,9 @@ def create_multi_source_overhead_line_chart(
         ax.plot(
             source_df["join_count"],
             source_df["overhead_pct"],
-            marker="o",
+            marker=["o", "s", "^", "D", "P", "X", "v", "<", ">"][idx % 9],
             linewidth=2,
-            markersize=6,
+            markersize=9,
             label=f"{source_count}",
             color=cmap(idx % 10),
         )
@@ -363,9 +380,9 @@ def create_policy_count_self_join_combined_chart(
     ax_left.plot(
         policy_grouped.index,
         policy_grouped["dfc_1phase_exec_time_ms"] / 1000.0,
-        marker="o",
+        marker=FINAL_MARKERS[FULL_PUSH_LABEL],
         linewidth=4,
-        markersize=6,
+        markersize=12,
         label=FULL_PUSH_LABEL,
         color="#ff7f0e",
     )
@@ -373,9 +390,9 @@ def create_policy_count_self_join_combined_chart(
         ax_left.plot(
             policy_grouped.index,
             policy_grouped["dfc_1phase_optimized_exec_time_ms"] / 1000.0,
-            marker="o",
+            marker=FINAL_MARKERS[f"{FULL_PUSH_LABEL} Optimized"],
             linewidth=4,
-            markersize=6,
+            markersize=12,
             label=f"{FULL_PUSH_LABEL} Optimized",
             color="#8c564b",
         )
@@ -383,9 +400,9 @@ def create_policy_count_self_join_combined_chart(
         ax_left.plot(
             policy_grouped.index,
             policy_grouped["dfc_2phase_exec_time_ms"] / 1000.0,
-            marker="o",
+            marker=FINAL_MARKERS[PARTIAL_PUSH_LABEL],
             linewidth=4,
-            markersize=6,
+            markersize=12,
             label=PARTIAL_PUSH_LABEL,
             color="#9467bd",
         )
@@ -393,9 +410,9 @@ def create_policy_count_self_join_combined_chart(
         ax_left.plot(
             policy_grouped.index,
             policy_grouped["logical_exec_time_ms"] / 1000.0,
-            marker="o",
+            marker=FINAL_MARKERS["Logical"],
             linewidth=4,
-            markersize=6,
+            markersize=12,
             label="Logical",
             color="#2ca02c",
         )
@@ -403,9 +420,9 @@ def create_policy_count_self_join_combined_chart(
         ax_left.plot(
             policy_grouped.index,
             policy_grouped["physical_exec_time_ms"] / 1000.0,
-            marker="o",
+            marker=FINAL_MARKERS["Physical"],
             linewidth=4,
-            markersize=6,
+            markersize=12,
             label="Physical",
             color="#1f77b4",
         )
@@ -422,18 +439,18 @@ def create_policy_count_self_join_combined_chart(
     ax_right.plot(
         self_join_grouped.index,
         self_join_grouped["dfc_1phase_overhead_pct"],
-        marker="o",
+        marker=FINAL_MARKERS[FULL_PUSH_LABEL],
         linewidth=4,
-        markersize=6,
+        markersize=12,
         label=FULL_PUSH_LABEL,
         color="#ff7f0e",
     )
     ax_right.plot(
         self_join_grouped.index,
         self_join_grouped["dfc_1phase_optimized_overhead_pct"],
-        marker="o",
+        marker=FINAL_MARKERS[f"{FULL_PUSH_LABEL} Optimized"],
         linewidth=4,
-        markersize=6,
+        markersize=12,
         label=f"{FULL_PUSH_LABEL} Optimized",
         color="#8c564b",
     )
@@ -462,7 +479,7 @@ def create_microbenchmark_combined_chart(
     tick_fontsize = FINAL_TICK_FONTSIZE * 2
     legend_fontsize = FINAL_LEGEND_FONTSIZE * 2
     line_width = 4
-    marker_size = 8
+    marker_size = 16
 
     plot_df = _with_exec_time_columns(df.copy())
     plot_df = plot_df.drop(
@@ -524,7 +541,7 @@ def create_microbenchmark_combined_chart(
             ax.plot(
                 series.index,
                 series.values,
-                marker="o",
+                marker=FINAL_MARKERS[approach],
                 linewidth=line_width,
                 markersize=marker_size,
                 label=approach,

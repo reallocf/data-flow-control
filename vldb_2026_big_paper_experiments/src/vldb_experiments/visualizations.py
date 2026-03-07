@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
+import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 
@@ -1174,7 +1175,7 @@ def create_policy_count_chart(
         print("No data available for policy count chart.")
         return None
 
-    fig, ax = plt.subplots(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(9, 4.8))
     ax.plot(
         grouped.index,
         grouped["dfc_1phase_exec_time_ms"],
@@ -1290,7 +1291,7 @@ def create_tpch_self_join_chart(
         (grouped["dfc_1phase_optimized_time_ms"] - baseline) / baseline
     ) * 100.0
 
-    fig, ax = plt.subplots(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(9, 4.8))
     ax.plot(
         grouped.index,
         grouped["dfc_1phase_overhead_pct"],
@@ -1834,44 +1835,52 @@ def create_multi_source_heatmap_chart(
     for _, row in grouped.iterrows():
         heatmap.at[row["source_count"], row["join_count"]] = row["relative_perf"]
 
+    log_heatmap = np.log2(heatmap.astype(float))
+
     fig, ax = plt.subplots(figsize=(8, 6))
     cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-        "light_blue_red",
-        ["#8bb6e3", "#e38b8b"],
+        "bright_blue_red",
+        ["#0000ff", "#ff0000"],
     )
     cmap.set_bad(color="#f0f0f0")
 
-    im = ax.imshow(
-        heatmap.values,
-        origin="lower",
-        aspect="auto",
-        cmap=cmap,
-        vmin=0.5,
-        vmax=2.0,
-    )
+    finite_vals = log_heatmap.values[np.isfinite(log_heatmap.values)]
+    norm = matplotlib.colors.Normalize(vmin=float(finite_vals.min()), vmax=float(finite_vals.max()))
+    ax.set_facecolor("white")
 
     ax.set_xticks(range(len(join_values)))
     ax.set_xticklabels(join_values)
     ax.set_yticks(range(len(source_values)))
     ax.set_yticklabels(source_values)
+    ax.set_xticks(np.arange(-0.5, len(join_values), 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, len(source_values), 1), minor=True)
     ax.set_xlabel("Number of Joins", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     ax.set_ylabel("Number of Sources", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    ax.set_xlim(-0.5, len(join_values) - 0.5)
+    ax.set_ylim(-0.5, len(source_values) - 0.5)
     ax.tick_params(axis="both", labelsize=FINAL_TICK_FONTSIZE)
+    ax.grid(which="minor", color="#d0d0d0", linestyle="-", linewidth=0.8)
+    ax.tick_params(which="minor", bottom=False, left=False)
     for y_idx, source in enumerate(source_values):
         for x_idx, join in enumerate(join_values):
             value = heatmap.at[source, join]
             if pd.notna(value):
+                log_val = log_heatmap.iat[y_idx, x_idx]
+                color = cmap(norm(log_val))
                 ax.text(
                     x_idx,
                     y_idx,
-                    f"{value:.2f}",
+                    f"{log_val:.2f}",
                     ha="center",
                     va="center",
                     fontsize=FINAL_ANNOTATION_FONTSIZE,
+                    color=color,
                 )
 
-    cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label("Execution Time Ratio", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
+    sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax)
+    cbar.set_label("Relative Execution Time", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     cbar.ax.tick_params(labelsize=FINAL_TICK_FONTSIZE)
 
     ax.grid(False)
@@ -1985,10 +1994,16 @@ def create_multi_db_engine_summary_chart(
     ax.invert_yaxis()
     ax.set_xlabel("Overhead vs No Policy (%)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     ax.grid(axis="x", alpha=0.3)
-    ax.legend(loc="upper left", fontsize=FINAL_LEGEND_FONTSIZE)
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.12),
+        ncol=3,
+        fontsize=FINAL_LEGEND_FONTSIZE,
+        frameon=False,
+    )
     ax.tick_params(axis="x", labelsize=FINAL_TICK_FONTSIZE)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0, 1, 0.88))
     output_path = Path(output_dir) / output_filename
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -2095,13 +2110,15 @@ def create_multi_db_engine_summary_capped_chart(
             label=approach,
             color=colors[approach],
         )
-        for bar, original in zip(bars, subset["avg_overhead"]):
+        for bar, original, engine_name in zip(bars, subset["avg_overhead"], subset["engine"]):
             if original <= duckdb_cap_pct:
                 continue
-            ax.text(
-                duckdb_cap_pct,
-                bar.get_y() + bar.get_height() / 2.0,
+            y_offset = 15 if approach == "Logical" and engine_name in {"DuckDB", "DataFusion"} else 0
+            ax.annotate(
                 f"{original:.0f}%",
+                xy=(duckdb_cap_pct, bar.get_y() + bar.get_height() / 2.0),
+                xytext=(0, y_offset),
+                textcoords="offset points",
                 ha="right",
                 va="center",
                 fontsize=FINAL_ANNOTATION_FONTSIZE,
@@ -2113,11 +2130,17 @@ def create_multi_db_engine_summary_capped_chart(
     ax.invert_yaxis()
     ax.set_xlabel("Overhead vs No Policy (%)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     ax.grid(axis="x", alpha=0.3)
-    ax.legend(loc="upper left", fontsize=FINAL_LEGEND_FONTSIZE)
+    ax.legend(
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=3,
+        fontsize=FINAL_LEGEND_FONTSIZE,
+        frameon=False,
+    )
     ax.set_xlim(right=duckdb_cap_pct)
     ax.tick_params(axis="x", labelsize=FINAL_TICK_FONTSIZE)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0, 1, 0.88))
     output_path = Path(output_dir) / output_filename
     fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
     plt.close(fig)
