@@ -113,7 +113,7 @@ Guidelines:
     print("[OK] Agent created using initialize_agent\n")
 
     # Run the agent
-    user_input = "show all data from transactions?"
+    user_input = "Give me categories and thier budget"
     
     print("=" * 60)
     print(f"USER: {user_input}")

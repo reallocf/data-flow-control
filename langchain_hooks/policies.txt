@@ -8,6 +8,15 @@
 # - If you reference a source-table column, it must be inside an aggregate (e.g. max(transactions.revenue)).
 #   For non-aggregation queries, the rewriter will transform aggregates to their underlying columns.
 #
-# Example: filter out rows where revenue >= 200000 (REMOVE resolution)
-SOURCES transactions CONSTRAINT max(transactions.revenue) < 200000 ON FAIL REMOVE DESCRIPTION Revenue under 200k
+# REMOVE: filter out violating rows
+SOURCES transactions CONSTRAINT max(transactions.amount) < 500 ON FAIL REMOVE DESCRIPTION Limit large amounts
+
+# REMOVE: filter budget rows over 1000
+SOURCES budgets CONSTRAINT max(budgets.amount) < 1000 ON FAIL REMOVE DESCRIPTION Budget under 1k
+
+# KILL: abort query if any account has negative balance (credit card)
+SOURCES accounts CONSTRAINT min(accounts.balance) >= -2000 ON FAIL KILL DESCRIPTION Block deep negative balance
+
+# KILL: abort query if category count exceeds threshold
+SOURCES categories CONSTRAINT max(categories.id) <4  ON FAIL KILL DESCRIPTION Limit category scope
 
