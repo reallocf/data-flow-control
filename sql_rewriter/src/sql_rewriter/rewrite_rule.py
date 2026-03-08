@@ -1084,6 +1084,23 @@ def _get_source_table_to_alias_mapping(
                     ):
                         main_query_tables.add(table.name.lower())
 
+    # Map source tables to their aliases in the main query when unambiguous.
+    # This ensures constraints reference aliases that are actually visible.
+    main_query_aliases: dict[str, set[str]] = {}
+    for table in parsed.find_all(exp.Table):
+        if table.find_ancestor(exp.Subquery) or table.find_ancestor(exp.CTE):
+            continue
+        source_name = table.name.lower()
+        if source_name not in source_tables:
+            continue
+        alias_name = str(table.alias_or_name).lower()
+        if alias_name and alias_name != source_name:
+            main_query_aliases.setdefault(source_name, set()).add(alias_name)
+
+    for source_name, aliases in main_query_aliases.items():
+        if len(aliases) == 1:
+            mapping[source_name] = next(iter(aliases))
+
     # Find all subqueries in FROM clauses
     subqueries = _get_subqueries_in_from(parsed)
     for subquery, subquery_alias in subqueries:

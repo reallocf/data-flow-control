@@ -1258,7 +1258,7 @@ GROUP BY
   f.name
 HAVING
   (
-    MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+    MAX(f.id) >= 2 AND MAX(b.x) <= 20
   )"""
 
 
@@ -1280,6 +1280,65 @@ def test_policy_applied_to_scan_query(rewriter):
     # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
     result = rewriter.conn.execute(transformed).fetchall()
     assert len(result) == 3
+
+
+def test_policy_rewrite_with_aliased_join_query_and_base_table_policy_reference(rewriter):
+    """Test alias query rewriting when policy references the base source table name."""
+    rewriter.execute(
+        """
+        CREATE TABLE budgets (
+            id INTEGER PRIMARY KEY,
+            category_id INTEGER,
+            amount DOUBLE,
+            year INTEGER,
+            month INTEGER
+        )
+        """
+    )
+    rewriter.execute(
+        """
+        CREATE TABLE categories (
+            id INTEGER PRIMARY KEY,
+            name VARCHAR,
+            type VARCHAR
+        )
+        """
+    )
+
+    policy = DFCPolicy(
+        sources=["budgets"],
+        constraint="max(budgets.amount) < 1000",
+        on_fail=Resolution.REMOVE,
+    )
+    rewriter.register_policy(policy)
+
+    query = (
+        "SELECT c.name, b.amount "
+        "FROM categories c "
+        "INNER JOIN budgets b ON c.id = b.category_id"
+    )
+    transformed = rewriter.transform_query(query)
+
+    assert transformed == """SELECT
+  c.name,
+  b.amount
+FROM categories AS c
+INNER JOIN budgets AS b
+  ON c.id = b.category_id
+WHERE
+  (
+    b.amount < 1000
+  )"""
+
+    rewriter.execute("INSERT INTO categories VALUES (1, 'Meals', 'EXPENSE'), (2, 'Travel', 'EXPENSE')")
+    rewriter.execute(
+        "INSERT INTO budgets VALUES "
+        "(1, 1, 250.0, 2025, 1), "
+        "(2, 1, 1200.0, 2025, 1), "
+        "(3, 2, 900.0, 2025, 2)"
+    )
+    rows = rewriter.conn.execute(transformed).fetchall()
+    assert rows == [("Meals", 250.0), ("Travel", 900.0)]
 
 
 def test_policy_filters_scan_query(rewriter):
@@ -3402,7 +3461,7 @@ class TestInsertStatements:
         query = "INSERT INTO reports SELECT f.id, f.name, b.x FROM foo f JOIN baz b ON f.id = b.x"
         transformed = rewriter.transform_query(query)
         # Should handle JOINs correctly (adds WHERE clause)
-        assert transformed == "INSERT INTO reports\nSELECT\n  f.id,\n  f.name,\n  b.x\nFROM foo AS f\nJOIN baz AS b\n  ON f.id = b.x\nWHERE\n  (\n    foo.id > 1\n  )"
+        assert transformed == "INSERT INTO reports\nSELECT\n  f.id,\n  f.name,\n  b.x\nFROM foo AS f\nJOIN baz AS b\n  ON f.id = b.x\nWHERE\n  (\n    f.id > 1\n  )"
 
     def test_insert_multiple_policies_with_source_and_sink(self, rewriter):
         """Test INSERT with multiple policies, both having source and sink."""

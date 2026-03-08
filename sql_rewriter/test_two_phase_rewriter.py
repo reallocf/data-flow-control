@@ -1174,7 +1174,7 @@ JOIN policy_eval
     f.name
   HAVING
     (
-      MAX(foo.id) >= 2 AND MAX(baz.x) <= 20
+      MAX(f.id) >= 2 AND MAX(b.x) <= 20
     )
 )
 SELECT
@@ -3929,7 +3929,7 @@ class TestInsertStatements:
         query = "INSERT INTO reports SELECT f.id, f.name, b.x FROM foo f JOIN baz b ON f.id = b.x"
         transformed = rewriter.transform_query(query)
         # Should handle JOINs correctly (adds WHERE clause)
-        assert_transformed_query(transformed, "INSERT INTO reports\nSELECT\n  f.id,\n  f.name,\n  b.x\nFROM foo AS f\nJOIN baz AS b\n  ON f.id = b.x\nWHERE\n  (\n    foo.id > 1\n  )")
+        assert_transformed_query(transformed, "INSERT INTO reports\nSELECT\n  f.id,\n  f.name,\n  b.x\nFROM foo AS f\nJOIN baz AS b\n  ON f.id = b.x\nWHERE\n  (\n    f.id > 1\n  )")
 
     def test_insert_multiple_policies_with_source_and_sink(self, rewriter):
         """Test INSERT with multiple policies, both having source and sink."""
