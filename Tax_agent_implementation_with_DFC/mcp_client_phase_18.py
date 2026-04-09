@@ -446,6 +446,9 @@ def build_system_prompt(tool_schemas: dict[str, ToolSchema]) -> str:
         "  Call list_expenses(limit=100) directly\n",
         "RULES:",
         "  - Decimals for percentages: 50% = 0.5, 100% = 1.0",
+        "  - If a sink column is not present in the source table, provide it as a literal in SELECT",
+        "  - Example: INSERT INTO set_expense_in (receipt_id, amount, category, business_use) "
+        "SELECT receipt_id, amount, category, 0.5 FROM get_receipt_out WHERE receipt_id = 1",
         "  - If execute_sql returns a Gate 1 Error → fix the SQL and retry",
         "  - status=blocked → explain the policy violation, stop",
         "  - status=error   → explain what went wrong, stop",

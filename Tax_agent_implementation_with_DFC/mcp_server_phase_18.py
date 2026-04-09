@@ -24,10 +24,21 @@ import os
 import re
 import unicodedata
 import duckdb
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "expenses.duckdb")
+from tax_engine import (
+    compute_1040,
+    expense_from_receipt,
+    expense_summary,
+    format_for_benchmark,
+    schedule_c_input_from_expenses,
+)
+
+DB_PATH = os.environ.get(
+    "EXPENSES_DB_PATH",
+    os.path.join(os.path.dirname(__file__), "expenses.duckdb"),
+)
 
 # ---------------------------------------------------------------------------
 # OCR helper — lazy import so the server starts even without easyocr/torch
@@ -374,6 +385,48 @@ def _parse_and_store_receipt(image_path: str, con: duckdb.DuckDBPyConnection) ->
     }
 
 
+def _parse_receipt_id_from_note(note: str) -> Optional[int]:
+    if not note:
+        return None
+
+    match = re.search(r"receipt_id=(\d+)", note)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def _expense_row_to_tax_engine_expense(row: tuple):
+    receipt_id = _parse_receipt_id_from_note(row[5])
+    vendor = row[5] or f"Expense {row[0]}"
+    if receipt_id is not None:
+        receipt_row = CON.execute(
+            "SELECT vendor FROM receipts WHERE id = ?",
+            [receipt_id],
+        ).fetchone()
+        if receipt_row and receipt_row[0]:
+            vendor = receipt_row[0]
+
+    receipt = {
+        "receipt_id": receipt_id,
+        "vendor": vendor,
+        "amount": row[2],
+        "category": row[3],
+    }
+    business_use = float(row[4] if row[4] is not None else 1.0)
+    expense = expense_from_receipt(receipt, business_use=business_use)
+    summary = expense_summary(
+        expense,
+        business_use=business_use,
+        receipt_id=receipt_id,
+        original_amount=float(row[2]),
+    )
+    summary["expense_id"] = row[0]
+    summary["date"] = str(row[1])
+    summary["valid"] = row[6]
+    summary["source_note"] = row[5]
+    return expense, summary
+
+
 def init_db():
     con = duckdb.connect(DB_PATH)
 
@@ -540,6 +593,69 @@ def list_expenses(limit: int = 100) -> dict:
         "status": "ok",
         "count":  len(result),
         "rows":   result,
+    }
+
+
+def compute_schedule_c_tax(
+    gross_receipts: float,
+    federal_withholding: float = 0.0,
+) -> dict:
+    """
+    Compute Schedule C / Form 1040 values using all valid recorded expenses.
+
+    The expenses table is populated by set_expense after receipt OCR/lookup.
+    business_use is applied before handing the amount to the tax engine, and
+    "meal" categories are normalized to "meals" so the 50 percent cap applies.
+    """
+    rows = CON.execute(
+        """
+        SELECT id, date, amount, category, business_use, note, valid
+        FROM expenses
+        WHERE valid = TRUE
+        ORDER BY date ASC, id ASC
+        """
+    ).fetchall()
+
+    expenses = []
+    expense_details = []
+    for row in rows:
+        expense, summary = _expense_row_to_tax_engine_expense(row)
+        expenses.append(expense)
+        expense_details.append(summary)
+
+    schedule_c_input = schedule_c_input_from_expenses(gross_receipts, expenses)
+    result = compute_1040(
+        schedule_c_input,
+        federal_withholding=float(federal_withholding),
+    )
+
+    print(
+        "[compute_schedule_c_tax] "
+        f"gross_receipts={gross_receipts}, "
+        f"expenses={len(expenses)}, "
+        f"federal_withholding={federal_withholding}"
+    )
+
+    return {
+        "status": "ok",
+        "gross_receipts": float(gross_receipts),
+        "federal_withholding": float(federal_withholding),
+        "expense_count": len(expenses),
+        "expenses_used": expense_details,
+        "schedule_c_input": {
+            "gross_receipts": schedule_c_input.gross_receipts,
+            "expenses": [
+                {
+                    "description": exp.description,
+                    "amount": exp.amount,
+                    "category": exp.category,
+                    "receipt_present": exp.receipt_present,
+                }
+                for exp in schedule_c_input.expenses
+            ],
+        },
+        "tax_return": result,
+        "formatted_return": format_for_benchmark(result),
     }
 
 
