@@ -1,0 +1,2 @@
+execution_number,timestamp,duration_ms,error,approach,correct_identification,database_label,database_path,database_tpch_sf,dfc_1phase_exec_time_ms,dfc_1phase_rewrite_time_ms,effective_policy_count,ground_truth_violation,llm_chars_sent,model_name,policy_count,predicted_violation,provider,query_num,query_results_cache_hit,query_results_rows,raw_response,runtime_ms
+1,2026-03-30T18:17:14.862653,9.79475025087595,,dfc_1phase,True,sf0.1,./results/llm_validation_grid_sf0.1.db,0.1,9.79475025087595,2.490957733243704,1,False,0,none,1,False,none,1,True,0,,9.79475025087595

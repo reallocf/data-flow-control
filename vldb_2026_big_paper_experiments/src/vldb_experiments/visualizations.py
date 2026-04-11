@@ -1538,6 +1538,115 @@ def create_llm_validation_f1_chart(
     return fig
 
 
+def create_llm_validation_grid_heatmap(
+    df: pd.DataFrame,
+    approach: str,
+    policy_count: int,
+    output_dir: str = "./results",
+    output_filename: str = "llm_validation_grid_heatmap.png",
+    x_axis_label: str = "Query",
+    query_tick_prefix: str = "Q",
+) -> Optional[plt.Figure]:
+    """Create a database-by-query heatmap of LLM success ratio against DFC."""
+    required_cols = {
+        "database_label",
+        "query_num",
+        "policy_count",
+        "approach",
+        "correct_identification",
+    }
+    if not required_cols.issubset(df.columns):
+        print(f"Skipping LLM validation grid heatmap; missing columns: {required_cols - set(df.columns)}")
+        return None
+
+    plot_df = df[list(required_cols)].copy()
+    plot_df = plot_df[plot_df["policy_count"].astype(str) == str(policy_count)].copy()
+    if plot_df.empty:
+        print(f"Skipping LLM validation grid heatmap; no rows for policy_count={policy_count}.")
+        return None
+
+    def _to_bool(value) -> bool | None:
+        text = str(value).strip().lower()
+        if text in {"true", "1", "t", "yes"}:
+            return True
+        if text in {"false", "0", "f", "no"}:
+            return False
+        return None
+
+    plot_df["correct_bool"] = plot_df["correct_identification"].map(_to_bool)
+    plot_df = plot_df.dropna(subset=["correct_bool"]).copy()
+    if plot_df.empty:
+        print("Skipping LLM validation grid heatmap; no parseable correctness values.")
+        return None
+
+    grouped = (
+        plot_df.groupby(["database_label", "query_num", "approach"], as_index=False)["correct_bool"]
+        .sum()
+        .rename(columns={"correct_bool": "success_count"})
+    )
+    dfc = grouped[grouped["approach"] == "dfc_1phase"][
+        ["database_label", "query_num", "success_count"]
+    ].rename(columns={"success_count": "dfc_success_count"})
+    llm = grouped[grouped["approach"] == approach][
+        ["database_label", "query_num", "success_count"]
+    ].rename(columns={"success_count": "llm_success_count"})
+
+    merged = llm.merge(dfc, on=["database_label", "query_num"], how="inner")
+    if merged.empty:
+        print(f"Skipping LLM validation grid heatmap; no paired rows for approach={approach}.")
+        return None
+
+    merged["success_ratio"] = merged["llm_success_count"] / merged["dfc_success_count"].replace(0, np.nan)
+    merged = merged.dropna(subset=["success_ratio"]).copy()
+    if merged.empty:
+        print(f"Skipping LLM validation grid heatmap; no finite ratios for approach={approach}.")
+        return None
+
+    query_values = sorted(merged["query_num"].astype(int).unique().tolist())
+    database_values = list(dict.fromkeys(merged["database_label"].tolist()))
+    heatmap = pd.DataFrame(index=database_values, columns=query_values, dtype=float)
+    for _, row in merged.iterrows():
+        heatmap.at[row["database_label"], int(row["query_num"])] = float(row["success_ratio"])
+
+    fig, ax = plt.subplots(figsize=(max(8, len(query_values) * 0.9), max(4, len(database_values) * 0.8)))
+    im = ax.imshow(heatmap.astype(float), cmap="RdYlGn", vmin=0.0, vmax=1.0, aspect="auto")
+
+    ax.set_xticks(range(len(query_values)))
+    ax.set_xticklabels([f"{query_tick_prefix}{q:02d}" for q in query_values], rotation=45, ha="right")
+    ax.set_yticks(range(len(database_values)))
+    ax.set_yticklabels(database_values)
+    ax.set_xlabel(x_axis_label, fontsize=12)
+    ax.set_ylabel("Database", fontsize=12)
+
+    ax.set_xticks(np.arange(-0.5, len(query_values), 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, len(database_values), 1), minor=True)
+    ax.grid(which="minor", color="#d0d0d0", linestyle="-", linewidth=0.8)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    for y_idx, db_label in enumerate(database_values):
+        for x_idx, query_num in enumerate(query_values):
+            value = heatmap.at[db_label, query_num]
+            if pd.notna(value):
+                ax.text(
+                    x_idx,
+                    y_idx,
+                    f"{float(value):.2f}",
+                    ha="center",
+                    va="center",
+                    color="black",
+                    fontsize=10,
+                )
+
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.set_label("LLM Success / DFC Success")
+
+    output_path = Path(output_dir) / output_filename
+    fig.savefig(str(output_path), dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved LLM validation grid heatmap to {output_path}")
+    return fig
+
+
 def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.DataFrame]:
     required_cols = {x_col, "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}
     if not required_cols.issubset(df.columns):

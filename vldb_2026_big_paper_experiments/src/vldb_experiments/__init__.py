@@ -9,6 +9,7 @@ from .strategies.deprecated.microbenchmark_policy_count_strategy import (
 from .strategies.deprecated.microbenchmark_table_width_strategy import (
     MicrobenchmarkTableWidthStrategy,
 )
+from .strategies.llm_validation_grid_strategy import LLMValidationGridStrategy
 from .strategies.llm_validation_strategy import LLMValidationStrategy
 from .strategies.microbenchmark_phase_competition_strategy import (
     MicrobenchmarkPhaseCompetitionStrategy,
@@ -16,6 +17,7 @@ from .strategies.microbenchmark_phase_competition_strategy import (
 from .strategies.microbenchmark_strategy import MicrobenchmarkStrategy
 from .strategies.multi_source_strategy import MultiSourceStrategy
 from .strategies.multi_source_tpch_strategy import MultiSourceTPCHStrategy
+from .strategies.synthetic_llm_validation_grid_strategy import SyntheticLLMValidationGridStrategy
 from .strategies.tax_agent_strategy import TaxAgentStrategy
 from .strategies.tpch_multi_db_strategy import TPCHMultiDBStrategy
 from .strategies.tpch_policy_complexity_strategy import TPCHPolicyComplexityStrategy
@@ -24,6 +26,7 @@ from .strategies.tpch_policy_many_ors_strategy import TPCHPolicyManyORsStrategy
 from .strategies.tpch_strategy import TPCHStrategy, load_tpch_query
 
 __all__ = [
+    "LLMValidationGridStrategy",
     "LLMValidationStrategy",
     "MicrobenchmarkPhaseCompetitionStrategy",
     "MicrobenchmarkPolicyCountStrategy",
@@ -31,6 +34,7 @@ __all__ = [
     "MicrobenchmarkTableWidthStrategy",
     "MultiSourceStrategy",
     "MultiSourceTPCHStrategy",
+    "SyntheticLLMValidationGridStrategy",
     "TPCHMultiDBStrategy",
     "TPCHPolicyComplexityStrategy",
     "TPCHPolicyCountStrategy",
