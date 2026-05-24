@@ -28,6 +28,7 @@ lineitem_policy = DFCPolicy(
     on_fail=Resolution.REMOVE,
 )
 
+
 @pytest.fixture
 def tpch_rewriter():
     """Create a SQLRewriter instance with TPC-H data loaded."""
@@ -132,7 +133,9 @@ FROM cte
 WHERE
   dfc >= 1"""
     expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
-    transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+    transformed_normalized = parse_one(transformed, read="duckdb").sql(
+        pretty=True, dialect="duckdb"
+    )
 
     assert transformed_normalized == expected_normalized, (
         f"Transformed query does not match expected.\n"
@@ -179,7 +182,9 @@ ORDER BY
   o_orderpriority"""
     # Normalize both queries for comparison (handles formatting differences)
     expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
-    transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+    transformed_normalized = parse_one(transformed, read="duckdb").sql(
+        pretty=True, dialect="duckdb"
+    )
     assert transformed_normalized == expected_normalized, (
         f"Transformed query does not match expected.\n"
         f"Expected:\n{expected_normalized}\n\n"
@@ -431,7 +436,9 @@ FROM cte
 WHERE
   dfc >= 1"""
     expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
-    transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+    transformed_normalized = parse_one(transformed, read="duckdb").sql(
+        pretty=True, dialect="duckdb"
+    )
 
     assert transformed_normalized == expected_normalized, (
         f"Transformed query does not match expected.\n"
@@ -571,7 +578,9 @@ FROM cte
 WHERE
   dfc >= 1 AND dfc2 >= 1"""
     expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
-    transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+    transformed_normalized = parse_one(transformed, read="duckdb").sql(
+        pretty=True, dialect="duckdb"
+    )
     assert transformed_normalized == expected_normalized, (
         f"Transformed query does not match expected.\n"
         f"Expected:\n{expected_normalized}\n\n"

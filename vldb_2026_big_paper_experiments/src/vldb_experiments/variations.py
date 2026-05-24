@@ -5,12 +5,15 @@ from typing import Optional
 
 try:
     import numpy as np
+
     NUMPY_AVAILABLE = True
 except ImportError:
     NUMPY_AVAILABLE = False
 
 
-def sample_zipfian(a: float, size: int, min_val: int = 1, max_val: Optional[int] = None) -> list[int]:
+def sample_zipfian(
+    a: float, size: int, min_val: int = 1, max_val: Optional[int] = None
+) -> list[int]:
     """Sample from a Zipfian distribution.
 
     Args:
@@ -36,7 +39,7 @@ def sample_zipfian(a: float, size: int, min_val: int = 1, max_val: Optional[int]
 def get_policy_threshold_for_rows(
     target_rows_removed: int,
     total_rows: int = 1_000_000,
-    value_range: tuple[int, int] = (1, 1_000_000)
+    value_range: tuple[int, int] = (1, 1_000_000),
 ) -> int:
     """Calculate policy threshold to remove approximately target_rows_removed rows.
 
@@ -66,7 +69,7 @@ def generate_variation_parameters(
     execution_number: int,
     num_variations: int = 5,
     num_runs_per_variation: int = 5,
-    num_query_types: int = 6
+    num_query_types: int = 6,
 ) -> dict:
     """Generate variation parameters for a query type.
 

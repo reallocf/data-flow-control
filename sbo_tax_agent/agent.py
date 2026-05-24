@@ -54,10 +54,7 @@ def create_bedrock_client():
 
         # boto3 will automatically use AWS_BEARER_TOKEN_BEDROCK if set
         # No special configuration needed - boto3 checks this env var automatically
-        return boto3.client(
-            service_name="bedrock-runtime",
-            region_name=region
-        )
+        return boto3.client(service_name="bedrock-runtime", region_name=region)
     except Exception as e:
         raise Exception(f"Failed to create Bedrock client: {e!s}") from e
 
@@ -74,6 +71,7 @@ def create_db_tool(rewriter):
     Returns:
         function: Database tool function
     """
+
     def db_tool(sql_query: str) -> str:
         """Execute a SQL query and return results.
 
@@ -93,20 +91,26 @@ def create_db_tool(rewriter):
                     # Verify it's a CREATE TABLE by checking the SQL output
                     create_sql = parsed.sql(dialect="duckdb").upper()
                     if "CREATE TABLE" in create_sql or create_sql.startswith("CREATE TABLE"):
-                        return json.dumps({
-                            "success": False,
-                            "error": "Creating new tables is not allowed. You can only query existing tables and insert into existing tables."
-                        }, indent=2)
+                        return json.dumps(
+                            {
+                                "success": False,
+                                "error": "Creating new tables is not allowed. You can only query existing tables and insert into existing tables.",
+                            },
+                            indent=2,
+                        )
 
                 # Check if INSERT statement without SELECT
                 if isinstance(parsed, exp.Insert):
                     # Check if INSERT has a SELECT (not just VALUES)
                     select_expr = parsed.find(exp.Select)
                     if not select_expr:
-                        return json.dumps({
-                            "success": False,
-                            "error": "INSERT statements must include a SELECT statement. Use INSERT INTO table (columns...) SELECT ... FROM ... WHERE ... format."
-                        }, indent=2)
+                        return json.dumps(
+                            {
+                                "success": False,
+                                "error": "INSERT statements must include a SELECT statement. Use INSERT INTO table (columns...) SELECT ... FROM ... WHERE ... format.",
+                            },
+                            indent=2,
+                        )
             except Exception as e:
                 # If parsing fails, continue with execution (let rewriter handle it)
                 print(f"Parsing failed: {e}")
@@ -134,23 +138,15 @@ def create_db_tool(rewriter):
                             row_dict[col] = str(value)
                     data.append(row_dict)
 
-                return json.dumps({
-                    "success": True,
-                    "row_count": len(data),
-                    "columns": columns,
-                    "data": data
-                }, indent=2)
+                return json.dumps(
+                    {"success": True, "row_count": len(data), "columns": columns, "data": data},
+                    indent=2,
+                )
             # For INSERT, UPDATE, DELETE - return success message
-            return json.dumps({
-                "success": True,
-                "message": "Query executed successfully"
-            }, indent=2)
+            return json.dumps({"success": True, "message": "Query executed successfully"}, indent=2)
 
         except Exception as e:
-            return json.dumps({
-                "success": False,
-                "error": str(e)
-            }, indent=2)
+            return json.dumps({"success": False, "error": str(e)}, indent=2)
 
     return db_tool
 
@@ -172,14 +168,14 @@ def build_agent_prompt(transaction: dict[str, Any], tax_return_info: dict[str, A
     return f"""You are a tax agent analyzing bank transactions to identify business expenses and income.
 
 TAX RETURN CONTEXT:
-- Business Name: {format_value_for_prompt(tax_return_info.get('business_name'))}
-- Business Description: {format_value_for_prompt(tax_return_info.get('business_desc'))}
-- Tax Year: {format_value_for_prompt(tax_return_info.get('tax_year'))}
+- Business Name: {format_value_for_prompt(tax_return_info.get("business_name"))}
+- Business Description: {format_value_for_prompt(tax_return_info.get("business_desc"))}
+- Tax Year: {format_value_for_prompt(tax_return_info.get("tax_year"))}
 
 CURRENT TRANSACTION:
 - Transaction ID: {format_value_for_prompt(txn_id)}
 - Amount: {format_value_for_prompt(amount)}
-- Description: {format_value_for_prompt(transaction.get('description'))}
+- Description: {format_value_for_prompt(transaction.get("description"))}
 
 BANK_TXN TABLE SCHEMA:
 - txn_id (UBIGINT): Unique transaction identifier
@@ -220,7 +216,7 @@ def process_transaction_with_agent(
     transaction: dict[str, Any],
     tax_return_info: dict[str, Any],
     recorder=None,
-    replay_manager=None
+    replay_manager=None,
 ) -> tuple[bool, str, list]:
     """Process a single transaction with the agent.
 
@@ -275,12 +271,7 @@ def process_transaction_with_agent(
         db_tool_func = create_db_tool(rewriter)
 
         # Prepare messages for Claude
-        messages = [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
+        messages = [{"role": "user", "content": prompt}]
 
         # Create tool definition for database access
         tools = [
@@ -290,13 +281,10 @@ def process_transaction_with_agent(
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "sql_query": {
-                            "type": "string",
-                            "description": "The SQL query to execute"
-                        }
+                        "sql_query": {"type": "string", "description": "The SQL query to execute"}
                     },
-                    "required": ["sql_query"]
-                }
+                    "required": ["sql_query"],
+                },
             }
         ]
 
@@ -306,9 +294,7 @@ def process_transaction_with_agent(
             "max_tokens": 4096,
             "messages": messages,
             "tools": tools,
-            "tool_choice": {
-                "type": "auto"
-            }
+            "tool_choice": {"type": "auto"},
         }
 
         log("[REQUEST] Sending to Bedrock (iteration 1)")
@@ -318,15 +304,12 @@ def process_transaction_with_agent(
         # Check if we should replay instead of calling LLM
         if replay_manager and replay_manager.is_enabled():
             response_body = replay_manager.get_agent_loop_response(
-                transaction_id=transaction_id,
-                iteration=1,
-                request_body=request_body
+                transaction_id=transaction_id, iteration=1, request_body=request_body
             )
             if response_body is None:
                 # Fall through to actual LLM call
                 response = bedrock_client.invoke_model(
-                    modelId=BEDROCK_MODEL_ID,
-                    body=json.dumps(request_body)
+                    modelId=BEDROCK_MODEL_ID, body=json.dumps(request_body)
                 )
                 response_body = json.loads(response["body"].read())
                 log("[RESPONSE] Received from Bedrock (iteration 1)")
@@ -340,14 +323,11 @@ def process_transaction_with_agent(
             # Record request if recorder is available
             if recorder and recorder.is_enabled():
                 recorder.record_agent_loop_request(
-                    transaction_id=transaction_id,
-                    iteration=1,
-                    request_body=request_body
+                    transaction_id=transaction_id, iteration=1, request_body=request_body
                 )
 
             response = bedrock_client.invoke_model(
-                modelId=BEDROCK_MODEL_ID,
-                body=json.dumps(request_body)
+                modelId=BEDROCK_MODEL_ID, body=json.dumps(request_body)
             )
 
             response_body = json.loads(response["body"].read())
@@ -359,9 +339,7 @@ def process_transaction_with_agent(
         # Record response if recorder is available (for both replay and live calls)
         if recorder and recorder.is_enabled():
             recorder.record_agent_loop_response(
-                transaction_id=transaction_id,
-                iteration=1,
-                response_body=response_body
+                transaction_id=transaction_id, iteration=1, response_body=response_body
             )
 
         # Process response - handle tool use with conversation loop
@@ -421,31 +399,27 @@ def process_transaction_with_agent(
                     log(f"  {tool_result}")
                     log("")
 
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use["id"],
-                        "content": tool_result
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use["id"],
+                            "content": tool_result,
+                        }
+                    )
 
                     # Check if it was an INSERT into irs_form
                     if "INSERT INTO irs_form" in sql_query.upper():
                         entry_created = True
 
             # Add assistant's tool use to messages
-            assistant_message = {
-                "role": "assistant",
-                "content": list(tool_uses)
-            }
+            assistant_message = {"role": "assistant", "content": list(tool_uses)}
             messages.append(assistant_message)
             log("[MESSAGE STREAM] Added assistant message with tool uses")
             log(json.dumps(assistant_message, indent=2))
             log("")
 
             # Add tool results to messages
-            user_message = {
-                "role": "user",
-                "content": tool_results
-            }
+            user_message = {"role": "user", "content": tool_results}
             messages.append(user_message)
             log("[MESSAGE STREAM] Added user message with tool results")
             log(json.dumps(user_message, indent=2))
@@ -457,9 +431,7 @@ def process_transaction_with_agent(
                 "max_tokens": 4096,
                 "messages": messages,
                 "tools": tools,
-                "tool_choice": {
-                    "type": "auto"
-                }
+                "tool_choice": {"type": "auto"},
             }
 
             log(f"[REQUEST] Sending to Bedrock (iteration {iteration + 1})")
@@ -471,13 +443,12 @@ def process_transaction_with_agent(
                 response_body = replay_manager.get_agent_loop_response(
                     transaction_id=transaction_id,
                     iteration=iteration + 1,
-                    request_body=request_body
+                    request_body=request_body,
                 )
                 if response_body is None:
                     # Fall through to actual LLM call
                     response = bedrock_client.invoke_model(
-                        modelId=BEDROCK_MODEL_ID,
-                        body=json.dumps(request_body)
+                        modelId=BEDROCK_MODEL_ID, body=json.dumps(request_body)
                     )
                     response_body = json.loads(response["body"].read())
                     log(f"[RESPONSE] Received from Bedrock (iteration {iteration + 1})")
@@ -493,12 +464,11 @@ def process_transaction_with_agent(
                     recorder.record_agent_loop_request(
                         transaction_id=transaction_id,
                         iteration=iteration + 1,
-                        request_body=request_body
+                        request_body=request_body,
                     )
 
                 response = bedrock_client.invoke_model(
-                    modelId=BEDROCK_MODEL_ID,
-                    body=json.dumps(request_body)
+                    modelId=BEDROCK_MODEL_ID, body=json.dumps(request_body)
                 )
 
                 response_body = json.loads(response["body"].read())
@@ -512,7 +482,7 @@ def process_transaction_with_agent(
                 recorder.record_agent_loop_response(
                     transaction_id=transaction_id,
                     iteration=iteration + 1,
-                    response_body=response_body
+                    response_body=response_body,
                 )
 
         log("=" * 80)
@@ -567,10 +537,7 @@ def run_agentic_loop(rewriter) -> Iterator[dict[str, Any]]:
         tax_return_rows = tax_return_result.fetchall()
 
         if not tax_return_rows:
-            yield {
-                "error": "No tax return found",
-                "success": False
-            }
+            yield {"error": "No tax return found", "success": False}
             return
 
         tax_return_columns = [desc[0] for desc in tax_return_result.description]
@@ -592,19 +559,13 @@ def run_agentic_loop(rewriter) -> Iterator[dict[str, Any]]:
         total_transactions = len(transactions)
 
         if total_transactions == 0:
-            yield {
-                "error": "No transactions found",
-                "success": False
-            }
+            yield {"error": "No transactions found", "success": False}
             return
 
         # Process each transaction
         for idx, transaction in enumerate(transactions, 1):
             entry_created, message, logs = process_transaction_with_agent(
-                bedrock_client,
-                rewriter,
-                transaction,
-                tax_return_info
+                bedrock_client, rewriter, transaction, tax_return_info
             )
 
             yield {
@@ -614,11 +575,8 @@ def run_agentic_loop(rewriter) -> Iterator[dict[str, Any]]:
                 "success": True,
                 "message": message,
                 "entry_created": entry_created,
-                "logs": logs
+                "logs": logs,
             }
 
     except Exception as e:
-        yield {
-            "error": f"Error in agentic loop: {e!s}",
-            "success": False
-        }
+        yield {"error": f"Error in agentic loop: {e!s}", "success": False}

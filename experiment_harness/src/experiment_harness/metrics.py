@@ -38,6 +38,7 @@ def collect_memory_usage() -> dict[str, float]:
         import os
 
         import psutil
+
         process = psutil.Process(os.getpid())
         memory_info = process.memory_info()
         return {"memory_mb": memory_info.rss / (1024 * 1024)}

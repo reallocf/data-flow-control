@@ -103,7 +103,9 @@ def _policy_constraints(policy_count: int, column_ref: str) -> list[str]:
 
 
 def _having_chain(policy_count: int, column_ref: str) -> str:
-    clauses = [f"(\n    {constraint}\n  )" for constraint in _policy_constraints(policy_count, column_ref)]
+    clauses = [
+        f"(\n    {constraint}\n  )" for constraint in _policy_constraints(policy_count, column_ref)
+    ]
     return "\n  AND ".join(clauses)
 
 
@@ -112,9 +114,7 @@ def _logical_constraint(policy_count: int) -> str:
 
 
 def _logical_projection() -> str:
-    return ", ".join(
-        [f"MAX(base_query.{column}) AS {column}" for column in _OUTPUT_COLUMNS[2:]]
-    )
+    return ", ".join([f"MAX(base_query.{column}) AS {column}" for column in _OUTPUT_COLUMNS[2:]])
 
 
 @cache

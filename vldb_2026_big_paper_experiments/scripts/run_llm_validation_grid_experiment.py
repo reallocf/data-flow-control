@@ -112,7 +112,14 @@ def main() -> int:
     include_gpt_query_results = include_openai and not args.disable_gpt_query_results
     include_opus_query_only = include_bedrock and not args.disable_opus_query_only
     include_opus_query_results = include_bedrock and not args.disable_opus_query_results
-    if not any([include_gpt_query_only, include_gpt_query_results, include_opus_query_only, include_opus_query_results]):
+    if not any(
+        [
+            include_gpt_query_only,
+            include_gpt_query_results,
+            include_opus_query_only,
+            include_opus_query_results,
+        ]
+    ):
         raise ValueError("At least one LLM baseline must be enabled.")
 
     settings_per_query_policy_db = 1
@@ -120,7 +127,12 @@ def main() -> int:
     settings_per_query_policy_db += int(include_gpt_query_results)
     settings_per_query_policy_db += int(include_opus_query_only)
     settings_per_query_policy_db += int(include_opus_query_results)
-    total_settings = len(args.database_sfs) * len(args.queries) * len(args.policy_counts) * settings_per_query_policy_db
+    total_settings = (
+        len(args.database_sfs)
+        * len(args.queries)
+        * len(args.policy_counts)
+        * settings_per_query_policy_db
+    )
     total_executions = total_settings * args.runs_per_setting
 
     print("Running LLM validation grid experiment:")

@@ -11,28 +11,23 @@ def get_query_definitions() -> dict[str, str]:
         "SELECT": """
             SELECT * FROM test_data
         """,
-
         "WHERE": """
             SELECT * FROM test_data WHERE value > 50
         """,
-
         "SIMPLE_AGG": """
             SELECT SUM(amount)
             FROM test_data
         """,
-
         "JOIN": """
             SELECT test_data.id, other.value
             FROM test_data
             JOIN join_data other ON test_data.id = other.id
         """,
-
         "GROUP_BY": """
             SELECT category, COUNT(*), SUM(amount)
             FROM test_data
             GROUP BY category
         """,
-
         # Real query is generated dynamically in MicrobenchmarkStrategy based on
         # variation_join_count. This placeholder keeps query type registration simple.
         "JOIN_GROUP_BY": """
@@ -41,7 +36,6 @@ def get_query_definitions() -> dict[str, str]:
             JOIN join_data_1 j1 ON test_data.id = j1.id
             GROUP BY test_data.category
         """,
-
         "ORDER_BY": """
             SELECT * FROM test_data ORDER BY value DESC
         """,

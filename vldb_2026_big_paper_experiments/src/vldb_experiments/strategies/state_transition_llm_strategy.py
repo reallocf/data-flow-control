@@ -118,7 +118,9 @@ class StateTransitionLLMStrategy(ExperimentStrategy):
         )
 
     def _state_counts(self, conn) -> dict[str, int]:
-        rows = conn.execute("SELECT state, COUNT(*) FROM t GROUP BY state ORDER BY state").fetchall()
+        rows = conn.execute(
+            "SELECT state, COUNT(*) FROM t GROUP BY state ORDER BY state"
+        ).fetchall()
         counts = {"A": 0, "B": 0, "C": 0}
         for state, count in rows:
             counts[state] = count

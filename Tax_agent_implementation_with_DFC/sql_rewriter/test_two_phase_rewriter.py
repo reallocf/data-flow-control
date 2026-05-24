@@ -25,9 +25,7 @@ def assert_transformed_query(transformed: str, expected: str) -> None:
 
     if _ACTIVE_TWO_PHASE_REWRITER is not None:
         try:
-            original_query = _ACTIVE_TWO_PHASE_REWRITER.original_query_for_transformed(
-                transformed
-            )
+            original_query = _ACTIVE_TWO_PHASE_REWRITER.original_query_for_transformed(transformed)
             parsed = parse_one(original_query, read="duckdb")
             if not _ACTIVE_TWO_PHASE_REWRITER._has_aggregations(parsed):
                 standard_expected = _ACTIVE_TWO_PHASE_REWRITER.standard_rewriter.transform_query(
@@ -50,10 +48,7 @@ def _canonicalize_rows_by_columns(
     rows: list[tuple], columns: list[str], canonical_columns: list[str]
 ) -> list[tuple]:
     column_to_idx = {name: idx for idx, name in enumerate(columns)}
-    return [
-        tuple(row[column_to_idx[col]] for col in canonical_columns)
-        for row in rows
-    ]
+    return [tuple(row[column_to_idx[col]] for col in canonical_columns) for row in rows]
 
 
 def execute_transformed_and_assert_matches_standard(
@@ -150,7 +145,6 @@ class TwoPhaseSQLRewriter(SQLRewriter):
         self.standard_rewriter.close()
 
 
-
 @pytest.fixture
 def rewriter():
     """Create a SQLRewriter instance with test data."""
@@ -239,7 +233,9 @@ def test_transform_query_preserves_query_structure(rewriter):
     query = "SELECT id, name FROM foo WHERE id > 1 ORDER BY id"
     transformed = rewriter.transform_query(query)
 
-    assert_transformed_query(transformed, "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  id > 1\nORDER BY\n  id")
+    assert_transformed_query(
+        transformed, "SELECT\n  id,\n  name\nFROM foo\nWHERE\n  id > 1\nORDER BY\n  id"
+    )
 
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
     assert len(result) == 2  # id > 1 excludes id=1
@@ -258,7 +254,9 @@ def test_policy_applied_to_aggregation_query(rewriter):
     # Execute an aggregation query over the source table
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id)
   FROM foo
@@ -274,7 +272,8 @@ def test_policy_applied_to_aggregation_query(rewriter):
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
 
     # The query should have been transformed to include HAVING clause
@@ -296,7 +295,9 @@ def test_policy_filters_aggregation_query(rewriter):
     # Execute an aggregation query
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id)
   FROM foo
@@ -312,7 +313,8 @@ def test_policy_filters_aggregation_query(rewriter):
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
 
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
 
@@ -334,7 +336,9 @@ def test_policy_kill_resolution_aborts_aggregation_query_when_constraint_fails(r
 
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id)
   FROM foo
@@ -350,7 +354,8 @@ def test_policy_kill_resolution_aborts_aggregation_query_when_constraint_fails(r
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
 
     # Query should abort when executed because constraint fails
     exc = assert_transformed_invalid_input_matches_standard(rewriter, transformed)
@@ -371,7 +376,9 @@ def test_policy_kill_resolution_allows_aggregation_when_constraint_passes(rewrit
 
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id)
   FROM foo
@@ -387,7 +394,8 @@ def test_policy_kill_resolution_allows_aggregation_when_constraint_passes(rewrit
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
 
     # Query should succeed because constraint passes
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -406,7 +414,9 @@ def test_policy_invalidate_resolution_adds_column_to_aggregation(rewriter):
 
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id)
   FROM foo
@@ -422,7 +432,8 @@ SELECT
   base_query.*,
   policy_eval.valid AS valid
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
 
     # Execute and check results
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -446,7 +457,9 @@ def test_policy_invalidate_resolution_adds_column_to_scan(rewriter):
 
     # Should have 'valid' column in SELECT, not WHERE clause
     # valid = (foo.id > 1) (wrapped in parentheses like REMOVE)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id,
     name,
@@ -466,7 +479,8 @@ SELECT
   policy_eval.valid AS valid
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+    )
 
     # Execute and check results
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -498,7 +512,9 @@ def test_policy_invalidate_resolution_combines_multiple_policies(rewriter):
 
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id)
   FROM foo
@@ -516,7 +532,8 @@ SELECT
   base_query.*,
   policy_eval.valid AS valid
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
 
     # Execute and check results
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -543,7 +560,9 @@ def test_policy_invalidate_resolution_with_other_resolutions(rewriter):
 
     query = "SELECT max(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id)
   FROM foo
@@ -563,7 +582,8 @@ SELECT
   base_query.*,
   policy_eval.valid AS valid
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
 
     # Execute and check results
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -590,7 +610,9 @@ def test_policy_invalidate_resolution_false_when_constraint_fails(rewriter):
     assert len(result) == 1
     assert len(result[0]) == 2  # max(foo.id) and valid
     assert result[0][0] == 3  # max(id) = 3
-    assert result[0][1] is False  # valid should be False since max(id) = 3 is not > 10 (constraint fails)
+    assert (
+        result[0][1] is False
+    )  # valid should be False since max(id) = 3 is not > 10 (constraint fails)
 
 
 def test_policy_applied_to_multiple_aggregations(rewriter):
@@ -604,7 +626,9 @@ def test_policy_applied_to_multiple_aggregations(rewriter):
 
     query = "SELECT max(foo.id), min(foo.id) FROM foo"
     transformed = rewriter.transform_query(query)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     MAX(foo.id),
     MIN(foo.id)
@@ -621,7 +645,8 @@ def test_policy_applied_to_multiple_aggregations(rewriter):
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+    )
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
 
     # Should return results since both constraints pass (max=3, min=1)
@@ -643,7 +668,9 @@ def test_policy_applied_to_non_aggregation_via_where(rewriter):
     query = "SELECT id, name FROM foo"
     transformed = rewriter.transform_query(query)
     # Should have WHERE clause, not HAVING
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id,
     name,
@@ -663,7 +690,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+    )
 
     # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -706,14 +734,19 @@ class TestMultiSourceRewrites:
         # Missing one source: policy should not apply
         query = "SELECT max(foo.id) FROM foo"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """SELECT
+        assert_transformed_query(
+            transformed,
+            """SELECT
   MAX(foo.id)
-FROM foo""")
+FROM foo""",
+        )
 
         # Both sources present: policy should apply
         query = "SELECT max(foo.id), max(baz.x) FROM foo JOIN baz ON TRUE"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     MAX(foo.id),
     MAX(baz.x)
@@ -734,7 +767,8 @@ FROM foo""")
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+        )
 
     def test_multi_source_aggregation_with_inner_join(self, rewriter):
         """Test multi-source policy on aggregation with INNER JOIN."""
@@ -747,7 +781,9 @@ CROSS JOIN policy_eval""")
 
         query = "SELECT max(foo.id), max(baz.x) FROM foo JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     MAX(foo.id),
     MAX(baz.x)
@@ -768,7 +804,8 @@ CROSS JOIN policy_eval""")
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+        )
 
     def test_multi_source_scan_with_left_join(self, rewriter):
         """Test multi-source policy on scan query with LEFT JOIN."""
@@ -781,7 +818,9 @@ CROSS JOIN policy_eval""")
 
         query = "SELECT foo.id, baz.x FROM foo LEFT JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.id,
     baz.x
@@ -805,7 +844,8 @@ SELECT
 FROM base_query
 JOIN policy_eval
   ON base_query.id = policy_eval.id
-  AND base_query.x = policy_eval.x""")
+  AND base_query.x = policy_eval.x""",
+        )
 
     def test_multi_source_scan_missing_source_no_rewrite(self, rewriter):
         """Test multi-source policy does not apply when a source is missing."""
@@ -818,10 +858,13 @@ JOIN policy_eval
 
         query = "SELECT id, name FROM foo"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """SELECT
+        assert_transformed_query(
+            transformed,
+            """SELECT
   id,
   name
-FROM foo""")
+FROM foo""",
+        )
 
     def test_multi_source_group_by_with_additional_join(self, rewriter):
         """Test multi-source policy on grouped query with extra JOIN."""
@@ -837,7 +880,9 @@ FROM foo""")
 
         query = "SELECT foo.name, max(baz.x) FROM foo JOIN baz ON foo.id = baz.x JOIN qux ON TRUE GROUP BY foo.name"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.name,
     MAX(baz.x)
@@ -867,7 +912,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.name = policy_eval.name""")
+  ON base_query.name = policy_eval.name""",
+        )
 
     def test_multi_source_subquery_join_propagates_columns(self, rewriter):
         """Test multi-source policy adds missing columns in subquery JOINs."""
@@ -880,7 +926,9 @@ JOIN policy_eval
 
         query = "SELECT sub.name FROM (SELECT foo.name FROM foo JOIN baz ON foo.id = baz.x) AS sub"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     sub.name
   FROM (
@@ -913,7 +961,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.name = policy_eval.name""")
+  ON base_query.name = policy_eval.name""",
+        )
 
     def test_multi_source_insert_select_applies_where(self, rewriter):
         """Test multi-source policy on INSERT...SELECT with join sources."""
@@ -927,9 +976,13 @@ JOIN policy_eval
         )
         rewriter.register_policy(policy)
 
-        query = "INSERT INTO reports SELECT foo.id, foo.name, baz.x FROM foo JOIN baz ON foo.id = baz.x"
+        query = (
+            "INSERT INTO reports SELECT foo.id, foo.name, baz.x FROM foo JOIN baz ON foo.id = baz.x"
+        )
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """INSERT INTO reports
+        assert_transformed_query(
+            transformed,
+            """INSERT INTO reports
 SELECT
   foo.id,
   foo.name,
@@ -940,7 +993,8 @@ JOIN baz
 WHERE
   (
     foo.id >= 2 AND baz.x <= 20
-  )""")
+  )""",
+        )
 
     def test_multi_source_multi_join_group_by_having(self, rewriter):
         """Test multi-source policy with multiple joins and group by."""
@@ -963,7 +1017,9 @@ WHERE
             "GROUP BY foo.name, qux.q"
         )
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.name,
     qux.q,
@@ -1001,7 +1057,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.name = policy_eval.name AND base_query.q = policy_eval.q""")
+  ON base_query.name = policy_eval.name AND base_query.q = policy_eval.q""",
+        )
 
     def test_multi_source_group_by_with_distinct_and_join(self, rewriter):
         """Test multi-source policy with DISTINCT and GROUP BY."""
@@ -1018,7 +1075,9 @@ JOIN policy_eval
             "GROUP BY foo.name"
         )
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT DISTINCT
     foo.name,
     MAX(baz.x)
@@ -1044,7 +1103,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.name = policy_eval.name""")
+  ON base_query.name = policy_eval.name""",
+        )
 
     def test_multi_source_scan_with_multiple_joins(self, rewriter):
         """Test multi-source policy on scan with multiple joins."""
@@ -1058,13 +1118,11 @@ JOIN policy_eval
         )
         rewriter.register_policy(policy)
 
-        query = (
-            "SELECT foo.id, baz.x, qux.q "
-            "FROM foo JOIN baz ON foo.id = baz.x "
-            "JOIN qux ON TRUE"
-        )
+        query = "SELECT foo.id, baz.x, qux.q FROM foo JOIN baz ON foo.id = baz.x JOIN qux ON TRUE"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.id,
     baz.x,
@@ -1095,7 +1153,8 @@ FROM base_query
 JOIN policy_eval
   ON base_query.id = policy_eval.id
   AND base_query.x = policy_eval.x
-  AND base_query.q = policy_eval.q""")
+  AND base_query.q = policy_eval.q""",
+        )
 
     def test_multi_source_group_by_on_join_key(self, rewriter):
         """Test multi-source policy with group by on join key."""
@@ -1106,13 +1165,11 @@ JOIN policy_eval
         )
         rewriter.register_policy(policy)
 
-        query = (
-            "SELECT foo.id, max(baz.x) "
-            "FROM foo JOIN baz ON foo.id = baz.x "
-            "GROUP BY foo.id"
-        )
+        query = "SELECT foo.id, max(baz.x) FROM foo JOIN baz ON foo.id = baz.x GROUP BY foo.id"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.id,
     MAX(baz.x)
@@ -1138,7 +1195,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
 
     def test_multi_source_multi_join_group_by_with_alias(self, rewriter):
         """Test multi-source policy with aliased joins and group by."""
@@ -1149,13 +1207,11 @@ JOIN policy_eval
         )
         rewriter.register_policy(policy)
 
-        query = (
-            "SELECT f.name, max(b.x) "
-            "FROM foo f JOIN baz b ON f.id = b.x "
-            "GROUP BY f.name"
-        )
+        query = "SELECT f.name, max(b.x) FROM foo f JOIN baz b ON f.id = b.x GROUP BY f.name"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     f.name,
     MAX(b.x)
@@ -1181,7 +1237,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.name = policy_eval.name""")
+  ON base_query.name = policy_eval.name""",
+        )
 
 
 def test_policy_applied_to_scan_query(rewriter):
@@ -1197,7 +1254,9 @@ def test_policy_applied_to_scan_query(rewriter):
     query = "SELECT id, name FROM foo"
     transformed = rewriter.transform_query(query)
     # Should have WHERE clause with transformed constraint (max(id) -> id)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id,
     name,
@@ -1217,7 +1276,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+    )
 
     # Should return all rows since id >= 1 is true for all (id values are 1, 2, 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1238,7 +1298,9 @@ def test_policy_filters_scan_query(rewriter):
     transformed = rewriter.transform_query(query)
 
     # Should have WHERE clause
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id,
     name,
@@ -1258,7 +1320,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+    )
 
     # Should filter out all rows since id > 10 is false for all (max id is 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1279,7 +1342,9 @@ def test_policy_scan_with_count(rewriter):
 
     # COUNT(*) > 0 should become 1 > 0 (always true)
     # The WHERE clause should be added even if it's always true
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1296,7 +1361,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return all rows (constraint is always true)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1316,7 +1382,9 @@ def test_policy_scan_with_count_distinct(rewriter):
     transformed = rewriter.transform_query(query)
 
     # COUNT(DISTINCT id) > 0 should become 1 > 0 (always true)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1333,7 +1401,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return all rows
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1353,7 +1422,9 @@ def test_policy_scan_with_approx_count_distinct(rewriter):
     transformed = rewriter.transform_query(query)
 
     # APPROX_COUNT_DISTINCT(id) > 0 should become 1 > 0 (always true)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1370,7 +1441,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return all rows
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1390,7 +1462,9 @@ def test_policy_scan_with_count_if(rewriter):
     transformed = rewriter.transform_query(query)
 
     # COUNT_IF(id > 2) > 0 should become CASE WHEN id > 2 THEN 1 ELSE 0 END > 0
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1407,7 +1481,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return rows where id > 2 (id values 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1429,7 +1504,9 @@ def test_policy_scan_with_count_if_false(rewriter):
 
     # COUNT_IF(id > 10) > 0 should become CASE WHEN id > 10 THEN 1 ELSE 0 END > 0
     # Since max id is 3, this should filter out all rows
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1446,7 +1523,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return no rows (no id > 10)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1466,7 +1544,9 @@ def test_policy_scan_with_array_agg(rewriter):
     transformed = rewriter.transform_query(query)
 
     # array_agg(id) = ARRAY[2] should become [foo.id] = [2] (DuckDB uses square brackets)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1483,7 +1563,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return rows where id = 2
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1505,7 +1586,9 @@ def test_policy_scan_with_array_agg_comparison(rewriter):
 
     # array_agg(id) != ARRAY[999] should become [foo.id] <> [999]
     # This should be true for all rows (no id = 999)
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1522,7 +1605,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return all rows
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1542,7 +1626,9 @@ def test_policy_scan_with_min(rewriter):
     transformed = rewriter.transform_query(query)
 
     # min(id) <= 2 should become id <= 2
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id,
     name,
@@ -1562,7 +1648,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+    )
 
     # Should return rows where id <= 2 (id values 1 and 2)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1583,7 +1670,9 @@ def test_policy_scan_with_complex_constraint(rewriter):
     transformed = rewriter.transform_query(query)
 
     # Should have WHERE with both conditions transformed
-    assert_transformed_query(transformed, """WITH base_query AS (
+    assert_transformed_query(
+        transformed,
+        """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -1600,7 +1689,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+    )
 
     # Should return rows where id > 1 AND id < 10 (id values 2 and 3)
     result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -1848,7 +1938,9 @@ class TestPolicyRowDropping:
         transformed = rewriter.transform_query(query)
 
         # Should have CASE WHEN with KILL() in ELSE clause
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id,
     name,
@@ -1870,7 +1962,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+        )
 
         # Query should abort when executed because constraint fails for all rows
         exc = assert_transformed_invalid_input_matches_standard(rewriter, transformed)
@@ -1892,7 +1985,9 @@ JOIN policy_eval
         transformed = rewriter.transform_query(query)
 
         # Should have CASE WHEN with KILL() in ELSE clause (constraint passes)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id,
     name,
@@ -1914,7 +2009,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+        )
 
         # Query should succeed because constraint passes for all rows
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -2016,7 +2112,9 @@ class TestJoinTypes:
         query = "SELECT foo.id FROM foo RIGHT JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.id
   FROM foo
@@ -2037,7 +2135,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2053,7 +2152,9 @@ JOIN policy_eval
         query = "SELECT foo.id FROM foo FULL OUTER JOIN baz ON foo.id = baz.x"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.id
   FROM foo
@@ -2074,7 +2175,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2090,7 +2192,9 @@ JOIN policy_eval
         query = "SELECT foo.id FROM foo CROSS JOIN baz"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     foo.id
   FROM foo
@@ -2109,7 +2213,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         # Cross join with policy filter should return fewer rows
         assert result is not None
@@ -2168,7 +2273,9 @@ class TestDistinctQueries:
         query = "SELECT DISTINCT id FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT DISTINCT
     id
   FROM foo
@@ -2185,7 +2292,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -2201,7 +2309,9 @@ JOIN policy_eval
         query = "SELECT DISTINCT id, name FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT DISTINCT
     id,
     name
@@ -2221,7 +2331,8 @@ SELECT
 FROM base_query
 JOIN policy_eval
   ON base_query.id = policy_eval.id
-  AND base_query.name = policy_eval.name""")
+  AND base_query.name = policy_eval.name""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -2236,7 +2347,9 @@ JOIN policy_eval
 
         query = "SELECT DISTINCT COUNT(*) FROM foo"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT DISTINCT
     COUNT(*)
   FROM foo
@@ -2252,7 +2365,8 @@ JOIN policy_eval
 SELECT
   base_query.*
 FROM base_query
-CROSS JOIN policy_eval""")
+CROSS JOIN policy_eval""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 1
 
@@ -2272,7 +2386,9 @@ class TestExistsSubqueries:
         query = "SELECT id FROM foo WHERE EXISTS (SELECT 1 FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -2306,7 +2422,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2322,7 +2439,9 @@ JOIN policy_eval
         query = "SELECT id FROM foo WHERE EXISTS (SELECT 1 FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -2356,7 +2475,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2372,7 +2492,9 @@ JOIN policy_eval
         query = "SELECT id FROM foo WHERE NOT EXISTS (SELECT 1 FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -2406,7 +2528,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2418,10 +2541,18 @@ JOIN policy_eval
         isn't accessible there. Instead, we should rewrite the EXISTS as a JOIN.
         """
         # Create test tables similar to TPC-H Q04
-        rewriter.execute("CREATE TABLE orders (o_orderkey INTEGER, o_orderdate DATE, o_orderpriority VARCHAR)")
-        rewriter.execute("INSERT INTO orders VALUES (1, '1993-07-15', '1-URGENT'), (2, '1993-08-15', '2-HIGH')")
-        rewriter.execute("CREATE TABLE lineitem (l_orderkey INTEGER, l_commitdate DATE, l_receiptdate DATE, l_quantity INTEGER)")
-        rewriter.execute("INSERT INTO lineitem VALUES (1, '1993-07-10', '1993-07-20', 10), (2, '1993-08-10', '1993-08-05', 5)")
+        rewriter.execute(
+            "CREATE TABLE orders (o_orderkey INTEGER, o_orderdate DATE, o_orderpriority VARCHAR)"
+        )
+        rewriter.execute(
+            "INSERT INTO orders VALUES (1, '1993-07-15', '1-URGENT'), (2, '1993-08-15', '2-HIGH')"
+        )
+        rewriter.execute(
+            "CREATE TABLE lineitem (l_orderkey INTEGER, l_commitdate DATE, l_receiptdate DATE, l_quantity INTEGER)"
+        )
+        rewriter.execute(
+            "INSERT INTO lineitem VALUES (1, '1993-07-10', '1993-07-20', 10), (2, '1993-08-10', '1993-08-05', 5)"
+        )
 
         # Policy on lineitem (the table in the EXISTS subquery)
         policy = DFCPolicy(
@@ -2444,7 +2575,9 @@ GROUP BY o_orderpriority
 ORDER BY o_orderpriority"""
 
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     o_orderpriority,
     COUNT(*) AS order_count
@@ -2492,7 +2625,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.o_orderpriority = policy_eval.o_orderpriority""")
+  ON base_query.o_orderpriority = policy_eval.o_orderpriority""",
+        )
 
         # Should execute without error
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -2518,7 +2652,9 @@ WHERE EXISTS (SELECT * FROM lineitem WHERE l_orderkey = o_orderkey)
 GROUP BY o_orderkey"""
 
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     o_orderkey,
     COUNT(*)
@@ -2557,7 +2693,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.o_orderkey = policy_eval.o_orderkey""")
+  ON base_query.o_orderkey = policy_eval.o_orderkey""",
+        )
 
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
@@ -2585,7 +2722,9 @@ FROM orders
 WHERE EXISTS (SELECT * FROM lineitem WHERE l_orderkey = o_orderkey)"""
 
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     o_orderkey
   FROM orders
@@ -2619,7 +2758,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.o_orderkey = policy_eval.o_orderkey""")
+  ON base_query.o_orderkey = policy_eval.o_orderkey""",
+        )
 
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
@@ -2631,7 +2771,9 @@ class TestRemovePolicyWithLimit:
     def test_remove_policy_with_limit_aggregation(self, rewriter):
         """Test REMOVE policy with LIMIT on aggregation query - should wrap in CTE."""
         rewriter.execute("CREATE TABLE test_table (id INTEGER, value INTEGER)")
-        rewriter.execute("INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)")
+        rewriter.execute(
+            "INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)"
+        )
 
         policy = DFCPolicy(
             sources=["test_table"],
@@ -2683,7 +2825,9 @@ WHERE
 
         # Normalize both queries for comparison
         expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
-        transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+        transformed_normalized = parse_one(transformed, read="duckdb").sql(
+            pretty=True, dialect="duckdb"
+        )
 
         assert transformed_normalized == expected_normalized, (
             f"Transformed query does not match expected.\n"
@@ -2698,7 +2842,9 @@ WHERE
     def test_remove_policy_with_limit_scan(self, rewriter):
         """Test REMOVE policy with LIMIT on scan query - should wrap in CTE."""
         rewriter.execute("CREATE TABLE test_table (id INTEGER, value INTEGER)")
-        rewriter.execute("INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)")
+        rewriter.execute(
+            "INSERT INTO test_table VALUES (1, 10), (2, 20), (3, 30), (4, 40), (5, 50)"
+        )
 
         policy = DFCPolicy(
             sources=["test_table"],
@@ -2738,7 +2884,9 @@ WHERE
 
         # Normalize both queries for comparison
         expected_normalized = parse_one(expected, read="duckdb").sql(pretty=True, dialect="duckdb")
-        transformed_normalized = parse_one(transformed, read="duckdb").sql(pretty=True, dialect="duckdb")
+        transformed_normalized = parse_one(transformed, read="duckdb").sql(
+            pretty=True, dialect="duckdb"
+        )
 
         assert transformed_normalized == expected_normalized, (
             f"Transformed query does not match expected.\n"
@@ -2766,7 +2914,9 @@ class TestInSubqueries:
         query = "SELECT id FROM foo WHERE id IN (SELECT x FROM baz)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -2795,7 +2945,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2811,7 +2962,9 @@ JOIN policy_eval
         query = "SELECT id FROM foo WHERE id IN (SELECT x FROM baz)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -2840,7 +2993,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -2856,7 +3010,9 @@ JOIN policy_eval
         query = "SELECT id FROM foo WHERE id NOT IN (SELECT x FROM baz WHERE x > 100)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -2890,7 +3046,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         # All rows since baz.x is 10, not > 100, but policy filters id > 1
         assert len(result) == 2
@@ -2907,7 +3064,9 @@ JOIN policy_eval
         query = "SELECT id FROM foo WHERE id IN (1, 2, 3)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -2928,7 +3087,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         # Policy filters id > 1, so only 2 and 3 match
         assert len(result) == 2
@@ -2948,7 +3108,9 @@ class TestCorrelatedSubqueries:
 
         query = "SELECT id, (SELECT COUNT(*) FROM baz WHERE baz.x = foo.id) AS count FROM foo"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id,
     (
@@ -2974,7 +3136,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -2990,7 +3153,9 @@ JOIN policy_eval
         query = "SELECT id FROM foo WHERE id = (SELECT x FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -3024,7 +3189,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -3040,7 +3206,9 @@ JOIN policy_eval
         query = "SELECT id FROM foo WHERE id = (SELECT x FROM baz WHERE baz.x = foo.id)"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (combined with existing WHERE, wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id
   FROM foo
@@ -3074,7 +3242,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.id = policy_eval.id""")
+  ON base_query.id = policy_eval.id""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert result is not None
 
@@ -3090,7 +3259,9 @@ JOIN policy_eval
         query = "SELECT id, (SELECT MAX(x) FROM baz WHERE baz.x > foo.id) AS max_val FROM foo"
         transformed = rewriter.transform_query(query)
         # Should have WHERE clause from policy (wrapped in parentheses)
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     id,
     (
@@ -3116,7 +3287,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+        )
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
         assert len(result) == 2  # id > 1 filters out id=1
 
@@ -3192,7 +3364,9 @@ class TestSubqueryWithMissingColumns:
         # The transformation should complete without infinite loops
         # The rewriter should add 'id' to the subquery's SELECT list
         # The rewriter should add 'id' to the subquery's SELECT list
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   SELECT
     sub.name
   FROM (
@@ -3219,7 +3393,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.name = policy_eval.name""")
+  ON base_query.name = policy_eval.name""",
+        )
 
         # Execute the query - should work if rewriter handles subqueries correctly
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -3258,7 +3433,9 @@ JOIN policy_eval
 
         # The transformation should complete without infinite loops
         # The rewriter should add 'id' to the CTE's SELECT list
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   WITH cte AS (
     SELECT
       name,
@@ -3287,7 +3464,8 @@ SELECT
   base_query.*
 FROM base_query
 JOIN policy_eval
-  ON base_query.name = policy_eval.name""")
+  ON base_query.name = policy_eval.name""",
+        )
 
         # Execute the query - should work if rewriter handles CTEs correctly
         result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -3490,7 +3668,9 @@ class TestMultipleCTEs:
         # However, the current implementation may apply policies at the outer query level,
         # which can cause issues when the constraint references the original table name.
         # This test verifies the query structure is preserved.
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   WITH cte1 AS (
     SELECT
       id
@@ -3531,7 +3711,8 @@ SELECT
   EXCLUDE (__dfc_rowid)
 FROM base_query
 JOIN policy_eval
-  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""")
+  ON base_query.__dfc_rowid = policy_eval.__dfc_rowid""",
+        )
         # The query may fail execution if policy is applied incorrectly, but structure should be preserved
         try:
             result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
@@ -3558,7 +3739,9 @@ JOIN policy_eval
         transformed = rewriter.transform_query(query)
         # Note: Similar to test_nested_ctes, policies may not work perfectly with CTEs
         # when the constraint references the original table name in the outer query scope.
-        assert_transformed_query(transformed, """WITH base_query AS (
+        assert_transformed_query(
+            transformed,
+            """WITH base_query AS (
   WITH cte1 AS (
     SELECT
       id
@@ -3600,7 +3783,8 @@ SELECT
 FROM base_query
 JOIN policy_eval
   ON base_query.id = policy_eval.id
-  AND base_query.x = policy_eval.x""")
+  AND base_query.x = policy_eval.x""",
+        )
         try:
             result = execute_transformed_and_assert_matches_standard(rewriter, transformed)
             assert result is not None
@@ -3629,13 +3813,19 @@ class TestInsertStatements:
         # INSERT that violates policy should be transformed with KILL
         query = "INSERT INTO reports SELECT 1, 'pending' FROM foo WHERE id = 1"
         transformed = rewriter.transform_query(query)
-        assert_transformed_query(transformed, "INSERT INTO reports\nSELECT\n  1,\n  'pending'\nFROM foo\nWHERE\n  (\n    id = 1\n  )\n  AND (\n    CASE WHEN reports.status = 'approved' THEN true ELSE KILL() END\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports\nSELECT\n  1,\n  'pending'\nFROM foo\nWHERE\n  (\n    id = 1\n  )\n  AND (\n    CASE WHEN reports.status = 'approved' THEN true ELSE KILL() END\n  )",
+        )
 
         # INSERT that satisfies policy
         query2 = "INSERT INTO reports SELECT 1, 'approved' FROM foo WHERE id = 1"
         transformed2 = rewriter.transform_query(query2)
         # Should be transformed but not fail (constraint passes so no KILL)
-        assert transformed2 == "INSERT INTO reports\nSELECT\n  1,\n  'approved'\nFROM foo\nWHERE\n  (\n    id = 1\n  )\n  AND (\n    CASE WHEN reports.status = 'approved' THEN true ELSE KILL() END\n  )"
+        assert (
+            transformed2
+            == "INSERT INTO reports\nSELECT\n  1,\n  'approved'\nFROM foo\nWHERE\n  (\n    id = 1\n  )\n  AND (\n    CASE WHEN reports.status = 'approved' THEN true ELSE KILL() END\n  )"
+        )
 
     def test_insert_with_sink_only_policy_remove(self, rewriter):
         """Test INSERT with sink-only policy using REMOVE resolution."""
@@ -3652,7 +3842,10 @@ class TestInsertStatements:
         query = "INSERT INTO reports SELECT id, 'pending' FROM foo"
         transformed = rewriter.transform_query(query)
         # REMOVE should add WHERE clause to filter out violating rows (wrapped in parentheses)
-        assert_transformed_query(transformed, "INSERT INTO reports\nSELECT\n  id,\n  'pending'\nFROM foo\nWHERE\n  (\n    reports.status = 'approved'\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports\nSELECT\n  id,\n  'pending'\nFROM foo\nWHERE\n  (\n    reports.status = 'approved'\n  )",
+        )
 
     def test_insert_with_source_and_sink_policy(self, rewriter):
         """Test INSERT with policy that has both source and sink."""
@@ -3670,7 +3863,10 @@ class TestInsertStatements:
         query = "INSERT INTO analytics SELECT id, id * 10 FROM foo"
         transformed = rewriter.transform_query(query)
         # Should be transformed with policy constraint (KILL wraps in CASE WHEN, wrapped in parentheses)
-        assert_transformed_query(transformed, "INSERT INTO analytics\nSELECT\n  id,\n  id * 10\nFROM foo\nWHERE\n  (\n    CASE WHEN foo.id = analytics.user_id THEN true ELSE KILL() END\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO analytics\nSELECT\n  id,\n  id * 10\nFROM foo\nWHERE\n  (\n    CASE WHEN foo.id = analytics.user_id THEN true ELSE KILL() END\n  )",
+        )
 
     def test_insert_with_column_list(self, rewriter):
         """Test INSERT with explicit column list."""
@@ -3688,7 +3884,10 @@ class TestInsertStatements:
         transformed = rewriter.transform_query(query)
         # Should handle column list correctly (KILL wraps in CASE WHEN)
         # SELECT outputs are aliased to match sink column names, and constraints reference SELECT output aliases
-        assert_transformed_query(transformed, "INSERT INTO reports (\n  id,\n  status,\n  value\n)\nSELECT\n  id,\n  'pending' AS status,\n  id * 10 AS value\nFROM foo\nWHERE\n  (\n    CASE WHEN status = 'approved' THEN true ELSE KILL() END\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports (\n  id,\n  status,\n  value\n)\nSELECT\n  id,\n  'pending' AS status,\n  id * 10 AS value\nFROM foo\nWHERE\n  (\n    CASE WHEN status = 'approved' THEN true ELSE KILL() END\n  )",
+        )
 
     def test_insert_with_values(self, rewriter):
         """Test INSERT ... VALUES statement."""
@@ -3723,7 +3922,10 @@ class TestInsertStatements:
         query = "INSERT INTO analytics SELECT MAX(id), COUNT(*) FROM foo"
         transformed = rewriter.transform_query(query)
         # Should handle aggregations correctly (uses HAVING clause)
-        assert_transformed_query(transformed, "INSERT INTO analytics\nSELECT\n  MAX(id),\n  COUNT(*)\nFROM foo\nHAVING\n  (\n    MAX(foo.id) > 0\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO analytics\nSELECT\n  MAX(id),\n  COUNT(*)\nFROM foo\nHAVING\n  (\n    MAX(foo.id) > 0\n  )",
+        )
 
     def test_insert_with_subquery(self, rewriter):
         """Test INSERT with subquery in SELECT."""
@@ -3740,7 +3942,10 @@ class TestInsertStatements:
         query = "INSERT INTO reports SELECT id, name FROM (SELECT id, name FROM foo WHERE id > 1) AS sub"
         transformed = rewriter.transform_query(query)
         # Should handle subqueries correctly (adds WHERE clause to outer query)
-        assert_transformed_query(transformed, "INSERT INTO reports\nSELECT\n  id,\n  name\nFROM (\n  SELECT\n    id,\n    name\n  FROM foo\n  WHERE\n    id > 1\n) AS sub\nWHERE\n  (\n    sub.id > 1\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports\nSELECT\n  id,\n  name\nFROM (\n  SELECT\n    id,\n    name\n  FROM foo\n  WHERE\n    id > 1\n) AS sub\nWHERE\n  (\n    sub.id > 1\n  )",
+        )
 
     def test_insert_with_cte(self, rewriter):
         """Test INSERT with CTE in SELECT."""
@@ -3760,7 +3965,10 @@ class TestInsertStatements:
         """
         transformed = rewriter.transform_query(query)
         # Should handle CTEs correctly without altering INSERT SELECT structure
-        assert_transformed_query(transformed, "WITH filtered AS (\n  SELECT\n    id,\n    name\n  FROM foo\n  WHERE\n    id > 1\n)\nINSERT INTO reports\nSELECT\n  id,\n  name\nFROM filtered")
+        assert_transformed_query(
+            transformed,
+            "WITH filtered AS (\n  SELECT\n    id,\n    name\n  FROM foo\n  WHERE\n    id > 1\n)\nINSERT INTO reports\nSELECT\n  id,\n  name\nFROM filtered",
+        )
 
     def test_insert_sink_table_extraction(self, rewriter):
         """Test that sink table is correctly extracted from various INSERT formats."""
@@ -3885,7 +4093,10 @@ class TestInsertStatements:
         query = "INSERT INTO test_schema.reports SELECT id, 'pending' FROM foo"
         transformed = rewriter.transform_query(query)
         # Should handle schema-qualified names (KILL wraps in CASE WHEN, wrapped in parentheses)
-        assert_transformed_query(transformed, "INSERT INTO test_schema.reports\nSELECT\n  id,\n  'pending'\nFROM foo\nWHERE\n  (\n    CASE WHEN reports.status = 'approved' THEN true ELSE KILL() END\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO test_schema.reports\nSELECT\n  id,\n  'pending'\nFROM foo\nWHERE\n  (\n    CASE WHEN reports.status = 'approved' THEN true ELSE KILL() END\n  )",
+        )
 
     def test_insert_multiple_policies_same_sink(self, rewriter):
         """Test INSERT matching multiple policies for the same sink."""
@@ -3929,7 +4140,10 @@ class TestInsertStatements:
         query = "INSERT INTO reports SELECT f.id, f.name, b.x FROM foo f JOIN baz b ON f.id = b.x"
         transformed = rewriter.transform_query(query)
         # Should handle JOINs correctly (adds WHERE clause)
-        assert_transformed_query(transformed, "INSERT INTO reports\nSELECT\n  f.id,\n  f.name,\n  b.x\nFROM foo AS f\nJOIN baz AS b\n  ON f.id = b.x\nWHERE\n  (\n    f.id > 1\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports\nSELECT\n  f.id,\n  f.name,\n  b.x\nFROM foo AS f\nJOIN baz AS b\n  ON f.id = b.x\nWHERE\n  (\n    f.id > 1\n  )",
+        )
 
     def test_insert_multiple_policies_with_source_and_sink(self, rewriter):
         """Test INSERT with multiple policies, both having source and sink."""
@@ -3958,7 +4172,10 @@ class TestInsertStatements:
         # max(foo.id) > 1 becomes foo.id > 1
         # min(foo.id) < 10 becomes foo.id < 10
         # Both constraints should be wrapped in parentheses
-        assert_transformed_query(transformed, "INSERT INTO analytics\nSELECT\n  id,\n  id * 10,\n  'active'\nFROM foo\nWHERE\n  (\n    foo.id > 1\n  ) AND (\n    foo.id < 10\n  )")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO analytics\nSELECT\n  id,\n  id * 10,\n  'active'\nFROM foo\nWHERE\n  (\n    foo.id > 1\n  ) AND (\n    foo.id < 10\n  )",
+        )
 
         # Verify both policies are matched
         parsed = parse_one(query, read="duckdb")
@@ -4033,7 +4250,10 @@ class TestInsertStatements:
 
         # Should have 'valid' column added to the column list
         # The SELECT outputs get aliased to match sink column names
-        assert_transformed_query(transformed, "INSERT INTO reports (\n  id,\n  status,\n  valid\n)\nSELECT\n  id,\n  'pending' AS status,\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports (\n  id,\n  status,\n  valid\n)\nSELECT\n  id,\n  'pending' AS status,\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo",
+        )
 
     def test_insert_with_invalidate_policy_preserves_existing_valid_column(self, rewriter):
         """Test that INSERT with INVALIDATE policy doesn't duplicate 'valid' if already present."""
@@ -4053,7 +4273,10 @@ class TestInsertStatements:
         transformed = rewriter.transform_query(query)
 
         # Should replace the user's 'valid' value (true) with the constraint result
-        assert_transformed_query(transformed, "INSERT INTO reports (\n  id,\n  status,\n  valid\n)\nSELECT\n  id,\n  'pending' AS status,\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports (\n  id,\n  status,\n  valid\n)\nSELECT\n  id,\n  'pending' AS status,\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo",
+        )
 
     def test_insert_with_invalidate_policy_no_column_list(self, rewriter):
         """Test that INSERT without explicit column list works with INVALIDATE policy."""
@@ -4074,7 +4297,10 @@ class TestInsertStatements:
 
         # Should add 'valid' column to SELECT output
         # Note: Without explicit column list, we rely on positional mapping
-        assert_transformed_query(transformed, "INSERT INTO reports\nSELECT\n  id,\n  'pending',\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo")
+        assert_transformed_query(
+            transformed,
+            "INSERT INTO reports\nSELECT\n  id,\n  'pending',\n  (\n    foo.id > 1\n  ) AS valid\nFROM foo",
+        )
 
     def test_insert_with_sink_column_references_in_constraint(self, rewriter):
         """Test INSERT with sink column references in constraint that should refer to SELECT output values.
@@ -4088,7 +4314,9 @@ class TestInsertStatements:
 
         # Create sink table (needed for policy registration, but the key test is that
         # constraints reference SELECT output values, not table columns)
-        rewriter.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DECIMAL, kind VARCHAR, business_use_pct DECIMAL)")
+        rewriter.execute(
+            "CREATE TABLE irs_form (txn_id INTEGER, amount DECIMAL, kind VARCHAR, business_use_pct DECIMAL)"
+        )
 
         # Register policy with both source and sink constraints
         # Use aggregations for source columns (they'll be transformed to columns for scan queries)
@@ -4224,7 +4452,9 @@ class TestAggregateDFCPolicyIntegration:
         query = "INSERT INTO reports (id, value) SELECT id, sum(amount) FROM foo GROUP BY id"
         transformed = rewriter.transform_query(query)
         temp_col_name = f"_{policy_id}_tmp1"
-        assert_transformed_query(transformed, f"""INSERT INTO reports (
+        assert_transformed_query(
+            transformed,
+            f"""INSERT INTO reports (
   id,
   value,
   {temp_col_name}
@@ -4235,7 +4465,8 @@ SELECT
   SUM(value) AS {temp_col_name}
 FROM foo
 GROUP BY
-  id""")
+  id""",
+        )
 
     def test_aggregate_policy_finalize_with_no_data(self, rewriter):
         """Test finalize_aggregate_policies with no data in sink table."""

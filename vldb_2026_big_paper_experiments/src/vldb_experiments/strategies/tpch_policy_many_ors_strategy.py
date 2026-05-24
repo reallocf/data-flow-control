@@ -60,7 +60,9 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
         self.physical_db_path = f"{db_path}_physical"
 
         or_counts = context.strategy_config.get("or_counts", DEFAULT_OR_COUNTS)
-        warmup_per_level = int(context.strategy_config.get("warmup_per_level", DEFAULT_WARMUP_PER_LEVEL))
+        warmup_per_level = int(
+            context.strategy_config.get("warmup_per_level", DEFAULT_WARMUP_PER_LEVEL)
+        )
         runs_per_level = int(context.strategy_config.get("runs_per_level", DEFAULT_RUNS_PER_LEVEL))
 
         self.local_duckdb = _ensure_smokedduck()
@@ -249,9 +251,13 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
         physical_match = None
         physical_match_error = None
         if dfc_1phase_error is None and logical_error is None:
-            logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
+            logical_match, logical_match_error = compare_results_exact(
+                dfc_1phase_results, logical_results
+            )
         if dfc_1phase_error is None and physical_error is None:
-            physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+            physical_match, physical_match_error = compare_results_exact(
+                dfc_1phase_results, physical_results
+            )
         if dfc_1phase_error is None and dfc_2phase_error is None:
             dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
                 dfc_1phase_results, dfc_2phase_results
@@ -335,7 +341,9 @@ class TPCHPolicyManyORsStrategy(ExperimentStrategy):
             "physical_error": physical_error or "",
         }
 
-        total_time = no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_time
+        total_time = (
+            no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_time
+        )
         return ExperimentResult(duration_ms=total_time, custom_metrics=custom_metrics)
 
     def teardown(self, _context: ExperimentContext) -> None:

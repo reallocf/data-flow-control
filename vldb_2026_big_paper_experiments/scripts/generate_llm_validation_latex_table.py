@@ -104,9 +104,18 @@ def generate_latex_table(input_csv: Path, output_tex: Path) -> Path:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate a LaTeX table for LLM validation results.")
-    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, help=f"Input CSV (default: {DEFAULT_INPUT})")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help=f"Output TeX (default: {DEFAULT_OUTPUT})")
+    parser = argparse.ArgumentParser(
+        description="Generate a LaTeX table for LLM validation results."
+    )
+    parser.add_argument(
+        "--input", type=Path, default=DEFAULT_INPUT, help=f"Input CSV (default: {DEFAULT_INPUT})"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help=f"Output TeX (default: {DEFAULT_OUTPUT})",
+    )
     args = parser.parse_args()
 
     output_path = generate_latex_table(args.input, args.output)

@@ -107,12 +107,8 @@ class TPCHSelfJoinPolicyStrategy(ExperimentStrategy):
 
         try:
             dfc_1phase_optimized_start = time.perf_counter()
-            dfc_1phase_optimized_results = self.conn.execute(
-                dfc_1phase_optimized_query
-            ).fetchall()
-            dfc_1phase_optimized_time = (
-                time.perf_counter() - dfc_1phase_optimized_start
-            ) * 1000.0
+            dfc_1phase_optimized_results = self.conn.execute(dfc_1phase_optimized_query).fetchall()
+            dfc_1phase_optimized_time = (time.perf_counter() - dfc_1phase_optimized_start) * 1000.0
             dfc_1phase_optimized_error = None
         except Exception as exc:
             dfc_1phase_optimized_results = []
@@ -134,9 +130,7 @@ class TPCHSelfJoinPolicyStrategy(ExperimentStrategy):
                 dfc_1phase_optimized_results,
             )
 
-        matches = [
-            m for m in [no_policy_match, dfc_1phase_optimized_match] if m is not None
-        ]
+        matches = [m for m in [no_policy_match, dfc_1phase_optimized_match] if m is not None]
         correctness_match = all(matches) if matches else False
         errors = []
         if no_policy_match_error:
@@ -167,9 +161,7 @@ class TPCHSelfJoinPolicyStrategy(ExperimentStrategy):
             "no_policy_match": no_policy_match if no_policy_match is not None else "",
             "no_policy_match_error": no_policy_match_error or "",
             "dfc_1phase_optimized_match": (
-                dfc_1phase_optimized_match
-                if dfc_1phase_optimized_match is not None
-                else ""
+                dfc_1phase_optimized_match if dfc_1phase_optimized_match is not None else ""
             ),
             "dfc_1phase_optimized_match_error": dfc_1phase_optimized_match_error or "",
             "no_policy_error": no_policy_error or "",

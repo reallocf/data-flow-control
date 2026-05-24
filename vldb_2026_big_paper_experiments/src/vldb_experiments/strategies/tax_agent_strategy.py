@@ -317,7 +317,9 @@ def _build_policies(policy_count: int) -> list[DFCPolicy]:
 
 def _tax_agent_prompt(policy_descriptions: list[str]) -> str:
     policy_block = (
-        "\n".join([f"{idx + 1}. {description}" for idx, description in enumerate(policy_descriptions)])
+        "\n".join(
+            [f"{idx + 1}. {description}" for idx, description in enumerate(policy_descriptions)]
+        )
         if policy_descriptions
         else "No active policies for this run."
     )
@@ -382,7 +384,9 @@ def _policy_failure_counts(
     policy_descriptions: list[str],
 ) -> dict[str, int]:
     counts: dict[str, int] = dict.fromkeys(policy_descriptions, 0)
-    relevant_payloads = [payload for payload in tool_payloads if _is_expenses_insert_payload(payload)]
+    relevant_payloads = [
+        payload for payload in tool_payloads if _is_expenses_insert_payload(payload)
+    ]
     if not relevant_payloads:
         relevant_payloads = tool_payloads
 
@@ -404,7 +408,6 @@ def _policy_failure_counts(
                 if policy_message in counts:
                     counts[policy_message] += 1
     return counts
-
 
 
 EXPECTED_VALUES_SQL_BY_POLICY_COUNT = {
@@ -1159,6 +1162,7 @@ FROM (VALUES
 )""",
 }
 
+
 def _compare_expenses_to_expected(conn: Any, policy_count: int) -> tuple[int, int]:
     expected_values_sql = EXPECTED_VALUES_SQL_BY_POLICY_COUNT[policy_count]
     row = conn.execute(
@@ -1224,7 +1228,9 @@ class TaxAgentStrategy(ExperimentStrategy):
     """Run tax categorization with an LLM agent under No Policy vs 1Phase handling."""
 
     def setup(self, context: ExperimentContext) -> None:
-        self.policy_counts = [int(v) for v in context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)]
+        self.policy_counts = [
+            int(v) for v in context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)
+        ]
         self.runs_per_setting = int(
             context.strategy_config.get("runs_per_setting", DEFAULT_RUNS_PER_SETTING)
         )
@@ -1235,12 +1241,8 @@ class TaxAgentStrategy(ExperimentStrategy):
         self.results_dir = Path(context.strategy_config.get("results_dir", "./results"))
         self.results_dir.mkdir(parents=True, exist_ok=True)
 
-        self.claude_model = str(
-            context.strategy_config.get("claude_model", DEFAULT_CLAUDE_MODEL)
-        )
-        self.gpt_model = str(
-            context.strategy_config.get("gpt_model", DEFAULT_GPT_MODEL)
-        )
+        self.claude_model = str(context.strategy_config.get("claude_model", DEFAULT_CLAUDE_MODEL))
+        self.gpt_model = str(context.strategy_config.get("gpt_model", DEFAULT_GPT_MODEL))
 
         self.settings = []
         for policy_count in self.policy_counts:
@@ -1340,7 +1342,9 @@ class TaxAgentStrategy(ExperimentStrategy):
             tool_payloads = _extract_tool_payloads(chat_history)
             rewrite_time_ms = sum(float(p.get("rewrite_time_ms", 0.0)) for p in tool_payloads)
             exec_time_ms = sum(float(p.get("exec_time_ms", 0.0)) for p in tool_payloads)
-            policy_violation_count = sum(int(p.get("policy_violation_count", 0)) for p in tool_payloads)
+            policy_violation_count = sum(
+                int(p.get("policy_violation_count", 0)) for p in tool_payloads
+            )
             tool_calls = len(tool_payloads)
             failure_counts_by_policy = _policy_failure_counts(tool_payloads, policy_descriptions)
 

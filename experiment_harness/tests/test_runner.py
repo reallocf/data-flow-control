@@ -28,7 +28,7 @@ class SimpleExperiment(ExperimentStrategy):
             custom_metrics={
                 "counter": context.shared_state["counter"],
                 "execution_num": context.execution_number,
-            }
+            },
         )
 
     def teardown(self, _context):
@@ -65,8 +65,7 @@ class DatabaseExperiment(ExperimentStrategy):
         if context.database_connection:
             result = context.database_connection.execute("SELECT COUNT(*) FROM test").fetchone()
             return ExperimentResult(
-                duration_ms=1.0,
-                custom_metrics={"row_count": result[0] if result else 0}
+                duration_ms=1.0, custom_metrics={"row_count": result[0] if result else 0}
             )
         return ExperimentResult(duration_ms=0.0)
 
@@ -86,7 +85,9 @@ class SettingAwareExperiment(ExperimentStrategy):
         return "A" if context.execution_number <= 2 else "B"
 
     def execute(self, context):
-        self.calls.append((context.execution_number, context.is_warmup, self.get_setting_key(context)))
+        self.calls.append(
+            (context.execution_number, context.is_warmup, self.get_setting_key(context))
+        )
         return ExperimentResult(
             duration_ms=1.0,
             custom_metrics={
@@ -253,6 +254,7 @@ def test_time_execution_context_manager():
     """Test time_execution context manager."""
     with time_execution() as timing:
         import time
+
         time.sleep(0.01)  # Sleep for 10ms
 
     assert "duration_ms" in timing
@@ -289,10 +291,9 @@ def test_result_collector_summary():
 
     # Add some results
     for i in range(5):
-        collector.add_result(ExperimentResult(
-            duration_ms=10.0 + i,
-            custom_metrics={"value": i * 2}
-        ))
+        collector.add_result(
+            ExperimentResult(duration_ms=10.0 + i, custom_metrics={"value": i * 2})
+        )
 
     summary = collector._calculate_summary(["value"])
     assert "mean=" in summary["duration_ms"]
@@ -301,6 +302,7 @@ def test_result_collector_summary():
 
 def test_context_shared_state():
     """Test that shared state persists across executions."""
+
     class StateExperiment(ExperimentStrategy):
         def setup(self, context):
             context.shared_state["accumulator"] = 0
@@ -308,8 +310,7 @@ def test_context_shared_state():
         def execute(self, context):
             context.shared_state["accumulator"] += context.execution_number
             return ExperimentResult(
-                duration_ms=1.0,
-                custom_metrics={"accumulator": context.shared_state["accumulator"]}
+                duration_ms=1.0, custom_metrics={"accumulator": context.shared_state["accumulator"]}
             )
 
         def teardown(self, context):

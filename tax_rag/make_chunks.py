@@ -1,11 +1,11 @@
 import json
-import math
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 
 CHUNK = 1200
 OVERLAP = 200
 MAX_CHUNKS = 500
+
 
 def xml_to_text(path):
     parts = []
@@ -17,10 +17,12 @@ def xml_to_text(path):
         elem.clear()
     return " ".join(p.strip() for p in parts if p and p.strip())
 
+
 def html_to_text(path):
     with open(path, "rb") as f:
         soup = BeautifulSoup(f.read(), "lxml")
     return soup.get_text(separator=" ", strip=True)
+
 
 def chunk_text(text):
     out = []
@@ -33,6 +35,7 @@ def chunk_text(text):
         if j == n:
             break
     return out
+
 
 def main():
     regs = xml_to_text("ECFR-title26.xml")
@@ -49,6 +52,7 @@ def main():
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     print(f"Wrote {len(chunks)} chunks to chunks.jsonl")
+
 
 if __name__ == "__main__":
     main()

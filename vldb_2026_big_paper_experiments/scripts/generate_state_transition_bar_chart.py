@@ -62,7 +62,11 @@ def main() -> int:
     ax.set_yscale("log")
     ax.grid(axis="y", alpha=0.3)
 
-    output_path = Path(args.output) if args.output else Path(f"results/state_transition_timing_{num_updates}_updates.png")
+    output_path = (
+        Path(args.output)
+        if args.output
+        else Path(f"results/state_transition_timing_{num_updates}_updates.png")
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")

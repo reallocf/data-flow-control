@@ -57,7 +57,9 @@ def expense_from_receipt(
     business_use: float = 1.0,
 ) -> Expense:
     amount = round(float(receipt.get("amount", 0.0)) * float(business_use), 2)
-    description = str(receipt.get("vendor") or f"Receipt {receipt.get('receipt_id', '')}").strip()
+    description = str(
+        receipt.get("vendor") or f"Receipt {receipt.get('receipt_id', '')}"
+    ).strip()
     category = normalize_expense_category(str(receipt.get("category", "other")))
     return Expense(
         description=description or "Receipt expense",
@@ -67,7 +69,9 @@ def expense_from_receipt(
     )
 
 
-def compute_1040(inp: ScheduleCInput, federal_withholding: float = 0.0) -> Dict[str, float]:
+def compute_1040(
+    inp: ScheduleCInput, federal_withholding: float = 0.0
+) -> Dict[str, float]:
     total_expenses = 0.0
     for exp in inp.expenses:
         if exp.category == "meals":

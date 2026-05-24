@@ -96,16 +96,20 @@ def main():
             reader = csv.DictReader(f)
             for row in reader:
                 if row.get("correctness_match", "").lower() == "false":
-                    correctness_failures.append({
-                        "execution": row.get("execution_number"),
-                        "query": row.get("query_name", ""),
-                        "error": row.get("correctness_error", ""),
-                    })
+                    correctness_failures.append(
+                        {
+                            "execution": row.get("execution_number"),
+                            "query": row.get("query_name", ""),
+                            "error": row.get("correctness_error", ""),
+                        }
+                    )
 
         if correctness_failures:
             print(f"\n⚠️  WARNING: {len(correctness_failures)} correctness failures detected!")
             for failure in correctness_failures[:10]:
-                print(f"  Execution {failure['execution']} ({failure['query']}): {failure['error']}")
+                print(
+                    f"  Execution {failure['execution']} ({failure['query']}): {failure['error']}"
+                )
             if len(correctness_failures) > 10:
                 print(f"  ... and {len(correctness_failures) - 10} more")
         else:

@@ -115,7 +115,9 @@ class ResultCollector:
             stddev_dur = statistics.stdev(durations) if len(durations) > 1 else 0.0
             min_dur = min(durations)
             max_dur = max(durations)
-            summary["duration_ms"] = f"mean={mean_dur:.3f},median={median_dur:.3f},stddev={stddev_dur:.3f},min={min_dur:.3f},max={max_dur:.3f}"
+            summary["duration_ms"] = (
+                f"mean={mean_dur:.3f},median={median_dur:.3f},stddev={stddev_dur:.3f},min={min_dur:.3f},max={max_dur:.3f}"
+            )
 
         # Calculate statistics for each custom metric
         for metric_name in metric_names:
@@ -131,7 +133,9 @@ class ResultCollector:
                 stddev_val = statistics.stdev(values) if len(values) > 1 else 0.0
                 min_val = min(values)
                 max_val = max(values)
-                summary[metric_name] = f"mean={mean_val:.3f},median={median_val:.3f},stddev={stddev_val:.3f},min={min_val:.3f},max={max_val:.3f}"
+                summary[metric_name] = (
+                    f"mean={mean_val:.3f},median={median_val:.3f},stddev={stddev_val:.3f},min={min_val:.3f},max={max_val:.3f}"
+                )
             else:
                 summary[metric_name] = ""
 

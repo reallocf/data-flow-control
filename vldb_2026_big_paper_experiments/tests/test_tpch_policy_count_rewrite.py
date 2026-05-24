@@ -46,9 +46,7 @@ def _assert_sql_equal(expected: str, actual: str, label: str) -> None:
     expected_normalized = _normalize_sql(expected)
     actual_normalized = _normalize_sql(actual)
     assert expected_normalized == actual_normalized, (
-        f"{label} SQL does not match expected.\n"
-        f"Expected SQL:\n{expected}\n\n"
-        f"Actual SQL:\n{actual}"
+        f"{label} SQL does not match expected.\nExpected SQL:\n{expected}\n\nActual SQL:\n{actual}"
     )
 
 
@@ -122,8 +120,6 @@ JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint
 ORDER BY generated_table.l_returnflag, generated_table.l_linestatus""",
 }
-
-
 
 
 @pytest.mark.parametrize("policy_count", POLICY_COUNTS)

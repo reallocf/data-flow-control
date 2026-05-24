@@ -1,6 +1,5 @@
 """Fixed test data setup for microbenchmark experiments."""
 
-
 import duckdb
 
 
@@ -48,7 +47,7 @@ def setup_test_data(conn: duckdb.DuckDBPyConnection, num_rows: int = 1_000_000) 
 
         insert_sql = f"""
             INSERT INTO test_data (id, value, category, amount)
-            VALUES {', '.join(values)}
+            VALUES {", ".join(values)}
         """
         conn.execute(insert_sql)
 
@@ -58,9 +57,7 @@ def setup_test_data(conn: duckdb.DuckDBPyConnection, num_rows: int = 1_000_000) 
 
 
 def setup_test_data_with_groups(
-    conn: duckdb.DuckDBPyConnection,
-    num_rows: int = 1_000_000,
-    num_groups: int = 5
+    conn: duckdb.DuckDBPyConnection, num_rows: int = 1_000_000, num_groups: int = 5
 ) -> None:
     """Set up test data with specified number of groups for GROUP_BY tests.
 
@@ -93,7 +90,7 @@ def setup_test_data_with_groups(
 
         insert_sql = f"""
             INSERT INTO test_data (id, value, category, amount)
-            VALUES {', '.join(values)}
+            VALUES {", ".join(values)}
         """
         conn.execute(insert_sql)
 
@@ -103,9 +100,7 @@ def setup_test_data_with_groups(
 
 
 def setup_test_data_with_join_matches(
-    conn: duckdb.DuckDBPyConnection,
-    num_rows: int = 1_000_000,
-    join_matches: int = 1_000_000
+    conn: duckdb.DuckDBPyConnection, num_rows: int = 1_000_000, join_matches: int = 1_000_000
 ) -> None:
     """Set up test data with specified number of join matches for JOIN tests.
 
@@ -142,7 +137,7 @@ def setup_test_data_with_join_matches(
 
         insert_sql = f"""
             INSERT INTO test_data (id, value, category, amount)
-            VALUES {', '.join(values)}
+            VALUES {", ".join(values)}
         """
         conn.execute(insert_sql)
 
@@ -164,7 +159,7 @@ def setup_test_data_with_join_matches(
 
         insert_sql = f"""
             INSERT INTO join_data (id, value)
-            VALUES {', '.join(values)}
+            VALUES {", ".join(values)}
         """
         conn.execute(insert_sql)
 
@@ -172,7 +167,9 @@ def setup_test_data_with_join_matches(
     result = conn.execute("SELECT COUNT(*) FROM test_data").fetchone()
     assert result[0] == num_rows, f"Expected {num_rows} rows in test_data, got {result[0]}"
     result = conn.execute("SELECT COUNT(*) FROM join_data").fetchone()
-    assert result[0] == secondary_rows, f"Expected {secondary_rows} rows in join_data, got {result[0]}"
+    assert result[0] == secondary_rows, (
+        f"Expected {secondary_rows} rows in join_data, got {result[0]}"
+    )
 
 
 def setup_join_data_only(
@@ -205,12 +202,14 @@ def setup_join_data_only(
 
         insert_sql = f"""
             INSERT INTO {table_name} (id, value)
-            VALUES {', '.join(values)}
+            VALUES {", ".join(values)}
         """
         conn.execute(insert_sql)
 
     result = conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
-    assert result[0] == join_matches, f"Expected {join_matches} rows in {table_name}, got {result[0]}"
+    assert result[0] == join_matches, (
+        f"Expected {join_matches} rows in {table_name}, got {result[0]}"
+    )
 
 
 def setup_test_data_with_join_group_by(

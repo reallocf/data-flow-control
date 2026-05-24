@@ -65,8 +65,7 @@ class ExperimentRunner:
 
             # Create context
             self.context = ExperimentContext(
-                database_connection=db_conn,
-                strategy_config=self.config.strategy_config or {}
+                database_connection=db_conn, strategy_config=self.config.strategy_config or {}
             )
 
             # Apply system configuration
@@ -147,7 +146,9 @@ class ExperimentRunner:
             self.collector.add_result(result)
             if self.config.verbose:
                 status = "✓" if not result.error else "✗"
-                print(f"  {status} Execution {i + 1}/{self.config.num_executions}: {result.duration_ms:.3f}ms")
+                print(
+                    f"  {status} Execution {i + 1}/{self.config.num_executions}: {result.duration_ms:.3f}ms"
+                )
 
     def _run_per_setting(self) -> None:
         assert self.context is not None
@@ -200,7 +201,9 @@ class ExperimentRunner:
                 completed += 1
                 if self.config.verbose:
                     status = "✓" if not result.error else "✗"
-                    print(f"  {status} Execution {completed}/{self.config.num_executions}: {result.duration_ms:.3f}ms")
+                    print(
+                        f"  {status} Execution {completed}/{self.config.num_executions}: {result.duration_ms:.3f}ms"
+                    )
 
     def _create_database_connection(self) -> duckdb.DuckDBPyConnection:
         """Create database connection from configuration.

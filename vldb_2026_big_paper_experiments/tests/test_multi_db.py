@@ -71,7 +71,6 @@ def test_postgres_smoke() -> None:
         client.close()
 
 
-
 def test_datafusion_smoke() -> None:
     client = DataFusionClient(DATA_DIR / "datafusion")
     client.start()

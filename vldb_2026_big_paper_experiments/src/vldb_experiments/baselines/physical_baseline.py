@@ -66,9 +66,7 @@ def _rewrite_exists_to_join_base(parsed: exp.Select, policy_source: str) -> str 
         return None
 
     has_policy_source = any(
-        hasattr(table, "name")
-        and table.name
-        and table.name.lower() == policy_source.lower()
+        hasattr(table, "name") and table.name and table.name.lower() == policy_source.lower()
         for table in subquery_from.find_all(exp.Table)
     )
     if not has_policy_source:
@@ -185,9 +183,7 @@ def _rewrite_in_to_join_base(parsed: exp.Select, policy_source: str) -> str | No
         if not subquery_from:
             continue
         has_policy_source = any(
-            hasattr(table, "name")
-            and table.name
-            and table.name.lower() == policy_source.lower()
+            hasattr(table, "name") and table.name and table.name.lower() == policy_source.lower()
             for table in subquery_from.find_all(exp.Table)
         )
         if not has_policy_source:
@@ -208,7 +204,9 @@ def _rewrite_in_to_join_base(parsed: exp.Select, policy_source: str) -> str | No
         if not isinstance(parsed_copy, exp.Select):
             return None
 
-        subquery_select_copy = sqlglot.parse_one(subquery_select.sql(dialect="duckdb"), read="duckdb")
+        subquery_select_copy = sqlglot.parse_one(
+            subquery_select.sql(dialect="duckdb"), read="duckdb"
+        )
         if not isinstance(subquery_select_copy, exp.Select):
             return None
 
@@ -267,8 +265,7 @@ def _rewrite_base_query_for_lineage(query: str, policy_source: str) -> str:
     exists_rewrite = _rewrite_exists_to_join_base(parsed, policy_source)
     if exists_rewrite:
         print(
-            "[physical_baseline] Rewrote base query for lineage:\n"
-            f"{exists_rewrite}",
+            f"[physical_baseline] Rewrote base query for lineage:\n{exists_rewrite}",
             flush=True,
         )
         return exists_rewrite
@@ -276,8 +273,7 @@ def _rewrite_base_query_for_lineage(query: str, policy_source: str) -> str:
     in_rewrite = _rewrite_in_to_join_base(parsed, policy_source)
     if in_rewrite:
         print(
-            "[physical_baseline] Rewrote base query for lineage:\n"
-            f"{in_rewrite}",
+            f"[physical_baseline] Rewrote base query for lineage:\n{in_rewrite}",
             flush=True,
         )
         return in_rewrite
@@ -337,9 +333,13 @@ def _execute_query_physical_impl(
             if len(pol.sources) != 1:
                 raise ValueError("physical baseline supports a single source table per policy")
             if pol.sources[0].lower() != base_policy.sources[0].lower():
-                raise ValueError("physical baseline requires all policies to share the same source table")
+                raise ValueError(
+                    "physical baseline requires all policies to share the same source table"
+                )
 
-        base_query = _rewrite_base_query_for_lineage(query, base_policy.sources[0]).rstrip().rstrip(";")
+        base_query = (
+            _rewrite_base_query_for_lineage(query, base_policy.sources[0]).rstrip().rstrip(";")
+        )
 
         # Execute base query with lineage tracking
         total_start = time.perf_counter()
@@ -367,6 +367,7 @@ def _execute_query_physical_impl(
         # Create temp table with results
         # Use a unique table name to avoid conflicts
         import uuid
+
         temp_table_name = f"query_results_{uuid.uuid4().hex[:8]}"
 
         # The base query SQL (executed to capture lineage)
@@ -376,7 +377,9 @@ def _execute_query_physical_impl(
 
         if base_results:
             # Create table schema without re-running the full query, then insert rows in order.
-            conn.execute(f"CREATE TEMP TABLE {temp_table_name} AS SELECT * FROM ({base_query}) LIMIT 0")
+            conn.execute(
+                f"CREATE TEMP TABLE {temp_table_name} AS SELECT * FROM ({base_query}) LIMIT 0"
+            )
             placeholders = ", ".join(["?"] * len(column_names))
             conn.executemany(f"INSERT INTO {temp_table_name} VALUES ({placeholders})", base_results)
         else:
@@ -489,7 +492,9 @@ def execute_precomputed_query_physical_detailed(
         temp_table_name = f"query_results_{uuid.uuid4().hex[:8]}"
 
         if base_results:
-            conn.execute(f"CREATE TEMP TABLE {temp_table_name} AS SELECT * FROM ({base_query_sql}) LIMIT 0")
+            conn.execute(
+                f"CREATE TEMP TABLE {temp_table_name} AS SELECT * FROM ({base_query_sql}) LIMIT 0"
+            )
             placeholders = ", ".join(["?"] * len(column_names))
             conn.executemany(f"INSERT INTO {temp_table_name} VALUES ({placeholders})", base_results)
 
@@ -525,7 +530,9 @@ def execute_precomputed_query_physical_detailed(
         return [], {}, str(e), None, None
 
 
-def execute_query_physical_simple(conn: duckdb.DuckDBPyConnection, query: str, policy: DFCPolicy) -> tuple[list[Any], float, Optional[str]]:
+def execute_query_physical_simple(
+    conn: duckdb.DuckDBPyConnection, query: str, policy: DFCPolicy
+) -> tuple[list[Any], float, Optional[str]]:
     """Execute query using physical baseline approach (DuckDB lineage extension).
 
     This is the main entry point for physical baseline. It uses the lineage

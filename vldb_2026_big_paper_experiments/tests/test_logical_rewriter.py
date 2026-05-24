@@ -73,11 +73,7 @@ class TestLogicalRewriter:
 
     def test_group_by_query(self, conn):
         """Test rewriting a GROUP BY (aggregation) query."""
-        query = (
-            "SELECT category, COUNT(*), SUM(amount) "
-            "FROM test_data "
-            "GROUP BY category"
-        )
+        query = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
         policy = create_test_policy()
 
         rewritten = rewrite_query_logical(query, policy)
@@ -125,7 +121,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="min(test_data.value) > 10",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 10"
+            description="Filter rows where value <= 10",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -145,7 +141,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter groups where max(value) <= 100"
+            description="Filter groups where max(value) <= 100",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -165,7 +161,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) < 500",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value >= 500"
+            description="Filter rows where value >= 500",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -185,7 +181,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) >= 200",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value < 200"
+            description="Filter rows where value < 200",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -205,7 +201,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where amount <= 5000"
+            description="Filter rows where amount <= 5000",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -225,7 +221,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.KILL,
-            description="Kill query if value <= 100"
+            description="Kill query if value <= 100",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -247,7 +243,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.INVALIDATE,
-            description="Invalidate rows where value <= 100"
+            description="Invalidate rows where value <= 100",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -267,7 +263,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 100"
+            description="Filter rows where value <= 100",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -287,7 +283,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 100"
+            description="Filter rows where value <= 100",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -307,7 +303,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 50",
             on_fail=Resolution.REMOVE,
-            description="Filter groups where max(value) <= 50"
+            description="Filter groups where max(value) <= 50",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -332,7 +328,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where amount <= 5000"
+            description="Filter rows where amount <= 5000",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -352,7 +348,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 100"
+            description="Filter rows where value <= 100",
         )
 
         rewritten = rewrite_query_logical(query, policy)
@@ -377,7 +373,7 @@ class TestLogicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter groups where max(value) <= 100"
+            description="Filter groups where max(value) <= 100",
         )
 
         rewritten = rewrite_query_logical(query, policy)

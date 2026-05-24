@@ -63,8 +63,16 @@ def test_llm_full_flow_allows_meal_receipt_with_half_business_use():
         _log("Computed Tax Result", tax_result)
 
         assert expenses
-        assert any(trace["result"]["status"] == "ok" and trace["result"]["tool"] == "get_receipt" for trace in result["traces"])
-        assert any(trace["result"]["status"] == "ok" and trace["result"]["tool"] == "set_expense" for trace in result["traces"])
+        assert any(
+            trace["result"]["status"] == "ok"
+            and trace["result"]["tool"] == "get_receipt"
+            for trace in result["traces"]
+        )
+        assert any(
+            trace["result"]["status"] == "ok"
+            and trace["result"]["tool"] == "set_expense"
+            for trace in result["traces"]
+        )
         assert tax_result["schedule_c_input"] == {
             "gross_receipts": 1000.0,
             "expenses": [
@@ -102,10 +110,17 @@ def test_llm_full_flow_blocks_meal_receipt_with_full_business_use():
         _log("Server Receipts Table", receipts)
         _log("Server Expenses Table", expenses)
 
-        assert any(trace["result"]["status"] == "ok" and trace["result"]["tool"] == "get_receipt" for trace in result["traces"])
+        assert any(
+            trace["result"]["status"] == "ok"
+            and trace["result"]["tool"] == "get_receipt"
+            for trace in result["traces"]
+        )
         assert any(trace["result"]["status"] == "blocked" for trace in result["traces"])
         assert len(expenses) == 0
-        assert "policy" in result["final_message"].lower() or "100%" in result["final_message"]
+        assert (
+            "policy" in result["final_message"].lower()
+            or "100%" in result["final_message"]
+        )
     finally:
         stop_server_process(proc)
         _log("Server Process Output", read_process_output(proc))

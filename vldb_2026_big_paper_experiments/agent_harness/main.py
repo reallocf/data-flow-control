@@ -75,7 +75,9 @@ def main() -> int:
         print(run_single_turn(agent, args.question, chat_history))
         return 0
 
-    print(f"Agent harness started ({registered_count} policy/policies registered). Type 'exit' to quit.")
+    print(
+        f"Agent harness started ({registered_count} policy/policies registered). Type 'exit' to quit."
+    )
     while True:
         try:
             user_input = input("> ").strip()

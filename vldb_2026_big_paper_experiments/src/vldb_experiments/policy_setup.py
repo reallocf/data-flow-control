@@ -22,7 +22,7 @@ def create_test_policy(threshold: int = 100) -> DFCPolicy:
         sources=["test_data"],
         constraint=f"max(test_data.value) > {threshold}",
         on_fail=Resolution.REMOVE,
-        description=f"Filter rows where value <= {threshold}"
+        description=f"Filter rows where value <= {threshold}",
     )
 
 

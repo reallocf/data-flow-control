@@ -32,7 +32,9 @@ class MicrobenchmarkPhaseCompetitionStrategy(ExperimentStrategy):
         self.policy_column_counts = list(
             context.strategy_config.get("policy_column_counts", DEFAULT_POLICY_COLUMN_COUNTS)
         )
-        self.total_columns = int(context.strategy_config.get("total_columns", DEFAULT_TOTAL_COLUMNS))
+        self.total_columns = int(
+            context.strategy_config.get("total_columns", DEFAULT_TOTAL_COLUMNS)
+        )
         self.base_aggregate_columns_default = int(
             context.strategy_config.get("base_aggregate_columns", DEFAULT_BASE_AGGREGATE_COLUMNS)
         )
@@ -50,7 +52,9 @@ class MicrobenchmarkPhaseCompetitionStrategy(ExperimentStrategy):
         )
 
         if self.total_columns != 4096:
-            raise ValueError(f"total_columns must be 4096 for this experiment, got {self.total_columns}")
+            raise ValueError(
+                f"total_columns must be 4096 for this experiment, got {self.total_columns}"
+            )
         for base_count in self.base_aggregate_columns_list:
             if base_count < 1 or base_count > (self.total_columns - 1):
                 raise ValueError(
@@ -123,9 +127,7 @@ class MicrobenchmarkPhaseCompetitionStrategy(ExperimentStrategy):
         )
 
     def _build_query(self, base_aggregate_columns: int) -> str:
-        base_expr = " + ".join(
-            [f"wide_data.c{i}" for i in range(1, base_aggregate_columns + 1)]
-        )
+        base_expr = " + ".join([f"wide_data.c{i}" for i in range(1, base_aggregate_columns + 1)])
         return " ".join(
             f"""
             SELECT SUM({base_expr}) AS base_sum
@@ -137,9 +139,7 @@ class MicrobenchmarkPhaseCompetitionStrategy(ExperimentStrategy):
     def _build_policy(self, base_aggregate_columns: int, policy_column_count: int) -> DFCPolicy:
         start_col = base_aggregate_columns
         end_col = start_col + policy_column_count - 1
-        sum_expr = " + ".join(
-            [f"wide_data.c{i}" for i in range(start_col, end_col + 1)]
-        )
+        sum_expr = " + ".join([f"wide_data.c{i}" for i in range(start_col, end_col + 1)])
         return DFCPolicy(
             sources=["wide_data"],
             constraint=f"sum({sum_expr}) >= 0",
@@ -157,7 +157,9 @@ class MicrobenchmarkPhaseCompetitionStrategy(ExperimentStrategy):
             )
         self.rewriter.register_policy(policy)
 
-    def _setting_and_run_for_execution(self, execution_number: int) -> tuple[int, int, int, int, int]:
+    def _setting_and_run_for_execution(
+        self, execution_number: int
+    ) -> tuple[int, int, int, int, int]:
         setting_index = (execution_number - 1) // self.runs_per_setting
         run_num = ((execution_number - 1) % self.runs_per_setting) + 1
         row_count, join_fanout, base_aggregate_columns, policy_column_count = self.settings[
@@ -217,7 +219,10 @@ class MicrobenchmarkPhaseCompetitionStrategy(ExperimentStrategy):
         if dfc_1phase_error is None and dfc_2phase_error is None:
             match, match_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
         else:
-            match, match_error = False, f"errors: 1phase={dfc_1phase_error}, 2phase={dfc_2phase_error}"
+            match, match_error = (
+                False,
+                f"errors: 1phase={dfc_1phase_error}, 2phase={dfc_2phase_error}",
+            )
 
         total_time = dfc_1phase_exec_time + dfc_2phase_exec_time
         if total_time == 0.0:

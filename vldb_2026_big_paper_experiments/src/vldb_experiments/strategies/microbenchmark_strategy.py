@@ -24,11 +24,13 @@ from vldb_experiments.query_definitions import get_query_definitions, get_query_
 # Only set up when actually needed (lazy import to allow testing without SmokedDuck)
 _smokedduck_duckdb = None
 
+
 def _ensure_smokedduck():
     """Ensure SmokedDuck is set up. Called when needed."""
     global _smokedduck_duckdb
     if _smokedduck_duckdb is None:
         from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
+
         _smokedduck_duckdb = setup_local_smokedduck()
         if _smokedduck_duckdb is None:
             raise ImportError(
@@ -253,8 +255,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
 
         amount_terms = ["test_data.amount"] + [f"j{i}.amount" for i in range(1, join_count + 1)]
         joins = [
-            f"JOIN join_data_{i} j{i} ON test_data.id = j{i}.id"
-            for i in range(1, join_count + 1)
+            f"JOIN join_data_{i} j{i} ON test_data.id = j{i}.id" for i in range(1, join_count + 1)
         ]
 
         query = f"""
@@ -296,14 +297,11 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             context: Experiment context with database connection
         """
         self.enable_physical = (
-            self.enable_physical_override
-            if self.enable_physical_override is not None
-            else True
+            self.enable_physical_override if self.enable_physical_override is not None else True
         )
         query_order = self.query_types or get_query_order()
-        self._physical_enabled_for_run = (
-            self.enable_physical
-            and any(self._physical_supported_for_query(query) for query in query_order)
+        self._physical_enabled_for_run = self.enable_physical and any(
+            self._physical_supported_for_query(query) for query in query_order
         )
         # Use locally built SmokedDuck DuckDB for all benchmark connections.
         self.local_duckdb = _ensure_smokedduck()
@@ -377,7 +375,9 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             variation_info = f"num_groups={variation_params.get('num_groups', 'N/A')}"
         elif query_type == "JOIN_GROUP_BY":
             variation_info = f"join_count={variation_params.get('join_count', 'N/A')}"
-        print(f"[Execution {context.execution_number}] {query_type} - Variation {variation_params.get('variation_num', 'N/A')}, Run {variation_params.get('run_num', 'N/A')} ({variation_info})")
+        print(
+            f"[Execution {context.execution_number}] {query_type} - Variation {variation_params.get('variation_num', 'N/A')}, Run {variation_params.get('run_num', 'N/A')} ({variation_info})"
+        )
 
         # Get connections for each approach
         no_policy_conn = self.no_policy_conn
@@ -636,7 +636,9 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             )
 
         # Total execution time (all four approaches)
-        total_time = no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_runtime
+        total_time = (
+            no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_runtime
+        )
         if total_time == 0.0:
             # Keep non-zero to avoid runner edge case that reads timing before context exit.
             total_time = 0.001
@@ -689,10 +691,7 @@ class MicrobenchmarkStrategy(ExperimentStrategy):
             "variation_join_count": variation_params.get("join_count"),
         }
 
-        return ExperimentResult(
-            duration_ms=total_time,
-            custom_metrics=custom_metrics
-        )
+        return ExperimentResult(duration_ms=total_time, custom_metrics=custom_metrics)
 
     def teardown(self, _context: ExperimentContext) -> None:
         """Clean up resources.

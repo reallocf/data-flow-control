@@ -26,7 +26,12 @@ def load_tpch_query(query_num: int) -> str:
     """
     # Path from vldb_2026_big_paper_experiments/src/vldb_experiments/strategies/
     # to benchmarks/tpch/queries/ at project root
-    benchmarks_dir = pathlib.Path(__file__).parent.parent.parent.parent.parent / "benchmarks" / "tpch" / "queries"
+    benchmarks_dir = (
+        pathlib.Path(__file__).parent.parent.parent.parent.parent
+        / "benchmarks"
+        / "tpch"
+        / "queries"
+    )
     query_file = benchmarks_dir / f"q{query_num:02d}.sql"
 
     if not query_file.exists():
@@ -55,6 +60,7 @@ def _ensure_smokedduck():
     global _smokedduck_duckdb
     if _smokedduck_duckdb is None:
         from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
+
         _smokedduck_duckdb = setup_local_smokedduck()
         if _smokedduck_duckdb is None:
             raise ImportError(
@@ -62,7 +68,6 @@ def _ensure_smokedduck():
                 "Please run ./setup_venv.sh to clone and build SmokedDuck."
             )
     return _smokedduck_duckdb
-
 
 
 class TPCHStrategy(ExperimentStrategy):
@@ -163,7 +168,9 @@ class TPCHStrategy(ExperimentStrategy):
         # Determine which policy to use
         policy = lineitem_policy
 
-        print(f"[Execution {context.execution_number}] TPC-H Q{query_num:02d} (sf={self.scale_factor})")
+        print(
+            f"[Execution {context.execution_number}] TPC-H Q{query_num:02d} (sf={self.scale_factor})"
+        )
 
         # Delete old policies and register new one
         try:
@@ -172,7 +179,7 @@ class TPCHStrategy(ExperimentStrategy):
                 self.dfc_rewriter.delete_policy(
                     sources=old_policy.sources,
                     constraint=old_policy.constraint,
-                    on_fail=old_policy.on_fail
+                    on_fail=old_policy.on_fail,
                 )
             self.dfc_rewriter.register_policy(policy)
         except Exception:
@@ -318,9 +325,13 @@ class TPCHStrategy(ExperimentStrategy):
         physical_match_error = None
 
         if dfc_1phase_error is None and logical_error is None:
-            logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
+            logical_match, logical_match_error = compare_results_exact(
+                dfc_1phase_results, logical_results
+            )
         if dfc_1phase_error is None and physical_error is None:
-            physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+            physical_match, physical_match_error = compare_results_exact(
+                dfc_1phase_results, physical_results
+            )
         if dfc_1phase_error is None and dfc_2phase_error is None:
             dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
                 dfc_1phase_results, dfc_2phase_results
@@ -351,7 +362,9 @@ class TPCHStrategy(ExperimentStrategy):
             )
 
         # Total execution time
-        total_time = no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_time
+        total_time = (
+            no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + physical_time
+        )
 
         # Build custom metrics
         custom_metrics = {
@@ -390,10 +403,7 @@ class TPCHStrategy(ExperimentStrategy):
             "physical_error": physical_error or "",
         }
 
-        return ExperimentResult(
-            duration_ms=total_time,
-            custom_metrics=custom_metrics
-        )
+        return ExperimentResult(duration_ms=total_time, custom_metrics=custom_metrics)
 
     def teardown(self, _context: ExperimentContext) -> None:
         """Clean up resources.

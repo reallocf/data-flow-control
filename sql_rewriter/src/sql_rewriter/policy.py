@@ -202,7 +202,7 @@ class DFCPolicy:
             on_fail=on_fail,
             sources=sources,
             sink=sink,
-            description=description
+            description=description,
         )
 
     def _validate(self) -> None:
@@ -228,7 +228,9 @@ class DFCPolicy:
                 sink_ref = self.sink
                 if self.sink_alias:
                     sink_ref = f"{self.sink} AS {self.sink_alias}"
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {sink_ref}"
+                test_query = (
+                    f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {sink_ref}"
+                )
             elif self.sources:
                 sources_from = ", ".join(self.sources)
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}"
@@ -318,18 +320,15 @@ class DFCPolicy:
             if "Constraint" in str(e) or "must be an expression" in str(e):
                 raise
             if "Invalid" not in str(e):
-                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}") from e
+                raise ValueError(
+                    f"Invalid constraint SQL expression '{self.constraint}': {e}"
+                ) from e
             raise
-
 
     def _validate_column_qualification(self) -> None:
         """Validate that all columns in the constraint are qualified with table names."""
         columns = list(self._constraint_parsed.find_all(exp.Column))
-        unqualified_columns = [
-            get_column_name(column)
-            for column in columns
-            if not column.table
-        ]
+        unqualified_columns = [get_column_name(column) for column in columns if not column.table]
 
         if unqualified_columns:
             raise ValueError(
@@ -643,7 +642,7 @@ class AggregateDFCPolicy:
             on_fail=on_fail,
             sources=sources,
             sink=sink,
-            description=description
+            description=description,
         )
 
     def _validate(self) -> None:
@@ -664,7 +663,9 @@ class AggregateDFCPolicy:
         try:
             if self.sources and self.sink:
                 sources_from = ", ".join(self.sources)
-                test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {self.sink}"
+                test_query = (
+                    f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}, {self.sink}"
+                )
             elif self.sources:
                 sources_from = ", ".join(self.sources)
                 test_query = f"SELECT ({self.constraint}) AS policy_check FROM {sources_from}"
@@ -741,7 +742,9 @@ class AggregateDFCPolicy:
             if "Constraint" in str(e) or "must be an expression" in str(e):
                 raise
             if "Invalid" not in str(e):
-                raise ValueError(f"Invalid constraint SQL expression '{self.constraint}': {e}") from e
+                raise ValueError(
+                    f"Invalid constraint SQL expression '{self.constraint}': {e}"
+                ) from e
             raise
 
     def _validate_column_qualification(self) -> None:

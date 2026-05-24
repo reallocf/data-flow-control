@@ -82,7 +82,10 @@ class TestApplyPolicyConstraintsToAggregation:
         # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
         # The order depends on policy order, and KILL wraps in CASE
         # Both constraints should be wrapped in parentheses (includes HAVING keyword)
-        assert having_sql == "HAVING (MAX(foo.id) > 1) AND (CASE WHEN MAX(foo.id) < 10 THEN true ELSE KILL() END)"
+        assert (
+            having_sql
+            == "HAVING (MAX(foo.id) > 1) AND (CASE WHEN MAX(foo.id) < 10 THEN true ELSE KILL() END)"
+        )
 
     def test_does_not_modify_query_without_policies(self):
         """Test that query is not modified when no policies are provided."""
@@ -200,7 +203,10 @@ class TestApplyPolicyConstraintsToAggregation:
         # valid = MAX(foo.id) > 1 AND MAX(foo.id) < 10
         # Check the full SQL string
         full_sql = parsed.sql()
-        assert full_sql == "SELECT MAX(foo.id), (MAX(foo.id) > 1) AND (MAX(foo.id) < 10) AS valid FROM foo"
+        assert (
+            full_sql
+            == "SELECT MAX(foo.id), (MAX(foo.id) > 1) AND (MAX(foo.id) < 10) AS valid FROM foo"
+        )
 
     def test_invalidate_resolution_with_other_resolutions(self):
         """Test that INVALIDATE resolution works alongside REMOVE/KILL policies."""
@@ -224,7 +230,10 @@ class TestApplyPolicyConstraintsToAggregation:
         # valid = (MAX(foo.id) < 10) (wrapped in parentheses)
         # Check the full SQL string
         full_sql = parsed.sql()
-        assert full_sql == "SELECT MAX(foo.id), (MAX(foo.id) < 10) AS valid FROM foo HAVING (MAX(foo.id) > 1)"
+        assert (
+            full_sql
+            == "SELECT MAX(foo.id), (MAX(foo.id) < 10) AS valid FROM foo HAVING (MAX(foo.id) > 1)"
+        )
 
 
 class TestApplyPolicyConstraintsToScan:
@@ -294,7 +303,9 @@ class TestApplyPolicyConstraintsToScan:
         where_sql = where_expr.sql()
         # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
         # Both constraints should be wrapped in parentheses (includes WHERE keyword)
-        assert where_sql == "WHERE (foo.id > 1) AND (CASE WHEN foo.id < 10 THEN true ELSE KILL() END)"
+        assert (
+            where_sql == "WHERE (foo.id > 1) AND (CASE WHEN foo.id < 10 THEN true ELSE KILL() END)"
+        )
 
     def test_combines_with_existing_where_with_or_clause(self):
         """Test that new constraint is combined correctly with existing WHERE that has OR."""
@@ -755,7 +766,10 @@ class TestIntegration:
         having_sql = having.sql()
         # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
         # Both constraints should be wrapped in parentheses (includes HAVING keyword)
-        assert having_sql == "HAVING (MAX(foo.id) > 1) AND (CASE WHEN MAX(foo.id) < 10 THEN true ELSE KILL() END)"
+        assert (
+            having_sql
+            == "HAVING (MAX(foo.id) > 1) AND (CASE WHEN MAX(foo.id) < 10 THEN true ELSE KILL() END)"
+        )
 
     def test_multiple_policies_on_scan_query(self):
         """Test that multiple policies are correctly applied to scan queries."""
@@ -781,8 +795,9 @@ class TestIntegration:
         where_sql = where_expr.sql()
         # KILL policy wraps constraint in CASE WHEN, REMOVE policy adds constraint directly
         # Both constraints should be wrapped in parentheses (includes WHERE keyword)
-        assert where_sql == "WHERE (foo.id > 1) AND (CASE WHEN foo.id < 10 THEN true ELSE KILL() END)"
-
+        assert (
+            where_sql == "WHERE (foo.id > 1) AND (CASE WHEN foo.id < 10 THEN true ELSE KILL() END)"
+        )
 
 
 class TestApplyAggregatePolicyConstraintsToAggregation:

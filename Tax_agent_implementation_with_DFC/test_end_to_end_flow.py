@@ -123,9 +123,14 @@ def _fetch_all_dicts(con, table: str):
 
 
 def _run_dfc_insert(client_con, sql):
-    policy_deps = mcp_client_phase_18.parse_policy_deps(mcp_client_phase_18.DFC_POLICIES)
+    policy_deps = mcp_client_phase_18.parse_policy_deps(
+        mcp_client_phase_18.DFC_POLICIES
+    )
     _log_step("DFC Policy Dependencies", policy_deps)
-    _log_step("Client Source Table Before DFC", _fetch_all_dicts(client_con, "get_receipt_out"))
+    _log_step(
+        "Client Source Table Before DFC",
+        _fetch_all_dicts(client_con, "get_receipt_out"),
+    )
     _log_step("Query Before Rewriting", sql.strip())
     gate1_error = mcp_client_phase_18.gate1_validate(sql, policy_deps)
     if gate1_error:
@@ -134,14 +139,18 @@ def _run_dfc_insert(client_con, sql):
         return result
 
     rewriter = mcp_client_phase_18.create_rewriter(client_con)
-    assert mcp_client_phase_18.register_policies(rewriter, mcp_client_phase_18.DFC_POLICIES)
+    assert mcp_client_phase_18.register_policies(
+        rewriter, mcp_client_phase_18.DFC_POLICIES
+    )
 
     sql_final = mcp_client_phase_18.inject_call_id(sql, "dfc_call_1")
     for source_table in mcp_client_phase_18.get_source_tables(sql_final):
         mcp_client_phase_18.deduplicate_source_table(client_con, source_table)
 
     sink_table = mcp_client_phase_18.get_sink_table(sql_final)
-    count_before = client_con.execute(f"SELECT COUNT(*) FROM {sink_table}").fetchone()[0]
+    count_before = client_con.execute(f"SELECT COUNT(*) FROM {sink_table}").fetchone()[
+        0
+    ]
     rewritten = rewriter.transform_query(sql_final)
     _log_step("Query After call_id Injection", sql_final)
     _log_step("Query After Rewriting", rewritten)
@@ -162,7 +171,10 @@ def _run_dfc_insert(client_con, sql):
                 ).fetchone()[0],
             }
             _log_step("DFC Block Result", result)
-            _log_step("Client Sink Table After Block", _fetch_all_dicts(client_con, sink_table))
+            _log_step(
+                "Client Sink Table After Block",
+                _fetch_all_dicts(client_con, sink_table),
+            )
             return result
         raise
 
@@ -178,7 +190,9 @@ def _run_dfc_insert(client_con, sql):
             "sink_count_after": count_after,
         }
         _log_step("DFC Block Result", result)
-        _log_step("Client Sink Table After Block", _fetch_all_dicts(client_con, sink_table))
+        _log_step(
+            "Client Sink Table After Block", _fetch_all_dicts(client_con, sink_table)
+        )
         return result
 
     inserted = mcp_client_phase_18.fetch_row(client_con, sink_table, "dfc_call_1")

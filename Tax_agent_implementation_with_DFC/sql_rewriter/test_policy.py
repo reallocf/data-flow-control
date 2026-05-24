@@ -132,7 +132,9 @@ def test_policy_validation_invalid_constraint():
 
 def test_policy_validation_constraint_cannot_be_select():
     """Test that constraint cannot be a SELECT statement."""
-    with pytest.raises(ValueError, match="Constraint must be an expression, not a SELECT statement"):
+    with pytest.raises(
+        ValueError, match="Constraint must be an expression, not a SELECT statement"
+    ):
         DFCPolicy(
             sources=["users"],
             constraint="SELECT * FROM users",
@@ -181,7 +183,10 @@ def test_policy_repr():
         on_fail=Resolution.REMOVE,
     )
     repr_str = repr(policy)
-    assert repr_str == "DFCPolicy(sources=['users'], sink='analytics', constraint='max(users.age) >= 18', on_fail=REMOVE)"
+    assert (
+        repr_str
+        == "DFCPolicy(sources=['users'], sink='analytics', constraint='max(users.age) >= 18', on_fail=REMOVE)"
+    )
 
 
 def test_policy_repr_source_only():
@@ -192,7 +197,9 @@ def test_policy_repr_source_only():
         on_fail=Resolution.KILL,
     )
     repr_str = repr(policy)
-    assert repr_str == "DFCPolicy(sources=['users'], constraint='max(users.age) >= 18', on_fail=KILL)"
+    assert (
+        repr_str == "DFCPolicy(sources=['users'], constraint='max(users.age) >= 18', on_fail=KILL)"
+    )
 
 
 def test_policy_equality():
@@ -277,7 +284,10 @@ def test_policy_invalidate_resolution_repr():
         on_fail=Resolution.INVALIDATE,
     )
     repr_str = repr(policy)
-    assert repr_str == "DFCPolicy(sources=['users'], constraint='max(users.age) >= 18', on_fail=INVALIDATE)"
+    assert (
+        repr_str
+        == "DFCPolicy(sources=['users'], constraint='max(users.age) >= 18', on_fail=INVALIDATE)"
+    )
 
 
 def test_resolution_enum():
@@ -295,7 +305,10 @@ def test_policy_complex_constraint():
         constraint="(max(users.age) >= 18 AND min(users.status) = 'active') OR (max(users.age) >= 21 AND min(users.status) = 'pending')",
         on_fail=Resolution.REMOVE,
     )
-    assert policy.constraint == "(max(users.age) >= 18 AND min(users.status) = 'active') OR (max(users.age) >= 21 AND min(users.status) = 'pending')"
+    assert (
+        policy.constraint
+        == "(max(users.age) >= 18 AND min(users.status) = 'active') OR (max(users.age) >= 21 AND min(users.status) = 'pending')"
+    )
 
 
 def test_policy_with_table_qualification():
@@ -306,7 +319,10 @@ def test_policy_with_table_qualification():
         constraint="max(users.id) = orders.user_id AND min(users.created_at) < orders.created_at",
         on_fail=Resolution.REMOVE,
     )
-    assert policy.constraint == "max(users.id) = orders.user_id AND min(users.created_at) < orders.created_at"
+    assert (
+        policy.constraint
+        == "max(users.id) = orders.user_id AND min(users.created_at) < orders.created_at"
+    )
 
 
 def test_policy_aggregation_over_source():
@@ -354,7 +370,9 @@ def test_policy_aggregation_with_unqualified_column_rejected():
 
 def test_policy_aggregation_requires_source():
     """Test that aggregations require a source table."""
-    with pytest.raises(ValueError, match="Aggregations in constraints can only reference the source tables"):
+    with pytest.raises(
+        ValueError, match="Aggregations in constraints can only reference the source tables"
+    ):
         DFCPolicy(
             sources=[],
             sink="reports",
@@ -382,7 +400,10 @@ def test_policy_multiple_aggregations_over_source():
         constraint="max(users.age) > 18 AND min(users.age) < 100 AND reports.status = 'active'",
         on_fail=Resolution.REMOVE,
     )
-    assert policy.constraint == "max(users.age) > 18 AND min(users.age) < 100 AND reports.status = 'active'"
+    assert (
+        policy.constraint
+        == "max(users.age) > 18 AND min(users.age) < 100 AND reports.status = 'active'"
+    )
 
 
 def test_policy_aggregation_source_with_sink_column():
@@ -743,10 +764,7 @@ def test_get_table_name_from_column_handles_all_types():
     table_name1 = get_table_name_from_column(col1)
     assert table_name1 == "users"
 
-    col2 = exp.Column(
-        this=exp.Identifier(this="age"),
-        table=exp.Identifier(this="users")
-    )
+    col2 = exp.Column(this=exp.Identifier(this="age"), table=exp.Identifier(this="users"))
     table_name2 = get_table_name_from_column(col2)
     assert table_name2 == "users"
 

@@ -108,7 +108,9 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
         query_num = tpch_queries[query_index]
         query = load_tpch_query(query_num)
 
-        print(f"[Execution {context.execution_number}] TPC-H Q{query_num:02d} (sf={self.scale_factor})")
+        print(
+            f"[Execution {context.execution_number}] TPC-H Q{query_num:02d} (sf={self.scale_factor})"
+        )
 
         policy = lineitem_policy
         try:
@@ -291,9 +293,7 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                 try:
                     logical_start = time.perf_counter()
                     logical_results_external = client.fetchall(logical_query)
-                    external_logical_times[name] = (
-                        time.perf_counter() - logical_start
-                    ) * 1000.0
+                    external_logical_times[name] = (time.perf_counter() - logical_start) * 1000.0
                     external_logical_results[name] = logical_results_external
                     external_logical_rows[name] = len(logical_results_external)
                     external_logical_errors[name] = None
@@ -377,7 +377,13 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
                     f"Errors: duckdb={dfc_1phase_error}, {name}={logical_err}"
                 )
 
-        total_time = no_policy_time + dfc_1phase_time + dfc_2phase_time + logical_time + sum(external_times.values())
+        total_time = (
+            no_policy_time
+            + dfc_1phase_time
+            + dfc_2phase_time
+            + logical_time
+            + sum(external_times.values())
+        )
         custom_metrics = {
             "query_num": query_num,
             "query_name": f"q{query_num:02d}",
@@ -408,29 +414,27 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
             custom_metrics[f"{name}_dfc_1phase_time_ms"] = external_dfc_1phase_times.get(name, 0.0)
             custom_metrics[f"{name}_dfc_1phase_rows"] = external_dfc_1phase_rows.get(name, 0)
             custom_metrics[f"{name}_dfc_1phase_error"] = external_dfc_1phase_errors.get(name) or ""
-            custom_metrics[f"{name}_dfc_1phase_correctness_match"] = external_dfc_1phase_correctness_match.get(
-                name, False
+            custom_metrics[f"{name}_dfc_1phase_correctness_match"] = (
+                external_dfc_1phase_correctness_match.get(name, False)
             )
-            custom_metrics[f"{name}_dfc_1phase_correctness_error"] = external_dfc_1phase_correctness_error.get(
-                name, ""
+            custom_metrics[f"{name}_dfc_1phase_correctness_error"] = (
+                external_dfc_1phase_correctness_error.get(name, "")
             )
             custom_metrics[f"{name}_dfc_2phase_time_ms"] = external_dfc_2phase_times.get(name, 0.0)
             custom_metrics[f"{name}_dfc_2phase_rows"] = external_dfc_2phase_rows.get(name, 0)
             custom_metrics[f"{name}_dfc_2phase_error"] = external_dfc_2phase_errors.get(name) or ""
-            custom_metrics[f"{name}_dfc_2phase_correctness_match"] = external_dfc_2phase_correctness_match.get(
-                name, False
+            custom_metrics[f"{name}_dfc_2phase_correctness_match"] = (
+                external_dfc_2phase_correctness_match.get(name, False)
             )
-            custom_metrics[f"{name}_dfc_2phase_correctness_error"] = external_dfc_2phase_correctness_error.get(
-                name, ""
+            custom_metrics[f"{name}_dfc_2phase_correctness_error"] = (
+                external_dfc_2phase_correctness_error.get(name, "")
             )
             custom_metrics[f"{name}_logical_time_ms"] = external_logical_times.get(name, 0.0)
             custom_metrics[f"{name}_logical_rows"] = external_logical_rows.get(name, 0)
-            custom_metrics[f"{name}_logical_error"] = (
-                external_logical_errors.get(name) or ""
+            custom_metrics[f"{name}_logical_error"] = external_logical_errors.get(name) or ""
+            custom_metrics[f"{name}_logical_correctness_match"] = (
+                external_logical_correctness_match.get(name, False)
             )
-            custom_metrics[
-                f"{name}_logical_correctness_match"
-            ] = external_logical_correctness_match.get(name, False)
             custom_metrics[f"{name}_logical_correctness_error"] = (
                 external_logical_correctness_error.get(name, "")
             )
@@ -441,9 +445,7 @@ class TPCHMultiDBStrategy(ExperimentStrategy):
             custom_metrics[f"{name}_correctness_match"] = external_correctness_match.get(
                 name, False
             )
-            custom_metrics[f"{name}_correctness_error"] = external_correctness_error.get(
-                name, ""
-            )
+            custom_metrics[f"{name}_correctness_error"] = external_correctness_error.get(name, "")
 
         return ExperimentResult(duration_ms=total_time, custom_metrics=custom_metrics)
 

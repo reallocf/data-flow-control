@@ -46,10 +46,7 @@ def export_tpch_csvs(
         csv_path = data_dir / f"{table}.csv"
         if csv_path.exists():
             continue
-        duckdb_conn.execute(
-            f"COPY {table} TO '{csv_path.as_posix()}' "
-            "(HEADER, DELIMITER ',')"
-        )
+        duckdb_conn.execute(f"COPY {table} TO '{csv_path.as_posix()}' (HEADER, DELIMITER ',')")
 
 
 def get_table_schema(

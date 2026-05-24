@@ -39,4 +39,3 @@ def get_table_name_from_column(column: exp.Column) -> Optional[str]:
     # Fallback for any other type - convert to string and lowercase
     # This ensures we don't silently skip validation for unexpected types
     return str(column.table).lower()
-

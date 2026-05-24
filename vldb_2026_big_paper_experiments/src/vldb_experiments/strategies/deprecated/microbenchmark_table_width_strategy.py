@@ -28,9 +28,7 @@ class MicrobenchmarkTableWidthStrategy(ExperimentStrategy):
         if main_conn is None:
             raise ValueError("Database connection required in context")
 
-        self.table_widths = list(
-            context.strategy_config.get("table_widths", DEFAULT_TABLE_WIDTHS)
-        )
+        self.table_widths = list(context.strategy_config.get("table_widths", DEFAULT_TABLE_WIDTHS))
         self.num_rows = int(context.strategy_config.get("num_rows", DEFAULT_NUM_ROWS))
         self.warmup_per_width = int(
             context.strategy_config.get("warmup_per_width", DEFAULT_WARMUP_PER_WIDTH)
@@ -41,9 +39,7 @@ class MicrobenchmarkTableWidthStrategy(ExperimentStrategy):
 
         for width in self.table_widths:
             if width < 2 or width % 2 != 0:
-                raise ValueError(
-                    f"table_width must be even and >= 2, got {width}"
-                )
+                raise ValueError(f"table_width must be even and >= 2, got {width}")
 
         self.local_duckdb = _ensure_smokedduck()
         fd, db_path = tempfile.mkstemp(prefix="microbenchmark_table_width_", suffix=".duckdb")
@@ -198,8 +194,12 @@ class MicrobenchmarkTableWidthStrategy(ExperimentStrategy):
         physical_runtime = physical_timing.get("runtime_time_ms", 0.0)
         physical_exec_time = physical_runtime
 
-        logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
-        physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+        logical_match, logical_match_error = compare_results_exact(
+            dfc_1phase_results, logical_results
+        )
+        physical_match, physical_match_error = compare_results_exact(
+            dfc_1phase_results, physical_results
+        )
         dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
             dfc_1phase_results, dfc_2phase_results
         )

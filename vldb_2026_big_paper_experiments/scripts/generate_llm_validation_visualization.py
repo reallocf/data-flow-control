@@ -17,7 +17,9 @@ from visualizations import (  # noqa: E402
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate LLM validation figures from CSV results.")
+    parser = argparse.ArgumentParser(
+        description="Generate LLM validation figures from CSV results."
+    )
     parser.add_argument(
         "--csv",
         default="results/llm_validation_results_gpt52_full.csv",

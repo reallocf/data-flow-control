@@ -21,10 +21,7 @@ def _normalize_sql(sql: str) -> str:
 def _setup_wide_data_1000_rows() -> tuple[object, SQLRewriter]:
     max_col = POLICY_START_COLUMN + MAX_POLICY_COLUMN_COUNT_FOR_TEST - 1
     value_cols = ",\n            ".join(
-        [
-            f"CAST(((i + {idx}) % 1000) + 1 AS DOUBLE) AS c{idx}"
-            for idx in range(1, max_col + 1)
-        ]
+        [f"CAST(((i + {idx}) % 1000) + 1 AS DOUBLE) AS c{idx}" for idx in range(1, max_col + 1)]
     )
     conn = _ensure_smokedduck().connect(":memory:")
     conn.execute("SET max_expression_depth TO 100000")
@@ -52,14 +49,10 @@ def _setup_wide_data_1000_rows() -> tuple[object, SQLRewriter]:
 
 
 def _build_query_and_policy(policy_column_count: int) -> tuple[str, DFCPolicy]:
-    base_expr = " + ".join(
-        f"wide_data.c{i}" for i in range(1, BASE_AGGREGATE_COLUMNS + 1)
-    )
+    base_expr = " + ".join(f"wide_data.c{i}" for i in range(1, BASE_AGGREGATE_COLUMNS + 1))
     policy_start = POLICY_START_COLUMN
     policy_end = policy_start + policy_column_count - 1
-    policy_expr = " + ".join(
-        f"wide_data.c{i}" for i in range(policy_start, policy_end + 1)
-    )
+    policy_expr = " + ".join(f"wide_data.c{i}" for i in range(policy_start, policy_end + 1))
 
     query = (
         f"SELECT SUM({base_expr}) AS base_sum "
@@ -76,9 +69,7 @@ def _build_query_and_policy(policy_column_count: int) -> tuple[str, DFCPolicy]:
 
 
 def _expected_query_sql() -> str:
-    base_expr = " + ".join(
-        f"wide_data.c{i}" for i in range(1, BASE_AGGREGATE_COLUMNS + 1)
-    )
+    base_expr = " + ".join(f"wide_data.c{i}" for i in range(1, BASE_AGGREGATE_COLUMNS + 1))
     return (
         f"SELECT SUM({base_expr}) AS base_sum "
         "FROM wide_data "

@@ -72,7 +72,10 @@ def _display_model_name(model_name: str) -> str:
     normalized = model_name.strip()
     if normalized == "gpt-5.2":
         return "GPT-5.2"
-    if normalized == "arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/2zbh8y2el8aa":
+    if (
+        normalized
+        == "arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/2zbh8y2el8aa"
+    ):
         return "Opus 4.6"
     return model_name
 
@@ -134,10 +137,9 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
             group["output_tokens_sum"] += output_tokens
 
             input_price, output_price = _pricing_for_approach(approach)
-            cost = (
-                (input_tokens / 1_000_000.0) * input_price
-                + (output_tokens / 1_000_000.0) * output_price
-            )
+            cost = (input_tokens / 1_000_000.0) * input_price + (
+                output_tokens / 1_000_000.0
+            ) * output_price
             group["cost_sum"] += cost
 
     output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -150,7 +152,10 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
     }
     metric_names = ("f1", "avg_runtime_ms", "avg_cost_usd")
     ordered_approaches = [
-        approach for approach, _ in sorted(grouped.keys(), key=lambda item: (sort_order.get(item[0], 99), item[1]))
+        approach
+        for approach, _ in sorted(
+            grouped.keys(), key=lambda item: (sort_order.get(item[0], 99), item[1])
+        )
     ]
     unique_approaches: list[str] = []
     for approach in ordered_approaches:
@@ -175,9 +180,13 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
             infra_cost = (total_runtime_ms / 1000.0 / 3600.0) * SERVER_COST_PER_HOUR
             prefix = _column_prefix(approach)
             row = rows_by_policy_count.setdefault(policy_count, {"policy_count": policy_count})
-            row[f"{prefix}_f1"] = f"{f1_score(group['y_true'], group['y_pred'], zero_division=0):.6f}"
+            row[f"{prefix}_f1"] = (
+                f"{f1_score(group['y_true'], group['y_pred'], zero_division=0):.6f}"
+            )
             row[f"{prefix}_avg_runtime_ms"] = f"{(total_runtime_ms / count):.6f}"
-            row[f"{prefix}_avg_cost_usd"] = f"{((float(group['cost_sum']) + infra_cost) / count):.8f}"
+            row[f"{prefix}_avg_cost_usd"] = (
+                f"{((float(group['cost_sum']) + infra_cost) / count):.8f}"
+            )
 
         for policy_count in sorted(rows_by_policy_count):
             writer.writerow(rows_by_policy_count[policy_count])
@@ -185,9 +194,18 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate an aggregated LLM validation summary table.")
-    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT, help=f"Input CSV (default: {DEFAULT_INPUT})")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help=f"Output CSV (default: {DEFAULT_OUTPUT})")
+    parser = argparse.ArgumentParser(
+        description="Generate an aggregated LLM validation summary table."
+    )
+    parser.add_argument(
+        "--input", type=Path, default=DEFAULT_INPUT, help=f"Input CSV (default: {DEFAULT_INPUT})"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=DEFAULT_OUTPUT,
+        help=f"Output CSV (default: {DEFAULT_OUTPUT})",
+    )
     args = parser.parse_args()
 
     output_path = generate_table(args.input, args.output)

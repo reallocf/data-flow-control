@@ -53,57 +53,36 @@ def parse_args():
             - replay: Session directory to replay (optional)
             - delay: Delay in milliseconds for replayed responses (optional, default: 0)
     """
-    parser = argparse.ArgumentParser(
-        description="SBO Tax Agent with optional data file loading"
+    parser = argparse.ArgumentParser(description="SBO Tax Agent with optional data file loading")
+    parser.add_argument("--bank-txn", dest="bank_txn", type=str, help="Path to bank_txn CSV file")
+    parser.add_argument(
+        "--tax-return", dest="tax_return", type=str, help="Path to tax_return CSV file"
     )
     parser.add_argument(
-        "--bank-txn",
-        dest="bank_txn",
-        type=str,
-        help="Path to bank_txn CSV file"
+        "--form-1099-k", dest="form_1099_k", type=str, help="Path to form_1099_k CSV file"
     )
+    parser.add_argument("--policies", dest="policies", type=str, help="Path to policies CSV file")
     parser.add_argument(
-        "--tax-return",
-        dest="tax_return",
-        type=str,
-        help="Path to tax_return CSV file"
-    )
-    parser.add_argument(
-        "--form-1099-k",
-        dest="form_1099_k",
-        type=str,
-        help="Path to form_1099_k CSV file"
-    )
-    parser.add_argument(
-        "--policies",
-        dest="policies",
-        type=str,
-        help="Path to policies CSV file"
-    )
-    parser.add_argument(
-        "--record",
-        dest="record",
-        type=str,
-        help="Directory to record LLM responses to files"
+        "--record", dest="record", type=str, help="Directory to record LLM responses to files"
     )
     parser.add_argument(
         "--replay",
         dest="replay",
         type=str,
-        help="Session recording directory to replay (returns recorded responses instead of calling LLM)"
+        help="Session recording directory to replay (returns recorded responses instead of calling LLM)",
     )
     parser.add_argument(
         "--delay",
         dest="delay",
         type=int,
         default=0,
-        help="Delay in milliseconds before returning replayed LLM responses (only applies when --replay is used)"
+        help="Delay in milliseconds before returning replayed LLM responses (only applies when --replay is used)",
     )
 
     # Find arguments after -- separator (Streamlit convention)
     if "--" in sys.argv:
         idx = sys.argv.index("--")
-        args_to_parse = sys.argv[idx + 1:]
+        args_to_parse = sys.argv[idx + 1 :]
     else:
         # If no -- separator, try parsing all args (argparse will ignore unknown ones)
         args_to_parse = sys.argv[1:]
@@ -115,9 +94,18 @@ def parse_args():
         args, _ = parser.parse_known_args(args_to_parse)
     except SystemExit:
         # argparse calls sys.exit() on error, catch it and return defaults
-        args = argparse.Namespace(tax_return=None, form_1099_k=None, bank_txn=None, policies=None, record=None, replay=None, delay=0)
+        args = argparse.Namespace(
+            tax_return=None,
+            form_1099_k=None,
+            bank_txn=None,
+            policies=None,
+            record=None,
+            replay=None,
+            delay=0,
+        )
 
     return args
+
 
 # Parse arguments
 args = parse_args()
@@ -125,6 +113,7 @@ args = parse_args()
 # Initialize recording if --record flag is provided
 if args.record:
     from recording import LLMRecorder
+
     recorder = LLMRecorder(base_dir=args.record)
     st.session_state.llm_recorder = recorder
 else:
@@ -133,16 +122,14 @@ else:
 # Initialize replay if --replay flag is provided
 if args.replay:
     from replay import ReplayManager
+
     replay_manager = ReplayManager(session_dir=args.replay, delay_ms=args.delay)
     st.session_state.replay_manager = replay_manager
 else:
     st.session_state.replay_manager = None
 
 # Page configuration
-st.set_page_config(
-    page_title="SBO Tax Agent",
-    layout="wide"
-)
+st.set_page_config(page_title="SBO Tax Agent", layout="wide")
 
 # Initialize DuckDB connection (this will create tables if they don't exist)
 # Pass file paths if provided via command-line arguments
@@ -151,11 +138,13 @@ try:
         tax_return_path=args.tax_return,
         form_1099_k_path=args.form_1099_k,
         bank_txn_path=args.bank_txn,
-        policies_path=args.policies
+        policies_path=args.policies,
     )
 except Exception as e:
     st.error(f"Failed to initialize database: {e!s}")
-    st.info("Make sure you've built the DuckDB library by running 'make' in the extended_duckdb directory.")
+    st.info(
+        "Make sure you've built the DuckDB library by running 'make' in the extended_duckdb directory."
+    )
     st.stop()
 
 
@@ -170,4 +159,3 @@ Welcome to the SBO Tax Agent! Use the sidebar to navigate between pages:
 - **Create Policies**: Define data flow control policies
 - **Propose Taxes**: Generate tax proposals based on uploaded data
 """)
-

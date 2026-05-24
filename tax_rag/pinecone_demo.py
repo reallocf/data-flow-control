@@ -1,4 +1,5 @@
-import os, json, time
+import os
+import json
 from sentence_transformers import SentenceTransformer
 from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
@@ -6,6 +7,7 @@ from pinecone import ServerlessSpec
 INDEX_NAME = "legal-tax-dense"
 NAMESPACE = "tax"
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"  # 384 dims
+
 
 def main():
     api_key = os.environ["PINECONE_API_KEY"]
@@ -31,11 +33,13 @@ def main():
                 break
             r = json.loads(line)
             vec = model.encode(r["text"]).tolist()
-            batch.append({
-                "id": r["id"],
-                "values": vec,
-                "metadata": {"source": r["source"], "text": r["text"][:500]}
-            })
+            batch.append(
+                {
+                    "id": r["id"],
+                    "values": vec,
+                    "metadata": {"source": r["source"], "text": r["text"][:500]},
+                }
+            )
 
     index.upsert(vectors=batch, namespace=NAMESPACE)
 
@@ -47,6 +51,7 @@ def main():
     for m in res["matches"]:
         md = m.get("metadata", {}) or {}
         print(m["score"], md.get("source"), md.get("text", "")[:120])
+
 
 if __name__ == "__main__":
     main()

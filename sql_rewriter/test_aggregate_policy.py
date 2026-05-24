@@ -68,7 +68,10 @@ class TestAggregateDFCPolicyCreation:
         )
         assert policy.sources == ["bank_txn"]
         assert policy.sink == "irs_form"
-        assert policy.constraint == "sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000"
+        assert (
+            policy.constraint
+            == "sum(irs_form.amount) filter (where irs_form.kind = 'Income') > 4000"
+        )
         assert policy.on_fail == Resolution.INVALIDATE
 
     def test_aggregate_policy_with_filter_clause_unqualified_in_aggregate(self):
@@ -393,6 +396,7 @@ class TestAggregatePolicyFinalize:
     def rewriter_with_data(cls):
         """Create a SQLRewriter with test data for finalize tests."""
         from sql_rewriter import SQLRewriter
+
         rewriter = SQLRewriter()
 
         # Create source table
@@ -599,7 +603,7 @@ class TestAggregatePolicyFinalize:
         )
         policy_id = get_policy_identifier(policy)
         source_temp_col = f"_{policy_id}_tmp1"  # source inner aggregate
-        sink_temp_col = f"_{policy_id}_tmp2"     # sink values
+        sink_temp_col = f"_{policy_id}_tmp2"  # sink values
 
         rewriter_with_data.execute("DROP TABLE IF EXISTS reports")
         rewriter_with_data.execute(f"""
@@ -678,7 +682,9 @@ class TestAggregatePolicyFinalize:
         assert "Aggregate policy constraint violated" in violation_message
         assert "sum(bank_txn.amount) > 1000" in violation_message
         # Verify the format: "description: Aggregate policy constraint violated: constraint"
-        assert violation_message.startswith("Test policy description: Aggregate policy constraint violated: sum(bank_txn.amount) > 1000")
+        assert violation_message.startswith(
+            "Test policy description: Aggregate policy constraint violated: sum(bank_txn.amount) > 1000"
+        )
 
         # Test without description
         policy_no_desc = AggregateDFCPolicy(
@@ -703,7 +709,10 @@ class TestAggregatePolicyFinalize:
 
         # Without description, should just be: "Aggregate policy constraint violated: constraint"
         violation_message_no_desc = violations[policy_no_desc_id]
-        assert violation_message_no_desc == "Aggregate policy constraint violated: sum(bank_txn.amount) > 2000"
+        assert (
+            violation_message_no_desc
+            == "Aggregate policy constraint violated: sum(bank_txn.amount) > 2000"
+        )
 
     def test_finalize_preserves_filter_clause(self, rewriter_with_data):
         """Test that FILTER clauses are preserved when replacing sink expressions during finalize."""
@@ -749,7 +758,10 @@ class TestAggregatePolicyFinalize:
         # Verify the violation message includes the FILTER clause
         violation_message = violations[policy_id]
         assert "filter" in violation_message.lower()
-        assert "irs_form.kind = 'Income'" in violation_message or "irs_form.kind = 'income'" in violation_message.lower()
+        assert (
+            "irs_form.kind = 'Income'" in violation_message
+            or "irs_form.kind = 'income'" in violation_message.lower()
+        )
 
         # Now test with data that passes (sum > 4000)
         rewriter_with_data.execute("DROP TABLE IF EXISTS irs_form")
@@ -798,13 +810,17 @@ class TestAggregatePolicyFinalize:
         """)
 
         violations = rewriter_with_data.finalize_aggregate_policies("irs_form")
-        assert violations[policy_id] is not None  # Should fail (3000 < 4000, FILTER ensures only Income is summed)
+        assert (
+            violations[policy_id] is not None
+        )  # Should fail (3000 < 4000, FILTER ensures only Income is summed)
 
     def test_aggregate_policy_temp_columns_in_insert_column_list(self, rewriter_with_data):
         """Test that aggregate policy temp columns are added to INSERT column list."""
         # Create sink table
         rewriter_with_data.execute("DROP TABLE IF EXISTS irs_form")
-        rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
+        rewriter_with_data.execute(
+            "CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)"
+        )
 
         policy = AggregateDFCPolicy(
             sources=["bank_txn"],
@@ -817,7 +833,9 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.register_policy(policy)
 
         # Create source table
-        rewriter_with_data.execute("CREATE TABLE IF NOT EXISTS bank_txn (txn_id INTEGER, amount DOUBLE)")
+        rewriter_with_data.execute(
+            "CREATE TABLE IF NOT EXISTS bank_txn (txn_id INTEGER, amount DOUBLE)"
+        )
 
         # Test INSERT query
         query = "INSERT INTO irs_form (txn_id, amount, kind) SELECT txn_id, ABS(amount), 'Expense' FROM bank_txn WHERE txn_id = 1"
@@ -848,11 +866,15 @@ class TestAggregatePolicyFinalize:
         # The important part is that the temp column is correctly added to both
         # the SELECT and INSERT column lists, which we've already verified above.
 
-    def test_aggregate_policy_filter_replaces_output_column_with_value_expense(self, rewriter_with_data):
+    def test_aggregate_policy_filter_replaces_output_column_with_value_expense(
+        self, rewriter_with_data
+    ):
         """Test that FILTER conditions referencing output columns are replaced with actual values (Expense case)."""
         # Create sink table (we'll add the temp column after we know the policy ID)
         rewriter_with_data.execute("DROP TABLE IF EXISTS irs_form")
-        rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
+        rewriter_with_data.execute(
+            "CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)"
+        )
 
         policy = AggregateDFCPolicy(
             sources=["bank_txn"],
@@ -868,7 +890,9 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.execute(f"ALTER TABLE irs_form ADD COLUMN {temp_col_name} DOUBLE")
 
         # Create source table
-        rewriter_with_data.execute("CREATE TABLE IF NOT EXISTS bank_txn (txn_id INTEGER, amount DOUBLE)")
+        rewriter_with_data.execute(
+            "CREATE TABLE IF NOT EXISTS bank_txn (txn_id INTEGER, amount DOUBLE)"
+        )
 
         # Test INSERT query with 'Expense' - should result in 0 (Expense != Income)
         query = "INSERT INTO irs_form (txn_id, amount, kind) SELECT txn_id, ABS(amount), 'Expense' FROM bank_txn WHERE txn_id = 1"
@@ -893,11 +917,15 @@ class TestAggregatePolicyFinalize:
         assert result is not None
         assert result[0] == 0.0, f"Expected 0.0 for Expense, got {result[0]}"
 
-    def test_aggregate_policy_filter_replaces_output_column_with_value_income(self, rewriter_with_data):
+    def test_aggregate_policy_filter_replaces_output_column_with_value_income(
+        self, rewriter_with_data
+    ):
         """Test that FILTER conditions referencing output columns are replaced with actual values (Income case)."""
         # Create sink table (we'll add the temp column after we know the policy ID)
         rewriter_with_data.execute("DROP TABLE IF EXISTS irs_form")
-        rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
+        rewriter_with_data.execute(
+            "CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)"
+        )
 
         policy = AggregateDFCPolicy(
             sources=["bank_txn"],
@@ -913,7 +941,9 @@ class TestAggregatePolicyFinalize:
         rewriter_with_data.execute(f"ALTER TABLE irs_form ADD COLUMN {temp_col_name} DOUBLE")
 
         # Create source table
-        rewriter_with_data.execute("CREATE TABLE IF NOT EXISTS bank_txn (txn_id INTEGER, amount DOUBLE)")
+        rewriter_with_data.execute(
+            "CREATE TABLE IF NOT EXISTS bank_txn (txn_id INTEGER, amount DOUBLE)"
+        )
 
         # Test INSERT query with 'Income' - should result in amount (Income == Income)
         query = "INSERT INTO irs_form (txn_id, amount, kind) SELECT txn_id, ABS(amount), 'Income' FROM bank_txn WHERE txn_id = 1"
@@ -938,11 +968,15 @@ class TestAggregatePolicyFinalize:
         assert result is not None
         assert result[0] == 100.0, f"Expected 100.0 for Income, got {result[0]}"
 
-    def test_aggregate_policy_filter_replaces_output_column_with_complex_expression(self, rewriter_with_data):
+    def test_aggregate_policy_filter_replaces_output_column_with_complex_expression(
+        self, rewriter_with_data
+    ):
         """Test that FILTER conditions work with complex expressions in output columns."""
         # Create sink table (we'll add the temp column after we know the policy ID)
         rewriter_with_data.execute("DROP TABLE IF EXISTS irs_form")
-        rewriter_with_data.execute("CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)")
+        rewriter_with_data.execute(
+            "CREATE TABLE irs_form (txn_id INTEGER, amount DOUBLE, kind VARCHAR)"
+        )
 
         policy = AggregateDFCPolicy(
             sources=["bank_txn"],
@@ -959,7 +993,9 @@ class TestAggregatePolicyFinalize:
 
         # Create source table with category column
         rewriter_with_data.execute("DROP TABLE IF EXISTS bank_txn")
-        rewriter_with_data.execute("CREATE TABLE bank_txn (txn_id INTEGER, amount DOUBLE, category VARCHAR)")
+        rewriter_with_data.execute(
+            "CREATE TABLE bank_txn (txn_id INTEGER, amount DOUBLE, category VARCHAR)"
+        )
         rewriter_with_data.execute("INSERT INTO bank_txn VALUES (1, 100.0, 'meal')")
 
         # Test INSERT query with a CASE expression for kind
@@ -993,6 +1029,7 @@ class TestAggregatePolicyIntegration:
     def rewriter(cls):
         """Create a SQLRewriter instance with test data."""
         from sql_rewriter import SQLRewriter
+
         rewriter = SQLRewriter()
 
         rewriter.execute("CREATE TABLE foo (id INTEGER, amount DOUBLE)")
@@ -1073,12 +1110,16 @@ class TestAggregatePolicyIntegration:
 
         # Verify temp column is added to SELECT (for sink expression)
         temp_col_name = f"_{policy_id}_tmp1"
-        assert temp_col_name in transformed, f"Temp column {temp_col_name} not found in:\n{transformed}"
+        assert temp_col_name in transformed, (
+            f"Temp column {temp_col_name} not found in:\n{transformed}"
+        )
 
         # Verify temp column is added to INSERT column list
         # Should be: INSERT INTO bar (id, total, _policy_xxx_tmp1)
         insert_part = transformed.split("SELECT")[0]
-        assert temp_col_name in insert_part, f"Temp column {temp_col_name} not in INSERT column list:\n{insert_part}"
+        assert temp_col_name in insert_part, (
+            f"Temp column {temp_col_name} not in INSERT column list:\n{insert_part}"
+        )
 
         # Verify the temp column expression (SUM) is in SELECT
         assert "SUM(total)" in transformed or "SUM(TOTAL)" in transformed

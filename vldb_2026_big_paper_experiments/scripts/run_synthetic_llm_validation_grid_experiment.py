@@ -26,7 +26,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run synthetic LLM validation grid experiment.")
     parser.add_argument("--dataset-count", type=int, default=DEFAULT_SYNTHETIC_DATASET_COUNT)
     parser.add_argument("--rows-per-table", type=int, default=DEFAULT_SYNTHETIC_ROWS_PER_TABLE)
-    parser.add_argument("--policy-threshold", type=float, default=DEFAULT_SYNTHETIC_POLICY_THRESHOLD)
+    parser.add_argument(
+        "--policy-threshold", type=float, default=DEFAULT_SYNTHETIC_POLICY_THRESHOLD
+    )
     parser.add_argument("--query-nums", type=int, nargs="+", default=DEFAULT_SYNTHETIC_QUERY_NUMS)
     parser.add_argument("--policy-counts", type=int, nargs="+", default=[1])
     parser.add_argument("--runs-per-setting", type=int, default=1)

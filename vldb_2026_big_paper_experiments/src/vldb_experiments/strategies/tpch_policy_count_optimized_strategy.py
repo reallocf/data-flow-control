@@ -66,8 +66,12 @@ class TPCHPolicyCountOptimizedStrategy(ExperimentStrategy):
         self.physical_db_path = f"{db_path}_physical"
 
         policy_counts = context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)
-        warmup_per_policy = int(context.strategy_config.get("warmup_per_policy", DEFAULT_WARMUP_PER_POLICY))
-        runs_per_policy = int(context.strategy_config.get("runs_per_policy", DEFAULT_RUNS_PER_POLICY))
+        warmup_per_policy = int(
+            context.strategy_config.get("warmup_per_policy", DEFAULT_WARMUP_PER_POLICY)
+        )
+        runs_per_policy = int(
+            context.strategy_config.get("runs_per_policy", DEFAULT_RUNS_PER_POLICY)
+        )
 
         self.local_duckdb = _ensure_smokedduck()
         main_conn = self.local_duckdb.connect(self.db_path)

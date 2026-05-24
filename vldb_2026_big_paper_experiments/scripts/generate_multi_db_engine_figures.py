@@ -89,7 +89,9 @@ def main() -> int:
     )
 
     if args.exclude_duckdb:
-        filtered = _drop_duckdb_columns(_filter_to_engine(pd.read_csv(args.csv_path), args.engine, include_duckdb=True))
+        filtered = _drop_duckdb_columns(
+            _filter_to_engine(pd.read_csv(args.csv_path), args.engine, include_duckdb=True)
+        )
         noduckdb_csv = output_dir / f"tpch_multi_db_{args.engine}_only_noduckdb_{args.suffix}.csv"
         filtered.to_csv(noduckdb_csv, index=False)
         noduckdb_df = load_results(str(noduckdb_csv))

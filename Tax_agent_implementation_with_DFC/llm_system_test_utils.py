@@ -16,7 +16,11 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool as lc_tool
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
-from tax_engine import compute_1040, expense_from_receipt, schedule_c_input_from_expenses
+from tax_engine import (
+    compute_1040,
+    expense_from_receipt,
+    schedule_c_input_from_expenses,
+)
 
 
 def _ensure_sql_rewriter_path():
@@ -162,7 +166,9 @@ def fetch_db_rows(db_path: str, table: str) -> list[dict[str, Any]]:
     return [dict(zip(cols, row)) for row in rows]
 
 
-async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.1:8000/sse"):
+async def run_llm_request(
+    user_input: str, *, server_url: str = "http://127.0.0.1:8000/sse"
+):
     _ensure_sql_rewriter_path()
     import mcp_client_phase_18 as client
 
@@ -179,7 +185,9 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
     mcp_tools = await mcp_client.get_tools()
     mcp_tool_map = {t.name: t for t in mcp_tools}
     read_only_tools = {"list_expenses"}
-    tool_schemas = client.build_tool_schemas([t for t in mcp_tools if t.name not in read_only_tools])
+    tool_schemas = client.build_tool_schemas(
+        [t for t in mcp_tools if t.name not in read_only_tools]
+    )
     local_db = client.init_local_db(tool_schemas)
     rewriter = client.create_rewriter(local_db)
     policies_registered = False
@@ -199,7 +207,10 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
         }
         sink_table = client.get_sink_table(sql)
         if not sink_table:
-            trace["result"] = {"status": "error", "error": "Not a valid INSERT statement."}
+            trace["result"] = {
+                "status": "error",
+                "error": "Not a valid INSERT statement.",
+            }
             traces.append(trace)
             return trace["result"]
 
@@ -213,13 +224,16 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
             return trace["result"]
 
         trace["source_tables_before"] = {
-            table: _snapshot_table(table)
-            for table in client.get_source_tables(sql)
+            table: _snapshot_table(table) for table in client.get_source_tables(sql)
         }
 
         gate1_error = client.gate1_validate(sql, policy_deps)
         if gate1_error:
-            trace["result"] = {"status": "error", "stage": "gate1", "error": gate1_error}
+            trace["result"] = {
+                "status": "error",
+                "stage": "gate1",
+                "error": gate1_error,
+            }
             traces.append(trace)
             return trace["result"]
 
@@ -228,12 +242,16 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
         trace["sql_after_call_id"] = sql_final
 
         if not policies_registered:
-            policies_registered = client.register_policies(rewriter, client.DFC_POLICIES)
+            policies_registered = client.register_policies(
+                rewriter, client.DFC_POLICIES
+            )
 
         for source_table in client.get_source_tables(sql_final):
             client.deduplicate_source_table(local_db, source_table)
 
-        count_before = local_db.execute(f"SELECT COUNT(*) FROM {sink_table}").fetchone()[0]
+        count_before = local_db.execute(
+            f"SELECT COUNT(*) FROM {sink_table}"
+        ).fetchone()[0]
         trace["sink_count_before"] = count_before
 
         try:
@@ -263,7 +281,9 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
             traces.append(trace)
             return trace["result"]
 
-        count_after = local_db.execute(f"SELECT COUNT(*) FROM {sink_table}").fetchone()[0]
+        count_after = local_db.execute(f"SELECT COUNT(*) FROM {sink_table}").fetchone()[
+            0
+        ]
         trace["sink_count_after"] = count_after
         if count_after == count_before:
             trace["result"] = {
@@ -282,8 +302,7 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
         schema.store_output(local_db, call_id, response)
         trace["result"] = {"status": "ok", "tool": schema.tool_name, "result": response}
         trace["source_tables_after"] = {
-            table: _snapshot_table(table)
-            for table in [sink_table, schema.output_table]
+            table: _snapshot_table(table) for table in [sink_table, schema.output_table]
         }
         traces.append(trace)
         return trace["result"]
@@ -294,8 +313,12 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
         result = await _execute_sql(sql)
         return json.dumps(result)
 
-    pass_through_tools = [tool for tool in mcp_tools if f"{tool.name}_in" not in tool_schemas]
-    llm_with_tools = client.llm.bind_tools([execute_sql] + pass_through_tools, parallel_tool_calls=False)
+    pass_through_tools = [
+        tool for tool in mcp_tools if f"{tool.name}_in" not in tool_schemas
+    ]
+    llm_with_tools = client.llm.bind_tools(
+        [execute_sql] + pass_through_tools, parallel_tool_calls=False
+    )
 
     messages: list[Any] = [
         SystemMessage(content=client.build_system_prompt(tool_schemas)),
@@ -323,13 +346,22 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
                     raw = await mcp_tool.ainvoke(tc["args"])
                     content = json.dumps(client.parse_mcp_response(raw))
                 else:
-                    content = json.dumps({"status": "error", "error": f"Unknown tool '{name}'"})
+                    content = json.dumps(
+                        {"status": "error", "error": f"Unknown tool '{name}'"}
+                    )
                     request_failed = True
             messages.append(ToolMessage(content=content, tool_call_id=tc["id"]))
         if request_failed:
             break
 
-    final_ai = next((m for m in reversed(messages) if getattr(m, "content", None) and m.__class__.__name__ == "AIMessage"), None)
+    final_ai = next(
+        (
+            m
+            for m in reversed(messages)
+            if getattr(m, "content", None) and m.__class__.__name__ == "AIMessage"
+        ),
+        None,
+    )
     return {
         "final_message": final_ai.content if final_ai else "",
         "traces": traces,
@@ -342,5 +374,7 @@ async def run_llm_request(user_input: str, *, server_url: str = "http://127.0.0.
     }
 
 
-def run_llm_request_sync(user_input: str, *, server_url: str = "http://127.0.0.1:8000/sse"):
+def run_llm_request_sync(
+    user_input: str, *, server_url: str = "http://127.0.0.1:8000/sse"
+):
     return asyncio.run(run_llm_request(user_input, server_url=server_url))

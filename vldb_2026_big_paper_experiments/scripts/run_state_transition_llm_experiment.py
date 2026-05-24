@@ -27,7 +27,9 @@ from vldb_experiments.strategies.state_transition_strategy import (  # noqa: E40
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run the state-transition UPDATE experiment with 1Phase and GPT gating.")
+    parser = argparse.ArgumentParser(
+        description="Run the state-transition UPDATE experiment with 1Phase and GPT gating."
+    )
     parser.add_argument("--num-rows", type=int, default=DEFAULT_NUM_ROWS)
     parser.add_argument("--num-updates", type=int, default=DEFAULT_NUM_UPDATES)
     parser.add_argument("--valid-ratio", type=float, default=DEFAULT_VALID_RATIO)

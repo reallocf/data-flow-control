@@ -8,10 +8,12 @@ from mcp.server.fastmcp import FastMCP, Context
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
+
 @dataclass
 class AppContext:
     con: duckdb.DuckDBPyConnection
     model: SentenceTransformer
+
 
 @asynccontextmanager
 async def lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
@@ -26,7 +28,9 @@ async def lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     finally:
         con.close()
 
+
 mcp = FastMCP("tax-rag", lifespan=lifespan)
+
 
 @mcp.tool()
 def tax_law_search(ctx: Context, query: str, top_k: int = 5):
@@ -50,6 +54,7 @@ def tax_law_search(ctx: Context, query: str, top_k: int = 5):
             }
         )
     return out
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

@@ -32,10 +32,7 @@ def test_bedrock_connection():
 
         print(f"  ✓ Region: {region}")
 
-        client = boto3.client(
-            service_name="bedrock-runtime",
-            region_name=region
-        )
+        client = boto3.client(service_name="bedrock-runtime", region_name=region)
         print("  ✓ Bedrock client created successfully\n")
         return client
     except Exception as e:
@@ -56,21 +53,13 @@ def test_model_invocation(client):
         request_body = {
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": 100,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": test_prompt
-                }
-            ]
+            "messages": [{"role": "user", "content": test_prompt}],
         }
 
         print(f"  Sending test prompt: '{test_prompt}'")
 
         # Invoke the model
-        response = client.invoke_model(
-            modelId=BEDROCK_MODEL_ID,
-            body=json.dumps(request_body)
-        )
+        response = client.invoke_model(modelId=BEDROCK_MODEL_ID, body=json.dumps(request_body))
 
         # Parse the response
         response_body = json.loads(response["body"].read())
@@ -102,7 +91,9 @@ def test_model_invocation(client):
             print("  Possible issues:")
             print("     - Model access not granted in Bedrock console")
             print("     - IAM permissions missing")
-            print(f"     - Wrong region (model may not be available in {os.environ.get('AWS_REGION', 'us-east-1')})")
+            print(
+                f"     - Wrong region (model may not be available in {os.environ.get('AWS_REGION', 'us-east-1')})"
+            )
             print("     - Bearer token invalid or expired (if using AWS_BEARER_TOKEN_BEDROCK)")
         elif error_code == "ValidationException":
             print(f"  Check if model ID is correct: {BEDROCK_MODEL_ID}")
@@ -118,6 +109,7 @@ def test_model_invocation(client):
         print(f"  ✗ Unexpected error: {e!s}")
         print(f"  Full exception: {e!r}")
         import traceback
+
         print(f"  Traceback:\n{''.join(traceback.format_exception(type(e), e, e.__traceback__))}\n")
         return False
 

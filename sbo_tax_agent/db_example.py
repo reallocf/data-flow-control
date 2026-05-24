@@ -77,6 +77,7 @@ con.execute(f"""
 with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as stream_file:
     stream_path = stream_file.name
 
+
 # Define & register the Python UDF
 def address_violating_rows(
     description: str,
@@ -93,6 +94,7 @@ def address_violating_rows(
         f.write(f"{description}\t{category}\t0.0\t{txn_id}\n")
         f.flush()
     return False
+
 
 con.create_function("address_violating_rows", address_violating_rows)
 

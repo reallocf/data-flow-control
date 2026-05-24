@@ -238,7 +238,9 @@ def create_tpch_duckdb_provenance_capped_overhead_chart(
         }
     ).dropna()
     if complete_overheads.empty:
-        raise ValueError("No TPCH queries have complete DFC, logical provenance, and physical provenance results.")
+        raise ValueError(
+            "No TPCH queries have complete DFC, logical provenance, and physical provenance results."
+        )
 
     plot_specs = [
         ("SOA Data Flow 1", float(complete_overheads["logical"].mean()), "#2ca02c"),
@@ -264,7 +266,9 @@ def create_tpch_duckdb_provenance_capped_overhead_chart(
     ax.set_yscale("symlog", linthresh=1.0, linscale=1.0)
     positive_values = [value for value in plot_values if value > 0]
     if not positive_values:
-        raise ValueError("Cannot create log-scale provenance chart without positive overhead values.")
+        raise ValueError(
+            "Cannot create log-scale provenance chart without positive overhead values."
+        )
     ax.set_ylim(bottom=0.0, top=10000.0)
     ax.set_yticks([0.0, 1.0, 10.0, 100.0, 1000.0, 10000.0])
     ax.set_yticklabels(["0", "1", "10", "100", "1000", "10000"])
@@ -324,18 +328,19 @@ def create_phase_competition_heatmap(
     }
     missing = required - set(plot_df.columns)
     if missing:
-        raise ValueError(f"Missing required columns for phase competition heatmap: {sorted(missing)}")
+        raise ValueError(
+            f"Missing required columns for phase competition heatmap: {sorted(missing)}"
+        )
     bad = plot_df[plot_df["correctness_match"].astype(str).str.lower() != "true"]
     if not bad.empty:
         raise ValueError("Phase competition CSV contains correctness mismatches.")
 
-    grouped = (
-        plot_df.groupby(["join_fanout", "policy_column_count"], as_index=False)[
-            ["dfc_1phase_exec_time_ms", "dfc_2phase_exec_time_ms"]
-        ]
-        .mean()
+    grouped = plot_df.groupby(["join_fanout", "policy_column_count"], as_index=False)[
+        ["dfc_1phase_exec_time_ms", "dfc_2phase_exec_time_ms"]
+    ].mean()
+    grouped["relative_perf"] = (
+        grouped["dfc_1phase_exec_time_ms"] / grouped["dfc_2phase_exec_time_ms"]
     )
-    grouped["relative_perf"] = grouped["dfc_1phase_exec_time_ms"] / grouped["dfc_2phase_exec_time_ms"]
 
     fanouts = sorted(grouped["join_fanout"].astype(int).unique().tolist())
     policy_counts = sorted(grouped["policy_column_count"].astype(int).unique().tolist())
@@ -448,7 +453,9 @@ def create_llm_validation_latency_f1_chart(
     }
     missing = required_cols - set(df.columns)
     if missing:
-        raise ValueError(f"Missing required columns for LLM validation scatter chart: {sorted(missing)}")
+        raise ValueError(
+            f"Missing required columns for LLM validation scatter chart: {sorted(missing)}"
+        )
 
     plot_df = df.copy()
     if plot_df.empty:
@@ -456,8 +463,20 @@ def create_llm_validation_latency_f1_chart(
 
     series_specs = [
         ("DFC", "dfc_avg_runtime_ms", "dfc_f1", "#2ca02c", "o"),
-        ("GPT 5.2", "gpt_52_query_results_avg_runtime_ms", "gpt_52_query_results_f1", "#4C78A8", "s"),
-        ("Opus 4.6", "opus_46_query_results_avg_runtime_ms", "opus_46_query_results_f1", "#E45756", "^"),
+        (
+            "GPT 5.2",
+            "gpt_52_query_results_avg_runtime_ms",
+            "gpt_52_query_results_f1",
+            "#4C78A8",
+            "s",
+        ),
+        (
+            "Opus 4.6",
+            "opus_46_query_results_avg_runtime_ms",
+            "opus_46_query_results_f1",
+            "#E45756",
+            "^",
+        ),
     ]
 
     fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 2.25))
@@ -529,9 +548,16 @@ def create_multi_source_overhead_line_chart(
     *,
     output_path: Path,
 ) -> None:
-    required_cols = {"source_count", "join_count", "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms"}
+    required_cols = {
+        "source_count",
+        "join_count",
+        "no_policy_exec_time_ms",
+        "dfc_1phase_exec_time_ms",
+    }
     if not required_cols.issubset(df.columns):
-        raise ValueError(f"Missing required columns for multi-source line chart: {sorted(required_cols - set(df.columns))}")
+        raise ValueError(
+            f"Missing required columns for multi-source line chart: {sorted(required_cols - set(df.columns))}"
+        )
 
     plot_df = df.copy()
     if "run_num" in plot_df.columns:
@@ -632,7 +658,12 @@ def create_policy_count_self_join_combined_chart(
 
     self_join_grouped = (
         self_join_df[
-            ["self_join_count", "no_policy_time_ms", "dfc_1phase_time_ms", "dfc_1phase_optimized_time_ms"]
+            [
+                "self_join_count",
+                "no_policy_time_ms",
+                "dfc_1phase_time_ms",
+                "dfc_1phase_optimized_time_ms",
+            ]
         ]
         .dropna(subset=["self_join_count"])
         .groupby("self_join_count", as_index=True)
@@ -644,7 +675,8 @@ def create_policy_count_self_join_combined_chart(
         (self_join_grouped["dfc_1phase_time_ms"] - self_join_baseline) / self_join_baseline
     ) * 100.0
     self_join_grouped["dfc_1phase_optimized_overhead_pct"] = (
-        (self_join_grouped["dfc_1phase_optimized_time_ms"] - self_join_baseline) / self_join_baseline
+        (self_join_grouped["dfc_1phase_optimized_time_ms"] - self_join_baseline)
+        / self_join_baseline
     ) * 100.0
 
     fig, (ax_left, ax_right) = plt.subplots(2, 1, figsize=(COLUMN_WIDTH_IN, 2.95))
@@ -803,11 +835,7 @@ def create_microbenchmark_combined_chart(
         if query_df.empty or x_col not in query_df.columns:
             continue
 
-        grouped = (
-            query_df.groupby(x_col, as_index=True)
-            .mean(numeric_only=True)
-            .sort_index()
-        )
+        grouped = query_df.groupby(x_col, as_index=True).mean(numeric_only=True).sort_index()
 
         for approach, col in approach_columns.items():
             if col not in grouped.columns:
@@ -863,15 +891,29 @@ def create_multi_db_engine_summary_capped_chart(
         raise ValueError("Missing query_num column for multi-db engine summary chart.")
 
     duckdb_cols = (
-        "dfc_1phase_exec_time_ms" if "dfc_1phase_exec_time_ms" in df.columns else "dfc_1phase_time_ms",
-        "dfc_2phase_exec_time_ms" if "dfc_2phase_exec_time_ms" in df.columns else "dfc_2phase_time_ms",
+        "dfc_1phase_exec_time_ms"
+        if "dfc_1phase_exec_time_ms" in df.columns
+        else "dfc_1phase_time_ms",
+        "dfc_2phase_exec_time_ms"
+        if "dfc_2phase_exec_time_ms" in df.columns
+        else "dfc_2phase_time_ms",
         "logical_exec_time_ms" if "logical_exec_time_ms" in df.columns else "logical_time_ms",
         "no_policy_exec_time_ms" if "no_policy_exec_time_ms" in df.columns else "no_policy_time_ms",
     )
     engines = {
         "DuckDB": duckdb_cols,
-        "Umbra": ("umbra_dfc_1phase_time_ms", "umbra_dfc_2phase_time_ms", "umbra_logical_time_ms", "umbra_time_ms"),
-        "Postgres": ("postgres_dfc_1phase_time_ms", "postgres_dfc_2phase_time_ms", "postgres_logical_time_ms", "postgres_time_ms"),
+        "Umbra": (
+            "umbra_dfc_1phase_time_ms",
+            "umbra_dfc_2phase_time_ms",
+            "umbra_logical_time_ms",
+            "umbra_time_ms",
+        ),
+        "Postgres": (
+            "postgres_dfc_1phase_time_ms",
+            "postgres_dfc_2phase_time_ms",
+            "postgres_logical_time_ms",
+            "postgres_time_ms",
+        ),
         "DataFusion": (
             "datafusion_dfc_1phase_time_ms",
             "datafusion_dfc_2phase_time_ms",
@@ -889,20 +931,30 @@ def create_multi_db_engine_summary_capped_chart(
     records: list[dict[str, float | str]] = []
     engine_order: list[str] = []
     for engine, (dfc_1phase_col, dfc_2phase_col, logical_col, baseline_col) in engines.items():
-        if not all(col in df.columns for col in (dfc_1phase_col, dfc_2phase_col, logical_col, baseline_col)):
+        if not all(
+            col in df.columns for col in (dfc_1phase_col, dfc_2phase_col, logical_col, baseline_col)
+        ):
             continue
-        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(numeric_only=True)
+        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(
+            numeric_only=True
+        )
         baseline_by_query = baseline_by_query[baseline_by_query > 0]
         if baseline_by_query.empty:
             continue
         engine_added = False
-        for label, col in [(FULL_PUSH_LABEL, dfc_1phase_col), (PARTIAL_PUSH_LABEL, dfc_2phase_col), ("Logical", logical_col)]:
+        for label, col in [
+            (FULL_PUSH_LABEL, dfc_1phase_col),
+            (PARTIAL_PUSH_LABEL, dfc_2phase_col),
+            ("Logical", logical_col),
+        ]:
             approach_by_query = df.groupby("query_num", as_index=True)[col].mean(numeric_only=True)
             approach_by_query = approach_by_query.reindex(baseline_by_query.index)
             valid_mask = approach_by_query > 0
             overhead_by_query = (
-                approach_by_query[valid_mask] / baseline_by_query[valid_mask]
-            ).replace([float("inf"), float("-inf")], pd.NA).dropna()
+                (approach_by_query[valid_mask] / baseline_by_query[valid_mask])
+                .replace([float("inf"), float("-inf")], pd.NA)
+                .dropna()
+            )
             if overhead_by_query.empty:
                 continue
             avg_overhead = float((overhead_by_query.mean() - 1.0) * 100.0)
@@ -911,7 +963,9 @@ def create_multi_db_engine_summary_capped_chart(
                     "engine": engine,
                     "approach": label,
                     "avg_overhead": avg_overhead,
-                    "plot_overhead": min(avg_overhead, duckdb_cap_pct) if engine == "DuckDB" else avg_overhead,
+                    "plot_overhead": min(avg_overhead, duckdb_cap_pct)
+                    if engine == "DuckDB"
+                    else avg_overhead,
                 }
             )
             engine_added = True
@@ -922,7 +976,9 @@ def create_multi_db_engine_summary_capped_chart(
         raise ValueError("No data available for multi-db engine summary chart.")
 
     summary_df = pd.DataFrame.from_records(records)
-    summary_df["engine"] = pd.Categorical(summary_df["engine"], categories=engine_order, ordered=True)
+    summary_df["engine"] = pd.Categorical(
+        summary_df["engine"], categories=engine_order, ordered=True
+    )
     summary_df = summary_df.sort_values(["engine", "approach"])
 
     fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 2.95))
@@ -1017,7 +1073,9 @@ def generate_all_final_visualizations(final_results_dir: str | Path) -> list[Pat
         show_dfc_label=False,
         zero_dfc_bar=True,
     )
-    output_paths.append(final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10_no_dfc_label.png")
+    output_paths.append(
+        final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10_no_dfc_label.png"
+    )
 
     tpch_multi_db_df = load_results(str(final_dir / "tpch_multi_db_sf1_default_merged.csv"))
     create_multi_db_engine_summary_capped_chart(

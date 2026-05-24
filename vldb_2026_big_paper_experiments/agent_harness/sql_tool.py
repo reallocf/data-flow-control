@@ -91,12 +91,19 @@ class SQLExecutionHarness:
                     )
 
         for select_item in select_expr.expressions or []:
-            if isinstance(select_item, exp.Alias) and select_item.alias and select_item.alias.lower() == "invalid_string":
+            if (
+                isinstance(select_item, exp.Alias)
+                and select_item.alias
+                and select_item.alias.lower() == "invalid_string"
+            ):
                 raise ValueError(
                     "Do not project invalid_string in INSERT INTO expenses. "
                     "invalid_string is internal to the harness."
                 )
-            if isinstance(select_item, exp.Column) and str(select_item.name).lower() == "invalid_string":
+            if (
+                isinstance(select_item, exp.Column)
+                and str(select_item.name).lower() == "invalid_string"
+            ):
                 raise ValueError(
                     "Do not project invalid_string in INSERT INTO expenses. "
                     "invalid_string is internal to the harness."

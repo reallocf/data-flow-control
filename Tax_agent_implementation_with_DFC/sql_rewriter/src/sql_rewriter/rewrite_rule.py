@@ -25,11 +25,8 @@ def _wrap_kill_constraint(constraint_expr: exp.Expression) -> exp.Expression:
     """
     kill_call = exp.Anonymous(this="kill", expressions=[])
     return exp.Case(
-        ifs=[exp.If(
-            this=constraint_expr,
-            true=exp.Literal(this="true", is_string=False)
-        )],
-        default=kill_call
+        ifs=[exp.If(this=constraint_expr, true=exp.Literal(this="true", is_string=False))],
+        default=kill_call,
     )
 
 
@@ -37,7 +34,7 @@ def _extract_columns_from_constraint(
     constraint_expr: exp.Expression,
     source_tables: set[str],
     sink_table: Optional[str] = None,
-    sink_to_output_mapping: Optional[dict[str, str]] = None
+    sink_to_output_mapping: Optional[dict[str, str]] = None,
 ) -> list[exp.Column]:
     """Extract all columns from a constraint expression that belong to source or sink tables.
 
@@ -87,9 +84,7 @@ def _extract_columns_from_constraint(
                 col_key = ("sink", output_col_name)
                 if col_key not in seen:
                     seen.add(col_key)
-                    output_col = exp.Column(
-                        this=exp.Identifier(this=output_col_name, quoted=False)
-                    )
+                    output_col = exp.Column(this=exp.Identifier(this=output_col_name, quoted=False))
                     columns.append(output_col)
 
     return columns
@@ -103,7 +98,7 @@ def _wrap_llm_constraint(
     sink_table: Optional[str] = None,
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     parsed: Optional[exp.Select] = None,
-    _insert_columns: Optional[list[str]] = None
+    _insert_columns: Optional[list[str]] = None,
 ) -> exp.Expression:
     """Wrap a constraint expression in CASE WHEN for LLM resolution policies.
 
@@ -166,10 +161,10 @@ def _wrap_llm_constraint(
                 column_name = get_column_name(column)
                 # Check if we already have this column (don't duplicate)
                 already_included = any(
-                    isinstance(c, exp.Column) and
-                    get_table_name_from_column(c) and
-                    get_table_name_from_column(c).lower() == table_name.lower() and
-                    get_column_name(c).lower() == column_name.lower()
+                    isinstance(c, exp.Column)
+                    and get_table_name_from_column(c)
+                    and get_table_name_from_column(c).lower() == table_name.lower()
+                    and get_column_name(c).lower() == column_name.lower()
                     for c in columns
                 )
                 if not already_included:
@@ -182,7 +177,7 @@ def _wrap_llm_constraint(
                     # Add to UDF call arguments (this makes it available to the UDF)
                     col_expr = exp.Column(
                         this=exp.Identifier(this=column_name, quoted=False),
-                        table=exp.Identifier(this=table_name, quoted=False)
+                        table=exp.Identifier(this=table_name, quoted=False),
                     )
                     columns.append(col_expr)
                     column_names.append(f"{table_name}.{column_name}")
@@ -232,15 +227,12 @@ def _wrap_llm_constraint(
             if col_name:
                 # Check if we already have this column (don't duplicate)
                 already_included = any(
-                    isinstance(c, exp.Column) and
-                    get_column_name(c).lower() == col_name.lower()
+                    isinstance(c, exp.Column) and get_column_name(c).lower() == col_name.lower()
                     for c in columns
                 )
                 if not already_included:
                     # Create column reference using the alias or column name
-                    output_col = exp.Column(
-                        this=exp.Identifier(this=col_name, quoted=False)
-                    )
+                    output_col = exp.Column(this=exp.Identifier(this=col_name, quoted=False))
                     columns.append(output_col)
                     # Use qualified name if it's a source table column, otherwise just the column name
                     if table_name and table_name in source_tables:
@@ -280,8 +272,8 @@ def _wrap_llm_constraint(
                     output_col_name = sink_to_output_mapping[col_name]
                     # Check if we already have this column (don't duplicate)
                     already_included = any(
-                        isinstance(col, exp.Column) and
-                        get_column_name(col).lower() == output_col_name.lower()
+                        isinstance(col, exp.Column)
+                        and get_column_name(col).lower() == output_col_name.lower()
                         for col in columns
                     )
                     if not already_included:
@@ -324,23 +316,23 @@ def _wrap_llm_constraint(
 
     # Create function call with columns, constraint, description, column_names_json, stream_endpoint
     # address_violating_rows(col1, col2, ..., constraint, description, column_names_json, stream_endpoint)
-    expressions = [*columns, constraint_literal, description_literal, column_names_literal, stream_endpoint]
+    expressions = [
+        *columns,
+        constraint_literal,
+        description_literal,
+        column_names_literal,
+        stream_endpoint,
+    ]
     address_call = exp.Anonymous(this="address_violating_rows", expressions=expressions)
 
     return exp.Case(
-        ifs=[exp.If(
-            this=constraint_expr,
-            true=exp.Literal(this="true", is_string=False)
-        )],
-        default=address_call
+        ifs=[exp.If(this=constraint_expr, true=exp.Literal(this="true", is_string=False))],
+        default=address_call,
     )
 
 
 def _add_clause_to_select(
-    parsed: exp.Select,
-    clause_name: str,
-    clause_expr: exp.Expression,
-    clause_class: type
+    parsed: exp.Select, clause_name: str, clause_expr: exp.Expression, clause_class: type
 ) -> None:
     """Add a clause (HAVING or WHERE) to a SELECT statement, combining with existing if needed.
 
@@ -358,7 +350,11 @@ def _add_clause_to_select(
         existing_clause_expr = parsed.args[clause_name]
 
     if existing_clause_expr:
-        existing_expr = existing_clause_expr.this if isinstance(existing_clause_expr, clause_class) else existing_clause_expr
+        existing_expr = (
+            existing_clause_expr.this
+            if isinstance(existing_clause_expr, clause_class)
+            else existing_clause_expr
+        )
         wrapped_new = exp.Paren(this=clause_expr)
         combined = _combine_and_expressions([existing_expr, wrapped_new])
         parsed.set(clause_name, clause_class(this=combined))
@@ -415,9 +411,7 @@ def _combine_and_expressions(expressions: list[exp.Expression]) -> exp.Expressio
 
 
 def _add_invalidate_column_to_select(
-    parsed: exp.Select,
-    constraint_expr: exp.Expression,
-    replace_existing: bool = False
+    parsed: exp.Select, constraint_expr: exp.Expression, replace_existing: bool = False
 ) -> None:
     """Add a 'valid' column to a SELECT statement, combining with existing if needed.
 
@@ -453,7 +447,9 @@ def _add_invalidate_column_to_select(
 
         # Combine existing and new constraint with AND
         # Both must pass for valid=true
-        wrapped_existing = existing_copy if isinstance(existing_copy, exp.Paren) else exp.Paren(this=existing_copy)
+        wrapped_existing = (
+            existing_copy if isinstance(existing_copy, exp.Paren) else exp.Paren(this=existing_copy)
+        )
         wrapped_new = exp.Paren(this=constraint_copy)
         combined = exp.And(this=wrapped_existing, expression=wrapped_new)
         valid_expr = combined
@@ -463,16 +459,14 @@ def _add_invalidate_column_to_select(
         valid_expr = wrapped_new
 
     # Create the aliased column
-    valid_alias = exp.Alias(
-        this=valid_expr,
-        alias=exp.Identifier(this="valid", quoted=False)
-    )
+    valid_alias = exp.Alias(this=valid_expr, alias=exp.Identifier(this="valid", quoted=False))
 
     # Remove existing 'valid' column if it exists (modify list in place)
     expressions_to_remove = []
     for i, expr in enumerate(parsed.expressions):
-        if (isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "valid") or \
-           (isinstance(expr, exp.Column) and get_column_name(expr).lower() == "valid"):
+        if (isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "valid") or (
+            isinstance(expr, exp.Column) and get_column_name(expr).lower() == "valid"
+        ):
             expressions_to_remove.append(i)
 
     # Remove in reverse order to maintain indices
@@ -520,9 +514,7 @@ def _add_invalidate_message_column_to_select(
     if existing_invalid_string_expr and not replace_existing:
         existing_sql = existing_invalid_string_expr.sql()
         new_sql = new_message_expr.sql()
-        combined_sql = (
-            f"CONCAT_WS(' | ', NULLIF({existing_sql}, ''), NULLIF({new_sql}, ''))"
-        )
+        combined_sql = f"CONCAT_WS(' | ', NULLIF({existing_sql}, ''), NULLIF({new_sql}, ''))"
         invalid_string_expr = sqlglot.parse_one(combined_sql, read="duckdb")
     else:
         invalid_string_expr = new_message_expr
@@ -535,12 +527,8 @@ def _add_invalidate_message_column_to_select(
     expressions_to_remove = []
     for i, expr in enumerate(parsed.expressions):
         if (
-            isinstance(expr, exp.Alias)
-            and expr.alias
-            and expr.alias.lower() == "invalid_string"
-        ) or (
-            isinstance(expr, exp.Column) and get_column_name(expr).lower() == "invalid_string"
-        ):
+            isinstance(expr, exp.Alias) and expr.alias and expr.alias.lower() == "invalid_string"
+        ) or (isinstance(expr, exp.Column) and get_column_name(expr).lower() == "invalid_string"):
             expressions_to_remove.append(i)
 
     for i in reversed(expressions_to_remove):
@@ -558,7 +546,7 @@ def apply_policy_constraints_to_aggregation(
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
     replace_existing_invalid_string: bool = False,
-    insert_columns: Optional[list[str]] = None
+    insert_columns: Optional[list[str]] = None,
 ) -> None:
     """Apply policy constraints to an aggregation query.
 
@@ -614,13 +602,20 @@ def apply_policy_constraints_to_aggregation(
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
         elif policy.on_fail == Resolution.LLM:
             constraint_expr = _wrap_llm_constraint(
-                constraint_expr, policy, source_tables, stream_file_path,
-                sink_table, sink_to_output_mapping, parsed=parsed,
-                insert_columns=insert_columns
+                constraint_expr,
+                policy,
+                source_tables,
+                stream_file_path,
+                sink_table,
+                sink_to_output_mapping,
+                parsed=parsed,
+                insert_columns=insert_columns,
             )
             _add_clause_to_select(parsed, "having", constraint_expr, exp.Having)
         elif policy.on_fail == Resolution.INVALIDATE:
-            _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+            _add_invalidate_column_to_select(
+                parsed, constraint_expr, replace_existing=replace_existing_valid
+            )
         elif policy.on_fail == Resolution.INVALIDATE_MESSAGE:
             policy_message = policy.description or policy.constraint
             _add_invalidate_message_column_to_select(
@@ -635,9 +630,7 @@ def apply_policy_constraints_to_aggregation(
 
 
 def ensure_columns_accessible(
-    parsed: exp.Select,
-    constraint_expr: exp.Expression,
-    source_tables: set[str]
+    parsed: exp.Select, constraint_expr: exp.Expression, source_tables: set[str]
 ) -> None:
     """Ensure all columns referenced in the constraint are accessible in the query.
 
@@ -790,7 +783,7 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     else:
         col_expr = exp.Column(
             this=exp.Identifier(this=column_name, quoted=False),
-            table=exp.Identifier(this=table_ref, quoted=False)
+            table=exp.Identifier(this=table_ref, quoted=False),
         )
 
     # Add the column to the SELECT list
@@ -800,7 +793,9 @@ def _add_column_to_subquery(subquery: exp.Subquery, table_name: str, column_name
     alias = subquery.args.get("alias")
     if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
         alias_columns = alias.args.get("columns")
-        alias_col_name = "__dfc_rowid" if column_name.lower() == "__dfc_rowid_passthrough" else column_name
+        alias_col_name = (
+            "__dfc_rowid" if column_name.lower() == "__dfc_rowid_passthrough" else column_name
+        )
         if all(
             not (isinstance(col, exp.Identifier) and col.name.lower() == alias_col_name.lower())
             for col in alias_columns
@@ -964,7 +959,7 @@ def _add_column_to_cte(cte: exp.CTE, table_name: str, column_name: str) -> None:
     else:
         col_expr = exp.Column(
             this=exp.Identifier(this=column_name, quoted=False),
-            table=exp.Identifier(this=table_ref, quoted=False)
+            table=exp.Identifier(this=table_ref, quoted=False),
         )
 
     # Add the column to the SELECT list
@@ -1007,9 +1002,7 @@ def _replace_sink_table_references_in_constraint(
                 if col_name in sink_to_output_mapping:
                     # Replace with unqualified column reference to SELECT output
                     output_col_name = sink_to_output_mapping[col_name]
-                    return exp.Column(
-                        this=exp.Identifier(this=output_col_name, quoted=False)
-                    )
+                    return exp.Column(this=exp.Identifier(this=output_col_name, quoted=False))
             # Check if this is an unqualified column that matches the sink table name
             # This handles cases like sum(irs_form) where irs_form is shorthand
             elif not table_name and col_name in sink_reference_names:
@@ -1019,9 +1012,7 @@ def _replace_sink_table_references_in_constraint(
                 # This is a heuristic - ideally the policy should specify the column explicitly
                 if len(sink_to_output_mapping) == 1:
                     output_col_name = next(iter(sink_to_output_mapping.values()))
-                    return exp.Column(
-                        this=exp.Identifier(this=output_col_name, quoted=False)
-                    )
+                    return exp.Column(this=exp.Identifier(this=output_col_name, quoted=False))
                 # If multiple columns, try to use a common one like 'amount' or the first one
                 if "amount" in sink_to_output_mapping:
                     return exp.Column(
@@ -1029,9 +1020,7 @@ def _replace_sink_table_references_in_constraint(
                     )
                 # Use the first column in the mapping
                 output_col_name = next(iter(sink_to_output_mapping.values()))
-                return exp.Column(
-                    this=exp.Identifier(this=output_col_name, quoted=False)
-                )
+                return exp.Column(this=exp.Identifier(this=output_col_name, quoted=False))
         return node
 
     # Transform the expression, replacing all sink column references
@@ -1039,8 +1028,7 @@ def _replace_sink_table_references_in_constraint(
 
 
 def _get_source_table_to_alias_mapping(
-    parsed: exp.Select,
-    source_tables: set[str]
+    parsed: exp.Select, source_tables: set[str]
 ) -> dict[str, str]:
     """Build a mapping from source table names to their subquery/CTE aliases.
 
@@ -1074,8 +1062,7 @@ def _get_source_table_to_alias_mapping(
                 main_query_tables.add(table.name.lower())
         # Also check JOINs directly in the main query
         for join in parsed.find_all(exp.Join):
-            if (not join.find_ancestor(exp.Subquery) and
-                not join.find_ancestor(exp.CTE)):
+            if not join.find_ancestor(exp.Subquery) and not join.find_ancestor(exp.CTE):
                 for table in join.find_all(exp.Table):
                     # Exclude subquery tables
                     if (
@@ -1144,8 +1131,7 @@ def _get_source_table_to_alias_mapping(
 
 
 def _replace_table_references_in_constraint(
-    constraint_expr: exp.Expression,
-    table_mapping: dict[str, str]
+    constraint_expr: exp.Expression, table_mapping: dict[str, str]
 ) -> exp.Expression:
     """Replace table references in a constraint expression with subquery/CTE aliases.
 
@@ -1169,10 +1155,7 @@ def _replace_table_references_in_constraint(
             if table_name and table_name in table_mapping:
                 # Replace the table reference with the subquery/CTE alias
                 new_table = exp.Identifier(this=table_mapping[table_name], quoted=False)
-                return exp.Column(
-                    this=node.this,
-                    table=new_table
-                )
+                return exp.Column(this=node.this, table=new_table)
         return node
 
     # Transform the expression, replacing all column table references
@@ -1181,9 +1164,7 @@ def _replace_table_references_in_constraint(
 
 
 def _replace_aggregations_from_join_subqueries(
-    parsed: exp.Select,
-    constraint_expr: exp.Expression,
-    policy_sources: set[str]
+    parsed: exp.Select, constraint_expr: exp.Expression, policy_sources: set[str]
 ) -> exp.Expression:
     """Replace aggregations in constraints that reference tables only in JOIN subqueries.
 
@@ -1223,7 +1204,10 @@ def _replace_aggregations_from_join_subqueries(
                 for join in joins:
                     if isinstance(join.this, exp.Subquery):
                         subquery_node = join.this
-                        if hasattr(subquery_node, "meta") and "aggregation_aliases" in subquery_node.meta:
+                        if (
+                            hasattr(subquery_node, "meta")
+                            and "aggregation_aliases" in subquery_node.meta
+                        ):
                             aggregation_aliases = subquery_node.meta["aggregation_aliases"]
                             policy_table = subquery_node.meta.get("policy_table")
 
@@ -1238,7 +1222,7 @@ def _replace_aggregations_from_join_subqueries(
                                     # DuckDB requires wrapping in an aggregate function in HAVING, even if already aggregated
                                     subquery_col = exp.Column(
                                         this=exp.Identifier(this=agg_alias_name),
-                                        table=exp.Identifier(this=subquery_alias_name)
+                                        table=exp.Identifier(this=subquery_alias_name),
                                     )
                                     # Wrap in MAX() to satisfy DuckDB's HAVING clause requirements
                                     return exp.Max(this=subquery_col)
@@ -1249,9 +1233,7 @@ def _replace_aggregations_from_join_subqueries(
 
 
 def _replace_aggregations_from_from_subqueries(
-    parsed: exp.Select,
-    constraint_expr: exp.Expression,
-    policy_sources: set[str]
+    parsed: exp.Select, constraint_expr: exp.Expression, policy_sources: set[str]
 ) -> exp.Expression:
     """Replace aggregations in constraints that reference source tables in FROM subqueries.
 
@@ -1270,7 +1252,9 @@ def _replace_aggregations_from_from_subqueries(
         if isinstance(node, exp.AggFunc):
             agg_sql = node.sql(dialect="duckdb")
             for subquery, subquery_alias in subqueries:
-                agg_aliases = subquery.meta.get("policy_agg_aliases") if hasattr(subquery, "meta") else None
+                agg_aliases = (
+                    subquery.meta.get("policy_agg_aliases") if hasattr(subquery, "meta") else None
+                )
                 if not agg_aliases:
                     continue
                 if agg_sql in agg_aliases:
@@ -1286,9 +1270,7 @@ def _replace_aggregations_from_from_subqueries(
 
 
 def ensure_subqueries_have_constraint_columns(
-    parsed: exp.Select,
-    policies: list[DFCPolicy],
-    source_tables: set[str]
+    parsed: exp.Select, policies: list[DFCPolicy], source_tables: set[str]
 ) -> None:
     """Ensure subqueries and CTEs that reference source tables include columns needed for constraints.
 
@@ -1338,9 +1320,14 @@ def ensure_subqueries_have_constraint_columns(
                         for agg_expr in source_aggregates:
                             temp_col_name = f"_{policy_id}_agg{next_idx}"
                             next_idx += 1
-                            _add_temp_column_to_select(subquery.this, agg_expr, temp_col_name, source_tables)
+                            _add_temp_column_to_select(
+                                subquery.this, agg_expr, temp_col_name, source_tables
+                            )
                             alias = subquery.args.get("alias")
-                            if isinstance(alias, exp.TableAlias) and alias.args.get("columns") is not None:
+                            if (
+                                isinstance(alias, exp.TableAlias)
+                                and alias.args.get("columns") is not None
+                            ):
                                 alias_columns = alias.args.get("columns")
                                 if all(
                                     not (
@@ -1426,7 +1413,9 @@ def ensure_subqueries_have_constraint_columns(
             if cte_alias in ctes_with_rowid:
                 continue
 
-            cte_select = cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
+            cte_select = (
+                cte.this if hasattr(cte, "this") and isinstance(cte.this, exp.Select) else None
+            )
             if not isinstance(cte_select, exp.Select):
                 continue
 
@@ -1446,10 +1435,7 @@ def ensure_subqueries_have_constraint_columns(
 
 
 def wrap_query_with_limit_in_cte_for_remove_policy(
-    parsed: exp.Select,
-    policy: DFCPolicy,
-    source_tables: set[str],
-    is_aggregation: bool
+    parsed: exp.Select, policy: DFCPolicy, source_tables: set[str], is_aggregation: bool
 ) -> None:
     """Wrap a query with LIMIT in a CTE and apply REMOVE policy filter after the limit.
 
@@ -1465,7 +1451,9 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
         source_tables: Set of source table names in the query.
         is_aggregation: Whether this is an aggregation query (affects how constraint is added).
     """
-    logger.debug(f"wrap_query_with_limit_in_cte_for_remove_policy called for aggregation={is_aggregation}")
+    logger.debug(
+        f"wrap_query_with_limit_in_cte_for_remove_policy called for aggregation={is_aggregation}"
+    )
 
     # Check if query has LIMIT
     limit_expr = parsed.args.get("limit")
@@ -1490,7 +1478,9 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
             dfc_expr = comp.this  # Left side (aggregation/column)
             threshold_expr = comp.expression  # Right side (threshold)
             comparison_op = op_class
-            logger.debug(f"Found comparison: {op_class.__name__}, dfc_expr={dfc_expr.sql()}, threshold={threshold_expr.sql()}")
+            logger.debug(
+                f"Found comparison: {op_class.__name__}, dfc_expr={dfc_expr.sql()}, threshold={threshold_expr.sql()}"
+            )
             break
 
     if not dfc_expr or not threshold_expr:
@@ -1498,28 +1488,29 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
         return
 
     if is_aggregation:
+
         def remove_table_qualifiers_from_agg(node):
             if isinstance(node, exp.Column):
                 col_name = get_column_name(node)
                 return exp.Column(this=exp.Identifier(this=col_name))
             return node
+
         dfc_column_expr = dfc_expr.transform(remove_table_qualifiers_from_agg, copy=True)
     else:
         dfc_column_expr = transform_aggregations_to_columns(dfc_expr, source_tables)
+
         def remove_table_qualifiers(node):
             if isinstance(node, exp.Column):
                 col_name = get_column_name(node)
                 return exp.Column(this=exp.Identifier(this=col_name))
             return node
+
         dfc_column_expr = dfc_column_expr.transform(remove_table_qualifiers, copy=True)
 
     dfc_expr_sql = dfc_column_expr.sql()
     dfc_column_expr_copy = sqlglot.parse_one(dfc_expr_sql, read="duckdb")
 
-    dfc_alias = exp.Alias(
-        this=dfc_column_expr_copy,
-        alias=exp.Identifier(this="dfc")
-    )
+    dfc_alias = exp.Alias(this=dfc_column_expr_copy, alias=exp.Identifier(this="dfc"))
 
     original_sql = parsed.sql()
     cte_body = sqlglot.parse_one(original_sql, read="duckdb")
@@ -1544,10 +1535,7 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
 
     logger.debug(f"CTE body after adding dfc: {cte_body.sql(pretty=True)[:500]}")
 
-    cte = exp.CTE(
-        this=cte_body,
-        alias=exp.TableAlias(this=exp.Identifier(this="cte"))
-    )
+    cte = exp.CTE(this=cte_body, alias=exp.TableAlias(this=exp.Identifier(this="cte")))
 
     outer_expressions = []
     for expr in parsed.expressions:
@@ -1555,17 +1543,19 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
             outer_expressions.append(expr)
         elif isinstance(expr, exp.Alias):
             alias_name = get_column_name(expr.alias)
-            outer_expressions.append(exp.Column(
-                this=exp.Identifier(this=alias_name)
-            ))
+            outer_expressions.append(exp.Column(this=exp.Identifier(this=alias_name)))
         elif isinstance(expr, exp.Column):
             col_name = get_column_name(expr)
-            outer_expressions.append(exp.Column(
-                this=exp.Identifier(this=col_name)
-            ))
+            outer_expressions.append(exp.Column(this=exp.Identifier(this=col_name)))
         else:
             expr_sql = expr.sql()
-            alias_name = expr_sql.lower().replace("(", "_").replace(")", "").replace(" ", "_").replace(",", "_")
+            alias_name = (
+                expr_sql.lower()
+                .replace("(", "_")
+                .replace(")", "")
+                .replace(" ", "_")
+                .replace(",", "_")
+            )
             if not alias_name[0].isalpha():
                 alias_name = "expr_" + alias_name
             alias_name = alias_name[:50]
@@ -1574,18 +1564,13 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
                 if cte_expr.sql() == expr_sql and not isinstance(cte_expr, exp.Alias):
                     cte_expr_index = cte_body.expressions.index(cte_expr)
                     cte_body.expressions[cte_expr_index] = exp.Alias(
-                        this=cte_expr,
-                        alias=exp.Identifier(this=alias_name)
+                        this=cte_expr, alias=exp.Identifier(this=alias_name)
                     )
                     break
 
-            outer_expressions.append(exp.Column(
-                this=exp.Identifier(this=alias_name)
-            ))
+            outer_expressions.append(exp.Column(this=exp.Identifier(this=alias_name)))
 
-    dfc_col_ref = exp.Column(
-        this=exp.Identifier(this="dfc")
-    )
+    dfc_col_ref = exp.Column(this=exp.Identifier(this="dfc"))
 
     if comparison_op == exp.GT:
         where_condition = exp.GT(this=dfc_col_ref, expression=threshold_expr)
@@ -1628,9 +1613,7 @@ def wrap_query_with_limit_in_cte_for_remove_policy(
 
     outer_from = exp.From(this=exp.Table(this=exp.Identifier(this="cte")))
     outer_select = exp.Select(
-        expressions=outer_expressions,
-        from_=outer_from,
-        where=exp.Where(this=combined_where)
+        expressions=outer_expressions, from_=outer_from, where=exp.Where(this=combined_where)
     )
 
     existing_with = parsed.args.get("with_")
@@ -1668,7 +1651,7 @@ def apply_policy_constraints_to_scan(
     sink_to_output_mapping: Optional[dict[str, str]] = None,
     replace_existing_valid: bool = False,
     replace_existing_invalid_string: bool = False,
-    insert_columns: Optional[list[str]] = None
+    insert_columns: Optional[list[str]] = None,
 ) -> None:
     """Apply policy constraints to a non-aggregation query (table scan).
 
@@ -1723,13 +1706,20 @@ def apply_policy_constraints_to_scan(
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
         elif policy.on_fail == Resolution.LLM:
             constraint_expr = _wrap_llm_constraint(
-                constraint_expr, policy, source_tables, stream_file_path,
-                sink_table, sink_to_output_mapping, parsed=parsed,
-                insert_columns=insert_columns
+                constraint_expr,
+                policy,
+                source_tables,
+                stream_file_path,
+                sink_table,
+                sink_to_output_mapping,
+                parsed=parsed,
+                insert_columns=insert_columns,
             )
             _add_clause_to_select(parsed, "where", constraint_expr, exp.Where)
         elif policy.on_fail == Resolution.INVALIDATE:
-            _add_invalidate_column_to_select(parsed, constraint_expr, replace_existing=replace_existing_valid)
+            _add_invalidate_column_to_select(
+                parsed, constraint_expr, replace_existing=replace_existing_valid
+            )
         elif policy.on_fail == Resolution.INVALIDATE_MESSAGE:
             policy_message = policy.description or policy.constraint
             _add_invalidate_message_column_to_select(
@@ -1838,8 +1828,7 @@ def apply_policy_constraints_to_update(
 
 
 def transform_aggregations_to_columns(
-    constraint_expr: exp.Expression,
-    _source_tables: set[str]
+    constraint_expr: exp.Expression, _source_tables: set[str]
 ) -> exp.Expression:
     """Transform aggregation functions in a constraint to their underlying columns.
 
@@ -1884,24 +1873,22 @@ def transform_aggregations_to_columns(
                     condition_sql = condition.sql()
                     condition_copy = sqlglot.parse_one(condition_sql, read="duckdb")
                     return exp.Case(
-                        ifs=[exp.If(
-                            this=condition_copy,
-                            true=exp.Literal(this="1", is_string=False)
-                        )],
-                        default=exp.Literal(this="0", is_string=False)
+                        ifs=[
+                            exp.If(this=condition_copy, true=exp.Literal(this="1", is_string=False))
+                        ],
+                        default=exp.Literal(this="0", is_string=False),
                     )
                 return exp.Literal(this="1", is_string=False)
 
             count_like_sql_names = {
-                "COUNT", "COUNT_STAR",
+                "COUNT",
+                "COUNT_STAR",
                 "APPROX_DISTINCT",  # APPROX_COUNT_DISTINCT is parsed as APPROX_DISTINCT
                 "REGR_COUNT",
             }
 
             is_count_with_distinct = (
-                agg_name == "COUNT" and
-                hasattr(node, "distinct") and
-                node.distinct
+                agg_name == "COUNT" and hasattr(node, "distinct") and node.distinct
             )
 
             if agg_name in count_like_sql_names or is_count_with_distinct:
@@ -1937,17 +1924,15 @@ def get_policy_identifier(policy: AggregateDFCPolicy) -> str:
     """
     # Use a hash of the constraint and source/sink to create a unique identifier
     import hashlib
+
     sources_part = ",".join(policy.sources) if policy.sources else ""
-    policy_str = (
-        f"{sources_part}_{policy.sink or ''}_{getattr(policy, 'sink_alias', '')}_{policy.constraint}"
-    )
+    policy_str = f"{sources_part}_{policy.sink or ''}_{getattr(policy, 'sink_alias', '')}_{policy.constraint}"
     hash_obj = hashlib.md5(policy_str.encode())
     return f"policy_{hash_obj.hexdigest()[:8]}"
 
 
 def _extract_source_aggregates_from_constraint(
-    constraint_expr: exp.Expression,
-    source_table: str
+    constraint_expr: exp.Expression, source_table: str
 ) -> list[exp.AggFunc]:
     """Extract innermost source aggregate expressions from a constraint.
 
@@ -2008,8 +1993,7 @@ def _extract_source_aggregates_from_constraint(
 
 
 def _find_outer_aggregate_for_inner(
-    constraint_expr: exp.Expression,
-    inner_agg_sql: str
+    constraint_expr: exp.Expression, inner_agg_sql: str
 ) -> Optional[str]:
     """Find the outer aggregate function name that wraps an inner aggregate.
 
@@ -2144,9 +2128,7 @@ def _extract_sink_expressions_from_constraint(
                 col_name = get_column_name(column).lower()
                 if col_name in sink_to_output_mapping:
                     output_col_name = sink_to_output_mapping[col_name]
-                    col_expr = exp.Column(
-                        this=exp.Identifier(this=output_col_name, quoted=False)
-                    )
+                    col_expr = exp.Column(this=exp.Identifier(this=output_col_name, quoted=False))
                     col_sql = col_expr.sql()
 
             if col_sql not in seen:
@@ -2161,7 +2143,7 @@ def _add_temp_column_to_select(
     parsed: exp.Select,
     expr: exp.Expression,
     column_name: str,
-    source_tables: Optional[set[str]] = None
+    source_tables: Optional[set[str]] = None,
 ) -> None:
     """Add a temp column to a SELECT statement.
 
@@ -2180,8 +2162,7 @@ def _add_temp_column_to_select(
     # We need to convert FILTER to CASE expression
     has_group_by = parsed.args.get("group") is not None
     is_scan_query = not has_group_by and not any(
-        isinstance(e, exp.AggFunc) or
-        (isinstance(e, exp.Alias) and isinstance(e.this, exp.AggFunc))
+        isinstance(e, exp.AggFunc) or (isinstance(e, exp.Alias) and isinstance(e.this, exp.AggFunc))
         for e in parsed.expressions
         if not isinstance(e, exp.Alias) or not isinstance(e.this, exp.Subquery)
     )
@@ -2197,7 +2178,11 @@ def _add_temp_column_to_select(
             condition = where_expr.this if hasattr(where_expr, "this") else where_expr
 
             # Get the aggregate argument (e.g., 'amount' from SUM(amount))
-            agg_arg = agg_func.this if hasattr(agg_func, "this") else exp.Literal(this="1", is_string=False)
+            agg_arg = (
+                agg_func.this
+                if hasattr(agg_func, "this")
+                else exp.Literal(this="1", is_string=False)
+            )
 
             # Check if condition references SELECT output columns (unqualified columns that are in SELECT)
             # Get all SELECT output column names (aliases or column names)
@@ -2215,8 +2200,11 @@ def _add_temp_column_to_select(
                     select_output_cols.add(col_name)
 
             # Check if condition references any SELECT output columns
-            condition_cols = [get_column_name(col).lower() for col in condition.find_all(exp.Column)
-                             if not get_table_name_from_column(col)]  # Unqualified columns
+            condition_cols = [
+                get_column_name(col).lower()
+                for col in condition.find_all(exp.Column)
+                if not get_table_name_from_column(col)
+            ]  # Unqualified columns
             references_select_output = any(col in select_output_cols for col in condition_cols)
 
             if references_select_output:
@@ -2248,7 +2236,9 @@ def _add_temp_column_to_select(
                             # If replacement is a Literal, use it directly
                             if isinstance(replacement, exp.Literal):
                                 # Create a fresh copy
-                                return exp.Literal(this=replacement.this, is_string=replacement.is_string)
+                                return exp.Literal(
+                                    this=replacement.this, is_string=replacement.is_string
+                                )
 
                             # If replacement is a Column that's actually a quoted string literal,
                             # extract the value and create a proper Literal
@@ -2257,7 +2247,11 @@ def _add_temp_column_to_select(
                                 col_identifier = replacement.this
                                 if isinstance(col_identifier, exp.Identifier):
                                     # Extract the name (which might be the string value)
-                                    str_value = col_identifier.name if hasattr(col_identifier, "name") else str(col_identifier)
+                                    str_value = (
+                                        col_identifier.name
+                                        if hasattr(col_identifier, "name")
+                                        else str(col_identifier)
+                                    )
                                     # Create a proper string literal
                                     return exp.Literal(this=str_value, is_string=True)
 
@@ -2265,7 +2259,9 @@ def _add_temp_column_to_select(
                             replacement_sql = replacement.sql()
                             # Parse as an expression (not a full statement)
                             # Wrap in parentheses to ensure proper parsing
-                            parsed_replacement = sqlglot.parse_one(f"({replacement_sql})", read="duckdb")
+                            parsed_replacement = sqlglot.parse_one(
+                                f"({replacement_sql})", read="duckdb"
+                            )
                             # Extract the expression from the parentheses
                             if isinstance(parsed_replacement, exp.Paren):
                                 return parsed_replacement.this
@@ -2278,14 +2274,14 @@ def _add_temp_column_to_select(
                 # Now use the replaced condition in CASE expression
                 case_expr = exp.Case(
                     ifs=[exp.If(this=condition_replaced, true=agg_arg)],
-                    default=exp.Literal(this="0", is_string=False)
+                    default=exp.Literal(this="0", is_string=False),
                 )
                 expr_copy = case_expr
             else:
                 # Condition can be evaluated - use CASE expression (without aggregate for scan query)
                 case_expr = exp.Case(
                     ifs=[exp.If(this=condition, true=agg_arg)],
-                    default=exp.Literal(this="0", is_string=False)
+                    default=exp.Literal(this="0", is_string=False),
                 )
                 expr_copy = case_expr
 
@@ -2299,10 +2295,7 @@ def _add_temp_column_to_select(
             ensure_columns_accessible(parsed, expr_copy, source_tables)
 
     # Create alias
-    alias = exp.Alias(
-        this=expr_copy,
-        alias=exp.Identifier(this=column_name, quoted=False)
-    )
+    alias = exp.Alias(this=expr_copy, alias=exp.Identifier(this=column_name, quoted=False))
 
     # Add to SELECT list
     parsed.expressions.append(alias)
@@ -2313,7 +2306,7 @@ def apply_aggregate_policy_constraints_to_aggregation(
     policies: list[AggregateDFCPolicy],
     source_tables: set[str],
     sink_table: Optional[str] = None,
-    sink_to_output_mapping: Optional[dict[str, str]] = None
+    sink_to_output_mapping: Optional[dict[str, str]] = None,
 ) -> None:
     """Apply aggregate policy constraints to an aggregation query.
 
@@ -2373,9 +2366,7 @@ def apply_aggregate_policy_constraints_to_aggregation(
 
 
 def rewrite_exists_subqueries_as_joins(
-    parsed: exp.Select,
-    policies: list[DFCPolicy],
-    source_tables: set[str]
+    parsed: exp.Select, policies: list[DFCPolicy], source_tables: set[str]
 ) -> None:
     """Rewrite EXISTS subqueries as JOINs when a policy applies to a table only in the EXISTS clause.
 
@@ -2393,7 +2384,9 @@ def rewrite_exists_subqueries_as_joins(
         policies: List of policies that might apply.
         source_tables: Set of source table names in the main FROM clause.
     """
-    logger.debug(f"rewrite_exists_subqueries_as_joins called with {len(policies)} policies, source_tables={source_tables}")
+    logger.debug(
+        f"rewrite_exists_subqueries_as_joins called with {len(policies)} policies, source_tables={source_tables}"
+    )
 
     if not policies:
         logger.debug("No policies provided, returning early")
@@ -2475,7 +2468,9 @@ def rewrite_exists_subqueries_as_joins(
             continue
 
         # Extract the join condition from the subquery WHERE clause
-        subquery_where = subquery.args.get("where") or (subquery.where if hasattr(subquery, "where") else None)
+        subquery_where = subquery.args.get("where") or (
+            subquery.where if hasattr(subquery, "where") else None
+        )
         logger.debug(f"Subquery WHERE: {subquery_where}")
         if not subquery_where:
             logger.debug("No WHERE clause in subquery, skipping")
@@ -2518,7 +2513,9 @@ def rewrite_exists_subqueries_as_joins(
         # If we couldn't extract table name or it doesn't match policy table, skip
         logger.debug(f"Subquery table name: {subquery_table_name}, policy table: {policy_table}")
         if not subquery_table_name or subquery_table_name != policy_table:
-            logger.debug(f"Skipping: table name mismatch or missing (subquery_table_name={subquery_table_name}, policy_table={policy_table})")
+            logger.debug(
+                f"Skipping: table name mismatch or missing (subquery_table_name={subquery_table_name}, policy_table={policy_table})"
+            )
             continue
 
         eq_conditions = list(subquery_where.find_all(exp.EQ))
@@ -2578,7 +2575,9 @@ def rewrite_exists_subqueries_as_joins(
                 logger.debug(f"Adding join condition: outer={left}, subquery={right}")
                 join_conditions.append((left, right))
             else:
-                logger.debug(f"Could not determine join condition (left_is_subquery={left_is_subquery}, right_is_subquery={right_is_subquery})")
+                logger.debug(
+                    f"Could not determine join condition (left_is_subquery={left_is_subquery}, right_is_subquery={right_is_subquery})"
+                )
 
         logger.debug(f"Found {len(join_conditions)} join conditions")
         if not join_conditions:
@@ -2594,9 +2593,13 @@ def rewrite_exists_subqueries_as_joins(
         # Extract from the WHERE clause's 'this' attribute, not using find_all which gets nested conditions
         other_where_conditions = []
         logger.debug("Extracting other WHERE conditions from subquery")
-        where_expr_content = subquery_where.this if hasattr(subquery_where, "this") else subquery_where
+        where_expr_content = (
+            subquery_where.this if hasattr(subquery_where, "this") else subquery_where
+        )
 
-        def extract_conditions(expr, conditions_list, policy_table=policy_table, outer_col=outer_col):
+        def extract_conditions(
+            expr, conditions_list, policy_table=policy_table, outer_col=outer_col
+        ):
             """Recursively extract conditions from AND expressions, skipping the join condition."""
             if isinstance(expr, exp.And):
                 extract_conditions(expr.this, conditions_list)
@@ -2622,8 +2625,13 @@ def rewrite_exists_subqueries_as_joins(
                     elif not left_table and not right_table:
                         # Unqualified columns - use heuristic
                         table_prefix = policy_table[0] + "_"
-                        if (left_col_name.startswith(table_prefix) and right_col_name == get_column_name(outer_col).lower()) or \
-                           (right_col_name.startswith(table_prefix) and left_col_name == get_column_name(outer_col).lower()):
+                        if (
+                            left_col_name.startswith(table_prefix)
+                            and right_col_name == get_column_name(outer_col).lower()
+                        ) or (
+                            right_col_name.startswith(table_prefix)
+                            and left_col_name == get_column_name(outer_col).lower()
+                        ):
                             is_join_condition = True
 
                     if not is_join_condition:
@@ -2687,16 +2695,22 @@ def rewrite_exists_subqueries_as_joins(
                         # Create alias for this aggregation
                         agg_alias_name = f"agg_{len(aggregation_aliases)}"
                         agg_alias = exp.Alias(
-                            this=agg_copy,
-                            alias=exp.Identifier(this=agg_alias_name)
+                            this=agg_copy, alias=exp.Identifier(this=agg_alias_name)
                         )
                         subquery_select.append(agg_alias)
                         # Store mapping: (table, original_agg_sql) -> (subquery_alias, agg_alias)
-                        aggregation_aliases[(policy_table, agg_sql)] = (subquery_alias_name, agg_alias_name)
-                        logger.debug(f"Added aggregation to subquery: {agg_sql} AS {agg_alias_name}")
+                        aggregation_aliases[(policy_table, agg_sql)] = (
+                            subquery_alias_name,
+                            agg_alias_name,
+                        )
+                        logger.debug(
+                            f"Added aggregation to subquery: {agg_sql} AS {agg_alias_name}"
+                        )
 
         # Build the new subquery
-        logger.debug(f"Building new subquery with policy_table={policy_table}, join_key={join_key_name}, {len(aggregation_aliases)} aggregations")
+        logger.debug(
+            f"Building new subquery with policy_table={policy_table}, join_key={join_key_name}, {len(aggregation_aliases)} aggregations"
+        )
         # Create the table expression
         table_expr = exp.Table(this=exp.Identifier(this=policy_table))
         # Create the FROM clause - sqlglot uses 'this' for the main table, not 'expressions'
@@ -2704,7 +2718,7 @@ def rewrite_exists_subqueries_as_joins(
         new_subquery = exp.Select(
             expressions=subquery_select,
             from_=from_clause,
-            group=exp.Group(expressions=[join_key_identifier])
+            group=exp.Group(expressions=[join_key_identifier]),
         )
         logger.debug(f"New subquery: {new_subquery.sql(pretty=True)}")
         logger.debug(f"New subquery FROM: {new_subquery.args.get('from_')}")
@@ -2735,17 +2749,16 @@ def rewrite_exists_subqueries_as_joins(
         subquery_node.meta["policy_table"] = policy_table
 
         # Create the JOIN condition: outer_table.col = subquery.join_key
-        join_condition = exp.EQ(this=outer_col, expression=exp.Column(
-            this=exp.Identifier(this=get_column_name(join_key_col)),
-            table=exp.Identifier(this="exists_subquery")
-        ))
+        join_condition = exp.EQ(
+            this=outer_col,
+            expression=exp.Column(
+                this=exp.Identifier(this=get_column_name(join_key_col)),
+                table=exp.Identifier(this="exists_subquery"),
+            ),
+        )
 
         # Add the JOIN to the FROM clause
-        join_expr = exp.Join(
-            this=subquery_node,
-            kind="INNER",
-            on=join_condition
-        )
+        join_expr = exp.Join(this=subquery_node, kind="INNER", on=join_condition)
 
         # JOINs are stored at the SELECT level, not in the FROM clause
         existing_joins = parsed.args.get("joins", [])
@@ -2831,9 +2844,7 @@ def _get_source_tables_from_select(select_expr: exp.Select) -> set[str]:
 
 
 def rewrite_in_subqueries_as_joins(
-    parsed: exp.Select,
-    policies: list[DFCPolicy],
-    _source_tables: set[str]
+    parsed: exp.Select, policies: list[DFCPolicy], _source_tables: set[str]
 ) -> None:
     """Rewrite IN subqueries as JOINs and compute policy on subquery source tables.
 
@@ -2970,6 +2981,7 @@ def rewrite_in_subqueries_as_joins(
             parsed.set("where", None)
 
         if parsed.args.get("where"):
+
             def qualify_join_key(node, join_key_name=join_key_name, matched_source=matched_source):
                 if isinstance(node, exp.Column):
                     table_name = get_table_name_from_column(node)
@@ -3050,6 +3062,7 @@ def rewrite_in_subqueries_as_joins(
                 parsed.set("joins", joins)
 
                 if parsed.args.get("where"):
+
                     def remove_join_conditions(expr):
                         if isinstance(expr, exp.And):
                             left = remove_join_conditions(expr.this)
@@ -3065,9 +3078,15 @@ def rewrite_in_subqueries_as_joins(
                             if isinstance(left, exp.Column) and isinstance(right, exp.Column):
                                 left_name = get_column_name(left)
                                 right_name = get_column_name(right)
-                                if {left_name.lower(), right_name.lower()} == {"c_custkey", "o_custkey"}:
+                                if {left_name.lower(), right_name.lower()} == {
+                                    "c_custkey",
+                                    "o_custkey",
+                                }:
                                     return None
-                                if {left_name.lower(), right_name.lower()} == {"o_orderkey", "l_orderkey"}:
+                                if {left_name.lower(), right_name.lower()} == {
+                                    "o_orderkey",
+                                    "l_orderkey",
+                                }:
                                     return None
                         return expr
 
@@ -3093,7 +3112,12 @@ def rewrite_in_subqueries_as_joins(
             parsed.set("joins", cleaned_joins)
 
 
-def _replace_expression_in_tree(root: exp.Expression, old_expr: exp.Expression, new_expr: exp.Expression, visited: Optional[set] = None) -> bool:
+def _replace_expression_in_tree(
+    root: exp.Expression,
+    old_expr: exp.Expression,
+    new_expr: exp.Expression,
+    visited: Optional[set] = None,
+) -> bool:
     """Replace an expression in a tree with a new expression.
 
     Args:
@@ -3143,7 +3167,7 @@ def apply_aggregate_policy_constraints_to_scan(
     policies: list[AggregateDFCPolicy],
     source_tables: set[str],
     sink_table: Optional[str] = None,
-    sink_to_output_mapping: Optional[dict[str, str]] = None
+    sink_to_output_mapping: Optional[dict[str, str]] = None,
 ) -> None:
     """Apply aggregate policy constraints to a scan (non-aggregation) query.
 

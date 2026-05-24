@@ -41,17 +41,22 @@ def create_tpch_duckdb_capped_overhead_chart(
     if "logical_exec_time_ms" not in df.columns and "logical_time_ms" in df.columns:
         df["logical_exec_time_ms"] = df["logical_time_ms"]
     if "physical_exec_time_ms" not in df.columns:
-        if {"physical_base_capture_time_ms", "physical_lineage_query_time_ms", "physical_runtime_ms"}.issubset(df.columns):
+        if {
+            "physical_base_capture_time_ms",
+            "physical_lineage_query_time_ms",
+            "physical_runtime_ms",
+        }.issubset(df.columns):
             df["physical_exec_time_ms"] = (
                 df["physical_base_capture_time_ms"].fillna(0.0)
                 + df["physical_lineage_query_time_ms"].fillna(0.0)
                 + df["physical_runtime_ms"].fillna(0.0)
             )
-        elif {"physical_base_capture_time_ms", "physical_lineage_query_time_ms"}.issubset(df.columns):
-            df["physical_exec_time_ms"] = (
-                df["physical_base_capture_time_ms"].fillna(0.0)
-                + df["physical_lineage_query_time_ms"].fillna(0.0)
-            )
+        elif {"physical_base_capture_time_ms", "physical_lineage_query_time_ms"}.issubset(
+            df.columns
+        ):
+            df["physical_exec_time_ms"] = df["physical_base_capture_time_ms"].fillna(0.0) + df[
+                "physical_lineage_query_time_ms"
+            ].fillna(0.0)
         elif "physical_runtime_ms" in df.columns:
             df["physical_exec_time_ms"] = df["physical_runtime_ms"]
         elif "physical_time_ms" in df.columns:

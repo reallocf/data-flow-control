@@ -163,7 +163,9 @@ ORDER BY
 def synthetic_validation_query(query_num: int = DEFAULT_SYNTHETIC_QUERY_NUM) -> str:
     queries = synthetic_validation_queries()
     if query_num not in queries:
-        raise ValueError(f"Unsupported synthetic query_num={query_num}; expected one of {sorted(queries)}")
+        raise ValueError(
+            f"Unsupported synthetic query_num={query_num}; expected one of {sorted(queries)}"
+        )
     return queries[query_num]
 
 
@@ -305,7 +307,9 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
 
     def setup(self, context: ExperimentContext) -> None:
         self.policy_counts = [int(v) for v in context.strategy_config.get("policy_counts", [1])]
-        self.runs_per_setting = int(context.strategy_config.get("runs_per_setting", DEFAULT_RUNS_PER_SETTING))
+        self.runs_per_setting = int(
+            context.strategy_config.get("runs_per_setting", DEFAULT_RUNS_PER_SETTING)
+        )
         self.rows_per_table = int(
             context.strategy_config.get("rows_per_table", DEFAULT_SYNTHETIC_ROWS_PER_TABLE)
         )
@@ -322,17 +326,23 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
             self.query_nums = [int(v) for v in query_nums]
         self.include_bedrock = bool(context.strategy_config.get("include_bedrock", True))
         self.include_openai = bool(context.strategy_config.get("include_openai", True))
-        self.include_gpt_query_only = bool(context.strategy_config.get("include_gpt_query_only", self.include_openai))
+        self.include_gpt_query_only = bool(
+            context.strategy_config.get("include_gpt_query_only", self.include_openai)
+        )
         self.include_gpt_query_results = bool(
             context.strategy_config.get("include_gpt_query_results", self.include_openai)
         )
-        self.include_opus_query_only = bool(context.strategy_config.get("include_opus_query_only", self.include_bedrock))
+        self.include_opus_query_only = bool(
+            context.strategy_config.get("include_opus_query_only", self.include_bedrock)
+        )
         self.include_opus_query_results = bool(
             context.strategy_config.get("include_opus_query_results", self.include_bedrock)
         )
         self.claude_model = str(context.strategy_config.get("claude_model", DEFAULT_CLAUDE_MODEL))
         self.gpt_model = str(context.strategy_config.get("gpt_model", DEFAULT_GPT_MODEL))
-        self.queries = {query_num: synthetic_validation_query(query_num) for query_num in self.query_nums}
+        self.queries = {
+            query_num: synthetic_validation_query(query_num) for query_num in self.query_nums
+        }
         self.local_duckdb = _ensure_smokedduck()
 
         dataset_count = int(
@@ -353,7 +363,9 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
             db_path = str(spec["db_path"])
             pathlib.Path(db_path).parent.mkdir(parents=True, exist_ok=True)
             conn = self.local_duckdb.connect(db_path)
-            populate_synthetic_dataset(conn, dataset_index=dataset_index, rows_per_table=self.rows_per_table)
+            populate_synthetic_dataset(
+                conn, dataset_index=dataset_index, rows_per_table=self.rows_per_table
+            )
             self.no_policy_conns[label] = conn
             self.dfc_conns[label] = conn
             self.dfc_rewriters[label] = SQLRewriter(conn=conn)
@@ -365,11 +377,15 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
         if self.include_openai and (self.include_gpt_query_only or self.include_gpt_query_results):
             openai_cfg = replace(base_cfg, provider="openai", openai_model=self.gpt_model)
             self.llm_clients["gpt"] = create_chat_model(openai_cfg)
-        if self.include_bedrock and (self.include_opus_query_only or self.include_opus_query_results):
+        if self.include_bedrock and (
+            self.include_opus_query_only or self.include_opus_query_results
+        ):
             bedrock_cfg = replace(base_cfg, provider="bedrock", bedrock_model_id=self.claude_model)
             self.llm_clients["opus"] = create_chat_model(bedrock_cfg)
 
-        self.query_result_cache: dict[tuple[str, int], tuple[list[str], list[tuple[Any, ...]], float]] = {}
+        self.query_result_cache: dict[
+            tuple[str, int], tuple[list[str], list[tuple[Any, ...]], float]
+        ] = {}
         self.truth_cache: dict[tuple[str, int, int], tuple[bool, float, float, int]] = {}
         self.settings: list[tuple[str, int, int, str]] = []
         for spec in self.dataset_specs:
@@ -378,13 +394,21 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
                 for policy_count in self.policy_counts:
                     self.settings.append((label, query_num, policy_count, APPROACH_DFC_1PHASE))
                     if self.include_opus_query_only:
-                        self.settings.append((label, query_num, policy_count, APPROACH_OPUS_QUERY_ONLY))
+                        self.settings.append(
+                            (label, query_num, policy_count, APPROACH_OPUS_QUERY_ONLY)
+                        )
                     if self.include_gpt_query_only:
-                        self.settings.append((label, query_num, policy_count, APPROACH_GPT_QUERY_ONLY))
+                        self.settings.append(
+                            (label, query_num, policy_count, APPROACH_GPT_QUERY_ONLY)
+                        )
                     if self.include_opus_query_results:
-                        self.settings.append((label, query_num, policy_count, APPROACH_OPUS_QUERY_RESULTS))
+                        self.settings.append(
+                            (label, query_num, policy_count, APPROACH_OPUS_QUERY_RESULTS)
+                        )
                     if self.include_gpt_query_results:
-                        self.settings.append((label, query_num, policy_count, APPROACH_GPT_QUERY_RESULTS))
+                        self.settings.append(
+                            (label, query_num, policy_count, APPROACH_GPT_QUERY_RESULTS)
+                        )
 
     def _setting_and_run(self, execution_number: int) -> tuple[str, int, int, str, int]:
         setting_index = (execution_number - 1) // self.runs_per_setting
@@ -406,7 +430,9 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
             rewriter.register_policy(policy)
         return policies
 
-    def _query_result_sample(self, dataset_label: str, query_num: int) -> tuple[list[str], list[tuple[Any, ...]], bool]:
+    def _query_result_sample(
+        self, dataset_label: str, query_num: int
+    ) -> tuple[list[str], list[tuple[Any, ...]], bool]:
         key = (dataset_label, query_num)
         if key in self.query_result_cache:
             columns, rows, _ = self.query_result_cache[key]
@@ -420,7 +446,9 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
         self.query_result_cache[key] = (columns, rows, query_time_ms)
         return columns, rows, False
 
-    def _dfc_truth(self, dataset_label: str, query_num: int, policy_count: int) -> tuple[bool, float, float, int]:
+    def _dfc_truth(
+        self, dataset_label: str, query_num: int, policy_count: int
+    ) -> tuple[bool, float, float, int]:
         key = (dataset_label, query_num, policy_count)
         if key in self.truth_cache:
             return self.truth_cache[key]
@@ -463,7 +491,9 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
                 results_label="All result rows:",
             )
         else:
-            prompt = build_query_only_prompt(self.queries[self.current_query_num], policy_descriptions, run_nonce=run_nonce)
+            prompt = build_query_only_prompt(
+                self.queries[self.current_query_num], policy_descriptions, run_nonce=run_nonce
+            )
         prompt_chars = len(prompt)
         model = self.llm_clients["opus"] if approach.startswith("opus") else self.llm_clients["gpt"]
         start = time.perf_counter()
@@ -474,7 +504,9 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
         return predicted, runtime_ms, prompt_chars, raw
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
-        dataset_label, query_num, policy_count, approach, run_num = self._setting_and_run(context.execution_number)
+        dataset_label, query_num, policy_count, approach, run_num = self._setting_and_run(
+            context.execution_number
+        )
         self.current_query_num = query_num
         phase = "warmup" if context.is_warmup else f"run {run_num}"
         print(
@@ -489,7 +521,8 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
             policy_count=policy_count,
         )
         policy_descriptions = [
-            p.description or p.constraint for p in build_synthetic_policies(policy_count, threshold=self.policy_threshold)
+            p.description or p.constraint
+            for p in build_synthetic_policies(policy_count, threshold=self.policy_threshold)
         ]
         try:
             if approach == APPROACH_DFC_1PHASE:
@@ -570,8 +603,12 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
                     "policy_count": policy_count,
                     "effective_policy_count": effective_policy_count,
                     "approach": approach,
-                    "provider": "bedrock" if approach.startswith("opus") else ("openai" if approach.startswith("gpt") else "none"),
-                    "model_name": self.claude_model if approach.startswith("opus") else (self.gpt_model if approach.startswith("gpt") else "none"),
+                    "provider": "bedrock"
+                    if approach.startswith("opus")
+                    else ("openai" if approach.startswith("gpt") else "none"),
+                    "model_name": self.claude_model
+                    if approach.startswith("opus")
+                    else (self.gpt_model if approach.startswith("gpt") else "none"),
                     "ground_truth_violation": truth_violation,
                     "predicted_violation": "",
                     "correct_identification": "",
@@ -612,5 +649,7 @@ class SyntheticLLMValidationGridStrategy(ExperimentStrategy):
         ]
 
     def get_setting_key(self, context: ExperimentContext) -> Any | None:
-        dataset_label, query_num, policy_count, approach, _ = self._setting_and_run(context.execution_number)
+        dataset_label, query_num, policy_count, approach, _ = self._setting_and_run(
+            context.execution_number
+        )
         return (dataset_label, query_num, policy_count, approach)

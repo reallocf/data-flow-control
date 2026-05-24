@@ -228,6 +228,7 @@ def build_lineage_query(
     query_id: int,
 ) -> str:
     """Build a lineage query using read_block() output."""
+
     def _quote_identifier(name: str) -> str:
         escaped = name.replace('"', '""')
         return f'"{escaped}"'
@@ -249,9 +250,7 @@ def build_lineage_query(
     if output_col is None:
         raise RuntimeError(f"read_block columns missing output_id: {columns}")
     if source_col is None:
-        raise RuntimeError(
-            f"read_block columns missing source table {policy_source}: {columns}"
-        )
+        raise RuntimeError(f"read_block columns missing source table {policy_source}: {columns}")
 
     return (
         "SELECT "

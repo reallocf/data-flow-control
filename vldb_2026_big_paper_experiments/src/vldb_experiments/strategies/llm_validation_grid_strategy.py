@@ -43,15 +43,23 @@ class LLMValidationGridStrategy(ExperimentStrategy):
     """Evaluate policy-violation identification across queries and databases."""
 
     def setup(self, context: ExperimentContext) -> None:
-        self.policy_counts = [int(v) for v in context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)]
-        self.runs_per_setting = int(context.strategy_config.get("runs_per_setting", DEFAULT_RUNS_PER_SETTING))
+        self.policy_counts = [
+            int(v) for v in context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)
+        ]
+        self.runs_per_setting = int(
+            context.strategy_config.get("runs_per_setting", DEFAULT_RUNS_PER_SETTING)
+        )
         self.include_bedrock = bool(context.strategy_config.get("include_bedrock", True))
         self.include_openai = bool(context.strategy_config.get("include_openai", True))
-        self.include_gpt_query_only = bool(context.strategy_config.get("include_gpt_query_only", self.include_openai))
+        self.include_gpt_query_only = bool(
+            context.strategy_config.get("include_gpt_query_only", self.include_openai)
+        )
         self.include_gpt_query_results = bool(
             context.strategy_config.get("include_gpt_query_results", self.include_openai)
         )
-        self.include_opus_query_only = bool(context.strategy_config.get("include_opus_query_only", self.include_bedrock))
+        self.include_opus_query_only = bool(
+            context.strategy_config.get("include_opus_query_only", self.include_bedrock)
+        )
         self.include_opus_query_results = bool(
             context.strategy_config.get("include_opus_query_results", self.include_bedrock)
         )
@@ -66,11 +74,15 @@ class LLMValidationGridStrategy(ExperimentStrategy):
         raw_database_sfs = context.strategy_config.get("database_sfs", DEFAULT_DATABASE_SFS)
         self.database_specs = normalize_database_specs(
             database_specs=raw_database_specs,
-            database_sfs=[float(v) for v in raw_database_sfs] if raw_database_sfs is not None else None,
+            database_sfs=[float(v) for v in raw_database_sfs]
+            if raw_database_sfs is not None
+            else None,
             base_filename_prefix="llm_validation_grid",
         )
         if not self.database_specs:
-            self.database_specs = default_database_specs(DEFAULT_DATABASE_SFS, "llm_validation_grid")
+            self.database_specs = default_database_specs(
+                DEFAULT_DATABASE_SFS, "llm_validation_grid"
+            )
 
         self.local_duckdb = _ensure_smokedduck()
         self.no_policy_conns: dict[str, Any] = {}
@@ -106,11 +118,15 @@ class LLMValidationGridStrategy(ExperimentStrategy):
         if self.include_openai and (self.include_gpt_query_only or self.include_gpt_query_results):
             openai_cfg = replace(base_cfg, provider="openai", openai_model=self.gpt_model)
             self.llm_clients["gpt"] = create_chat_model(openai_cfg)
-        if self.include_bedrock and (self.include_opus_query_only or self.include_opus_query_results):
+        if self.include_bedrock and (
+            self.include_opus_query_only or self.include_opus_query_results
+        ):
             bedrock_cfg = replace(base_cfg, provider="bedrock", bedrock_model_id=self.claude_model)
             self.llm_clients["opus"] = create_chat_model(bedrock_cfg)
 
-        self.query_result_cache: dict[tuple[str, int], tuple[list[str], list[tuple[Any, ...]], float]] = {}
+        self.query_result_cache: dict[
+            tuple[str, int], tuple[list[str], list[tuple[Any, ...]], float]
+        ] = {}
         self.truth_cache: dict[tuple[str, int, int], tuple[bool, float, float, int]] = {}
         self.settings: list[tuple[str, int, int, str]] = []
         for db_spec in self.database_specs:
@@ -119,13 +135,21 @@ class LLMValidationGridStrategy(ExperimentStrategy):
                 for policy_count in self.policy_counts:
                     self.settings.append((db_label, query_num, policy_count, APPROACH_DFC_1PHASE))
                     if self.include_opus_query_only:
-                        self.settings.append((db_label, query_num, policy_count, APPROACH_OPUS_QUERY_ONLY))
+                        self.settings.append(
+                            (db_label, query_num, policy_count, APPROACH_OPUS_QUERY_ONLY)
+                        )
                     if self.include_gpt_query_only:
-                        self.settings.append((db_label, query_num, policy_count, APPROACH_GPT_QUERY_ONLY))
+                        self.settings.append(
+                            (db_label, query_num, policy_count, APPROACH_GPT_QUERY_ONLY)
+                        )
                     if self.include_opus_query_results:
-                        self.settings.append((db_label, query_num, policy_count, APPROACH_OPUS_QUERY_RESULTS))
+                        self.settings.append(
+                            (db_label, query_num, policy_count, APPROACH_OPUS_QUERY_RESULTS)
+                        )
                     if self.include_gpt_query_results:
-                        self.settings.append((db_label, query_num, policy_count, APPROACH_GPT_QUERY_RESULTS))
+                        self.settings.append(
+                            (db_label, query_num, policy_count, APPROACH_GPT_QUERY_RESULTS)
+                        )
 
     def _setting_and_run(self, execution_number: int) -> tuple[str, int, int, str, int]:
         setting_index = (execution_number - 1) // self.runs_per_setting
@@ -147,7 +171,9 @@ class LLMValidationGridStrategy(ExperimentStrategy):
             rewriter.register_policy(policy)
         return policies
 
-    def _query_result_sample(self, db_label: str, query_num: int, query: str) -> tuple[list[str], list[tuple[Any, ...]], bool]:
+    def _query_result_sample(
+        self, db_label: str, query_num: int, query: str
+    ) -> tuple[list[str], list[tuple[Any, ...]], bool]:
         key = (db_label, query_num)
         if key in self.query_result_cache:
             columns, rows, _ = self.query_result_cache[key]
@@ -161,7 +187,9 @@ class LLMValidationGridStrategy(ExperimentStrategy):
         self.query_result_cache[key] = (columns, rows, query_time_ms)
         return columns, rows, False
 
-    def _dfc_truth(self, db_label: str, query_num: int, policy_count: int, query: str) -> tuple[bool, float, float, int]:
+    def _dfc_truth(
+        self, db_label: str, query_num: int, policy_count: int, query: str
+    ) -> tuple[bool, float, float, int]:
         key = (db_label, query_num, policy_count)
         if key in self.truth_cache:
             return self.truth_cache[key]
@@ -198,7 +226,9 @@ class LLMValidationGridStrategy(ExperimentStrategy):
     ) -> tuple[bool | None, float, int, str]:
         is_query_results = approach in {APPROACH_OPUS_QUERY_RESULTS, APPROACH_GPT_QUERY_RESULTS}
         if is_query_results:
-            prompt = build_query_results_prompt(query, policy_descriptions, sample_json or "[]", run_nonce=run_nonce)
+            prompt = build_query_results_prompt(
+                query, policy_descriptions, sample_json or "[]", run_nonce=run_nonce
+            )
         else:
             prompt = build_query_only_prompt(query, policy_descriptions, run_nonce=run_nonce)
         prompt_chars = len(prompt)
@@ -213,7 +243,9 @@ class LLMValidationGridStrategy(ExperimentStrategy):
         return predicted, runtime_ms, prompt_chars, raw
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
-        db_label, query_num, policy_count, approach, run_num = self._setting_and_run(context.execution_number)
+        db_label, query_num, policy_count, approach, run_num = self._setting_and_run(
+            context.execution_number
+        )
         phase = "warmup" if context.is_warmup else f"run {run_num}"
         print(
             f"[Execution {context.execution_number}] llm_validation_grid db={db_label} "
@@ -305,8 +337,12 @@ class LLMValidationGridStrategy(ExperimentStrategy):
                     "policy_count": policy_count,
                     "effective_policy_count": effective_policy_count,
                     "approach": approach,
-                    "provider": "bedrock" if approach.startswith("opus") else ("openai" if approach.startswith("gpt") else "none"),
-                    "model_name": self.claude_model if approach.startswith("opus") else (self.gpt_model if approach.startswith("gpt") else "none"),
+                    "provider": "bedrock"
+                    if approach.startswith("opus")
+                    else ("openai" if approach.startswith("gpt") else "none"),
+                    "model_name": self.claude_model
+                    if approach.startswith("opus")
+                    else (self.gpt_model if approach.startswith("gpt") else "none"),
                     "ground_truth_violation": truth_violation,
                     "predicted_violation": "",
                     "correct_identification": "",
@@ -346,5 +382,7 @@ class LLMValidationGridStrategy(ExperimentStrategy):
         ]
 
     def get_setting_key(self, context: ExperimentContext) -> Any | None:
-        db_label, query_num, policy_count, approach, _ = self._setting_and_run(context.execution_number)
+        db_label, query_num, policy_count, approach, _ = self._setting_and_run(
+            context.execution_number
+        )
         return (db_label, query_num, policy_count, approach)

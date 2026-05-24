@@ -57,8 +57,12 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
         self.physical_db_path = f"{db_path}_physical"
 
         policy_counts = context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)
-        warmup_per_policy = int(context.strategy_config.get("warmup_per_policy", DEFAULT_WARMUP_PER_POLICY))
-        runs_per_policy = int(context.strategy_config.get("runs_per_policy", DEFAULT_RUNS_PER_POLICY))
+        warmup_per_policy = int(
+            context.strategy_config.get("warmup_per_policy", DEFAULT_WARMUP_PER_POLICY)
+        )
+        runs_per_policy = int(
+            context.strategy_config.get("runs_per_policy", DEFAULT_RUNS_PER_POLICY)
+        )
 
         self.local_duckdb = _ensure_smokedduck()
         main_conn = self.local_duckdb.connect(self.db_path)
@@ -234,9 +238,13 @@ class TPCHPolicyCountStrategy(ExperimentStrategy):
         physical_match = None
         physical_match_error = None
         if dfc_1phase_error is None and logical_error is None:
-            logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
+            logical_match, logical_match_error = compare_results_exact(
+                dfc_1phase_results, logical_results
+            )
         if dfc_1phase_error is None and physical_error is None:
-            physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+            physical_match, physical_match_error = compare_results_exact(
+                dfc_1phase_results, physical_results
+            )
         if dfc_1phase_error is None and dfc_2phase_error is None:
             dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
                 dfc_1phase_results, dfc_2phase_results

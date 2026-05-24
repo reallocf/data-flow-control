@@ -39,7 +39,7 @@ class SQLRewriter:
         stream_file_path: Optional[str] = None,
         bedrock_client: Optional[Any] = None,
         bedrock_model_id: Optional[str] = None,
-        recorder: Optional[Any] = None
+        recorder: Optional[Any] = None,
     ) -> None:
         """Initialize the SQL rewriter with a DuckDB connection.
 
@@ -64,7 +64,9 @@ class SQLRewriter:
 
         # Bedrock client for LLM resolution
         self._bedrock_client = bedrock_client
-        self._bedrock_model_id = bedrock_model_id or os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+        self._bedrock_model_id = bedrock_model_id or os.environ.get(
+            "BEDROCK_MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+        )
 
         # Recorder for LLM responses
         self._recorder = recorder
@@ -142,7 +144,9 @@ class SQLRewriter:
         """Apply two-phase rewriting rules to a parsed query."""
         return self._transform_query_common(parsed, use_two_phase=True)
 
-    def _transform_query_common(self, parsed: exp.Expression, use_two_phase: bool) -> exp.Expression:
+    def _transform_query_common(
+        self, parsed: exp.Expression, use_two_phase: bool
+    ) -> exp.Expression:
         """Apply rewriting rules shared by standard DFC and two-phase paths."""
         if isinstance(parsed, exp.Select):
             from_tables = self._get_source_tables(parsed)
@@ -162,10 +166,14 @@ class SQLRewriter:
                         from_tables = self._get_source_tables(parsed)
 
                     has_limit = parsed.args.get("limit") is not None
-                    has_remove_policy = any(p.on_fail == Resolution.REMOVE for p in matching_policies)
+                    has_remove_policy = any(
+                        p.on_fail == Resolution.REMOVE for p in matching_policies
+                    )
 
                     if has_limit and has_remove_policy:
-                        remove_policy = next(p for p in matching_policies if p.on_fail == Resolution.REMOVE)
+                        remove_policy = next(
+                            p for p in matching_policies if p.on_fail == Resolution.REMOVE
+                        )
                         if use_two_phase:
                             if self._has_aggregations(parsed):
                                 parsed = self._rewrite_limit_aggregation_with_two_phase(
@@ -188,7 +196,9 @@ class SQLRewriter:
                             )
                     else:
                         if not (use_two_phase and self._has_aggregations(parsed)):
-                            ensure_subqueries_have_constraint_columns(parsed, matching_policies, from_tables)
+                            ensure_subqueries_have_constraint_columns(
+                                parsed, matching_policies, from_tables
+                            )
 
                         if self._has_aggregations(parsed):
                             if use_two_phase:
@@ -199,13 +209,17 @@ class SQLRewriter:
                                 )
                             else:
                                 apply_policy_constraints_to_aggregation(
-                                    parsed, matching_policies, from_tables,
-                                    stream_file_path=self._stream_file_path
+                                    parsed,
+                                    matching_policies,
+                                    from_tables,
+                                    stream_file_path=self._stream_file_path,
                                 )
                         else:
                             apply_policy_constraints_to_scan(
-                                parsed, matching_policies, from_tables,
-                                stream_file_path=self._stream_file_path
+                                parsed,
+                                matching_policies,
+                                from_tables,
+                                stream_file_path=self._stream_file_path,
                             )
 
                 if matching_aggregate_policies:
@@ -238,12 +252,10 @@ class SQLRewriter:
 
             if matching_policies:
                 has_invalidate_with_sink = any(
-                    p.on_fail == Resolution.INVALIDATE and p.sink
-                    for p in matching_policies
+                    p.on_fail == Resolution.INVALIDATE and p.sink for p in matching_policies
                 )
                 has_invalidate_message_with_sink = any(
-                    p.on_fail == Resolution.INVALIDATE_MESSAGE and p.sink
-                    for p in matching_policies
+                    p.on_fail == Resolution.INVALIDATE_MESSAGE and p.sink for p in matching_policies
                 )
 
                 if select_expr:
@@ -253,7 +265,9 @@ class SQLRewriter:
                         self._add_invalid_string_column_to_insert(parsed)
 
                     if not sink_to_output_mapping and sink_table:
-                        sink_to_output_mapping = self._get_insert_column_mapping(parsed, select_expr)
+                        sink_to_output_mapping = self._get_insert_column_mapping(
+                            parsed, select_expr
+                        )
 
                     insert_columns = self._get_insert_column_list(parsed)
 
@@ -286,42 +300,52 @@ class SQLRewriter:
 
                     if self._has_aggregations(select_expr):
                         apply_policy_constraints_to_aggregation(
-                            select_expr, matching_policies, source_tables,
+                            select_expr,
+                            matching_policies,
+                            source_tables,
                             stream_file_path=self._stream_file_path,
                             sink_table=sink_table,
                             sink_to_output_mapping=sink_to_output_mapping,
                             replace_existing_valid=insert_has_valid,
                             replace_existing_invalid_string=insert_has_invalid_string,
-                            insert_columns=insert_columns
+                            insert_columns=insert_columns,
                         )
                     else:
                         apply_policy_constraints_to_scan(
-                            select_expr, matching_policies, source_tables,
+                            select_expr,
+                            matching_policies,
+                            source_tables,
                             stream_file_path=self._stream_file_path,
                             sink_table=sink_table,
                             sink_to_output_mapping=sink_to_output_mapping,
                             replace_existing_valid=insert_has_valid,
                             replace_existing_invalid_string=insert_has_invalid_string,
-                            insert_columns=insert_columns
+                            insert_columns=insert_columns,
                         )
 
             if matching_aggregate_policies and select_expr:
                 has_aggs = self._has_aggregations(select_expr)
                 if has_aggs:
                     apply_aggregate_policy_constraints_to_aggregation(
-                        select_expr, matching_aggregate_policies, source_tables,
+                        select_expr,
+                        matching_aggregate_policies,
+                        source_tables,
                         sink_table=sink_table,
-                        sink_to_output_mapping=sink_to_output_mapping
+                        sink_to_output_mapping=sink_to_output_mapping,
                     )
                 else:
                     apply_aggregate_policy_constraints_to_scan(
-                        select_expr, matching_aggregate_policies, source_tables,
+                        select_expr,
+                        matching_aggregate_policies,
+                        source_tables,
                         sink_table=sink_table,
-                        sink_to_output_mapping=sink_to_output_mapping
+                        sink_to_output_mapping=sink_to_output_mapping,
                     )
 
                 # Add temp columns to INSERT column list so they're included in the table
-                self._add_aggregate_temp_columns_to_insert(parsed, matching_aggregate_policies, select_expr)
+                self._add_aggregate_temp_columns_to_insert(
+                    parsed, matching_aggregate_policies, select_expr
+                )
         elif isinstance(parsed, exp.Update):
             sink_table = self._get_update_target_table(parsed)
             source_tables = self._get_update_source_tables(parsed)
@@ -359,7 +383,9 @@ class SQLRewriter:
             if comparisons:
                 comparison = comparisons[0]
                 return comparison.this.copy(), comparison.expression.copy(), op_class
-        raise ValueError(f"Unsupported constraint shape for two-phase LIMIT rewrite: {policy.constraint}")
+        raise ValueError(
+            f"Unsupported constraint shape for two-phase LIMIT rewrite: {policy.constraint}"
+        )
 
     def _build_comparison_expr(
         self,
@@ -469,7 +495,9 @@ class SQLRewriter:
         extra_dfc_aliases: list[exp.Expression] = []
         extra_dfc_filters: list[tuple[str, type[exp.Expression], exp.Expression]] = []
         if hasattr(policy_eval, "meta"):
-            extra_dfc_aliases = [alias.copy() for alias in policy_eval.meta.get("extra_dfc_aliases", [])]
+            extra_dfc_aliases = [
+                alias.copy() for alias in policy_eval.meta.get("extra_dfc_aliases", [])
+            ]
             extra_dfc_filters = policy_eval.meta.get("extra_dfc_filters", [])
 
         dfc_expr, threshold_expr, op_class = self._extract_policy_comparison(remove_policy)
@@ -573,15 +601,11 @@ class SQLRewriter:
             [
                 exp.CTE(
                     this=base_query,
-                    alias=exp.TableAlias(
-                        this=exp.Identifier(this="base_query", quoted=False)
-                    ),
+                    alias=exp.TableAlias(this=exp.Identifier(this="base_query", quoted=False)),
                 ),
                 exp.CTE(
                     this=policy_eval,
-                    alias=exp.TableAlias(
-                        this=exp.Identifier(this="policy_eval", quoted=False)
-                    ),
+                    alias=exp.TableAlias(this=exp.Identifier(this="policy_eval", quoted=False)),
                 ),
                 cte,
             ]
@@ -614,9 +638,8 @@ class SQLRewriter:
                         matched_key = select_expr.alias
                         matched_expr = select_expr.this.copy()
                         break
-                elif (
-                    select_expr.sql(dialect="duckdb") == target_sql
-                    and isinstance(select_expr, exp.Column)
+                elif select_expr.sql(dialect="duckdb") == target_sql and isinstance(
+                    select_expr, exp.Column
                 ):
                     matched_key = get_column_name(select_expr)
                     matched_expr = select_expr.copy()
@@ -639,7 +662,9 @@ class SQLRewriter:
 
             if matched_key is None:
                 return None
-            keys.append((matched_key, matched_expr if matched_expr is not None else group_expr.copy()))
+            keys.append(
+                (matched_key, matched_expr if matched_expr is not None else group_expr.copy())
+            )
         return keys
 
     def _rewrite_aggregation_with_two_phase(
@@ -718,15 +743,11 @@ class SQLRewriter:
                 expressions=[
                     exp.CTE(
                         this=base_query,
-                        alias=exp.TableAlias(
-                            this=exp.Identifier(this="base_query", quoted=False)
-                        ),
+                        alias=exp.TableAlias(this=exp.Identifier(this="base_query", quoted=False)),
                     ),
                     exp.CTE(
                         this=policy_eval,
-                        alias=exp.TableAlias(
-                            this=exp.Identifier(this="policy_eval", quoted=False)
-                        ),
+                        alias=exp.TableAlias(this=exp.Identifier(this="policy_eval", quoted=False)),
                     ),
                 ]
             ),
@@ -737,10 +758,7 @@ class SQLRewriter:
         if not key_names:
             return "FROM base_query CROSS JOIN policy_eval"
         join_conditions = " AND ".join(
-            [
-                f"base_query.{key_name} = policy_eval.{key_name}"
-                for key_name in key_names
-            ]
+            [f"base_query.{key_name} = policy_eval.{key_name}" for key_name in key_names]
         )
         return f"FROM base_query JOIN policy_eval ON {join_conditions}"
 
@@ -802,7 +820,10 @@ class SQLRewriter:
             if isinstance(select_expr, exp.Alias):
                 if select_expr.alias and select_expr.alias.lower() == target:
                     return True
-            elif isinstance(select_expr, exp.Column) and get_column_name(select_expr).lower() == target:
+            elif (
+                isinstance(select_expr, exp.Column)
+                and get_column_name(select_expr).lower() == target
+            ):
                 return True
         return False
 
@@ -857,11 +878,12 @@ class SQLRewriter:
                 rowid_expr = exp.Column(this=exp.Identifier(this="__dfc_rowid", quoted=False))
 
             rowid_alias = "__dfc_rowid"
-            base_has_star = any(isinstance(expr, exp.Star) for expr in (base_query.expressions or []))
-            should_append_rowid = (
-                not self._select_has_named_projection(base_query, rowid_alias)
-                and not (rowid_source_name is None and base_has_star)
+            base_has_star = any(
+                isinstance(expr, exp.Star) for expr in (base_query.expressions or [])
             )
+            should_append_rowid = not self._select_has_named_projection(
+                base_query, rowid_alias
+            ) and not (rowid_source_name is None and base_has_star)
             if should_append_rowid:
                 base_exprs = list(base_query.expressions or [])
                 base_exprs.append(
@@ -912,9 +934,7 @@ class SQLRewriter:
             select_list += ", policy_eval.valid AS valid"
         if include_invalid_string:
             select_list += ", policy_eval.invalid_string AS invalid_string"
-        join_key_names = (
-            ["__dfc_rowid"] if use_rowid_join else [key for key, _ in join_keys]
-        )
+        join_key_names = ["__dfc_rowid"] if use_rowid_join else [key for key, _ in join_keys]
         outer_sql = f"SELECT {select_list} {self._two_phase_join_clause(join_key_names)}"
 
         rewritten = sqlglot.parse_one(outer_sql, read="duckdb")
@@ -926,15 +946,11 @@ class SQLRewriter:
                 expressions=[
                     exp.CTE(
                         this=base_query,
-                        alias=exp.TableAlias(
-                            this=exp.Identifier(this="base_query", quoted=False)
-                        ),
+                        alias=exp.TableAlias(this=exp.Identifier(this="base_query", quoted=False)),
                     ),
                     exp.CTE(
                         this=policy_eval,
-                        alias=exp.TableAlias(
-                            this=exp.Identifier(this="policy_eval", quoted=False)
-                        ),
+                        alias=exp.TableAlias(this=exp.Identifier(this="policy_eval", quoted=False)),
                     ),
                 ]
             ),
@@ -1012,7 +1028,7 @@ class SQLRewriter:
                 FROM information_schema.tables
                 WHERE table_schema = 'main' AND table_name = ?
                 """,
-                [table_name.lower()]
+                [table_name.lower()],
             ).fetchone()
             return result is not None
         except Exception:
@@ -1040,13 +1056,15 @@ class SQLRewriter:
                 FROM information_schema.columns
                 WHERE table_schema = 'main' AND table_name = ?
                 """,
-                [table_name.lower()]
+                [table_name.lower()],
             ).fetchall()
             return {row[0].lower() for row in result}
         except Exception as e:
             raise ValueError(f"Failed to get columns for table '{table_name}': {e}") from e
 
-    def _create_aggregate_function(self, func_name: str, expressions: list[exp.Expression]) -> exp.AggFunc:
+    def _create_aggregate_function(
+        self, func_name: str, expressions: list[exp.Expression]
+    ) -> exp.AggFunc:
         """Create an aggregate function expression using the proper sqlglot class.
 
         Args:
@@ -1117,11 +1135,13 @@ class SQLRewriter:
                 FROM information_schema.columns
                 WHERE table_schema = 'main' AND table_name = ? AND column_name = ?
                 """,
-                [table_name.lower(), column_name.lower()]
+                [table_name.lower(), column_name.lower()],
             ).fetchone()
             return result[0].upper() if result else None
         except Exception as e:
-            raise ValueError(f"Failed to get column type for '{table_name}.{column_name}': {e}") from e
+            raise ValueError(
+                f"Failed to get column type for '{table_name}.{column_name}': {e}"
+            ) from e
 
     def _validate_table_exists(self, table_name: str, table_type: str) -> None:
         """Validate that a table exists in the database.
@@ -1136,9 +1156,7 @@ class SQLRewriter:
         if not self._table_exists(table_name):
             raise ValueError(f"{table_type} table '{table_name}' does not exist in the database")
 
-    def _get_column_table_type(
-        self, column: exp.Column, policy: DFCPolicy
-    ) -> Optional[str]:
+    def _get_column_table_type(self, column: exp.Column, policy: DFCPolicy) -> Optional[str]:
         """Determine which table type (source/sink) a column belongs to.
 
         Args:
@@ -1155,7 +1173,9 @@ class SQLRewriter:
 
         if policy.sources and table_name in policy._sources_lower:
             return "source"
-        if policy.sink and table_name in getattr(policy, "_sink_reference_names", {policy.sink.lower()}):
+        if policy.sink and table_name in getattr(
+            policy, "_sink_reference_names", {policy.sink.lower()}
+        ):
             return "sink"
         return None
 
@@ -1208,14 +1228,19 @@ class SQLRewriter:
         sink_columns: Optional[set[str]] = None
 
         if policy.sources:
-            source_columns = {source.lower(): self._get_table_columns(source) for source in policy.sources}
+            source_columns = {
+                source.lower(): self._get_table_columns(source) for source in policy.sources
+            }
         if policy.sink:
             sink_columns = self._get_table_columns(policy.sink)
 
         # For INVALIDATE policies with sink tables, validate that sink has a boolean 'valid' column
         # Skip this check for AggregateDFCPolicy as they use finalize instead
-        if (policy.on_fail == Resolution.INVALIDATE and policy.sink and
-            not isinstance(policy, AggregateDFCPolicy)):
+        if (
+            policy.on_fail == Resolution.INVALIDATE
+            and policy.sink
+            and not isinstance(policy, AggregateDFCPolicy)
+        ):
             if sink_columns is None:
                 raise ValueError(f"Sink table '{policy.sink}' has no columns")
             if "valid" not in sink_columns:
@@ -1229,8 +1254,11 @@ class SQLRewriter:
                     f"Column 'valid' in sink table '{policy.sink}' must be of type BOOLEAN, "
                     f"but found type '{valid_column_type}'"
                 )
-        if (policy.on_fail == Resolution.INVALIDATE_MESSAGE and policy.sink and
-            not isinstance(policy, AggregateDFCPolicy)):
+        if (
+            policy.on_fail == Resolution.INVALIDATE_MESSAGE
+            and policy.sink
+            and not isinstance(policy, AggregateDFCPolicy)
+        ):
             if sink_columns is None:
                 raise ValueError(f"Sink table '{policy.sink}' has no columns")
             if "invalid_string" not in sink_columns:
@@ -1266,9 +1294,7 @@ class SQLRewriter:
                     and hasattr(parent, "this")
                     and parent.this == column
                     and policy.sink
-                    and col_name in getattr(
-                        policy, "_sink_reference_names", {policy.sink.lower()}
-                    )
+                    and col_name in getattr(policy, "_sink_reference_names", {policy.sink.lower()})
                 ):
                     continue
 
@@ -1338,8 +1364,7 @@ class SQLRewriter:
         violations = {}
 
         matching_policies = [
-            p for p in self._aggregate_policies
-            if p.sink and p.sink.lower() == sink_table.lower()
+            p for p in self._aggregate_policies if p.sink and p.sink.lower() == sink_table.lower()
         ]
 
         if not matching_policies:
@@ -1423,24 +1448,39 @@ class SQLRewriter:
                                     # Replace the entire nested expression (e.g., max(sum(foo.amount)))
                                     # with outer aggregate over temp column (e.g., max(_policy_tmp1))
                                     # Find the outer aggregate expression in the constraint
-                                    for outer_agg in policy._constraint_parsed.find_all(exp.AggFunc):
+                                    for outer_agg in policy._constraint_parsed.find_all(
+                                        exp.AggFunc
+                                    ):
                                         outer_agg_sql = outer_agg.sql()
-                                        if inner_agg_sql.upper() in outer_agg_sql.upper() and outer_agg_sql.upper() != inner_agg_sql.upper():
+                                        if (
+                                            inner_agg_sql.upper() in outer_agg_sql.upper()
+                                            and outer_agg_sql.upper() != inner_agg_sql.upper()
+                                        ):
                                             # This is the outer aggregate - replace it
                                             temp_col_ref = exp.Column(
-                                                this=exp.Identifier(this=temp_col_name, quoted=False)
+                                                this=exp.Identifier(
+                                                    this=temp_col_name, quoted=False
+                                                )
                                             )
                                             # Create the proper aggregate function class
-                                            new_outer_agg = self._create_aggregate_function(outer_agg_name, [temp_col_ref])
+                                            new_outer_agg = self._create_aggregate_function(
+                                                outer_agg_name, [temp_col_ref]
+                                            )
                                             replacement_map[outer_agg_sql] = new_outer_agg.sql()
                                             break
                                 else:
                                     # No outer aggregate - use the inner aggregate function
-                                    agg_name = agg_expr.sql_name().upper() if hasattr(agg_expr, "sql_name") else "SUM"
+                                    agg_name = (
+                                        agg_expr.sql_name().upper()
+                                        if hasattr(agg_expr, "sql_name")
+                                        else "SUM"
+                                    )
                                     temp_col_ref = exp.Column(
                                         this=exp.Identifier(this=temp_col_name, quoted=False)
                                     )
-                                    outer_agg = self._create_aggregate_function(agg_name, [temp_col_ref])
+                                    outer_agg = self._create_aggregate_function(
+                                        agg_name, [temp_col_ref]
+                                    )
                                     replacement_map[inner_agg_sql] = outer_agg.sql()
                                 temp_col_idx += 1
 
@@ -1465,7 +1505,7 @@ class SQLRewriter:
                             # Create a new Filter with the new aggregate but keep the same filter condition
                             new_filter = exp.Filter(
                                 this=sink_agg,
-                                expression=sink_expr.expression  # Keep the same WHERE condition
+                                expression=sink_expr.expression,  # Keep the same WHERE condition
                             )
                             replacement_map[sink_expr.sql()] = new_filter.sql()
                         else:
@@ -1521,7 +1561,9 @@ class SQLRewriter:
                     constraint_passed = result[0]
                     if not constraint_passed:
                         # Constraint failed
-                        violation_message = f"Aggregate policy constraint violated: {policy.constraint}"
+                        violation_message = (
+                            f"Aggregate policy constraint violated: {policy.constraint}"
+                        )
                         if policy.description:
                             violation_message = f"{policy.description}: {violation_message}"
                 else:
@@ -1583,7 +1625,13 @@ class SQLRewriter:
             on_fail_match = on_fail is None or policy.on_fail == on_fail
             description_match = description is None or policy.description == description
 
-            if sources_match and sink_match and constraint_match and on_fail_match and description_match:
+            if (
+                sources_match
+                and sink_match
+                and constraint_match
+                and on_fail_match
+                and description_match
+            ):
                 # Remove the matching policy
                 del self._policies[i]
                 return True
@@ -1597,7 +1645,13 @@ class SQLRewriter:
             on_fail_match = on_fail is None or policy.on_fail == on_fail
             description_match = description is None or policy.description == description
 
-            if sources_match and sink_match and constraint_match and on_fail_match and description_match:
+            if (
+                sources_match
+                and sink_match
+                and constraint_match
+                and on_fail_match
+                and description_match
+            ):
                 # Remove the matching policy
                 del self._aggregate_policies[i]
                 return True
@@ -1745,9 +1799,7 @@ class SQLRewriter:
         return set()
 
     def _get_insert_column_mapping(
-        self,
-        insert_parsed: exp.Insert,
-        select_parsed: exp.Select
+        self, insert_parsed: exp.Insert, select_parsed: exp.Select
     ) -> dict[str, str]:
         """Get mapping from sink table column names to SELECT output column names/aliases.
 
@@ -1795,7 +1847,11 @@ class SQLRewriter:
                     insert_columns.append(col.lower())
 
         # Also check expressions attribute as fallback
-        if not insert_columns and hasattr(insert_parsed, "expressions") and insert_parsed.expressions:
+        if (
+            not insert_columns
+            and hasattr(insert_parsed, "expressions")
+            and insert_parsed.expressions
+        ):
             for expr in insert_parsed.expressions:
                 if isinstance(expr, exp.Identifier):
                     insert_columns.append(expr.name.lower())
@@ -1935,7 +1991,7 @@ class SQLRewriter:
         self,
         insert_parsed: exp.Insert,
         _policies: list[AggregateDFCPolicy],
-        select_parsed: exp.Select
+        select_parsed: exp.Select,
     ) -> None:
         """Add aggregate policy temp columns to INSERT column list.
 
@@ -1954,7 +2010,11 @@ class SQLRewriter:
             if isinstance(expr, exp.Alias):
                 alias_name = get_column_name(expr.alias).lower()
                 # Check if this is a temp column (starts with _policy_ and ends with _tmpN)
-                if alias_name.startswith("_policy_") and "_tmp" in alias_name and alias_name not in seen:
+                if (
+                    alias_name.startswith("_policy_")
+                    and "_tmp" in alias_name
+                    and alias_name not in seen
+                ):
                     temp_column_names.append(alias_name)
                     seen.add(alias_name)
 
@@ -1986,8 +2046,10 @@ class SQLRewriter:
 
         # Also check for columns attribute (common in sqlglot)
         if hasattr(insert_parsed, "columns") and insert_parsed.columns:
-            existing_columns = [col.lower() if isinstance(col, str) else get_column_name(col).lower()
-                              for col in insert_parsed.columns]
+            existing_columns = [
+                col.lower() if isinstance(col, str) else get_column_name(col).lower()
+                for col in insert_parsed.columns
+            ]
             for temp_col in temp_column_names:
                 if temp_col not in existing_columns:
                     insert_parsed.columns.append(temp_col)
@@ -2029,7 +2091,11 @@ class SQLRewriter:
                     insert_columns.append(col.lower())
 
         # Also check expressions attribute as fallback
-        if not insert_columns and hasattr(insert_parsed, "expressions") and insert_parsed.expressions:
+        if (
+            not insert_columns
+            and hasattr(insert_parsed, "expressions")
+            and insert_parsed.expressions
+        ):
             for expr in insert_parsed.expressions:
                 if isinstance(expr, exp.Identifier):
                     insert_columns.append(expr.name.lower())
@@ -2039,9 +2105,7 @@ class SQLRewriter:
         return insert_columns
 
     def _add_aliases_to_insert_select_outputs(
-        self,
-        insert_parsed: exp.Insert,
-        select_parsed: exp.Select
+        self, insert_parsed: exp.Insert, select_parsed: exp.Select
     ) -> None:
         """Add aliases to SELECT outputs to match sink column names when INSERT has explicit column list.
 
@@ -2084,8 +2148,7 @@ class SQLRewriter:
 
             # Add alias matching the sink column name
             alias_expr = exp.Alias(
-                this=expr,
-                alias=exp.Identifier(this=sink_col_name, quoted=False)
+                this=expr, alias=exp.Identifier(this=sink_col_name, quoted=False)
             )
             select_parsed.expressions[i] = alias_expr
 
@@ -2118,9 +2181,7 @@ class SQLRewriter:
         return False
 
     def _find_matching_policies(
-        self,
-        source_tables: set[str],
-        sink_table: Optional[str] = None
+        self, source_tables: set[str], sink_table: Optional[str] = None
     ) -> list[DFCPolicy]:
         """Find policies that match the source and sink tables in the query.
 
@@ -2144,7 +2205,11 @@ class SQLRewriter:
 
             if policy_sink and policy_sources:
                 # Policy has both sink and sources: match INSERT INTO sink queries with all sources present
-                if sink_table is not None and policy_sink == sink_table and policy_sources.issubset(source_tables):
+                if (
+                    sink_table is not None
+                    and policy_sink == sink_table
+                    and policy_sources.issubset(source_tables)
+                ):
                     matching.append(policy)
             elif policy_sink:
                 # Policy has only sink: query must be INSERT INTO sink
@@ -2157,9 +2222,7 @@ class SQLRewriter:
         return matching
 
     def _find_matching_aggregate_policies(
-        self,
-        source_tables: set[str],
-        sink_table: Optional[str] = None
+        self, source_tables: set[str], sink_table: Optional[str] = None
     ) -> list[AggregateDFCPolicy]:
         """Find aggregate policies that match the source and sink tables in the query.
 
@@ -2179,7 +2242,11 @@ class SQLRewriter:
 
             if policy_sink and policy_sources:
                 # Policy has both sink and sources: match INSERT INTO sink queries with all sources present
-                if sink_table is not None and policy_sink == sink_table and policy_sources.issubset(source_tables):
+                if (
+                    sink_table is not None
+                    and policy_sink == sink_table
+                    and policy_sources.issubset(source_tables)
+                ):
                     matching.append(policy)
             elif policy_sink:
                 # Policy has only sink: query must be INSERT INTO sink
@@ -2197,6 +2264,7 @@ class SQLRewriter:
         This UDF is used by KILL resolution policies to abort queries
         when policy constraints fail.
         """
+
         def kill() -> bool:
             """Kill function that raises ValueError to abort the query.
 
@@ -2210,13 +2278,12 @@ class SQLRewriter:
 
         self.conn.create_function("kill", kill, return_type="BOOLEAN")
 
-
     def _call_llm_to_fix_row(
         self,
         constraint: str,
         description: Optional[str],
         column_values: list[Any],
-        column_names: Optional[list[str]] = None
+        column_names: Optional[list[str]] = None,
     ) -> Optional[list[Any]]:
         """Call LLM to try to fix a violating row based on the constraint.
 
@@ -2297,12 +2364,7 @@ Return only the JSON object (or null), no additional text or explanation."""
             request_body = {
                 "anthropic_version": "bedrock-2023-05-31",
                 "max_tokens": 2048,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
+                "messages": [{"role": "user", "content": prompt}],
             }
 
             # Check if we should replay instead of calling LLM
@@ -2311,13 +2373,12 @@ Return only the JSON object (or null), no additional text or explanation."""
                     constraint=constraint,
                     description=description,
                     row_data=row_data,
-                    request_body=request_body
+                    request_body=request_body,
                 )
                 if response_body is None:
                     # Fall back to actual LLM call if no recorded response found
                     response = bedrock_client.invoke_model(
-                        modelId=self._bedrock_model_id,
-                        body=json.dumps(request_body)
+                        modelId=self._bedrock_model_id, body=json.dumps(request_body)
                     )
                     response_body = json.loads(response["body"].read())
             else:
@@ -2327,12 +2388,11 @@ Return only the JSON object (or null), no additional text or explanation."""
                         constraint=constraint,
                         description=description,
                         row_data=row_data,
-                        request_body=request_body
+                        request_body=request_body,
                     )
 
                 response = bedrock_client.invoke_model(
-                    modelId=self._bedrock_model_id,
-                    body=json.dumps(request_body)
+                    modelId=self._bedrock_model_id, body=json.dumps(request_body)
                 )
 
                 response_body = json.loads(response["body"].read())
@@ -2377,7 +2437,7 @@ Return only the JSON object (or null), no additional text or explanation."""
                     constraint=constraint,
                     description=description,
                     response_body=response_body,
-                    fixed_row_data=fixed_row_data
+                    fixed_row_data=fixed_row_data,
                 )
 
             if fixed_row_data is None:
@@ -2385,10 +2445,14 @@ Return only the JSON object (or null), no additional text or explanation."""
 
             # Convert back to list of values in the same order
             if column_names:
-                fixed_values = [fixed_row_data.get(name, val) for name, val in zip(column_names, column_values)]
+                fixed_values = [
+                    fixed_row_data.get(name, val) for name, val in zip(column_names, column_values)
+                ]
             else:
                 # Use generic column names
-                fixed_values = [fixed_row_data.get(f"col{i}", val) for i, val in enumerate(column_values)]
+                fixed_values = [
+                    fixed_row_data.get(f"col{i}", val) for i, val in enumerate(column_values)
+                ]
 
             return fixed_values
 
@@ -2408,6 +2472,7 @@ Return only the JSON object (or null), no additional text or explanation."""
         Users can override this by registering their own address_violating_rows
         function after creating the SQLRewriter instance.
         """
+
         def address_violating_rows(*args) -> bool:
             """address_violating_rows function that handles violating rows with LLM.
 
@@ -2453,7 +2518,7 @@ Return only the JSON object (or null), no additional text or explanation."""
                         constraint,
                         description if description else None,
                         column_values,
-                        column_names
+                        column_names,
                     )
 
                     if fixed_values:
@@ -2462,7 +2527,10 @@ Return only the JSON object (or null), no additional text or explanation."""
                             try:
                                 # Ensure values are written in the same order as column_names
                                 # Format: tab-separated values matching the SELECT output column order
-                                row_data = "\t".join(str(val).lower() if isinstance(val, bool) else str(val) for val in fixed_values)
+                                row_data = "\t".join(
+                                    str(val).lower() if isinstance(val, bool) else str(val)
+                                    for val in fixed_values
+                                )
 
                                 with open(stream_endpoint, "a") as f:
                                     f.write(f"{row_data}\n")
@@ -2482,7 +2550,9 @@ Return only the JSON object (or null), no additional text or explanation."""
 
         # Register with a flexible signature - DuckDB will handle the variable arguments
         # We use a generic signature that accepts any number of arguments
-        self.conn.create_function("address_violating_rows", address_violating_rows, return_type="BOOLEAN")
+        self.conn.create_function(
+            "address_violating_rows", address_violating_rows, return_type="BOOLEAN"
+        )
 
     def get_stream_file_path(self) -> Optional[str]:
         """Get the path to the stream file for LLM-fixed rows.

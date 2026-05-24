@@ -156,9 +156,7 @@ class PostgresClient:
             col_defs = [f"{name} {col_type}" for name, col_type in schema]
             cursor.execute(f"DROP TABLE IF EXISTS {table}")
             cursor.execute(f"CREATE TABLE {table} ({', '.join(col_defs)})")
-            cursor.execute(
-                f"COPY {table} FROM '/data/{table}.csv' WITH (FORMAT csv, HEADER true)"
-            )
+            cursor.execute(f"COPY {table} FROM '/data/{table}.csv' WITH (FORMAT csv, HEADER true)")
 
     def fetchall(self, query: str) -> list[tuple[Any, ...]]:
         if self.conn is None:

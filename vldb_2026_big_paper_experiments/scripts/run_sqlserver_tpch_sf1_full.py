@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 from pathlib import Path
 import subprocess
 import sys
-
-import contextlib
 
 import duckdb
 import pyodbc
@@ -122,7 +121,9 @@ def main() -> int:
         default="_sqlserver_sf1_full3",
         help="Suffix for experiment CSV output.",
     )
-    parser.add_argument("--output-dir", default="./results", help="Output directory for CSVs/figures.")
+    parser.add_argument(
+        "--output-dir", default="./results", help="Output directory for CSVs/figures."
+    )
     parser.add_argument("--skip-load", action="store_true", help="Skip loading TPC-H data.")
     parser.add_argument("--skip-run", action="store_true", help="Skip the experiment run.")
     parser.add_argument("--skip-figures", action="store_true", help="Skip figure generation.")

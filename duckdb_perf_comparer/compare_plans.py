@@ -21,7 +21,9 @@ def _load_query(arg: str | None, file_arg: str | None) -> str:
     raise ValueError("Must provide a query string or file.")
 
 
-def _explain_analyze_json(conn: duckdb.DuckDBPyConnection, query: str) -> dict[str, Any]:
+def _explain_analyze_json(
+    conn: duckdb.DuckDBPyConnection, query: str
+) -> dict[str, Any]:
     result = conn.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {query}").fetchone()
     if not result:
         raise RuntimeError("No EXPLAIN ANALYZE output returned.")
@@ -51,7 +53,9 @@ def _node_time_ms(node: dict[str, Any]) -> float:
     for key in ("operator_timing", "timing", "time", "total_time", "latency"):
         if key in node:
             try:
-                return float(node[key]) * (1000.0 if key == "operator_timing" or key == "latency" else 1.0)
+                return float(node[key]) * (
+                    1000.0 if key == "operator_timing" or key == "latency" else 1.0
+                )
             except (TypeError, ValueError):
                 pass
     return 0.0
@@ -121,8 +125,16 @@ def compare_plans(plan_a: dict[str, Any], plan_b: dict[str, Any], top_n: int) ->
     total_a = _total_time_ms(plan_a)
     total_b = _total_time_ms(plan_b)
 
-    root_a = plan_a.get("children", [plan_a])[0] if isinstance(plan_a.get("children"), list) else plan_a
-    root_b = plan_b.get("children", [plan_b])[0] if isinstance(plan_b.get("children"), list) else plan_b
+    root_a = (
+        plan_a.get("children", [plan_a])[0]
+        if isinstance(plan_a.get("children"), list)
+        else plan_a
+    )
+    root_b = (
+        plan_b.get("children", [plan_b])[0]
+        if isinstance(plan_b.get("children"), list)
+        else plan_b
+    )
     flat_a = _flatten_plan(root_a)
     flat_b = _flatten_plan(root_b)
 
@@ -161,7 +173,9 @@ def compare_plans(plan_a: dict[str, Any], plan_b: dict[str, Any], top_n: int) ->
             continue
         delta = node["time_ms"] - other["time_ms"]
         deltas.append((delta, node, other))
-    for delta, node, other in sorted(deltas, key=lambda x: abs(x[0]), reverse=True)[:top_n]:
+    for delta, node, other in sorted(deltas, key=lambda x: abs(x[0]), reverse=True)[
+        :top_n
+    ]:
         summary.append(
             f"- {node['path']}: {delta:+.3f} ms (A {node['time_ms']:.3f} | B {other['time_ms']:.3f})"
         )
@@ -222,19 +236,25 @@ def _compare_results(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Compare DuckDB query performance via EXPLAIN ANALYZE JSON.")
+    parser = argparse.ArgumentParser(
+        description="Compare DuckDB query performance via EXPLAIN ANALYZE JSON."
+    )
     parser.add_argument("--query-a", help="Query A SQL string")
     parser.add_argument("--query-b", help="Query B SQL string")
     parser.add_argument("--file-a", help="Path to file containing Query A")
     parser.add_argument("--file-b", help="Path to file containing Query B")
-    parser.add_argument("--db", default=":memory:", help="DuckDB database path (default: in-memory)")
+    parser.add_argument(
+        "--db", default=":memory:", help="DuckDB database path (default: in-memory)"
+    )
     parser.add_argument(
         "--tpch-sf",
         type=float,
         default=1.0,
         help="TPC-H scale factor to load (default: 1.0)",
     )
-    parser.add_argument("--top", type=int, default=5, help="Number of top operators to show")
+    parser.add_argument(
+        "--top", type=int, default=5, help="Number of top operators to show"
+    )
     parser.add_argument(
         "--join-details",
         type=int,
@@ -266,8 +286,16 @@ def main() -> int:
 
     print(compare_plans(plan_a, plan_b, args.top))
     if args.join_details > 0:
-        root_a = plan_a.get("children", [plan_a])[0] if isinstance(plan_a.get("children"), list) else plan_a
-        root_b = plan_b.get("children", [plan_b])[0] if isinstance(plan_b.get("children"), list) else plan_b
+        root_a = (
+            plan_a.get("children", [plan_a])[0]
+            if isinstance(plan_a.get("children"), list)
+            else plan_a
+        )
+        root_b = (
+            plan_b.get("children", [plan_b])[0]
+            if isinstance(plan_b.get("children"), list)
+            else plan_b
+        )
         flat_a = _flatten_plan(root_a)
         flat_b = _flatten_plan(root_b)
         print("\nTop Join Operators (Query A)")

@@ -70,12 +70,9 @@ def main() -> int:
             "Aborting heatmap generation."
         )
 
-    grouped = (
-        df.groupby([x_dimension, "policy_column_count"], as_index=False)[
-            ["dfc_1phase_exec_time_ms", "dfc_2phase_exec_time_ms"]
-        ]
-        .mean()
-    )
+    grouped = df.groupby([x_dimension, "policy_column_count"], as_index=False)[
+        ["dfc_1phase_exec_time_ms", "dfc_2phase_exec_time_ms"]
+    ].mean()
     grouped["ratio_1phase_to_2phase"] = (
         grouped["dfc_1phase_exec_time_ms"] / grouped["dfc_2phase_exec_time_ms"]
     )

@@ -25,6 +25,7 @@ def rewrite_query_logical(query: str, policy: DFCPolicy) -> str:
     """
     # Determine if query is aggregation
     import sqlglot
+
     parsed = sqlglot.parse_one(query, read="duckdb")
     has_aggregations = False
     if isinstance(parsed, sqlglot.exp.Select):
@@ -46,14 +47,12 @@ def rewrite_query_logical(query: str, policy: DFCPolicy) -> str:
         if parsed.args.get("group"):
             has_aggregations = True
 
-    return rewrite_query_with_cte(
-        query=query,
-        policy=policy,
-        is_aggregation=has_aggregations
-    )
+    return rewrite_query_with_cte(query=query, policy=policy, is_aggregation=has_aggregations)
 
 
-def execute_query_logical(conn: duckdb.DuckDBPyConnection, query: str, policy: DFCPolicy) -> tuple[list[Any], float]:
+def execute_query_logical(
+    conn: duckdb.DuckDBPyConnection, query: str, policy: DFCPolicy
+) -> tuple[list[Any], float]:
     """Execute query using logical baseline approach.
 
     Args:

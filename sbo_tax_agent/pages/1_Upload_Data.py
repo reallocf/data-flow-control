@@ -10,10 +10,7 @@ import streamlit as st
 import db
 from utils import SCHEMAS, validate_csv_schema
 
-st.set_page_config(
-    page_title="Upload Data - SBO Tax Agent",
-    layout="wide"
-)
+st.set_page_config(page_title="Upload Data - SBO Tax Agent", layout="wide")
 
 # Get database connection (once at page load)
 try:
@@ -97,7 +94,7 @@ with col1:
         "Select tax_return.csv",
         type=["csv"],
         key="tax_return_uploader",
-        help="Expected columns: tax_year, business_name, business_desc"
+        help="Expected columns: tax_year, business_name, business_desc",
     )
 
     if tax_return_file is not None:
@@ -119,7 +116,12 @@ with col1:
             st.error(f"❌ Error reading CSV: {e!s}")
 
     # Upload button
-    upload_tax_return = st.button("Upload Tax Return", key="upload_tax_return", type="primary", disabled=(tax_return_file is None))
+    upload_tax_return = st.button(
+        "Upload Tax Return",
+        key="upload_tax_return",
+        type="primary",
+        disabled=(tax_return_file is None),
+    )
 
     if upload_tax_return and tax_return_file is not None:
         try:
@@ -163,7 +165,7 @@ with col2:
         "Select bank_txn.csv",
         type=["csv"],
         key="bank_txn_uploader",
-        help="Expected columns: txn_id, amount, description"
+        help="Expected columns: txn_id, amount, description",
     )
 
     if bank_txn_file is not None:
@@ -180,7 +182,12 @@ with col2:
             st.error(f"❌ Error reading CSV: {e!s}")
 
     # Upload button
-    upload_bank_txn = st.button("Upload Bank Transactions", key="upload_bank_txn", type="primary", disabled=(bank_txn_file is None))
+    upload_bank_txn = st.button(
+        "Upload Bank Transactions",
+        key="upload_bank_txn",
+        type="primary",
+        disabled=(bank_txn_file is None),
+    )
 
     if upload_bank_txn and bank_txn_file is not None:
         try:
@@ -219,7 +226,7 @@ with col3:
         "Select form_1099_k.csv",
         type=["csv"],
         key="form_1099_k_uploader",
-        help="Expected columns: form_name, amount"
+        help="Expected columns: form_name, amount",
     )
 
     if form_1099_k_file is not None:
@@ -236,7 +243,12 @@ with col3:
             st.error(f"❌ Error reading CSV: {e!s}")
 
     # Upload button
-    upload_form_1099_k = st.button("Upload Form 1099-K", key="upload_form_1099_k", type="primary", disabled=(form_1099_k_file is None))
+    upload_form_1099_k = st.button(
+        "Upload Form 1099-K",
+        key="upload_form_1099_k",
+        type="primary",
+        disabled=(form_1099_k_file is None),
+    )
 
     if upload_form_1099_k and form_1099_k_file is not None:
         try:
@@ -266,4 +278,3 @@ with col3:
                 st.info("No file uploaded")
         except Exception:
             st.info("No file uploaded")
-

@@ -106,7 +106,9 @@ def store_receipt_output(client_con, receipt, *, call_id="receipt_call_1"):
 
 
 def run_dfc_insert(client_con, sql: str):
-    policy_deps = mcp_client_phase_18.parse_policy_deps(mcp_client_phase_18.DFC_POLICIES)
+    policy_deps = mcp_client_phase_18.parse_policy_deps(
+        mcp_client_phase_18.DFC_POLICIES
+    )
     gate1_error = mcp_client_phase_18.gate1_validate(sql, policy_deps)
     if gate1_error:
         return {
@@ -126,10 +128,14 @@ def run_dfc_insert(client_con, sql: str):
         mcp_client_phase_18.deduplicate_source_table(client_con, source_table)
 
     sink_table = mcp_client_phase_18.get_sink_table(sql_final)
-    count_before = client_con.execute(f"SELECT COUNT(*) FROM {sink_table}").fetchone()[0]
+    count_before = client_con.execute(f"SELECT COUNT(*) FROM {sink_table}").fetchone()[
+        0
+    ]
 
     try:
-        rewritten = rewriter.transform_query(sql_final) if policies_registered else sql_final
+        rewritten = (
+            rewriter.transform_query(sql_final) if policies_registered else sql_final
+        )
         if policies_registered:
             rewriter.execute(sql_final)
         else:

@@ -171,9 +171,11 @@ def test_join_group_by_rewrite_sql_snapshots_for_1_and_10() -> None:
 
 def test_join_group_by_rewrite_sql_snapshots_for_1_and_10_with_10_policies() -> None:
     for join_count in [1, 10]:
-        dfc_1phase_sql, dfc_2phase_sql, logical_sql, physical_template = _build_rewrites_multi_policy(
-            join_count=join_count,
-            policy_count=10,
+        dfc_1phase_sql, dfc_2phase_sql, logical_sql, physical_template = (
+            _build_rewrites_multi_policy(
+                join_count=join_count,
+                policy_count=10,
+            )
         )
 
         assert _normalize_sql(dfc_1phase_sql) == EXPECTED_DFC_SQL_10_POLICIES[join_count]
@@ -184,10 +186,16 @@ def test_join_group_by_rewrite_sql_snapshots_for_1_and_10_with_10_policies() -> 
 
 def test_join_group_by_results_match_for_1_and_10() -> None:
     for join_count in [1, 10]:
-        dfc_1phase_results, dfc_2phase_results, logical_results, physical_results = _execute_rewrites(join_count)
+        dfc_1phase_results, dfc_2phase_results, logical_results, physical_results = (
+            _execute_rewrites(join_count)
+        )
 
-        dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
-        assert dfc_2phase_match, f"DFC 2-phase mismatch for join_count={join_count}: {dfc_2phase_error}"
+        dfc_2phase_match, dfc_2phase_error = compare_results_exact(
+            dfc_1phase_results, dfc_2phase_results
+        )
+        assert dfc_2phase_match, (
+            f"DFC 2-phase mismatch for join_count={join_count}: {dfc_2phase_error}"
+        )
 
         logical_match, logical_error = compare_results_exact(dfc_1phase_results, logical_results)
         assert logical_match, f"Logical mismatch for join_count={join_count}: {logical_error}"
@@ -198,18 +206,26 @@ def test_join_group_by_results_match_for_1_and_10() -> None:
 
 def test_join_group_by_results_match_for_1_and_10_with_10_policies() -> None:
     for join_count in [1, 10]:
-        dfc_1phase_results, dfc_2phase_results, logical_results, physical_results = _execute_rewrites(
-            join_count=join_count,
-            policy_count=10,
+        dfc_1phase_results, dfc_2phase_results, logical_results, physical_results = (
+            _execute_rewrites(
+                join_count=join_count,
+                policy_count=10,
+            )
         )
 
-        dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+        dfc_2phase_match, dfc_2phase_error = compare_results_exact(
+            dfc_1phase_results, dfc_2phase_results
+        )
         assert dfc_2phase_match, (
             f"DFC 2-phase mismatch for join_count={join_count}, policies=10: {dfc_2phase_error}"
         )
 
         logical_match, logical_error = compare_results_exact(dfc_1phase_results, logical_results)
-        assert logical_match, f"Logical mismatch for join_count={join_count}, policies=10: {logical_error}"
+        assert logical_match, (
+            f"Logical mismatch for join_count={join_count}, policies=10: {logical_error}"
+        )
 
         physical_match, physical_error = compare_results_exact(dfc_1phase_results, physical_results)
-        assert physical_match, f"Physical mismatch for join_count={join_count}, policies=10: {physical_error}"
+        assert physical_match, (
+            f"Physical mismatch for join_count={join_count}, policies=10: {physical_error}"
+        )

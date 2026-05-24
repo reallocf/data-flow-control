@@ -5,6 +5,7 @@ from sentence_transformers import SentenceTransformer
 DB = "rag.duckdb"
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
+
 def main():
     con = duckdb.connect(DB)
     con.execute("INSTALL vss;")
@@ -12,7 +13,9 @@ def main():
     con.execute("SET hnsw_enable_experimental_persistence = true;")
 
     con.execute("DROP TABLE IF EXISTS chunks;")
-    con.execute("CREATE TABLE chunks(id VARCHAR, source VARCHAR, text VARCHAR, vec FLOAT[384]);")
+    con.execute(
+        "CREATE TABLE chunks(id VARCHAR, source VARCHAR, text VARCHAR, vec FLOAT[384]);"
+    )
 
     model = SentenceTransformer(MODEL_NAME)
 
@@ -27,7 +30,9 @@ def main():
 
     con.executemany("INSERT INTO chunks VALUES (?, ?, ?, ?);", rows)
 
-    con.execute("CREATE INDEX chunks_hnsw_cosine ON chunks USING HNSW (vec) WITH (metric = 'cosine');")
+    con.execute(
+        "CREATE INDEX chunks_hnsw_cosine ON chunks USING HNSW (vec) WITH (metric = 'cosine');"
+    )
 
     q = "standard deduction"
     qvec = model.encode(q).tolist()
@@ -45,6 +50,7 @@ def main():
         print(r)
 
     con.close()
+
 
 if __name__ == "__main__":
     main()

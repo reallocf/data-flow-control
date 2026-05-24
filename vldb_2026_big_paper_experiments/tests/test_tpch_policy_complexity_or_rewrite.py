@@ -644,9 +644,7 @@ def _assert_sql_equal(expected: str, actual: str, label: str) -> None:
     expected_normalized = _normalize_sql(expected)
     actual_normalized = _normalize_sql(actual)
     assert expected_normalized == actual_normalized, (
-        f"{label} SQL does not match expected.\n"
-        f"Expected SQL:\n{expected}\n\n"
-        f"Actual SQL:\n{actual}"
+        f"{label} SQL does not match expected.\nExpected SQL:\n{expected}\n\nActual SQL:\n{actual}"
     )
 
 
@@ -674,7 +672,9 @@ def test_tpch_q01_policy_complexity_100_dfc_sql_matches():
         f"Expected SQL:\n{COMPLEXITY_100_DFC_SQL}\n\n"
         f"Actual SQL:\n{rewritten}"
     )
-    dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+    dfc_2phase_match, dfc_2phase_error = compare_results_exact(
+        dfc_1phase_results, dfc_2phase_results
+    )
     assert dfc_2phase_match, (
         "Two-phase DFC results do not match one-phase DFC for complexity=100.\n"
         f"Details: {dfc_2phase_error}"
@@ -731,7 +731,9 @@ def test_tpch_q01_policy_or_100_dfc_sql_matches():
         f"Expected SQL:\n{OR_100_DFC_SQL}\n\n"
         f"Actual SQL:\n{rewritten}"
     )
-    dfc_2phase_match, dfc_2phase_error = compare_results_exact(dfc_1phase_results, dfc_2phase_results)
+    dfc_2phase_match, dfc_2phase_error = compare_results_exact(
+        dfc_1phase_results, dfc_2phase_results
+    )
     assert dfc_2phase_match, (
         "Two-phase DFC results do not match one-phase DFC for or_count=100.\n"
         f"Details: {dfc_2phase_error}"

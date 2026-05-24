@@ -184,10 +184,7 @@ class ReplayManager:
         return self.session_dir is not None and os.path.exists(self.session_dir)
 
     def get_agent_loop_response(
-        self,
-        transaction_id: Optional[Any],
-        iteration: int,
-        _request_body: dict[str, Any]
+        self, transaction_id: Optional[Any], iteration: int, _request_body: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
         """Get recorded agent loop response for a request.
 
@@ -233,7 +230,7 @@ class ReplayManager:
         constraint: str,
         description: Optional[str],
         row_data: dict[str, Any],
-        _request_body: dict[str, Any]
+        _request_body: dict[str, Any],
     ) -> Optional[dict[str, Any]]:
         """Get recorded LLM resolution response for a request.
 
@@ -265,7 +262,9 @@ class ReplayManager:
                 response_body = entry["response"].get("response")
 
         # Fallback: sequential replay
-        if response_body is None and self.llm_resolution_counter < len(self.llm_resolution_responses):
+        if response_body is None and self.llm_resolution_counter < len(
+            self.llm_resolution_responses
+        ):
             response_data = self.llm_resolution_responses[self.llm_resolution_counter]
             self.llm_resolution_counter += 1
             response_body = response_data.get("response")

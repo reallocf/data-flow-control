@@ -220,3 +220,5 @@ ECFR-title26.xml
 USCODE-2023-title26.htm
 *.jsonl
 *.duckdb
+
+dfc_paper.pdf

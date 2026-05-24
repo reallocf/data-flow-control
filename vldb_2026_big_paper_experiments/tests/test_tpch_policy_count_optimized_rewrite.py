@@ -56,9 +56,7 @@ def _assert_sql_equal(expected: str, actual: str, label: str) -> None:
     expected_normalized = _normalize_sql(expected)
     actual_normalized = _normalize_sql(actual)
     assert expected_normalized == actual_normalized, (
-        f"{label} SQL does not match expected.\n"
-        f"Expected SQL:\n{expected}\n\n"
-        f"Actual SQL:\n{actual}"
+        f"{label} SQL does not match expected.\nExpected SQL:\n{expected}\n\nActual SQL:\n{actual}"
     )
 
 
@@ -388,7 +386,9 @@ def test_cached_optimized_queries_match_live_rewrite_results(policy_count):
         match, error = compare_results_exact(live_dfc_1phase, cached_dfc_1phase)
         assert match, error
 
-        live_dfc_2phase = conn.execute(rewriter.transform_query(query, use_two_phase=True)).fetchall()
+        live_dfc_2phase = conn.execute(
+            rewriter.transform_query(query, use_two_phase=True)
+        ).fetchall()
         cached_dfc_2phase = conn.execute(cached_queries["dfc_2phase"]).fetchall()
         match, error = compare_results_exact(live_dfc_2phase, cached_dfc_2phase)
         assert match, error
@@ -407,7 +407,9 @@ def test_cached_optimized_queries_match_live_rewrite_results(policy_count):
         rewriter.register_policy(strongest_policy)
 
         live_dfc_1phase_optimized = conn.execute(rewriter.transform_query(query)).fetchall()
-        cached_dfc_1phase_optimized = conn.execute(cached_queries["dfc_1phase_optimized"]).fetchall()
+        cached_dfc_1phase_optimized = conn.execute(
+            cached_queries["dfc_1phase_optimized"]
+        ).fetchall()
         match, error = compare_results_exact(live_dfc_1phase_optimized, cached_dfc_1phase_optimized)
         assert match, error
 
@@ -418,11 +420,13 @@ def test_cached_optimized_queries_match_live_rewrite_results(policy_count):
         )
         assert live_physical_error is None
 
-        cached_physical, _, cached_physical_error, _, _ = execute_precomputed_query_physical_detailed(
-            conn,
-            cached_queries["physical_base"],
-            cached_queries["physical_filter_template"],
-            "lineitem",
+        cached_physical, _, cached_physical_error, _, _ = (
+            execute_precomputed_query_physical_detailed(
+                conn,
+                cached_queries["physical_base"],
+                cached_queries["physical_filter_template"],
+                "lineitem",
+            )
         )
         assert cached_physical_error is None
 

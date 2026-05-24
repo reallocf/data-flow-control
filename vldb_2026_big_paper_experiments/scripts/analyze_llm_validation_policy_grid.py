@@ -39,27 +39,66 @@ def _policy_catalog() -> list[tuple[str, str]]:
         ("max(lineitem.l_tax) <= 0.06", "No single tax rate should exceed 6%."),
         ("min(lineitem.l_tax) >= 0.00", "Tax should be non-negative."),
         ("min(lineitem.l_extendedprice) >= 0", "Extended prices should be non-negative."),
-        ("avg(lineitem.l_extendedprice) <= 60000", "Average extended price should not exceed 60,000."),
-        ("max(lineitem.l_extendedprice) <= 90000", "Single extended price should not exceed 90,000."),
+        (
+            "avg(lineitem.l_extendedprice) <= 60000",
+            "Average extended price should not exceed 60,000.",
+        ),
+        (
+            "max(lineitem.l_extendedprice) <= 90000",
+            "Single extended price should not exceed 90,000.",
+        ),
         ("count(lineitem.l_orderkey) >= 1", "There should be at least one line item."),
         ("count(distinct lineitem.l_shipmode) <= 5", "Distinct ship modes should not exceed 5."),
-        ("count(distinct lineitem.l_returnflag) <= 2", "Distinct return flags should not exceed 2."),
-        ("count(distinct lineitem.l_linestatus) <= 2", "Distinct line statuses should not exceed 2."),
+        (
+            "count(distinct lineitem.l_returnflag) <= 2",
+            "Distinct return flags should not exceed 2.",
+        ),
+        (
+            "count(distinct lineitem.l_linestatus) <= 2",
+            "Distinct line statuses should not exceed 2.",
+        ),
         ("max(lineitem.l_linenumber) <= 5", "Line numbers should stay within 1..5."),
         ("min(lineitem.l_linenumber) >= 1", "Line numbers should be at least 1."),
-        ("min(lineitem.l_shipdate) >= DATE '1994-01-01'", "Ship dates should be on/after 1994-01-01."),
-        ("max(lineitem.l_shipdate) <= DATE '1997-12-31'", "Ship dates should be on/before 1997-12-31."),
-        ("min(lineitem.l_receiptdate) >= DATE '1994-01-01'", "Receipt dates should be on/after 1994-01-01."),
-        ("max(lineitem.l_receiptdate) <= DATE '1997-12-31'", "Receipt dates should be on/before 1997-12-31."),
-        ("min(lineitem.l_commitdate) >= DATE '1994-01-01'", "Commit dates should be on/after 1994-01-01."),
-        ("max(lineitem.l_commitdate) <= DATE '1997-12-31'", "Commit dates should be on/before 1997-12-31."),
+        (
+            "min(lineitem.l_shipdate) >= DATE '1994-01-01'",
+            "Ship dates should be on/after 1994-01-01.",
+        ),
+        (
+            "max(lineitem.l_shipdate) <= DATE '1997-12-31'",
+            "Ship dates should be on/before 1997-12-31.",
+        ),
+        (
+            "min(lineitem.l_receiptdate) >= DATE '1994-01-01'",
+            "Receipt dates should be on/after 1994-01-01.",
+        ),
+        (
+            "max(lineitem.l_receiptdate) <= DATE '1997-12-31'",
+            "Receipt dates should be on/before 1997-12-31.",
+        ),
+        (
+            "min(lineitem.l_commitdate) >= DATE '1994-01-01'",
+            "Commit dates should be on/after 1994-01-01.",
+        ),
+        (
+            "max(lineitem.l_commitdate) <= DATE '1997-12-31'",
+            "Commit dates should be on/before 1997-12-31.",
+        ),
         ("sum(lineitem.l_discount) <= 180000", "Total discounts should stay below 180,000."),
         ("sum(lineitem.l_quantity) <= 80000000", "Total quantity should stay below 80M."),
         ("min(lineitem.l_orderkey) >= 1", "Order keys should be positive."),
-        ("max(lineitem.l_orderkey) <= 3000000", "Order keys should remain within expected TPCH range."),
+        (
+            "max(lineitem.l_orderkey) <= 3000000",
+            "Order keys should remain within expected TPCH range.",
+        ),
         ("min(lineitem.l_partkey) >= 1", "Part keys should be positive."),
-        ("max(lineitem.l_partkey) <= 100000", "Part keys should remain within expected TPCH range."),
-        ("max(lineitem.l_suppkey) <= 5000", "Supplier keys should remain within expected TPCH range."),
+        (
+            "max(lineitem.l_partkey) <= 100000",
+            "Part keys should remain within expected TPCH range.",
+        ),
+        (
+            "max(lineitem.l_suppkey) <= 5000",
+            "Supplier keys should remain within expected TPCH range.",
+        ),
     ]
 
 
@@ -87,7 +126,9 @@ def _ensure_tpch_data(conn: duckdb.DuckDBPyConnection, sf: float) -> None:
         print("TPC-H data generation complete.")
 
 
-def _query_has_violation(conn: duckdb.DuckDBPyConnection, rewriter: SQLRewriter, query_num: int) -> bool:
+def _query_has_violation(
+    conn: duckdb.DuckDBPyConnection, rewriter: SQLRewriter, query_num: int
+) -> bool:
     query = load_tpch_query(query_num)
     transformed = rewriter.transform_query(query, use_two_phase=False)
     cursor = conn.execute(transformed)
@@ -97,7 +138,9 @@ def _query_has_violation(conn: duckdb.DuckDBPyConnection, rewriter: SQLRewriter,
     if "valid" not in lower_columns:
         return False
     valid_idx = lower_columns.index("valid")
-    return any((row[valid_idx] is False) or (str(row[valid_idx]).lower() == "false") for row in rows)
+    return any(
+        (row[valid_idx] is False) or (str(row[valid_idx]).lower() == "false") for row in rows
+    )
 
 
 def _clear_policies(rewriter: SQLRewriter) -> None:
@@ -110,7 +153,9 @@ def _clear_policies(rewriter: SQLRewriter) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Analyze llm_validation policy violations across TPC-H queries.")
+    parser = argparse.ArgumentParser(
+        description="Analyze llm_validation policy violations across TPC-H queries."
+    )
     parser.add_argument(
         "--tpch-sf",
         type=float,
@@ -175,9 +220,7 @@ def main() -> int:
                 try:
                     violated = _query_has_violation(conn, rewriter, query_num)
                 except Exception as exc:
-                    print(
-                        f"ERROR policy={idx:02d} q{query_num:02d}: {type(exc).__name__}: {exc}"
-                    )
+                    print(f"ERROR policy={idx:02d} q{query_num:02d}: {type(exc).__name__}: {exc}")
                     if args.strict:
                         raise
                     violated = False

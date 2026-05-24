@@ -37,7 +37,9 @@ def normalize_filter_query(filter_query: str) -> str:
     return normalized.strip()
 
 
-LINEAGE_QUERY_BASE = 'SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)'
+LINEAGE_QUERY_BASE = (
+    'SELECT output_id AS out_index, "test_data_iid" AS "test_data" FROM read_block(0)'
+)
 LINEAGE_QUERY_SELECT = LINEAGE_QUERY_BASE
 LINEAGE_QUERY_JOIN = LINEAGE_QUERY_BASE
 LINEAGE_QUERY_GROUP = LINEAGE_QUERY_BASE
@@ -215,6 +217,7 @@ class TestPhysicalRewriter:
         """
         try:
             from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
+
             duckdb_module = setup_local_smokedduck()
             conn = duckdb_module.connect(":memory:")
         except (ImportError, FileNotFoundError) as e:
@@ -253,7 +256,7 @@ class TestPhysicalRewriter:
             constraint=constraint,
             source_table="test_data",
             column_names=["id", "value", "category", "amount"],
-            is_aggregation=False
+            is_aggregation=False,
         )
 
         expected = "SELECT * FROM temp_results WHERE value > 100"
@@ -268,7 +271,7 @@ class TestPhysicalRewriter:
             constraint=constraint,
             source_table="test_data",
             column_names=["category", "count", "sum"],
-            is_aggregation=True
+            is_aggregation=True,
         )
 
         expected = "SELECT * FROM temp_results"
@@ -289,14 +292,15 @@ class TestPhysicalRewriter:
 
         # Base query should be unchanged
         expected_base = "SELECT * FROM test_data"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         assert not is_agg
 
         expected_filter_template = FILTER_QUERY_SELECT
         normalized_filter = normalize_filter_query(filter_query_template)
         assert normalized_filter == expected_filter_template, (
-            f"Expected filter template:\n{expected_filter_template}\n"
-            f"Got:\n{filter_query_template}"
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
         )
 
     @pytest.mark.usefixtures("conn")
@@ -314,14 +318,15 @@ class TestPhysicalRewriter:
 
         # Base query should be unchanged
         expected_base = "SELECT * FROM test_data WHERE value > 50"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         assert not is_agg
 
         expected_filter_template = FILTER_QUERY_SELECT
         normalized_filter = normalize_filter_query(filter_query_template)
         assert normalized_filter == expected_filter_template, (
-            f"Expected filter template:\n{expected_filter_template}\n"
-            f"Got:\n{filter_query_template}"
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
         )
 
     @pytest.mark.usefixtures("conn")
@@ -343,24 +348,21 @@ class TestPhysicalRewriter:
 
         # Base query should be unchanged
         expected_base = "SELECT test_data.id, other.value FROM test_data JOIN test_data AS other ON test_data.id = other.id"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         assert not is_agg
 
         expected_filter_template = FILTER_QUERY_JOIN
         normalized_filter = normalize_filter_query(filter_query_template)
         assert normalized_filter == expected_filter_template, (
-            f"Expected filter template:\n{expected_filter_template}\n"
-            f"Got:\n{filter_query_template}"
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
         )
 
     @pytest.mark.usefixtures("conn")
     def test_rewrite_query_physical_group_by(self):
         """Test rewriting a GROUP BY (aggregation) query."""
-        query = (
-            "SELECT category, COUNT(*), SUM(amount) "
-            "FROM test_data "
-            "GROUP BY category"
-        )
+        query = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
         policy = create_test_policy()
 
         base_query, filter_query_template, is_agg = rewrite_query_physical(
@@ -372,14 +374,15 @@ class TestPhysicalRewriter:
 
         # Base query should be unchanged
         expected_base = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         assert is_agg
 
         expected_filter_template = FILTER_QUERY_GROUP
         normalized_filter = normalize_filter_query(filter_query_template)
         assert normalized_filter == expected_filter_template, (
-            f"Expected filter template:\n{expected_filter_template}\n"
-            f"Got:\n{filter_query_template}"
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
         )
 
     @pytest.mark.usefixtures("conn")
@@ -397,14 +400,15 @@ class TestPhysicalRewriter:
 
         # Base query should be unchanged
         expected_base = "SELECT * FROM test_data ORDER BY value DESC"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         assert not is_agg
 
         expected_filter_template = FILTER_QUERY_ORDER
         normalized_filter = normalize_filter_query(filter_query_template)
         assert normalized_filter == expected_filter_template, (
-            f"Expected filter template:\n{expected_filter_template}\n"
-            f"Got:\n{filter_query_template}"
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
         )
 
 
@@ -419,6 +423,7 @@ class TestPhysicalBaselineExecution:
         """
         try:
             from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
+
             duckdb_module = setup_local_smokedduck()
             conn = duckdb_module.connect(":memory:")
         except (ImportError, FileNotFoundError) as e:
@@ -437,8 +442,11 @@ class TestPhysicalBaselineExecution:
         query = "SELECT * FROM test_data"
 
         from vldb_experiments.policy_setup import create_test_policy
+
         policy = create_test_policy()
-        results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         assert error is None, f"Execution failed: {error}"
         assert execution_time > 0, "Should have execution time"
@@ -446,13 +454,17 @@ class TestPhysicalBaselineExecution:
         # Verify the complete expected SQL queries
         # Base query should be the original query (executed to capture lineage)
         expected_base_query = "SELECT * FROM test_data"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         # Filter query should filter the temp table based on policy constraint
         # Normalize temp table name for comparison
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_SELECT
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # Results should be filtered (value > 100)
         # Verify by checking that all rows have value > 100
@@ -468,18 +480,25 @@ class TestPhysicalBaselineExecution:
         query = "SELECT * FROM test_data WHERE value > 50"
 
         from vldb_experiments.policy_setup import create_test_policy
+
         policy = create_test_policy()
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         assert error is None, f"Execution failed: {error}"
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data WHERE value > 50"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_SELECT
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # Results should be filtered (value > 100, which is more restrictive than value > 50)
         for row in results:
@@ -495,18 +514,25 @@ class TestPhysicalBaselineExecution:
         )
 
         from vldb_experiments.policy_setup import create_test_policy
+
         policy = create_test_policy()
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         assert error is None, f"Execution failed: {error}"
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT test_data.id, other.value FROM test_data JOIN test_data AS other ON test_data.id = other.id"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_JOIN
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # Results should be filtered (value > 100)
         # Value is at index 1 in the SELECT list
@@ -516,15 +542,14 @@ class TestPhysicalBaselineExecution:
 
     def test_execute_group_by_query(self, conn):
         """Test executing a GROUP BY query with physical baseline."""
-        query = (
-            "SELECT category, COUNT(*), SUM(amount) "
-            "FROM test_data "
-            "GROUP BY category"
-        )
+        query = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
 
         from vldb_experiments.policy_setup import create_test_policy
+
         policy = create_test_policy()
-        _results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        _results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         assert error is None, f"Execution failed: {error}"
         # For aggregation queries, we may get all results if value column is not in results
@@ -532,12 +557,18 @@ class TestPhysicalBaselineExecution:
         assert execution_time > 0, "Should have execution time"
 
         # Verify the complete expected SQL queries
-        expected_base_query = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        expected_base_query = (
+            "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
+        )
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_GROUP
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
     def test_execute_order_by_query(self, conn):
         """Test executing an ORDER BY query with physical baseline."""
@@ -545,18 +576,25 @@ class TestPhysicalBaselineExecution:
         query = "SELECT * FROM test_data ORDER BY value DESC"
 
         from vldb_experiments.policy_setup import create_test_policy
+
         policy = create_test_policy()
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         assert error is None, f"Execution failed: {error}"
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data ORDER BY value DESC"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_ORDER
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # Results should be filtered (value > 100)
         for row in results:
@@ -566,7 +604,7 @@ class TestPhysicalBaselineExecution:
         # Results should be ordered by value DESC
         if len(results) > 1:
             for i in range(len(results) - 1):
-                assert results[i][1] >= results[i+1][1], "Results should be ordered DESC"
+                assert results[i][1] >= results[i + 1][1], "Results should be ordered DESC"
 
 
 class TestPhysicalRewriterWithDifferentPolicies:
@@ -580,6 +618,7 @@ class TestPhysicalRewriterWithDifferentPolicies:
         """
         try:
             from vldb_experiments.use_local_smokedduck import setup_local_smokedduck
+
             duckdb_module = setup_local_smokedduck()
             conn = duckdb_module.connect(":memory:")
         except (ImportError, FileNotFoundError) as e:
@@ -602,29 +641,39 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="min(test_data.value) > 10",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 10"
+            description="Filter rows where value <= 10",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data WHERE value > 50"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        _results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        _results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data WHERE value > 50"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         # Filter query may not have WHERE clause for SELECT * with min() constraint
         normalized_filter = normalize_filter_query(filter_query_sql)
         # min(value) > 10 gets transformed to value > 10 for scan queries
         expected_filter_query = with_constraint(FILTER_QUERY_SELECT, "MIN(test_data.value) > 10")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # The transformation should work for min() - verify results are filtered
         assert error is None, f"Execution failed: {error}"
@@ -638,30 +687,40 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) < 500",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value >= 500"
+            description="Filter rows where value >= 500",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         assert error is None, f"Execution failed: {error}"
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         # max(value) < 500 gets transformed to value < 500 for scan queries
         expected_filter_query = with_constraint(FILTER_QUERY_SELECT, "MAX(test_data.value) < 500")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # Verify the constraint is applied (value < 500 for scan queries)
         for row in results:
@@ -676,30 +735,40 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) >= 200",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value < 200"
+            description="Filter rows where value < 200",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data WHERE value > 50"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         assert error is None, f"Execution failed: {error}"
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data WHERE value > 50"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         # max(value) >= 200 gets transformed to value >= 200 for scan queries
         expected_filter_query = with_constraint(FILTER_QUERY_SELECT, "MAX(test_data.value) >= 200")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # Verify the constraint is applied (value >= 200 for scan queries)
         for row in results:
@@ -715,28 +784,38 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where amount <= 5000"
+            description="Filter rows where amount <= 5000",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         # max(amount) > 5000 gets transformed to amount > 5000 for scan queries
         expected_filter_query = with_constraint(FILTER_QUERY_SELECT, "MAX(test_data.amount) > 5000")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # The transformation should work for max() - verify results are filtered
         if error is None:
@@ -756,18 +835,24 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.KILL,
-            description="Kill query if value <= 100"
+            description="Kill query if value <= 100",
         )
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data WHERE value > 50"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_SELECT
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # KILL resolution doesn't affect the physical rewriter's execution
         # It just filters rows (the actual KILL behavior is in SQLRewriter)
@@ -782,18 +867,24 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.INVALIDATE,
-            description="Invalidate rows where value <= 100"
+            description="Invalidate rows where value <= 100",
         )
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_SELECT
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
         assert len(results) >= 0, "Rewritten query should execute"
@@ -806,27 +897,37 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 100"
+            description="Filter rows where value <= 100",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data WHERE value > 50 AND category = 'A'"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data WHERE value > 50 AND category = 'A'"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_SELECT
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
         assert len(results) >= 0, "Rewritten query should execute"
@@ -846,27 +947,37 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 100"
+            description="Filter rows where value <= 100",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT id, value, category FROM test_data WHERE value > 50"
         expected_filter_template = "SELECT * FROM temp_table_name WHERE value > 100"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT id, value, category FROM test_data WHERE value > 50"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_SELECT_SPECIFIC
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
 
@@ -886,27 +997,39 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.amount) > 5000",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where amount <= 5000"
+            description="Filter rows where amount <= 5000",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT test_data.id, test_data.amount, other.value FROM test_data JOIN test_data AS other ON test_data.id = other.id"
         expected_filter_template = "SELECT * FROM temp_table_name WHERE amount > 5000"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT test_data.id, test_data.amount, other.value FROM test_data JOIN test_data AS other ON test_data.id = other.id"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
-        expected_filter_query = with_constraint(FILTER_QUERY_JOIN_AMOUNT, "MAX(test_data.amount) > 5000")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        expected_filter_query = with_constraint(
+            FILTER_QUERY_JOIN_AMOUNT, "MAX(test_data.amount) > 5000"
+        )
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         # The transformation should work for max() - verify results are filtered
         if error is None:
@@ -926,27 +1049,37 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value <= 100"
+            description="Filter rows where value <= 100",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data ORDER BY value DESC LIMIT 10"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data ORDER BY value DESC LIMIT 10"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_ORDER_LIMIT
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
 
@@ -967,18 +1100,26 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 50",
             on_fail=Resolution.REMOVE,
-            description="Filter groups where max(value) <= 50"
+            description="Filter groups where max(value) <= 50",
         )
 
-        _results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        _results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
-        expected_base_query = "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        expected_base_query = (
+            "SELECT category, COUNT(*), SUM(amount) FROM test_data GROUP BY category"
+        )
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = with_constraint(FILTER_QUERY_GROUP, "MAX(test_data.value) > 50")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
         # For aggregation queries, we may get all results if value column is not in results
@@ -996,18 +1137,24 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) > 100",
             on_fail=Resolution.REMOVE,
-            description="Filter groups where max(value) <= 100"
+            description="Filter groups where max(value) <= 100",
         )
 
-        results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT category, COUNT(*), SUM(amount), AVG(value), MAX(value), MIN(value) FROM test_data GROUP BY category"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         expected_filter_query = FILTER_QUERY_GROUP_MULTI
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
         # For aggregation queries, we may get all results if value column is not in results
@@ -1024,28 +1171,38 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) <= 200",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value > 200"
+            description="Filter rows where value > 200",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         # max(value) <= 200 gets transformed to value <= 200 for scan queries
         expected_filter_query = with_constraint(FILTER_QUERY_SELECT, "MAX(test_data.value) <= 200")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
 
@@ -1062,28 +1219,38 @@ class TestPhysicalRewriterWithDifferentPolicies:
             sources=["test_data"],
             constraint="max(test_data.value) = 100",
             on_fail=Resolution.REMOVE,
-            description="Filter rows where value != 100"
+            description="Filter rows where value != 100",
         )
 
         # Verify the complete expected SQL from rewrite_query_physical
         base_query, filter_query_template, is_agg = rewrite_query_physical(query, policy)
         expected_base = "SELECT * FROM test_data WHERE value > 50"
         expected_filter_template = "SELECT * FROM temp_table_name"
-        assert base_query == expected_base, f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        assert base_query == expected_base, (
+            f"Expected base query:\n{expected_base}\nGot:\n{base_query}"
+        )
         normalized_filter_template = normalize_filter_query(filter_query_template)
-        assert normalized_filter_template == expected_filter_template, f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        assert normalized_filter_template == expected_filter_template, (
+            f"Expected filter template:\n{expected_filter_template}\nGot:\n{filter_query_template}"
+        )
         assert not is_agg
 
-        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(conn, query, policy)
+        results, _execution_time, error, base_query_sql, filter_query_sql = execute_query_physical(
+            conn, query, policy
+        )
 
         # Verify the complete expected SQL queries
         expected_base_query = "SELECT * FROM test_data WHERE value > 50"
-        assert base_query_sql == expected_base_query, f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        assert base_query_sql == expected_base_query, (
+            f"Expected base query:\n{expected_base_query}\nGot:\n{base_query_sql}"
+        )
 
         normalized_filter = normalize_filter_query(filter_query_sql)
         # max(value) = 100 gets transformed to value = 100 for scan queries
         expected_filter_query = with_constraint(FILTER_QUERY_SELECT, "MAX(test_data.value) = 100")
-        assert normalized_filter == expected_filter_query, f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        assert normalized_filter == expected_filter_query, (
+            f"Expected filter query:\n{expected_filter_query}\nGot:\n{normalized_filter}"
+        )
 
         assert error is None, f"Execution failed: {error}"
         # May return 0 or 1 results depending on data

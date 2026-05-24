@@ -34,27 +34,66 @@ def policy_catalog() -> list[tuple[str, str]]:
         ("max(lineitem.l_tax) <= 0.06", "No single tax rate should exceed 6%."),
         ("min(lineitem.l_tax) >= 0.00", "Tax should be non-negative."),
         ("min(lineitem.l_extendedprice) >= 0", "Extended prices should be non-negative."),
-        ("avg(lineitem.l_extendedprice) <= 60000", "Average extended price should not exceed 60,000."),
-        ("max(lineitem.l_extendedprice) <= 90000", "Single extended price should not exceed 90,000."),
+        (
+            "avg(lineitem.l_extendedprice) <= 60000",
+            "Average extended price should not exceed 60,000.",
+        ),
+        (
+            "max(lineitem.l_extendedprice) <= 90000",
+            "Single extended price should not exceed 90,000.",
+        ),
         ("count(lineitem.l_orderkey) >= 1", "There should be at least one line item."),
         ("count(distinct lineitem.l_shipmode) <= 5", "Distinct ship modes should not exceed 5."),
-        ("count(distinct lineitem.l_returnflag) <= 2", "Distinct return flags should not exceed 2."),
-        ("count(distinct lineitem.l_linestatus) <= 2", "Distinct line statuses should not exceed 2."),
+        (
+            "count(distinct lineitem.l_returnflag) <= 2",
+            "Distinct return flags should not exceed 2.",
+        ),
+        (
+            "count(distinct lineitem.l_linestatus) <= 2",
+            "Distinct line statuses should not exceed 2.",
+        ),
         ("max(lineitem.l_linenumber) <= 5", "Line numbers should stay within 1..5."),
         ("min(lineitem.l_linenumber) >= 1", "Line numbers should be at least 1."),
-        ("min(lineitem.l_shipdate) >= DATE '1994-01-01'", "Ship dates should be on/after 1994-01-01."),
-        ("max(lineitem.l_shipdate) <= DATE '1997-12-31'", "Ship dates should be on/before 1997-12-31."),
-        ("min(lineitem.l_receiptdate) >= DATE '1994-01-01'", "Receipt dates should be on/after 1994-01-01."),
-        ("max(lineitem.l_receiptdate) <= DATE '1997-12-31'", "Receipt dates should be on/before 1997-12-31."),
-        ("min(lineitem.l_commitdate) >= DATE '1994-01-01'", "Commit dates should be on/after 1994-01-01."),
-        ("max(lineitem.l_commitdate) <= DATE '1997-12-31'", "Commit dates should be on/before 1997-12-31."),
+        (
+            "min(lineitem.l_shipdate) >= DATE '1994-01-01'",
+            "Ship dates should be on/after 1994-01-01.",
+        ),
+        (
+            "max(lineitem.l_shipdate) <= DATE '1997-12-31'",
+            "Ship dates should be on/before 1997-12-31.",
+        ),
+        (
+            "min(lineitem.l_receiptdate) >= DATE '1994-01-01'",
+            "Receipt dates should be on/after 1994-01-01.",
+        ),
+        (
+            "max(lineitem.l_receiptdate) <= DATE '1997-12-31'",
+            "Receipt dates should be on/before 1997-12-31.",
+        ),
+        (
+            "min(lineitem.l_commitdate) >= DATE '1994-01-01'",
+            "Commit dates should be on/after 1994-01-01.",
+        ),
+        (
+            "max(lineitem.l_commitdate) <= DATE '1997-12-31'",
+            "Commit dates should be on/before 1997-12-31.",
+        ),
         ("sum(lineitem.l_discount) <= 180000", "Total discounts should stay below 180,000."),
         ("sum(lineitem.l_quantity) <= 80000000", "Total quantity should stay below 80M."),
         ("min(lineitem.l_orderkey) >= 1", "Order keys should be positive."),
-        ("max(lineitem.l_orderkey) <= 3000000", "Order keys should remain within expected TPCH range."),
+        (
+            "max(lineitem.l_orderkey) <= 3000000",
+            "Order keys should remain within expected TPCH range.",
+        ),
         ("min(lineitem.l_partkey) >= 1", "Part keys should be positive."),
-        ("max(lineitem.l_partkey) <= 100000", "Part keys should remain within expected TPCH range."),
-        ("max(lineitem.l_suppkey) <= 5000", "Supplier keys should remain within expected TPCH range."),
+        (
+            "max(lineitem.l_partkey) <= 100000",
+            "Part keys should remain within expected TPCH range.",
+        ),
+        (
+            "max(lineitem.l_suppkey) <= 5000",
+            "Supplier keys should remain within expected TPCH range.",
+        ),
     ]
 
 
@@ -125,7 +164,9 @@ def build_query_only_prompt(
     policy_descriptions: list[str],
     run_nonce: str | None = None,
 ) -> str:
-    policies_block = "\n".join([f"{idx + 1}. {desc}" for idx, desc in enumerate(policy_descriptions)])
+    policies_block = "\n".join(
+        [f"{idx + 1}. {desc}" for idx, desc in enumerate(policy_descriptions)]
+    )
     preamble = build_run_nonce_preamble(run_nonce) if run_nonce else ""
     return (
         f"{preamble}"
@@ -146,7 +187,9 @@ def build_query_results_prompt(
     run_nonce: str | None = None,
     results_label: str = "First 100 result rows:",
 ) -> str:
-    policies_block = "\n".join([f"{idx + 1}. {desc}" for idx, desc in enumerate(policy_descriptions)])
+    policies_block = "\n".join(
+        [f"{idx + 1}. {desc}" for idx, desc in enumerate(policy_descriptions)]
+    )
     preamble = build_run_nonce_preamble(run_nonce) if run_nonce else ""
     return (
         f"{preamble}"

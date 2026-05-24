@@ -12,9 +12,7 @@ import pandas as pd
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Generate wide-table width microbenchmark chart."
-    )
+    parser = argparse.ArgumentParser(description="Generate wide-table width microbenchmark chart.")
     parser.add_argument(
         "--csv",
         default="results/microbenchmark_table_width.csv",
@@ -87,7 +85,9 @@ def main() -> int:
 
     ax.set_xlabel("Table Width (Number of Columns)", fontsize=12)
     ax.set_ylabel("Average Execution Time (ms)", fontsize=12)
-    ax.set_title("Wide-Table Aggregation Performance vs Table Width", fontsize=14, fontweight="bold")
+    ax.set_title(
+        "Wide-Table Aggregation Performance vs Table Width", fontsize=14, fontweight="bold"
+    )
     ax.set_xscale("log")
     ax.set_ylim(bottom=0)
     ax.grid(True, alpha=0.3)

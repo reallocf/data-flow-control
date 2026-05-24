@@ -540,10 +540,7 @@ def test_tpch_q01_self_join_1phase_query_one_self_join():
 
 
 def test_tpch_q01_self_join_1phase_optimized_query_one_self_join():
-    assert (
-        get_cached_tpch_q01_self_join_1phase_optimized_query(1)
-        == EXPECTED_1PHASE_OPTIMIZED_1
-    )
+    assert get_cached_tpch_q01_self_join_1phase_optimized_query(1) == EXPECTED_1PHASE_OPTIMIZED_1
 
 
 def test_tpch_q01_self_join_1phase_query_ten_self_joins():
@@ -551,7 +548,4 @@ def test_tpch_q01_self_join_1phase_query_ten_self_joins():
 
 
 def test_tpch_q01_self_join_1phase_optimized_query_ten_self_joins():
-    assert (
-        get_cached_tpch_q01_self_join_1phase_optimized_query(10)
-        == EXPECTED_1PHASE_OPTIMIZED_10
-    )
+    assert get_cached_tpch_q01_self_join_1phase_optimized_query(10) == EXPECTED_1PHASE_OPTIMIZED_10

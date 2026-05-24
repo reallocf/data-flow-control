@@ -90,7 +90,7 @@ class LLMRecorder:
         self,
         transaction_id: Optional[Any] = None,
         iteration: int = 1,
-        request_body: Optional[dict[str, Any]] = None
+        request_body: Optional[dict[str, Any]] = None,
     ) -> Optional[str]:
         """Record an agent loop request.
 
@@ -120,7 +120,7 @@ class LLMRecorder:
             "timestamp": timestamp,
             "transaction_id": str(transaction_id) if transaction_id is not None else None,
             "iteration": iteration,
-            "request": request_body
+            "request": request_body,
         }
 
         with open(filepath, "w") as f:
@@ -132,7 +132,7 @@ class LLMRecorder:
         self,
         transaction_id: Optional[Any] = None,
         iteration: int = 1,
-        response_body: Optional[dict[str, Any]] = None
+        response_body: Optional[dict[str, Any]] = None,
     ) -> Optional[str]:
         """Record an agent loop response.
 
@@ -162,7 +162,7 @@ class LLMRecorder:
             "timestamp": timestamp,
             "transaction_id": str(transaction_id) if transaction_id is not None else None,
             "iteration": iteration,
-            "response": response_body
+            "response": response_body,
         }
 
         with open(filepath, "w") as f:
@@ -175,7 +175,7 @@ class LLMRecorder:
         constraint: str,
         description: Optional[str] = None,
         row_data: Optional[dict[str, Any]] = None,
-        request_body: Optional[dict[str, Any]] = None
+        request_body: Optional[dict[str, Any]] = None,
     ) -> Optional[str]:
         """Record an LLM resolution request.
 
@@ -206,7 +206,7 @@ class LLMRecorder:
             "constraint": constraint,
             "description": description,
             "row_data": row_data,
-            "request": request_body
+            "request": request_body,
         }
 
         with open(filepath, "w") as f:
@@ -219,7 +219,7 @@ class LLMRecorder:
         constraint: str,
         description: Optional[str] = None,
         response_body: Optional[dict[str, Any]] = None,
-        fixed_row_data: Optional[Any] = None
+        fixed_row_data: Optional[Any] = None,
     ) -> Optional[str]:
         """Record an LLM resolution response.
 
@@ -250,7 +250,7 @@ class LLMRecorder:
             "constraint": constraint,
             "description": description,
             "response": response_body,
-            "fixed_row_data": fixed_row_data
+            "fixed_row_data": fixed_row_data,
         }
 
         with open(filepath, "w") as f:

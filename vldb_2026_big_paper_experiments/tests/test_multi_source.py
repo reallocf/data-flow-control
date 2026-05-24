@@ -14,9 +14,8 @@ def _setup_chain_schema(conn: duckdb.DuckDBPyConnection, join_count: int) -> Non
             conn.execute("CREATE TABLE t1 (id INTEGER, payload INTEGER)")
         else:
             prev = idx - 1
-            conn.execute(
-                f"CREATE TABLE t{idx} (id INTEGER, t{prev}_id INTEGER, payload INTEGER)"
-            )
+            conn.execute(f"CREATE TABLE t{idx} (id INTEGER, t{prev}_id INTEGER, payload INTEGER)")
+
 
 def _populate_chain_data(
     conn: duckdb.DuckDBPyConnection,
@@ -59,9 +58,7 @@ def test_multi_source_32_join_32_sources_rewrite() -> None:
     _populate_chain_data(conn, join_count, num_rows)
 
     sources = [f"t{i}" for i in range(1, source_count + 1)]
-    constraint = " AND ".join(
-        [f"max(t{i}.id) >= 1" for i in range(1, source_count + 1)]
-    )
+    constraint = " AND ".join([f"max(t{i}.id) >= 1" for i in range(1, source_count + 1)])
     policy = DFCPolicy(sources=sources, constraint=constraint, on_fail=Resolution.REMOVE)
 
     rewriter = SQLRewriter(conn=conn)

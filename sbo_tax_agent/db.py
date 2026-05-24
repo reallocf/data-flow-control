@@ -28,10 +28,25 @@ use_local_duckdb.setup_local_duckdb()
 # Get extension path for loading external extension
 _SCRIPT_DIR = Path(__file__).parent
 _PROJECT_ROOT = _SCRIPT_DIR.parent
-_EXT_PATH = _PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "repository" / "v1.4.1" / "osx_arm64" / "external.duckdb_extension"
+_EXT_PATH = (
+    _PROJECT_ROOT
+    / "extended_duckdb"
+    / "build"
+    / "release"
+    / "repository"
+    / "v1.4.1"
+    / "osx_arm64"
+    / "external.duckdb_extension"
+)
 if not _EXT_PATH.exists():
     alt_paths = [
-        _PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "extension" / "external" / "external.duckdb_extension",
+        _PROJECT_ROOT
+        / "extended_duckdb"
+        / "build"
+        / "release"
+        / "extension"
+        / "external"
+        / "external.duckdb_extension",
         _PROJECT_ROOT / "extended_duckdb" / "build" / "release" / "external.duckdb_extension",
     ]
     for alt_path in alt_paths:
@@ -44,7 +59,9 @@ _db_rewriter = None
 _db_lock = threading.Lock()
 
 
-def get_db_connection(tax_return_path=None, form_1099_k_path=None, bank_txn_path=None, policies_path=None):
+def get_db_connection(
+    tax_return_path=None, form_1099_k_path=None, bank_txn_path=None, policies_path=None
+):
     """Get or create the global shared DuckDB connection for the app.
 
     Uses a single in-memory database instance that persists across all Streamlit sessions.
@@ -75,7 +92,9 @@ def get_db_connection(tax_return_path=None, form_1099_k_path=None, bank_txn_path
                 conn.execute(f"LOAD '{_EXT_PATH}'")
                 print(f"[DB] Loaded external extension from {_EXT_PATH}")
             else:
-                print(f"[WARNING] External extension not found at {_EXT_PATH}. Async rewrite will not work.")
+                print(
+                    f"[WARNING] External extension not found at {_EXT_PATH}. Async rewrite will not work."
+                )
 
             initialize_tables(conn)
 
@@ -85,14 +104,14 @@ def get_db_connection(tax_return_path=None, form_1099_k_path=None, bank_txn_path
             except Exception as e:
                 # If Bedrock client creation fails, continue without it
                 # LLM resolution policies won't work, but other functionality will
-                print(f"[WARNING] Failed to create Bedrock client: {e}. LLM resolution policies will not be available.")
+                print(
+                    f"[WARNING] Failed to create Bedrock client: {e}. LLM resolution policies will not be available."
+                )
                 bedrock_client = None
 
             # Wrap with SQLRewriter, passing Bedrock client and model ID
             _db_rewriter = SQLRewriter(
-                conn=conn,
-                bedrock_client=bedrock_client,
-                bedrock_model_id=BEDROCK_MODEL_ID
+                conn=conn, bedrock_client=bedrock_client, bedrock_model_id=BEDROCK_MODEL_ID
             )
 
             # Load data from file paths if provided
@@ -257,11 +276,15 @@ def load_data_from_files(rewriter, tax_return_path=None, form_1099_k_path=None, 
             df = pd.read_csv(tax_return_path)
             is_valid, error_msg = validate_csv_schema(df, "tax_return")
             if not is_valid:
-                raise ValueError(f"Schema validation failed for tax_return file {tax_return_path}: {error_msg}")
+                raise ValueError(
+                    f"Schema validation failed for tax_return file {tax_return_path}: {error_msg}"
+                )
 
             # Validate row count: must be at most 1 row
             if len(df) > 1:
-                raise ValueError(f"Tax return dataset must contain at most 1 row. Found {len(df)} rows in {tax_return_path}")
+                raise ValueError(
+                    f"Tax return dataset must contain at most 1 row. Found {len(df)} rows in {tax_return_path}"
+                )
 
             load_dataframe_to_table(rewriter, df, "tax_return")
             loaded_dfs["tax_return"] = df
@@ -276,7 +299,9 @@ def load_data_from_files(rewriter, tax_return_path=None, form_1099_k_path=None, 
             df = pd.read_csv(form_1099_k_path)
             is_valid, error_msg = validate_csv_schema(df, "form_1099_k")
             if not is_valid:
-                raise ValueError(f"Schema validation failed for form_1099_k file {form_1099_k_path}: {error_msg}")
+                raise ValueError(
+                    f"Schema validation failed for form_1099_k file {form_1099_k_path}: {error_msg}"
+                )
 
             load_dataframe_to_table(rewriter, df, "form_1099_k")
             loaded_dfs["form_1099_k"] = df
@@ -291,7 +316,9 @@ def load_data_from_files(rewriter, tax_return_path=None, form_1099_k_path=None, 
             df = pd.read_csv(bank_txn_path)
             is_valid, error_msg = validate_csv_schema(df, "bank_txn")
             if not is_valid:
-                raise ValueError(f"Schema validation failed for bank_txn file {bank_txn_path}: {error_msg}")
+                raise ValueError(
+                    f"Schema validation failed for bank_txn file {bank_txn_path}: {error_msg}"
+                )
 
             load_dataframe_to_table(rewriter, df, "bank_txn")
             loaded_dfs["bank_txn"] = df
@@ -326,14 +353,18 @@ def load_policies_from_file(rewriter, policies_path):
 
         # Validate CSV has 'policy' column
         if "policy" not in df.columns:
-            raise ValueError(f"CSV file {policies_path} must have a 'policy' column. Found columns: {', '.join(df.columns)}")
+            raise ValueError(
+                f"CSV file {policies_path} must have a 'policy' column. Found columns: {', '.join(df.columns)}"
+            )
 
         # Load and register each policy
         for idx, row in df.iterrows():
             policy_text = str(row["policy"]).strip()
 
             if not policy_text or policy_text.lower() == "nan":
-                raise ValueError(f"Empty policy text at row {idx + 2} (1-indexed, including header) in {policies_path}")
+                raise ValueError(
+                    f"Empty policy text at row {idx + 2} (1-indexed, including header) in {policies_path}"
+                )
 
             try:
                 # Determine if this is an aggregate policy by checking for AGGREGATE keyword
@@ -356,9 +387,13 @@ def load_policies_from_file(rewriter, policies_path):
                 rewriter.register_policy(policy)
 
             except ValueError as e:
-                raise ValueError(f"Failed to parse policy at row {idx + 2} in {policies_path}: {e!s}") from e
+                raise ValueError(
+                    f"Failed to parse policy at row {idx + 2} in {policies_path}: {e!s}"
+                ) from e
             except Exception as e:
-                raise Exception(f"Failed to register policy at row {idx + 2} in {policies_path}: {e!s}") from e
+                raise Exception(
+                    f"Failed to register policy at row {idx + 2} in {policies_path}: {e!s}"
+                ) from e
 
     except pd.errors.EmptyDataError as e:
         raise ValueError(f"Policies file {policies_path} is empty") from e
@@ -385,16 +420,13 @@ def save_agent_logs(rewriter, txn_id, logs):
         txn_id_int = 0
 
     # Delete existing logs for this transaction
-    rewriter.conn.execute(
-        "DELETE FROM agent_logs WHERE txn_id = ?",
-        [txn_id_int]
-    )
+    rewriter.conn.execute("DELETE FROM agent_logs WHERE txn_id = ?", [txn_id_int])
 
     # Insert new logs
     for order, log_line in enumerate(logs):
         rewriter.conn.execute(
             "INSERT INTO agent_logs (txn_id, log_line, log_order) VALUES (?, ?, ?)",
-            [txn_id_int, log_line, order]
+            [txn_id_int, log_line, order],
         )
 
 

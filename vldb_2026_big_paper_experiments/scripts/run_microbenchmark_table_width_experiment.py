@@ -19,9 +19,7 @@ DEFAULT_RUNS_PER_WIDTH = 5
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Run wide-table microbenchmark width sweep."
-    )
+    parser = argparse.ArgumentParser(description="Run wide-table microbenchmark width sweep.")
     parser.add_argument(
         "--num-rows",
         type=int,

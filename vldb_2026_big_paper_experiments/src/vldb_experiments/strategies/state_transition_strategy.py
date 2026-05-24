@@ -94,8 +94,7 @@ def _pick_next_row_with_state(
 def build_state_transition_update(row_id: int, next_state: str) -> str:
     """Build a single UPDATE statement for the workload."""
     return (
-        f"UPDATE t AS t2 SET state = '{next_state}' "
-        f"FROM t WHERE t.id = t2.id AND t.id = {row_id}"
+        f"UPDATE t AS t2 SET state = '{next_state}' FROM t WHERE t.id = t2.id AND t.id = {row_id}"
     )
 
 

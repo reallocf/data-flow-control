@@ -65,7 +65,9 @@ def _build_query_only_prompt(query: str, policy_descriptions: list[str]) -> str:
     return build_query_only_prompt(query, policy_descriptions)
 
 
-def _build_query_results_prompt(query: str, policy_descriptions: list[str], sample_rows_json: str) -> str:
+def _build_query_results_prompt(
+    query: str, policy_descriptions: list[str], sample_rows_json: str
+) -> str:
     return build_query_results_prompt(query, policy_descriptions, sample_rows_json)
 
 
@@ -74,8 +76,12 @@ class LLMValidationStrategy(ExperimentStrategy):
 
     def setup(self, context: ExperimentContext) -> None:
         self.scale_factor = float(context.strategy_config.get("tpch_sf", DEFAULT_TPCH_SF))
-        self.policy_counts = [int(v) for v in context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)]
-        self.runs_per_setting = int(context.strategy_config.get("runs_per_setting", DEFAULT_RUNS_PER_SETTING))
+        self.policy_counts = [
+            int(v) for v in context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)
+        ]
+        self.runs_per_setting = int(
+            context.strategy_config.get("runs_per_setting", DEFAULT_RUNS_PER_SETTING)
+        )
         self.include_bedrock = bool(context.strategy_config.get("include_bedrock", True))
         self.include_openai = bool(context.strategy_config.get("include_openai", True))
         self.claude_model = str(context.strategy_config.get("claude_model", DEFAULT_CLAUDE_MODEL))
@@ -150,7 +156,9 @@ class LLMValidationStrategy(ExperimentStrategy):
             self.dfc_rewriter.register_policy(policy)
         return policies
 
-    def _query_result_sample(self, query_num: int, query: str) -> tuple[list[str], list[tuple[Any, ...]], bool]:
+    def _query_result_sample(
+        self, query_num: int, query: str
+    ) -> tuple[list[str], list[tuple[Any, ...]], bool]:
         if query_num in self.query_result_cache:
             columns, rows, _ = self.query_result_cache[query_num]
             return columns, rows, True
@@ -163,7 +171,9 @@ class LLMValidationStrategy(ExperimentStrategy):
         self.query_result_cache[query_num] = (columns, rows, query_time_ms)
         return columns, rows, False
 
-    def _dfc_truth(self, query_num: int, policy_count: int, query: str) -> tuple[bool, float, float, int]:
+    def _dfc_truth(
+        self, query_num: int, policy_count: int, query: str
+    ) -> tuple[bool, float, float, int]:
         key = (query_num, policy_count)
         if key in self.truth_cache:
             return self.truth_cache[key]
@@ -187,7 +197,9 @@ class LLMValidationStrategy(ExperimentStrategy):
         self.truth_cache[key] = result
         return result
 
-    def _run_llm(self, approach: str, query: str, policy_descriptions: list[str], sample_json: str | None) -> tuple[bool | None, float, int, str]:
+    def _run_llm(
+        self, approach: str, query: str, policy_descriptions: list[str], sample_json: str | None
+    ) -> tuple[bool | None, float, int, str]:
         is_query_results = approach in {APPROACH_OPUS_QUERY_RESULTS, APPROACH_GPT_QUERY_RESULTS}
         if is_query_results:
             prompt = _build_query_results_prompt(query, policy_descriptions, sample_json or "[]")
@@ -218,9 +230,7 @@ class LLMValidationStrategy(ExperimentStrategy):
             policy_count=policy_count,
             query=query,
         )
-        policy_descriptions = [
-            p.description or p.constraint for p in _build_policies(policy_count)
-        ]
+        policy_descriptions = [p.description or p.constraint for p in _build_policies(policy_count)]
 
         try:
             if approach == APPROACH_DFC_1PHASE:
@@ -289,8 +299,12 @@ class LLMValidationStrategy(ExperimentStrategy):
                     "policy_count": policy_count,
                     "effective_policy_count": effective_policy_count,
                     "approach": approach,
-                    "provider": "bedrock" if approach.startswith("opus") else ("openai" if approach.startswith("gpt") else "none"),
-                    "model_name": self.claude_model if approach.startswith("opus") else (self.gpt_model if approach.startswith("gpt") else "none"),
+                    "provider": "bedrock"
+                    if approach.startswith("opus")
+                    else ("openai" if approach.startswith("gpt") else "none"),
+                    "model_name": self.claude_model
+                    if approach.startswith("opus")
+                    else (self.gpt_model if approach.startswith("gpt") else "none"),
                     "ground_truth_violation": truth_violation,
                     "predicted_violation": "",
                     "correct_identification": "",

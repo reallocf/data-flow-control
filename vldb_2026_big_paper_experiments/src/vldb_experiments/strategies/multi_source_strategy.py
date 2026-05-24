@@ -148,7 +148,9 @@ class MultiSourceStrategy(ExperimentStrategy):
         return join_count, source_count, run_num
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
-        join_count, source_count, run_num = self._setting_and_run_for_execution(context.execution_number)
+        join_count, source_count, run_num = self._setting_and_run_for_execution(
+            context.execution_number
+        )
         table_count = join_count + 1
 
         phase_label = "warmup" if context.is_warmup else f"run {run_num}"

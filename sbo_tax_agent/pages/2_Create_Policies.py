@@ -10,10 +10,7 @@ import streamlit as st
 
 import db
 
-st.set_page_config(
-    page_title="Create Policies - SBO Tax Agent",
-    layout="wide"
-)
+st.set_page_config(page_title="Create Policies - SBO Tax Agent", layout="wide")
 
 st.header("Create Policies")
 
@@ -45,6 +42,7 @@ for policy in regular_policies:
 for policy in aggregate_policies:
     all_policies.append(("aggregate", policy))
 
+
 def build_policy_text(policy, include_description=False):
     """Build policy string from policy object.
 
@@ -66,6 +64,7 @@ def build_policy_text(policy, include_description=False):
         parts.append(f"DESCRIPTION {policy.description}")
     return " ".join(parts)
 
+
 if not all_policies:
     st.info("No policies registered yet. Create a policy using the form below.")
 else:
@@ -81,7 +80,7 @@ else:
                 f"Editing Policy {idx + 1}",
                 value=st.session_state.editing_policy_text,
                 key=f"edit_text_{idx}",
-                height=100
+                height=100,
             )
 
             col1, col2 = st.columns([1, 10])
@@ -90,7 +89,10 @@ else:
                     try:
                         # Parse the new policy - determine type from the text
                         edited_text_normalized = edited_text.strip().upper()
-                        is_aggregate = edited_text_normalized.startswith("AGGREGATE") or " AGGREGATE " in edited_text_normalized
+                        is_aggregate = (
+                            edited_text_normalized.startswith("AGGREGATE")
+                            or " AGGREGATE " in edited_text_normalized
+                        )
 
                         if is_aggregate:
                             new_policy = AggregateDFCPolicy.from_policy_str(edited_text)
@@ -109,7 +111,9 @@ else:
                             all_current.append(("aggregate", p))
 
                         # Get policies that come after the one we're editing
-                        policies_after = all_current[idx + 1:] if idx + 1 < len(all_current) else []
+                        policies_after = (
+                            all_current[idx + 1 :] if idx + 1 < len(all_current) else []
+                        )
 
                         # Delete policies from the end backwards to avoid index shifting issues
                         # First delete all policies that come after (in reverse order)
@@ -119,7 +123,7 @@ else:
                                 sink=p.sink,
                                 constraint=p.constraint,
                                 on_fail=p.on_fail,
-                                description=p.description
+                                description=p.description,
                             )
 
                         # Delete the old policy
@@ -128,7 +132,7 @@ else:
                             sink=policy.sink,
                             constraint=policy.constraint,
                             on_fail=policy.on_fail,
-                            description=policy.description
+                            description=policy.description,
                         )
 
                         if not deleted:
@@ -162,7 +166,9 @@ else:
             with col1:
                 if st.button("✏️", key=f"edit_{idx}"):
                     st.session_state.editing_policy_index = idx
-                    st.session_state.editing_policy_text = build_policy_text(policy, include_description=True)
+                    st.session_state.editing_policy_text = build_policy_text(
+                        policy, include_description=True
+                    )
                     st.rerun()
 
             with col2:
@@ -180,26 +186,29 @@ st.subheader("Create New Policy")
 policy_type = st.radio(
     "Policy Type",
     ["Regular", "Aggregate"],
-    help="Regular policies evaluate constraints over a single data flow. Aggregate policies evaluate constraints over all data flows."
+    help="Regular policies evaluate constraints over a single data flow. Aggregate policies evaluate constraints over all data flows.",
 )
 
 if policy_type == "Regular":
     st.markdown("**Example regular policy:**")
-    st.code("SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.amount) > -1000 ON FAIL REMOVE", language=None)
-    placeholder = "SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.amount) > -1000 ON FAIL REMOVE"
+    st.code(
+        "SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.amount) > -1000 ON FAIL REMOVE",
+        language=None,
+    )
+    placeholder = (
+        "SOURCE bank_txn SINK irs_form CONSTRAINT min(bank_txn.amount) > -1000 ON FAIL REMOVE"
+    )
     help_text = "Enter policy in the format: SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nFields can be separated by any whitespace (spaces, tabs, newlines)."
 else:
     st.markdown("**Example aggregate policy:**")
-    st.code("AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT min(min(bank_txn.amount)) > 1000 ON FAIL INVALIDATE", language=None)
+    st.code(
+        "AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT min(min(bank_txn.amount)) > 1000 ON FAIL INVALIDATE",
+        language=None,
+    )
     placeholder = "AGGREGATE SOURCE bank_txn SINK irs_form CONSTRAINT min(min(bank_txn.amount)) > 1000 ON FAIL INVALIDATE"
     help_text = "Enter aggregate policy in the format: AGGREGATE SOURCE <source> SINK <sink> CONSTRAINT <constraint> ON FAIL <on_fail>\nAggregate policies currently only support INVALIDATE resolution.\nFields can be separated by any whitespace (spaces, tabs, newlines)."
 
-policy_text = st.text_area(
-    "Policy Definition",
-    placeholder=placeholder,
-    help=help_text,
-    height=150
-)
+policy_text = st.text_area("Policy Definition", placeholder=placeholder, help=help_text, height=150)
 
 if st.button("Create Policy"):
     if not policy_text.strip():
@@ -254,10 +263,7 @@ try:
         df_data = []
         for table_name in sorted(schema_data.keys()):
             columns_str = ", ".join(schema_data[table_name])
-            df_data.append({
-                "Table": table_name,
-                "Columns": columns_str
-            })
+            df_data.append({"Table": table_name, "Columns": columns_str})
 
         df = pd.DataFrame(df_data)
         st.dataframe(df, width="stretch", hide_index=True)

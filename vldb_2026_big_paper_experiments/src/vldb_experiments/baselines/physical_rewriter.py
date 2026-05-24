@@ -38,8 +38,7 @@ def _add_columns_to_select(select_expr: exp.Select, columns: list[str]) -> None:
     group_expr = select_expr.args.get("group")
     if group_expr:
         existing_group = {
-            expr.sql(dialect="duckdb").lower()
-            for expr in getattr(group_expr, "expressions", [])
+            expr.sql(dialect="duckdb").lower() for expr in getattr(group_expr, "expressions", [])
         }
         for col_sql in columns:
             if _should_add_column(existing_group, col_sql):
@@ -47,7 +46,9 @@ def _add_columns_to_select(select_expr: exp.Select, columns: list[str]) -> None:
                 existing_group.add(col_sql.lower())
 
 
-def _thread_lineage_columns(parsed: exp.Select, policy_source: str, lineage_columns: list[str]) -> exp.Select:
+def _thread_lineage_columns(
+    parsed: exp.Select, policy_source: str, lineage_columns: list[str]
+) -> exp.Select:
     """Thread lineage columns through any SELECT that references the policy source."""
     for select_expr in parsed.find_all(exp.Select):
         parent = select_expr.parent
@@ -74,7 +75,11 @@ def _thread_lineage_columns(parsed: exp.Select, policy_source: str, lineage_colu
                 current = current.parent
             if is_in_subquery:
                 continue
-            if hasattr(table, "name") and table.name and table.name.lower() == policy_source.lower():
+            if (
+                hasattr(table, "name")
+                and table.name
+                and table.name.lower() == policy_source.lower()
+            ):
                 has_policy_source = True
                 break
         if has_policy_source:
@@ -177,9 +182,20 @@ def transform_constraint_for_filtering(constraint: str, source_table: str) -> st
 
     # Add optional aggregation types if they exist
     optional_agg_types = [
-        "Stddev", "StddevPop", "StddevSamp", "Variance",
-        "Quantile", "Mode", "Median", "First", "Last", "AnyValue",
-        "ArrayAgg", "Corr", "CovarPop", "CovarSamp",
+        "Stddev",
+        "StddevPop",
+        "StddevSamp",
+        "Variance",
+        "Quantile",
+        "Mode",
+        "Median",
+        "First",
+        "Last",
+        "AnyValue",
+        "ArrayAgg",
+        "Corr",
+        "CovarPop",
+        "CovarSamp",
     ]
     for agg_name in optional_agg_types:
         if hasattr(exp, agg_name):
@@ -288,8 +304,14 @@ def is_aggregation_query(query: str) -> bool:
                 return True
             # Fallback: check for specific known aggregation types
             agg_types = (
-                exp.Max, exp.Min, exp.Sum, exp.Avg, exp.Count,
-                exp.Stddev, exp.StddevPop, exp.StddevSamp,
+                exp.Max,
+                exp.Min,
+                exp.Sum,
+                exp.Avg,
+                exp.Count,
+                exp.Stddev,
+                exp.StddevPop,
+                exp.StddevSamp,
                 exp.Variance,
             )
             # Only include types that exist
@@ -298,8 +320,16 @@ def is_aggregation_query(query: str) -> bool:
                 return True
             # Check for optional aggregation types
             optional_agg_types = [
-                "Quantile", "Mode", "Median", "First", "Last", "AnyValue",
-                "ArrayAgg", "Corr", "CovarPop", "CovarSamp",
+                "Quantile",
+                "Mode",
+                "Median",
+                "First",
+                "Last",
+                "AnyValue",
+                "ArrayAgg",
+                "Corr",
+                "CovarPop",
+                "CovarSamp",
             ]
             for agg_name in optional_agg_types:
                 if hasattr(exp, agg_name) and isinstance(expr, getattr(exp, agg_name)):
@@ -328,7 +358,7 @@ def build_filter_query(
     constraint: str,
     source_table: str,
     column_names: list,
-    is_aggregation: bool = False
+    is_aggregation: bool = False,
 ) -> str:
     """Build a filter query to apply policy constraint to query results.
 
@@ -497,7 +527,9 @@ def rewrite_query_physical(
         if len(pol.sources) != 1:
             raise ValueError("physical baseline supports a single source table per policy")
         if pol.sources[0].lower() != policies[0].sources[0].lower():
-            raise ValueError("physical baseline requires all policies to share the same source table")
+            raise ValueError(
+                "physical baseline requires all policies to share the same source table"
+            )
 
     base_policy = policies[0]
     source_table = base_policy.sources[0]
@@ -532,7 +564,11 @@ def rewrite_query_physical(
                     current = current.parent
                 if is_in_subquery:
                     continue
-                if hasattr(table, "name") and table.name and table.name.lower() == source_table.lower():
+                if (
+                    hasattr(table, "name")
+                    and table.name
+                    and table.name.lower() == source_table.lower()
+                ):
                     policy_source_in_from = True
                     break
             if not policy_source_in_from:
@@ -565,14 +601,26 @@ def rewrite_query_physical(
                     column_names = []
                     break
                 if isinstance(expr, exp.Alias):
-                    alias_name = expr.alias.sql(dialect="duckdb") if hasattr(expr.alias, "sql") else str(expr.alias)
+                    alias_name = (
+                        expr.alias.sql(dialect="duckdb")
+                        if hasattr(expr.alias, "sql")
+                        else str(expr.alias)
+                    )
                     column_names.append(alias_name)
                 elif isinstance(expr, exp.Column):
-                    col_name = expr.this.sql(dialect="duckdb") if hasattr(expr.this, "sql") else str(expr.this)
+                    col_name = (
+                        expr.this.sql(dialect="duckdb")
+                        if hasattr(expr.this, "sql")
+                        else str(expr.this)
+                    )
                     column_names.append(col_name)
                 else:
                     if isinstance(expr, exp.Column):
-                        col_name = expr.this.sql(dialect="duckdb") if hasattr(expr.this, "sql") else str(expr.this)
+                        col_name = (
+                            expr.this.sql(dialect="duckdb")
+                            if hasattr(expr.this, "sql")
+                            else str(expr.this)
+                        )
                         column_names.append(col_name)
     except Exception:
         column_names = []

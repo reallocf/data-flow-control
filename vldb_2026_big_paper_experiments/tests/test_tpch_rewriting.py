@@ -959,6 +959,7 @@ JOIN lineage
     ON generated_table.rowid::bigint = lineage.out_index::bigint""",
 }
 
+
 def _normalize_sql(sql: str) -> str:
     safe_sql = sql.replace("{temp_table_name}", "temp_table_name")
     safe_sql = re.sub(r"query_results_[a-f0-9]{8}", "temp_table_name", safe_sql)
@@ -972,9 +973,7 @@ def _assert_sql_equal(expected: str, actual: str, label: str) -> None:
     expected_normalized = _normalize_sql(expected)
     actual_normalized = _normalize_sql(actual)
     assert expected_normalized == actual_normalized, (
-        f"{label} SQL does not match expected.\n"
-        f"Expected SQL:\n{expected}\n\n"
-        f"Actual SQL:\n{actual}"
+        f"{label} SQL does not match expected.\nExpected SQL:\n{expected}\n\nActual SQL:\n{actual}"
     )
 
 
@@ -1099,16 +1098,19 @@ def _debug_physical_mismatch(
         query_id_row = conn.execute("SELECT MAX(query_id) FROM lineage_meta()").fetchone()
         query_id = query_id_row[0] if query_id_row else None
         if query_id is not None:
-            cols = [desc[0] for desc in conn.execute(f"SELECT * FROM read_block({query_id}) LIMIT 0").description]
+            cols = [
+                desc[0]
+                for desc in conn.execute(
+                    f"SELECT * FROM read_block({query_id}) LIMIT 0"
+                ).description
+            ]
             debug_lines.append(f"read_block_columns={cols}")
     except Exception as exc:
         debug_lines.append(f"read_block_column_error={exc}")
     try:
         alt_results, alt_filter_sql = _execute_physical_with_lineage_on_query(conn, query, policy)
         alt_match, alt_err = compare_results_exact(dfc_results, alt_results)
-        debug_lines.append(
-            f"post_limit_physical_match={alt_match} post_limit_error={alt_err}"
-        )
+        debug_lines.append(f"post_limit_physical_match={alt_match} post_limit_error={alt_err}")
         debug_lines.append(_format_result_diff(dfc_results, alt_results))
         debug_lines.append(f"post_limit_filter_sql={alt_filter_sql}")
     except Exception as exc:
@@ -1184,7 +1186,9 @@ def test_tpch_q01(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q01", 1)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q01", 1
+    )
 
 
 def test_tpch_q03(tpch_connections):
@@ -1203,7 +1207,9 @@ def test_tpch_q03(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q03", 3)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q03", 3
+    )
 
 
 def test_tpch_q04(tpch_connections):
@@ -1223,7 +1229,9 @@ def test_tpch_q04(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q04", 4)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q04", 4
+    )
 
 
 def test_tpch_q05(tpch_connections):
@@ -1242,7 +1250,9 @@ def test_tpch_q05(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q05", 5)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q05", 5
+    )
 
 
 def test_tpch_q06(tpch_connections):
@@ -1261,7 +1271,9 @@ def test_tpch_q06(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q06", 6)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q06", 6
+    )
 
 
 def test_tpch_q07(tpch_connections):
@@ -1280,7 +1292,9 @@ def test_tpch_q07(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q07", 7)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q07", 7
+    )
 
 
 def test_tpch_q08(tpch_connections):
@@ -1299,7 +1313,9 @@ def test_tpch_q08(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q08", 8)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q08", 8
+    )
 
 
 def test_tpch_q09(tpch_connections):
@@ -1318,7 +1334,9 @@ def test_tpch_q09(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q09", 9)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q09", 9
+    )
 
 
 def test_tpch_q10(tpch_connections):
@@ -1337,7 +1355,9 @@ def test_tpch_q10(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q10", 10)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q10", 10
+    )
 
 
 def test_tpch_q12(tpch_connections):
@@ -1356,7 +1376,9 @@ def test_tpch_q12(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q12", 12)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q12", 12
+    )
 
 
 def test_tpch_q14(tpch_connections):
@@ -1375,7 +1397,9 @@ def test_tpch_q14(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q14", 14)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q14", 14
+    )
 
 
 def test_tpch_q18(tpch_connections):
@@ -1395,7 +1419,9 @@ def test_tpch_q18(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q18", 18)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q18", 18
+    )
 
 
 def test_tpch_q19(tpch_connections):
@@ -1414,4 +1440,6 @@ def test_tpch_q19(tpch_connections):
     # Compare results
     match, error = compare_results_exact(dfc_results, logical_results)
     assert match, f"Results don't match: {error}"
-    _assert_physical_results_match(dfc_results, tpch_connections["physical"], query, policy, "Q19", 19)
+    _assert_physical_results_match(
+        dfc_results, tpch_connections["physical"], query, policy, "Q19", 19
+    )

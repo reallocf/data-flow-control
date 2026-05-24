@@ -153,7 +153,9 @@ class MultiSourceTPCHStrategy(ExperimentStrategy):
                 if source_count <= available_sources:
                     self.valid_pairs.append((join_count, source_count))
         if not self.valid_pairs:
-            raise ValueError("No valid (join_count, source_count) settings for MultiSourceTPCHStrategy.")
+            raise ValueError(
+                "No valid (join_count, source_count) settings for MultiSourceTPCHStrategy."
+            )
 
         context.shared_state["tpch_sf"] = self.tpch_sf
         context.shared_state["source_counts"] = self.source_counts
@@ -169,7 +171,9 @@ class MultiSourceTPCHStrategy(ExperimentStrategy):
         return join_count, source_count, run_num
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
-        join_count, source_count, run_num = self._setting_and_run_for_execution(context.execution_number)
+        join_count, source_count, run_num = self._setting_and_run_for_execution(
+            context.execution_number
+        )
         phase_label = "warmup" if context.is_warmup else f"run {run_num}"
         print(
             f"[Execution {context.execution_number}] "

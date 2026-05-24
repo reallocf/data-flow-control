@@ -48,7 +48,9 @@ class AgentTelemetryCallback(BaseCallbackHandler):
         self.llm_turns = 0
         self.chars_sent_to_llm = 0
 
-    def on_chat_model_start(self, _serialized: dict, messages: list[list[BaseMessage]], **_kwargs: Any) -> Any:
+    def on_chat_model_start(
+        self, _serialized: dict, messages: list[list[BaseMessage]], **_kwargs: Any
+    ) -> Any:
         self.llm_turns += len(messages)
         for message_batch in messages:
             for message in message_batch:

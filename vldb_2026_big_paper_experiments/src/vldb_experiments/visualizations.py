@@ -63,7 +63,10 @@ def _with_exec_time_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Return a copy with exec-time columns normalized and preferred."""
     normalized = df.copy()
 
-    if "no_policy_exec_time_ms" not in normalized.columns and "no_policy_time_ms" in normalized.columns:
+    if (
+        "no_policy_exec_time_ms" not in normalized.columns
+        and "no_policy_time_ms" in normalized.columns
+    ):
         normalized["no_policy_exec_time_ms"] = normalized["no_policy_time_ms"]
     if "dfc_1phase_exec_time_ms" not in normalized.columns:
         if "dfc_exec_time_ms" in normalized.columns:
@@ -72,23 +75,30 @@ def _with_exec_time_columns(df: pd.DataFrame) -> pd.DataFrame:
             normalized["dfc_1phase_exec_time_ms"] = normalized["dfc_1phase_time_ms"]
         elif "dfc_time_ms" in normalized.columns:
             normalized["dfc_1phase_exec_time_ms"] = normalized["dfc_time_ms"]
-    if "dfc_2phase_exec_time_ms" not in normalized.columns and "dfc_2phase_time_ms" in normalized.columns:
+    if (
+        "dfc_2phase_exec_time_ms" not in normalized.columns
+        and "dfc_2phase_time_ms" in normalized.columns
+    ):
         normalized["dfc_2phase_exec_time_ms"] = normalized["dfc_2phase_time_ms"]
     if "logical_exec_time_ms" not in normalized.columns and "logical_time_ms" in normalized.columns:
         normalized["logical_exec_time_ms"] = normalized["logical_time_ms"]
     if "physical_exec_time_ms" not in normalized.columns:
-        if {"physical_base_capture_time_ms", "physical_lineage_query_time_ms"}.issubset(normalized.columns):
-            normalized["physical_exec_time_ms"] = (
-                normalized["physical_base_capture_time_ms"].fillna(0.0)
-                + normalized["physical_lineage_query_time_ms"].fillna(0.0)
-            )
+        if {"physical_base_capture_time_ms", "physical_lineage_query_time_ms"}.issubset(
+            normalized.columns
+        ):
+            normalized["physical_exec_time_ms"] = normalized[
+                "physical_base_capture_time_ms"
+            ].fillna(0.0) + normalized["physical_lineage_query_time_ms"].fillna(0.0)
         elif "physical_runtime_ms" in normalized.columns:
             normalized["physical_exec_time_ms"] = normalized["physical_runtime_ms"]
         elif "physical_time_ms" in normalized.columns:
             normalized["physical_exec_time_ms"] = normalized["physical_time_ms"]
 
     # Backward-compat alias for older plotting paths that still read dfc_exec_time_ms.
-    if "dfc_exec_time_ms" not in normalized.columns and "dfc_1phase_exec_time_ms" in normalized.columns:
+    if (
+        "dfc_exec_time_ms" not in normalized.columns
+        and "dfc_1phase_exec_time_ms" in normalized.columns
+    ):
         normalized["dfc_exec_time_ms"] = normalized["dfc_1phase_exec_time_ms"]
 
     return normalized
@@ -130,7 +140,9 @@ def create_operator_chart(
             x_col = "variation_num"
             x_label = "Variation Number"
         else:
-            print(f"Warning: {x_col} column missing or empty for {query_type}, using execution_number")
+            print(
+                f"Warning: {x_col} column missing or empty for {query_type}, using execution_number"
+            )
             x_col = "execution_number"
             x_label = "Execution Number"
 
@@ -180,11 +192,13 @@ def create_operator_chart(
 
             time_val = row[col]
             if pd.notna(time_val) and time_val > 0:
-                plot_data.append({
-                    x_label: x_val,
-                    "Execution Time (ms)": float(time_val),
-                    "Approach": approach,
-                })
+                plot_data.append(
+                    {
+                        x_label: x_val,
+                        "Execution Time (ms)": float(time_val),
+                        "Approach": approach,
+                    }
+                )
 
     if not plot_data:
         print(f"No valid time data for {query_type}")
@@ -194,9 +208,9 @@ def create_operator_chart(
 
     # Average the runs for each x value and approach
     # Group by x value and approach, then average the execution times
-    plot_df_averaged = plot_df.groupby([x_label, "Approach"], as_index=False).agg({
-        "Execution Time (ms)": "mean"
-    })
+    plot_df_averaged = plot_df.groupby([x_label, "Approach"], as_index=False).agg(
+        {"Execution Time (ms)": "mean"}
+    )
 
     # Sort by Approach and then X-axis value so lines connect properly
     plot_df_averaged = plot_df_averaged.sort_values(["Approach", x_label])
@@ -233,7 +247,7 @@ def create_operator_chart(
                 linewidth=2,
                 markersize=6,
                 label=approach,
-                color=colors.get(approach)
+                color=colors.get(approach),
             )
 
     # Set labels and title
@@ -487,7 +501,11 @@ def create_operator_overhead_chart_dfc_physical(
 
     ax.set_xlabel(x_label, fontsize=12)
     ax.set_ylabel("Percent Overhead (%)", fontsize=12)
-    ax.set_title(f"{query_type} Percent Overhead vs No Policy (1Phase/Physical)", fontsize=14, fontweight="bold")
+    ax.set_title(
+        f"{query_type} Percent Overhead vs No Policy (1Phase/Physical)",
+        fontsize=14,
+        fontweight="bold",
+    )
     if query_type != "WHERE":
         ax.set_xscale("log")
     ax.axhline(y=0.0, color="#555555", linestyle="--", linewidth=1)
@@ -545,7 +563,9 @@ def create_all_charts(
     tpch_overhead_template = _apply_suffix(tpch_overhead_template, suffix)
     operator_template = _apply_suffix(operator_template, suffix)
     operator_overhead_template = _apply_suffix(operator_overhead_template, suffix)
-    operator_overhead_dfc_physical_template = _apply_suffix(operator_overhead_dfc_physical_template, suffix)
+    operator_overhead_dfc_physical_template = _apply_suffix(
+        operator_overhead_dfc_physical_template, suffix
+    )
     tpch_breakdown_template = _apply_suffix(tpch_breakdown_template, suffix)
     tpch_multi_db_template = _apply_suffix(tpch_multi_db_template, suffix)
     tpch_avg_log_template = _apply_suffix(tpch_avg_log_template, suffix)
@@ -633,31 +653,46 @@ def create_all_charts(
         print(f"\nAll charts saved to {output_dir}/")
         return
 
-    if {"source_count", "join_count", "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms"}.issubset(df.columns):
+    if {"source_count", "join_count", "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms"}.issubset(
+        df.columns
+    ):
         print("\nCreating multi-source execution time chart...")
         create_multi_source_exec_time_chart(df, output_dir=output_dir)
         create_multi_source_heatmap_chart(df, output_dir=output_dir)
         print(f"\nAll charts saved to {output_dir}/")
         return
 
-    if {"complexity_terms", "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns):
+    if {
+        "complexity_terms",
+        "no_policy_exec_time_ms",
+        "dfc_1phase_exec_time_ms",
+        "logical_exec_time_ms",
+    }.issubset(df.columns):
         print("\nCreating policy complexity overhead chart...")
         output_filename = _apply_suffix("tpch_q01_policy_complexity_overhead.png", suffix)
-        create_policy_complexity_overhead_chart(df, output_dir=output_dir, output_filename=output_filename)
+        create_policy_complexity_overhead_chart(
+            df, output_dir=output_dir, output_filename=output_filename
+        )
         print(f"\nAll charts saved to {output_dir}/")
         return
 
-    if {"or_count", "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns):
+    if {
+        "or_count",
+        "no_policy_exec_time_ms",
+        "dfc_1phase_exec_time_ms",
+        "logical_exec_time_ms",
+    }.issubset(df.columns):
         print("\nCreating policy OR-chain overhead chart...")
         output_filename = _apply_suffix("tpch_q01_policy_many_ors_overhead.png", suffix)
-        create_policy_many_ors_overhead_chart(df, output_dir=output_dir, output_filename=output_filename)
+        create_policy_many_ors_overhead_chart(
+            df, output_dir=output_dir, output_filename=output_filename
+        )
         print(f"\nAll charts saved to {output_dir}/")
         return
 
-    if (
-        {"no_policy_exec_time_ms", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}.issubset(df.columns)
-        or {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns)
-    ):
+    if {"no_policy_exec_time_ms", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}.issubset(
+        df.columns
+    ) or {"no_policy_time_ms", "dfc_time_ms", "logical_time_ms"}.issubset(df.columns):
         if "tpch_sf" in df.columns:
             print("\nCreating TPC-H summary charts by scale factor...")
             create_tpch_summary_charts_by_sf(
@@ -742,21 +777,17 @@ def create_tpch_summary_chart(
     if plot_mode == "percent_overhead":
         # Compute % overhead relative to no-policy per query.
         grouped["dfc_overhead_pct"] = (
-            (grouped[time_columns[1]] - grouped[time_columns[0]])
-            / grouped[time_columns[0]]
+            (grouped[time_columns[1]] - grouped[time_columns[0]]) / grouped[time_columns[0]]
         ) * 100.0
         grouped["dfc_2phase_overhead_pct"] = (
-            (grouped[time_columns[2]] - grouped[time_columns[0]])
-            / grouped[time_columns[0]]
+            (grouped[time_columns[2]] - grouped[time_columns[0]]) / grouped[time_columns[0]]
         ) * 100.0
         grouped["logical_overhead_pct"] = (
-            (grouped[time_columns[3]] - grouped[time_columns[0]])
-            / grouped[time_columns[0]]
+            (grouped[time_columns[3]] - grouped[time_columns[0]]) / grouped[time_columns[0]]
         ) * 100.0
         if len(time_columns) > 4:
             grouped["physical_overhead_pct"] = (
-                (grouped[time_columns[4]] - grouped[time_columns[0]])
-                / grouped[time_columns[0]]
+                (grouped[time_columns[4]] - grouped[time_columns[0]]) / grouped[time_columns[0]]
             ) * 100.0
 
     query_nums = grouped.index.astype(int).tolist()
@@ -1143,8 +1174,6 @@ def create_tpch_rewrite_exec_breakdown_chart(
     return fig
 
 
-
-
 def create_policy_count_chart(
     df: pd.DataFrame,
     output_dir: str = "./results",
@@ -1438,7 +1467,9 @@ def create_llm_validation_f1_chart(
         return None
 
     plot_df = df[list(required_cols)].copy()
-    plot_df = plot_df.dropna(subset=["policy_count", "approach", "ground_truth_violation", "predicted_violation"])
+    plot_df = plot_df.dropna(
+        subset=["policy_count", "approach", "ground_truth_violation", "predicted_violation"]
+    )
     if plot_df.empty:
         print("Skipping LLM validation chart; no usable rows.")
         return None
@@ -1464,9 +1495,8 @@ def create_llm_validation_f1_chart(
         pred = group["pred_bool"].astype(bool)
         return float(f1_score(truth, pred, pos_label=True, zero_division=0))
 
-    summary = (
-        plot_df.groupby(["policy_count", "approach"], as_index=False)
-        .apply(lambda g: pd.Series({"f1_pct": _f1_for_group(g) * 100.0}), include_groups=False)
+    summary = plot_df.groupby(["policy_count", "approach"], as_index=False).apply(
+        lambda g: pd.Series({"f1_pct": _f1_for_group(g) * 100.0}), include_groups=False
     )
     if summary.empty:
         print("Skipping LLM validation chart; summary is empty.")
@@ -1507,8 +1537,7 @@ def create_llm_validation_f1_chart(
     for i, approach in enumerate(approaches_present):
         approach_summary = summary[summary["approach"] == approach]
         lookup = {
-            int(row["policy_count"]): float(row["f1_pct"])
-            for _, row in approach_summary.iterrows()
+            int(row["policy_count"]): float(row["f1_pct"]) for _, row in approach_summary.iterrows()
         }
         y_vals = [lookup.get(pc, 0) for pc in policy_counts]
         x_vals = [v - 0.4 + width * i + (width / 2) for v in x]
@@ -1556,7 +1585,9 @@ def create_llm_validation_grid_heatmap(
         "correct_identification",
     }
     if not required_cols.issubset(df.columns):
-        print(f"Skipping LLM validation grid heatmap; missing columns: {required_cols - set(df.columns)}")
+        print(
+            f"Skipping LLM validation grid heatmap; missing columns: {required_cols - set(df.columns)}"
+        )
         return None
 
     plot_df = df[list(required_cols)].copy()
@@ -1596,7 +1627,9 @@ def create_llm_validation_grid_heatmap(
         print(f"Skipping LLM validation grid heatmap; no paired rows for approach={approach}.")
         return None
 
-    merged["success_ratio"] = merged["llm_success_count"] / merged["dfc_success_count"].replace(0, np.nan)
+    merged["success_ratio"] = merged["llm_success_count"] / merged["dfc_success_count"].replace(
+        0, np.nan
+    )
     merged = merged.dropna(subset=["success_ratio"]).copy()
     if merged.empty:
         print(f"Skipping LLM validation grid heatmap; no finite ratios for approach={approach}.")
@@ -1608,11 +1641,15 @@ def create_llm_validation_grid_heatmap(
     for _, row in merged.iterrows():
         heatmap.at[row["database_label"], int(row["query_num"])] = float(row["success_ratio"])
 
-    fig, ax = plt.subplots(figsize=(max(8, len(query_values) * 0.9), max(4, len(database_values) * 0.8)))
+    fig, ax = plt.subplots(
+        figsize=(max(8, len(query_values) * 0.9), max(4, len(database_values) * 0.8))
+    )
     im = ax.imshow(heatmap.astype(float), cmap="RdYlGn", vmin=0.0, vmax=1.0, aspect="auto")
 
     ax.set_xticks(range(len(query_values)))
-    ax.set_xticklabels([f"{query_tick_prefix}{q:02d}" for q in query_values], rotation=45, ha="right")
+    ax.set_xticklabels(
+        [f"{query_tick_prefix}{q:02d}" for q in query_values], rotation=45, ha="right"
+    )
     ax.set_yticks(range(len(database_values)))
     ax.set_yticklabels(database_values)
     ax.set_xlabel(x_axis_label, fontsize=12)
@@ -1648,9 +1685,16 @@ def create_llm_validation_grid_heatmap(
 
 
 def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.DataFrame]:
-    required_cols = {x_col, "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms", "logical_exec_time_ms"}
+    required_cols = {
+        x_col,
+        "no_policy_exec_time_ms",
+        "dfc_1phase_exec_time_ms",
+        "logical_exec_time_ms",
+    }
     if not required_cols.issubset(df.columns):
-        print(f"Missing required columns for policy overhead chart: {required_cols - set(df.columns)}")
+        print(
+            f"Missing required columns for policy overhead chart: {required_cols - set(df.columns)}"
+        )
         return None
 
     plot_df = df.copy()
@@ -1674,12 +1718,20 @@ def _prepare_policy_overhead_df(df: pd.DataFrame, x_col: str) -> Optional[pd.Dat
         print("No valid no-policy timings available for policy overhead chart.")
         return None
 
-    grouped["dfc_1phase_overhead"] = grouped["dfc_1phase_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+    grouped["dfc_1phase_overhead"] = (
+        grouped["dfc_1phase_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+    )
     if "dfc_2phase_exec_time_ms" in grouped.columns:
-        grouped["dfc_2phase_overhead"] = grouped["dfc_2phase_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
-    grouped["logical_overhead"] = grouped["logical_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+        grouped["dfc_2phase_overhead"] = (
+            grouped["dfc_2phase_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+        )
+    grouped["logical_overhead"] = (
+        grouped["logical_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+    )
     if "physical_exec_time_ms" in grouped.columns:
-        grouped["physical_overhead"] = grouped["physical_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+        grouped["physical_overhead"] = (
+            grouped["physical_exec_time_ms"] / grouped["no_policy_exec_time_ms"]
+        )
     return grouped
 
 
@@ -1760,7 +1812,11 @@ def create_policy_complexity_overhead_chart(
 
     ax.set_xlabel("Predicate Complexity (Term Count)", fontsize=12)
     ax.set_ylabel("Relative Overhead (Exec Time Ratio)", fontsize=12)
-    ax.set_title(_policy_overhead_title(df, "TPC-H Policy Complexity Overhead"), fontsize=14, fontweight="bold")
+    ax.set_title(
+        _policy_overhead_title(df, "TPC-H Policy Complexity Overhead"),
+        fontsize=14,
+        fontweight="bold",
+    )
     _apply_overhead_xscale(ax, grouped.index)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="best", fontsize=9)
@@ -1826,7 +1882,9 @@ def create_policy_many_ors_overhead_chart(
 
     ax.set_xlabel("Number of OR Clauses", fontsize=12)
     ax.set_ylabel("Relative Overhead (Exec Time Ratio)", fontsize=12)
-    ax.set_title(_policy_overhead_title(df, "TPC-H Policy OR-Chain Overhead"), fontsize=14, fontweight="bold")
+    ax.set_title(
+        _policy_overhead_title(df, "TPC-H Policy OR-Chain Overhead"), fontsize=14, fontweight="bold"
+    )
     _apply_overhead_xscale(ax, grouped.index)
     ax.grid(True, alpha=0.3)
     ax.legend(loc="best", fontsize=9)
@@ -1916,7 +1974,12 @@ def create_multi_source_heatmap_chart(
     output_filename: str = "multi_source_heatmap.png",
 ) -> Optional[plt.Figure]:
     """Create a heatmap of 1Phase vs No Policy execution time ratio."""
-    required_cols = {"source_count", "join_count", "no_policy_exec_time_ms", "dfc_1phase_exec_time_ms"}
+    required_cols = {
+        "source_count",
+        "join_count",
+        "no_policy_exec_time_ms",
+        "dfc_1phase_exec_time_ms",
+    }
     if not required_cols.issubset(df.columns):
         print("Missing required columns for multi-source heatmap.")
         return None
@@ -1930,11 +1993,12 @@ def create_multi_source_heatmap_chart(
         print("No data available for multi-source heatmap.")
         return None
 
-    plot_df["relative_perf"] = plot_df["dfc_1phase_exec_time_ms"] / plot_df["no_policy_exec_time_ms"]
+    plot_df["relative_perf"] = (
+        plot_df["dfc_1phase_exec_time_ms"] / plot_df["no_policy_exec_time_ms"]
+    )
 
-    grouped = (
-        plot_df.groupby(["join_count", "source_count"], as_index=False)
-        .agg({"relative_perf": "mean"})
+    grouped = plot_df.groupby(["join_count", "source_count"], as_index=False).agg(
+        {"relative_perf": "mean"}
     )
 
     join_values = sorted(grouped["join_count"].unique().tolist())
@@ -2015,16 +2079,35 @@ def create_multi_db_engine_summary_chart(
         return None
 
     duckdb_cols = (
-        "dfc_1phase_exec_time_ms" if "dfc_1phase_exec_time_ms" in df.columns else "dfc_1phase_time_ms",
-        "dfc_2phase_exec_time_ms" if "dfc_2phase_exec_time_ms" in df.columns else "dfc_2phase_time_ms",
+        "dfc_1phase_exec_time_ms"
+        if "dfc_1phase_exec_time_ms" in df.columns
+        else "dfc_1phase_time_ms",
+        "dfc_2phase_exec_time_ms"
+        if "dfc_2phase_exec_time_ms" in df.columns
+        else "dfc_2phase_time_ms",
         "logical_exec_time_ms" if "logical_exec_time_ms" in df.columns else "logical_time_ms",
         "no_policy_exec_time_ms" if "no_policy_exec_time_ms" in df.columns else "no_policy_time_ms",
     )
     engines = {
         "DuckDB": duckdb_cols,
-        "Umbra": ("umbra_dfc_1phase_time_ms", "umbra_dfc_2phase_time_ms", "umbra_logical_time_ms", "umbra_time_ms"),
-        "Postgres": ("postgres_dfc_1phase_time_ms", "postgres_dfc_2phase_time_ms", "postgres_logical_time_ms", "postgres_time_ms"),
-        "DataFusion": ("datafusion_dfc_1phase_time_ms", "datafusion_dfc_2phase_time_ms", "datafusion_logical_time_ms", "datafusion_time_ms"),
+        "Umbra": (
+            "umbra_dfc_1phase_time_ms",
+            "umbra_dfc_2phase_time_ms",
+            "umbra_logical_time_ms",
+            "umbra_time_ms",
+        ),
+        "Postgres": (
+            "postgres_dfc_1phase_time_ms",
+            "postgres_dfc_2phase_time_ms",
+            "postgres_logical_time_ms",
+            "postgres_time_ms",
+        ),
+        "DataFusion": (
+            "datafusion_dfc_1phase_time_ms",
+            "datafusion_dfc_2phase_time_ms",
+            "datafusion_logical_time_ms",
+            "datafusion_time_ms",
+        ),
         "SQL Server": (
             "sqlserver_dfc_1phase_time_ms",
             "sqlserver_dfc_2phase_time_ms",
@@ -2043,18 +2126,26 @@ def create_multi_db_engine_summary_chart(
     records: list[dict[str, float | str]] = []
     valid_engines: list[str] = []
     for engine, (dfc_1phase_col, dfc_2phase_col, logical_col, baseline_col) in available.items():
-        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(numeric_only=True)
+        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(
+            numeric_only=True
+        )
         baseline_by_query = baseline_by_query[baseline_by_query > 0]
         if baseline_by_query.empty:
             continue
         engine_added = False
-        for label, col in [(FULL_PUSH_LABEL, dfc_1phase_col), (PARTIAL_PUSH_LABEL, dfc_2phase_col), ("Logical", logical_col)]:
+        for label, col in [
+            (FULL_PUSH_LABEL, dfc_1phase_col),
+            (PARTIAL_PUSH_LABEL, dfc_2phase_col),
+            ("Logical", logical_col),
+        ]:
             approach_by_query = df.groupby("query_num", as_index=True)[col].mean(numeric_only=True)
             approach_by_query = approach_by_query.reindex(baseline_by_query.index)
             valid_mask = approach_by_query > 0
             overhead_by_query = (
-                approach_by_query[valid_mask] / baseline_by_query[valid_mask]
-            ).replace([float("inf"), float("-inf")], pd.NA).dropna()
+                (approach_by_query[valid_mask] / baseline_by_query[valid_mask])
+                .replace([float("inf"), float("-inf")], pd.NA)
+                .dropna()
+            )
             if overhead_by_query.empty:
                 continue
             overall_avg = float((overhead_by_query.mean() - 1.0) * 100.0)
@@ -2075,7 +2166,9 @@ def create_multi_db_engine_summary_chart(
 
     summary_df = pd.DataFrame.from_records(records)
     engine_order = [engine for engine in engines if engine in valid_engines]
-    summary_df["engine"] = pd.Categorical(summary_df["engine"], categories=engine_order, ordered=True)
+    summary_df["engine"] = pd.Categorical(
+        summary_df["engine"], categories=engine_order, ordered=True
+    )
     summary_df = summary_df.sort_values(["engine", "approach"])
 
     fig, ax = plt.subplots(figsize=(9, 6))
@@ -2135,16 +2228,35 @@ def create_multi_db_engine_summary_capped_chart(
         return None
 
     duckdb_cols = (
-        "dfc_1phase_exec_time_ms" if "dfc_1phase_exec_time_ms" in df.columns else "dfc_1phase_time_ms",
-        "dfc_2phase_exec_time_ms" if "dfc_2phase_exec_time_ms" in df.columns else "dfc_2phase_time_ms",
+        "dfc_1phase_exec_time_ms"
+        if "dfc_1phase_exec_time_ms" in df.columns
+        else "dfc_1phase_time_ms",
+        "dfc_2phase_exec_time_ms"
+        if "dfc_2phase_exec_time_ms" in df.columns
+        else "dfc_2phase_time_ms",
         "logical_exec_time_ms" if "logical_exec_time_ms" in df.columns else "logical_time_ms",
         "no_policy_exec_time_ms" if "no_policy_exec_time_ms" in df.columns else "no_policy_time_ms",
     )
     engines = {
         "DuckDB": duckdb_cols,
-        "Umbra": ("umbra_dfc_1phase_time_ms", "umbra_dfc_2phase_time_ms", "umbra_logical_time_ms", "umbra_time_ms"),
-        "Postgres": ("postgres_dfc_1phase_time_ms", "postgres_dfc_2phase_time_ms", "postgres_logical_time_ms", "postgres_time_ms"),
-        "DataFusion": ("datafusion_dfc_1phase_time_ms", "datafusion_dfc_2phase_time_ms", "datafusion_logical_time_ms", "datafusion_time_ms"),
+        "Umbra": (
+            "umbra_dfc_1phase_time_ms",
+            "umbra_dfc_2phase_time_ms",
+            "umbra_logical_time_ms",
+            "umbra_time_ms",
+        ),
+        "Postgres": (
+            "postgres_dfc_1phase_time_ms",
+            "postgres_dfc_2phase_time_ms",
+            "postgres_logical_time_ms",
+            "postgres_time_ms",
+        ),
+        "DataFusion": (
+            "datafusion_dfc_1phase_time_ms",
+            "datafusion_dfc_2phase_time_ms",
+            "datafusion_logical_time_ms",
+            "datafusion_time_ms",
+        ),
         "SQL Server": (
             "sqlserver_dfc_1phase_time_ms",
             "sqlserver_dfc_2phase_time_ms",
@@ -2163,18 +2275,26 @@ def create_multi_db_engine_summary_capped_chart(
     records: list[dict[str, float | str]] = []
     valid_engines: list[str] = []
     for engine, (dfc_1phase_col, dfc_2phase_col, logical_col, baseline_col) in available.items():
-        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(numeric_only=True)
+        baseline_by_query = df.groupby("query_num", as_index=True)[baseline_col].mean(
+            numeric_only=True
+        )
         baseline_by_query = baseline_by_query[baseline_by_query > 0]
         if baseline_by_query.empty:
             continue
         engine_added = False
-        for label, col in [(FULL_PUSH_LABEL, dfc_1phase_col), (PARTIAL_PUSH_LABEL, dfc_2phase_col), ("Logical", logical_col)]:
+        for label, col in [
+            (FULL_PUSH_LABEL, dfc_1phase_col),
+            (PARTIAL_PUSH_LABEL, dfc_2phase_col),
+            ("Logical", logical_col),
+        ]:
             approach_by_query = df.groupby("query_num", as_index=True)[col].mean(numeric_only=True)
             approach_by_query = approach_by_query.reindex(baseline_by_query.index)
             valid_mask = approach_by_query > 0
             overhead_by_query = (
-                approach_by_query[valid_mask] / baseline_by_query[valid_mask]
-            ).replace([float("inf"), float("-inf")], pd.NA).dropna()
+                (approach_by_query[valid_mask] / baseline_by_query[valid_mask])
+                .replace([float("inf"), float("-inf")], pd.NA)
+                .dropna()
+            )
             if overhead_by_query.empty:
                 continue
             overall_avg = float((overhead_by_query.mean() - 1.0) * 100.0)
@@ -2197,7 +2317,9 @@ def create_multi_db_engine_summary_capped_chart(
 
     summary_df = pd.DataFrame.from_records(records)
     engine_order = [engine for engine in engines if engine in valid_engines]
-    summary_df["engine"] = pd.Categorical(summary_df["engine"], categories=engine_order, ordered=True)
+    summary_df["engine"] = pd.Categorical(
+        summary_df["engine"], categories=engine_order, ordered=True
+    )
     summary_df = summary_df.sort_values(["engine", "approach"])
 
     fig, ax = plt.subplots(figsize=(9, 6))
@@ -2222,7 +2344,9 @@ def create_multi_db_engine_summary_capped_chart(
         for bar, original, engine_name in zip(bars, subset["avg_overhead"], subset["engine"]):
             if original <= duckdb_cap_pct:
                 continue
-            y_offset = 15 if approach == "Logical" and engine_name in {"DuckDB", "DataFusion"} else 0
+            y_offset = (
+                15 if approach == "Logical" and engine_name in {"DuckDB", "DataFusion"} else 0
+            )
             ax.annotate(
                 f"{original:.0f}%",
                 xy=(duckdb_cap_pct, bar.get_y() + bar.get_height() / 2.0),

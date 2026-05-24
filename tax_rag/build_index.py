@@ -5,6 +5,7 @@ from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--chunks", default="chunks.jsonl")
@@ -19,7 +20,9 @@ def main():
     con.execute("LOAD vss;")
     con.execute("SET hnsw_enable_experimental_persistence = true;")
     con.execute("DROP TABLE IF EXISTS chunks;")
-    con.execute("CREATE TABLE chunks(id VARCHAR, source VARCHAR, text VARCHAR, vec FLOAT[384]);")
+    con.execute(
+        "CREATE TABLE chunks(id VARCHAR, source VARCHAR, text VARCHAR, vec FLOAT[384]);"
+    )
 
     rows = []
     with open(args.chunks, "r", encoding="utf-8") as f:
@@ -31,8 +34,11 @@ def main():
             rows.append((r["id"], r["source"], r["text"], vec))
 
     con.executemany("INSERT INTO chunks VALUES (?, ?, ?, ?);", rows)
-    con.execute("CREATE INDEX chunks_hnsw_cosine ON chunks USING HNSW (vec) WITH (metric = 'cosine');")
+    con.execute(
+        "CREATE INDEX chunks_hnsw_cosine ON chunks USING HNSW (vec) WITH (metric = 'cosine');"
+    )
     con.close()
+
 
 if __name__ == "__main__":
     main()

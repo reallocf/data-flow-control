@@ -58,9 +58,20 @@ def transform_aggregation_to_column(constraint: str, source_table: str) -> str:
 
     # Add optional aggregation types if they exist
     optional_agg_types = [
-        "Stddev", "StddevPop", "StddevSamp", "Variance",
-        "Quantile", "Mode", "Median", "First", "Last", "AnyValue",
-        "ArrayAgg", "Corr", "CovarPop", "CovarSamp",
+        "Stddev",
+        "StddevPop",
+        "StddevSamp",
+        "Variance",
+        "Quantile",
+        "Mode",
+        "Median",
+        "First",
+        "Last",
+        "AnyValue",
+        "ArrayAgg",
+        "Corr",
+        "CovarPop",
+        "CovarSamp",
     ]
     for agg_name in optional_agg_types:
         if hasattr(exp, agg_name):
@@ -84,9 +95,17 @@ def transform_aggregation_to_column(constraint: str, source_table: str) -> str:
         col_expr = None
         if hasattr(agg, "this") and isinstance(agg.this, exp.Column):
             col_expr = agg.this
-        elif hasattr(agg, "expressions") and agg.expressions and isinstance(agg.expressions[0], exp.Column):
+        elif (
+            hasattr(agg, "expressions")
+            and agg.expressions
+            and isinstance(agg.expressions[0], exp.Column)
+        ):
             col_expr = agg.expressions[0]
-        elif hasattr(agg, "expressions") and agg.expressions and isinstance(agg.expressions[0], exp.Star):
+        elif (
+            hasattr(agg, "expressions")
+            and agg.expressions
+            and isinstance(agg.expressions[0], exp.Star)
+        ):
             # COUNT(*) - can't transform, skip
             return False
 
@@ -108,7 +127,11 @@ def transform_aggregation_to_column(constraint: str, source_table: str) -> str:
         col_expr = None
         if hasattr(agg, "this") and isinstance(agg.this, exp.Column):
             col_expr = agg.this
-        elif hasattr(agg, "expressions") and agg.expressions and isinstance(agg.expressions[0], exp.Column):
+        elif (
+            hasattr(agg, "expressions")
+            and agg.expressions
+            and isinstance(agg.expressions[0], exp.Column)
+        ):
             col_expr = agg.expressions[0]
 
         if col_expr:
@@ -133,6 +156,7 @@ def is_aggregation_query(parsed: exp.Select) -> bool:
     Returns:
         True if query has aggregations
     """
+
     # Helper function to check if an expression is an aggregation
     def is_aggregation(expr):
         """Check if expression is an aggregation function."""
@@ -140,16 +164,28 @@ def is_aggregation_query(parsed: exp.Select) -> bool:
             return True
         # Check for common aggregation function types
         agg_types = (
-            exp.Max, exp.Min, exp.Sum, exp.Avg, exp.Count,
-            exp.Stddev, exp.StddevPop, exp.StddevSamp,
+            exp.Max,
+            exp.Min,
+            exp.Sum,
+            exp.Avg,
+            exp.Count,
+            exp.Stddev,
+            exp.StddevPop,
+            exp.StddevSamp,
             exp.Variance,
         )
         return isinstance(expr, agg_types)
 
     # Check for aggregation functions in SELECT
     agg_types = (
-        exp.Max, exp.Min, exp.Sum, exp.Avg, exp.Count,
-        exp.Stddev, exp.StddevPop, exp.StddevSamp,
+        exp.Max,
+        exp.Min,
+        exp.Sum,
+        exp.Avg,
+        exp.Count,
+        exp.Stddev,
+        exp.StddevPop,
+        exp.StddevSamp,
         exp.Variance,
     )
     for expr in parsed.expressions:
@@ -166,6 +202,7 @@ def is_aggregation_query(parsed: exp.Select) -> bool:
 
     # Check for GROUP BY
     return bool(parsed.args.get("group"))
+
 
 logger = logging.getLogger(__name__)
 
@@ -213,8 +250,7 @@ def _add_columns_to_select(select_expr: exp.Select, columns: list[str]) -> None:
     group_expr = select_expr.args.get("group")
     if group_expr:
         existing_group = {
-            expr.sql(dialect="duckdb").lower()
-            for expr in getattr(group_expr, "expressions", [])
+            expr.sql(dialect="duckdb").lower() for expr in getattr(group_expr, "expressions", [])
         }
         for col_sql in columns:
             if _should_add_column(existing_group, col_sql):
@@ -256,9 +292,7 @@ def _ensure_group_by_aliases(
     """
     aliases: list[str] = []
     existing_aliases = {
-        expr.alias_or_name.lower()
-        for expr in parsed.expressions
-        if isinstance(expr, exp.Alias)
+        expr.alias_or_name.lower() for expr in parsed.expressions if isinstance(expr, exp.Alias)
     }
 
     for idx, gb_expr in enumerate(group_by_exprs, start=1):
@@ -302,10 +336,7 @@ def _ensure_group_by_aliases(
             )
             parsed.set(
                 "expressions",
-                [
-                    alias_expr if expr is match_expr else expr
-                    for expr in parsed.expressions
-                ],
+                [alias_expr if expr is match_expr else expr for expr in parsed.expressions],
             )
             existing_aliases.add(alias_name.lower())
 
@@ -438,9 +469,7 @@ def _inline_from_subquery(
             table_name = get_table_name_from_column(expr_copy)
             col_name = expr_copy.this.sql(dialect="duckdb").lower()
             use_mapping = (
-                table_name
-                and subquery_alias
-                and table_name.lower() == subquery_alias.lower()
+                table_name and subquery_alias and table_name.lower() == subquery_alias.lower()
             ) or (not table_name and col_name in mapping)
             if use_mapping:
                 mapped = mapping.get(col_name)
@@ -451,9 +480,7 @@ def _inline_from_subquery(
             table_name = get_table_name_from_column(col)
             col_name = col.this.sql(dialect="duckdb").lower()
             use_mapping = (
-                table_name
-                and subquery_alias
-                and table_name.lower() == subquery_alias.lower()
+                table_name and subquery_alias and table_name.lower() == subquery_alias.lower()
             ) or (not table_name and col_name in mapping)
             if not use_mapping:
                 continue
@@ -483,9 +510,7 @@ def _inline_from_subquery(
             table_name = get_table_name_from_column(expr)
             col_name = expr.this.sql(dialect="duckdb").lower()
             use_mapping = (
-                table_name
-                and subquery_alias
-                and table_name.lower() == subquery_alias.lower()
+                table_name and subquery_alias and table_name.lower() == subquery_alias.lower()
             ) or (not table_name and col_name in mapping)
             if use_mapping:
                 mapped = mapping.get(col_name)
@@ -621,7 +646,9 @@ def _should_use_policy_alias(agg: exp.AggFunc, policy_source: str) -> bool:
     return False
 
 
-def _thread_lineage_columns(parsed: exp.Select, policy_source: str, lineage_columns: list[str]) -> exp.Select:
+def _thread_lineage_columns(
+    parsed: exp.Select, policy_source: str, lineage_columns: list[str]
+) -> exp.Select:
     """Thread lineage columns through any SELECT that references the policy source."""
     for select_expr in parsed.find_all(exp.Select):
         parent = select_expr.parent
@@ -648,7 +675,11 @@ def _thread_lineage_columns(parsed: exp.Select, policy_source: str, lineage_colu
                 current = current.parent
             if is_in_subquery:
                 continue
-            if hasattr(table, "name") and table.name and table.name.lower() == policy_source.lower():
+            if (
+                hasattr(table, "name")
+                and table.name
+                and table.name.lower() == policy_source.lower()
+            ):
                 has_policy_source = True
                 break
         if has_policy_source:
@@ -812,8 +843,12 @@ def _rewrite_exists_to_join(
         right_table = str(right.table).lower() if right.table else None
         left_name = left.this.sql(dialect="duckdb").lower()
         right_name = right.this.sql(dialect="duckdb").lower()
-        left_is_policy = left_table == policy_source.lower() or (left_table is None and left_name in policy_keys)
-        right_is_policy = right_table == policy_source.lower() or (right_table is None and right_name in policy_keys)
+        left_is_policy = left_table == policy_source.lower() or (
+            left_table is None and left_name in policy_keys
+        )
+        right_is_policy = right_table == policy_source.lower() or (
+            right_table is None and right_name in policy_keys
+        )
         if left_is_policy and not right_is_policy:
             correlation_expr = eq
             break
@@ -912,9 +947,7 @@ def _rewrite_in_to_join(
         if not subquery_from:
             continue
         has_policy_source = any(
-            hasattr(table, "name")
-            and table.name
-            and table.name.lower() == policy_source.lower()
+            hasattr(table, "name") and table.name and table.name.lower() == policy_source.lower()
             for table in subquery_from.find_all(exp.Table)
         )
         if has_policy_source:
@@ -952,13 +985,12 @@ def _rewrite_in_to_join(
 
     policy_constraint_expr = sqlglot.parse_one(policy_constraint, read="duckdb")
     policy_agg_nodes = [
-        agg for agg in policy_constraint_expr.find_all(exp.AggFunc)
+        agg
+        for agg in policy_constraint_expr.find_all(exp.AggFunc)
         if _should_use_policy_alias(agg, policy_source)
     ]
     if not policy_agg_nodes:
-        policy_agg_nodes = [
-            sqlglot.parse_one(f"avg({policy_source}.l_quantity)", read="duckdb")
-        ]
+        policy_agg_nodes = [sqlglot.parse_one(f"avg({policy_source}.l_quantity)", read="duckdb")]
 
     policy_aliases_outer = [f"policy_{idx}" for idx in range(1, len(policy_agg_nodes) + 1)]
     policy_aliases_inner = [
@@ -1101,7 +1133,9 @@ def _build_outer_select_for_agg(
             else:
                 outer_expr = exp.Max(this=base_col)
             outer_select_parts.append(
-                exp.Alias(this=outer_expr, alias=exp.to_identifier(alias_name)).sql(dialect="duckdb")
+                exp.Alias(this=outer_expr, alias=exp.to_identifier(alias_name)).sql(
+                    dialect="duckdb"
+                )
             )
         elif isinstance(expr, exp.Column):
             col_name = expr.this.sql(dialect="duckdb") if hasattr(expr, "this") else str(expr)
@@ -1131,11 +1165,7 @@ def _build_outer_select_for_agg(
     return ", ".join(outer_select_parts)
 
 
-def rewrite_query_with_cte(
-    query: str,
-    policy: "DFCPolicy",
-    is_aggregation: bool = False
-) -> str:
+def rewrite_query_with_cte(query: str, policy: "DFCPolicy", is_aggregation: bool = False) -> str:
     """Rewrite query using CTE approach for logical baseline.
 
     Args:
@@ -1197,7 +1227,9 @@ def rewrite_query_with_cte(
         order_expr = parsed.args.get("order")
         # Extract just the expressions (columns with direction)
         if hasattr(order_expr, "expressions"):
-            order_by_columns = ", ".join([expr.sql(dialect="duckdb") for expr in order_expr.expressions])
+            order_by_columns = ", ".join(
+                [expr.sql(dialect="duckdb") for expr in order_expr.expressions]
+            )
         else:
             order_by_columns = order_expr.sql(dialect="duckdb").replace("ORDER BY ", "")
 
@@ -1231,7 +1263,11 @@ def rewrite_query_with_cte(
             inner_expr = expr.this if isinstance(expr, exp.Alias) else expr
             # Check if this is an aggregation function (Sum, Count, etc.)
             is_agg_func = isinstance(inner_expr, (exp.Sum, exp.Count, exp.Avg, exp.Max, exp.Min))
-            if not is_agg_func and hasattr(inner_expr, "this") and hasattr(inner_expr.this, "sql_name"):
+            if (
+                not is_agg_func
+                and hasattr(inner_expr, "this")
+                and hasattr(inner_expr.this, "sql_name")
+            ):
                 # Also check by name
                 agg_names = ["COUNT", "SUM", "AVG", "MAX", "MIN", "STDDEV", "VARIANCE"]
                 if inner_expr.this.sql_name().upper() in agg_names:
@@ -1247,12 +1283,16 @@ def rewrite_query_with_cte(
                 elif hasattr(inner_expr, "expressions") and inner_expr.expressions:
                     for e in inner_expr.expressions:
                         if isinstance(e, exp.Column):
-                            col_name = e.this.sql(dialect="duckdb") if hasattr(e, "this") else str(e)
+                            col_name = (
+                                e.this.sql(dialect="duckdb") if hasattr(e, "this") else str(e)
+                            )
                             agg_columns.add(col_name)
                 else:
                     # Fallback: find all columns in the aggregate expression
                     for col in inner_expr.find_all(exp.Column):
-                        col_name = col.this.sql(dialect="duckdb") if hasattr(col, "this") else str(col)
+                        col_name = (
+                            col.this.sql(dialect="duckdb") if hasattr(col, "this") else str(col)
+                        )
                         agg_columns.add(col_name)
 
         # CTE SELECT: GROUP BY columns + columns used in aggregates + policy columns
@@ -1332,7 +1372,9 @@ def rewrite_query_with_cte(
         if hasattr(main_from_expr, "this") and isinstance(main_from_expr.this, exp.Subquery):
             # FROM is a subquery - extract tables from the subquery's FROM
             subquery = main_from_expr.this.this
-            subquery_from = subquery.args.get("from_") or (hasattr(subquery, "from_") and subquery.from_)
+            subquery_from = subquery.args.get("from_") or (
+                hasattr(subquery, "from_") and subquery.from_
+            )
             if subquery_from:
                 for table in subquery_from.find_all(exp.Table):
                     # Skip nested subqueries
@@ -1447,9 +1489,19 @@ def rewrite_query_with_cte(
                 # For aliases, check if the underlying expression is a column
                 if isinstance(expr.this, exp.Column):
                     # Use alias name or column name
-                    alias_name = expr.alias.sql(dialect="duckdb") if hasattr(expr.alias, "sql") else str(expr.alias)
-                    col_name = expr.this.this.sql(dialect="duckdb") if hasattr(expr.this, "this") else str(expr.this)
-                    outer_select_parts.append(f"{col_name} AS {alias_name}" if alias_name != col_name else col_name)
+                    alias_name = (
+                        expr.alias.sql(dialect="duckdb")
+                        if hasattr(expr.alias, "sql")
+                        else str(expr.alias)
+                    )
+                    col_name = (
+                        expr.this.this.sql(dialect="duckdb")
+                        if hasattr(expr.this, "this")
+                        else str(expr.this)
+                    )
+                    outer_select_parts.append(
+                        f"{col_name} AS {alias_name}" if alias_name != col_name else col_name
+                    )
                 else:
                     # Keep the full expression for non-column expressions
                     outer_select_parts.append(expr_sql)
@@ -1603,7 +1655,9 @@ def rewrite_query_with_cte(
                 joins_clause = " " + " ".join(join.sql(dialect="duckdb") for join in inline_joins)
             inline_where = inlined_subquery_select.args.get("where")
             if inline_where:
-                where_expression = inline_where.this if hasattr(inline_where, "this") else inline_where
+                where_expression = (
+                    inline_where.this if hasattr(inline_where, "this") else inline_where
+                )
                 where_condition = where_expression.sql(dialect="duckdb")
 
         cte_query = base_parsed.sql(dialect="duckdb")
@@ -1663,9 +1717,7 @@ def rewrite_query_with_cte(
                 default_table=default_table,
                 policy_source=policy_source,
             )
-            join_conditions.append(
-                f"base_query.{alias} = {qualified_expr.sql(dialect='duckdb')}"
-            )
+            join_conditions.append(f"base_query.{alias} = {qualified_expr.sql(dialect='duckdb')}")
 
         outer_from = "FROM base_query"
         if from_clause:
@@ -1733,4 +1785,5 @@ def rewrite_query_with_cte(
 
     # Clean up whitespace (normalize multiple spaces)
     import re
+
     return re.sub(r"\s+", " ", rewritten).strip()

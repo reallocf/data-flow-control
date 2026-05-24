@@ -14,7 +14,9 @@ from vldb_experiments.visualizations_final import generate_all_final_visualizati
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate final paper figures from final_results CSVs.")
+    parser = argparse.ArgumentParser(
+        description="Generate final paper figures from final_results CSVs."
+    )
     parser.add_argument(
         "--final-results-dir",
         default=str(project_root / "final_results"),

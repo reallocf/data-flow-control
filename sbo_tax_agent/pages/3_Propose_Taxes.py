@@ -11,10 +11,7 @@ import streamlit as st
 import agent
 import db
 
-st.set_page_config(
-    page_title="Propose Taxes - SBO Tax Agent",
-    layout="wide"
-)
+st.set_page_config(page_title="Propose Taxes - SBO Tax Agent", layout="wide")
 
 st.header("Propose Taxes")
 
@@ -90,13 +87,17 @@ try:
     tax_return_rows = tax_return_result.fetchall()
 
     if not tax_return_rows:
-        st.warning("No tax return data found. Please upload tax return data on the Upload Data page.")
+        st.warning(
+            "No tax return data found. Please upload tax return data on the Upload Data page."
+        )
         st.stop()
 
     tax_return_columns = [desc[0] for desc in tax_return_result.description]
     tax_return_info = dict(zip(tax_return_columns, tax_return_rows[0]))
 
-    st.info(f"Processing tax return for: {tax_return_info.get('business_name', 'N/A')} (Tax Year: {tax_return_info.get('tax_year', 'N/A')})")
+    st.info(
+        f"Processing tax return for: {tax_return_info.get('business_name', 'N/A')} (Tax Year: {tax_return_info.get('tax_year', 'N/A')})"
+    )
 
 except Exception as e:
     st.error(f"Error loading tax return: {e!s}")
@@ -157,13 +158,13 @@ with col2:
             has_valid_column = "valid" in irs_form_df.columns
 
             # Remove policy temp columns from display (they're internal tracking columns)
-            policy_temp_columns = [col for col in irs_form_df.columns if col.startswith("_policy_") and "_tmp" in col]
+            policy_temp_columns = [
+                col for col in irs_form_df.columns if col.startswith("_policy_") and "_tmp" in col
+            ]
 
             # Check for aggregate policy violations
             aggregate_violations = st.session_state.get("aggregate_policy_violations", {})
-            has_aggregate_violations = any(
-                msg is not None for msg in aggregate_violations.values()
-            )
+            has_aggregate_violations = any(msg is not None for msg in aggregate_violations.values())
 
             # Drop columns that shouldn't be displayed
             columns_to_drop = []
@@ -183,7 +184,9 @@ with col2:
                 display_df = irs_form_df.drop(columns=columns_to_drop)
 
                 # Update format_dict to only include columns still in display_df
-                display_format_dict = {k: v for k, v in format_dict.items() if k in display_df.columns}
+                display_format_dict = {
+                    k: v for k, v in format_dict.items() if k in display_df.columns
+                }
 
                 # Apply styling: highlight invalid rows in red background
                 # and add subtle background tint for aggregate violations
@@ -213,7 +216,9 @@ with col2:
                 if policy_temp_columns:
                     display_df = irs_form_df.drop(columns=policy_temp_columns)
 
-                display_format_dict = {k: v for k, v in format_dict.items() if k in display_df.columns}
+                display_format_dict = {
+                    k: v for k, v in format_dict.items() if k in display_df.columns
+                }
                 if display_format_dict:
                     styled_df = display_df.style.format(display_format_dict)
                     st.dataframe(styled_df, width="stretch", hide_index=True)
@@ -293,7 +298,9 @@ try:
                         # Normalize both txn_ids for comparison
                         progress_txn_id = progress.get("transaction", {}).get("txn_id")
                         try:
-                            progress_txn_id_int = int(progress_txn_id) if progress_txn_id is not None else None
+                            progress_txn_id_int = (
+                                int(progress_txn_id) if progress_txn_id is not None else None
+                            )
                         except (ValueError, TypeError):
                             progress_txn_id_int = None
 
@@ -314,7 +321,9 @@ try:
                             pass
 
                     if transaction_info:
-                        st.caption(f"Transaction ID: {txn_id} | Amount: ${transaction_info.get('amount', 'N/A')} | Description: {transaction_info.get('description', 'N/A')}")
+                        st.caption(
+                            f"Transaction ID: {txn_id} | Amount: ${transaction_info.get('amount', 'N/A')} | Description: {transaction_info.get('description', 'N/A')}"
+                        )
 
                     # Display logs in a fixed-height, scrollable container
                     log_text = "\n".join(logs)
@@ -323,16 +332,20 @@ try:
                         value=log_text,
                         height=400,
                         disabled=True,
-                        key=f"logs_{txn_id}_{idx}"
+                        key=f"logs_{txn_id}_{idx}",
                     )
         else:
             if st.session_state.agent_processing:
-                st.info("Processing transactions... Logs will appear here as each transaction completes.")
+                st.info(
+                    "Processing transactions... Logs will appear here as each transaction completes."
+                )
             else:
                 st.info("No agent logs yet. Click 'Propose Taxes' to start processing.")
     else:
         if st.session_state.agent_processing:
-            st.info("Processing transactions... Logs will appear here as each transaction completes.")
+            st.info(
+                "Processing transactions... Logs will appear here as each transaction completes."
+            )
         else:
             st.info("No agent logs yet. Click 'Propose Taxes' to start processing.")
 except Exception as e:
@@ -346,7 +359,9 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
         # Check if we have more transactions to process
         if st.session_state.current_txn_index < len(st.session_state.transactions_to_process):
             # Get current transaction
-            transaction = st.session_state.transactions_to_process[st.session_state.current_txn_index]
+            transaction = st.session_state.transactions_to_process[
+                st.session_state.current_txn_index
+            ]
             total_transactions = len(st.session_state.transactions_to_process)
             current_index = st.session_state.current_txn_index + 1
 
@@ -361,7 +376,7 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
                     transaction,
                     st.session_state.tax_return_info,
                     recorder=recorder,
-                    replay_manager=replay_manager
+                    replay_manager=replay_manager,
                 )
 
                 # Save logs to database for persistence
@@ -384,7 +399,7 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
                     "transaction": transaction,
                     "success": True,
                     "message": message,
-                    "entry_created": entry_created
+                    "entry_created": entry_created,
                 }
                 st.session_state.agent_progress.append(progress_update)
 
@@ -392,7 +407,9 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
                 st.session_state.current_txn_index += 1
 
                 # Continue processing if not done
-                if st.session_state.current_txn_index < len(st.session_state.transactions_to_process):
+                if st.session_state.current_txn_index < len(
+                    st.session_state.transactions_to_process
+                ):
                     st.rerun()
                 else:
                     # All transactions processed - finalize aggregate policies
@@ -430,7 +447,7 @@ if st.session_state.agent_processing and st.session_state.transactions_to_proces
                     "success": False,
                     "message": f"Error: {e!s}",
                     "entry_created": False,
-                    "error": str(e)
+                    "error": str(e),
                 }
                 st.session_state.agent_progress.append(progress_update)
                 st.session_state.agent_processing = False

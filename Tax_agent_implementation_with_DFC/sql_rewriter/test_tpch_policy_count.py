@@ -3686,4 +3686,3 @@ def test_tpch_q03_policy_counts_rewrite_sql(tpch_rewriter, policy_count):
         f"Expected SQL:\n{expected}\n\n"
         f"Actual SQL:\n{transformed}"
     )
-

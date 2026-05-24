@@ -31,9 +31,7 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
         self.policy_counts = list(
             context.strategy_config.get("policy_counts", DEFAULT_POLICY_COUNTS)
         )
-        self.join_counts = list(
-            context.strategy_config.get("join_counts", DEFAULT_JOIN_COUNTS)
-        )
+        self.join_counts = list(context.strategy_config.get("join_counts", DEFAULT_JOIN_COUNTS))
         self.warmup_per_setting = int(
             context.strategy_config.get("warmup_per_setting", DEFAULT_WARMUP_PER_SETTING)
         )
@@ -80,12 +78,9 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
         if join_count < 1:
             raise ValueError(f"join_count must be >= 1, got {join_count}")
 
-        amount_terms = ["test_data.amount"] + [
-            f"j{i}.amount" for i in range(1, join_count + 1)
-        ]
+        amount_terms = ["test_data.amount"] + [f"j{i}.amount" for i in range(1, join_count + 1)]
         joins = [
-            f"JOIN join_data_{i} j{i} ON test_data.id = j{i}.id"
-            for i in range(1, join_count + 1)
+            f"JOIN join_data_{i} j{i} ON test_data.id = j{i}.id" for i in range(1, join_count + 1)
         ]
         return " ".join(
             f"""
@@ -145,7 +140,9 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
         return policies
 
     def execute(self, context: ExperimentContext) -> ExperimentResult:
-        join_count, policy_count, run_num = self._setting_and_run_for_execution(context.execution_number)
+        join_count, policy_count, run_num = self._setting_and_run_for_execution(
+            context.execution_number
+        )
         phase = "warmup" if context.is_warmup else f"run {run_num}"
         print(
             f"[Execution {context.execution_number}] "
@@ -198,8 +195,12 @@ class MicrobenchmarkPolicyCountStrategy(ExperimentStrategy):
         physical_runtime = physical_timing.get("runtime_time_ms", 0.0)
         physical_exec_time = physical_runtime
 
-        logical_match, logical_match_error = compare_results_exact(dfc_1phase_results, logical_results)
-        physical_match, physical_match_error = compare_results_exact(dfc_1phase_results, physical_results)
+        logical_match, logical_match_error = compare_results_exact(
+            dfc_1phase_results, logical_results
+        )
+        physical_match, physical_match_error = compare_results_exact(
+            dfc_1phase_results, physical_results
+        )
         dfc_2phase_match, dfc_2phase_match_error = compare_results_exact(
             dfc_1phase_results, dfc_2phase_results
         )

@@ -81,7 +81,9 @@ def main():
     print(f"  Query types: {num_query_types} ({', '.join(query_order)})")
     print(f"  Variations per query: {num_variations} (x values, Zipfian distributed)")
     print(f"  Runs per variation: {num_runs_per_variation}")
-    print(f"  Executions per query: {num_executions_per_query} ({num_variations} x {num_runs_per_variation})")
+    print(
+        f"  Executions per query: {num_executions_per_query} ({num_variations} x {num_runs_per_variation})"
+    )
     print(f"  Total executions: {total_executions}")
     print(f"  Warm-up runs per setting: {warmup_per_setting}")
     print("  Approaches: no_policy, DFC, Logical (CTE), Physical (SmokedDuck)")
@@ -132,21 +134,26 @@ def main():
 
     # Check correctness
     import csv
+
     correctness_failures = []
     with open(f"{config.output_dir}/{config.output_filename}") as f:
         reader = csv.DictReader(f)
         for row in reader:
             if row.get("correctness_match", "").lower() == "false":
-                correctness_failures.append({
-                    "execution": row.get("execution_number"),
-                    "query_type": row.get("query_type"),
-                    "error": row.get("correctness_error", "")
-                })
+                correctness_failures.append(
+                    {
+                        "execution": row.get("execution_number"),
+                        "query_type": row.get("query_type"),
+                        "error": row.get("correctness_error", ""),
+                    }
+                )
 
     if correctness_failures:
         print(f"\n⚠️  WARNING: {len(correctness_failures)} correctness failures detected!")
         for failure in correctness_failures[:5]:  # Show first 5
-            print(f"  Execution {failure['execution']} ({failure['query_type']}): {failure['error']}")
+            print(
+                f"  Execution {failure['execution']} ({failure['query_type']}): {failure['error']}"
+            )
         if len(correctness_failures) > 5:
             print(f"  ... and {len(correctness_failures) - 5} more")
     else:

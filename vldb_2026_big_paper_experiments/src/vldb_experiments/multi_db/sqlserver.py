@@ -270,14 +270,14 @@ class SQLServerClient:
                 f"IF OBJECT_ID(N'[{schema_name}].{table}', N'U') IS NOT NULL "
                 f"DROP TABLE [{schema_name}].[{table}]"
             )
-            cursor.execute(
-                f"CREATE TABLE [{schema_name}].[{table}] ({col_defs})"
-            )
+            cursor.execute(f"CREATE TABLE [{schema_name}].[{table}] ({col_defs})")
 
             duck_cursor = duckdb_conn.execute(f"SELECT * FROM {table}")
             col_names = ", ".join([f"[{name}]" for name, _ in schema])
             placeholders = ", ".join(["?"] * len(schema))
-            insert_sql = f"INSERT INTO [{schema_name}].[{table}] ({col_names}) VALUES ({placeholders})"
+            insert_sql = (
+                f"INSERT INTO [{schema_name}].[{table}] ({col_names}) VALUES ({placeholders})"
+            )
 
             cursor.fast_executemany = True
             while True:
