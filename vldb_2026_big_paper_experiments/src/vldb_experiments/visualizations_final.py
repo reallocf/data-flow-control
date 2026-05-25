@@ -198,6 +198,8 @@ def create_tpch_duckdb_provenance_capped_overhead_chart(
     output_path: Path,
     show_dfc_label: bool = True,
     zero_dfc_bar: bool = False,
+    logical_label: str = "SOA Data Flow 1",
+    physical_label: str = "SOA Data Flow 2",
 ) -> None:
     df = _with_exec_time_columns(df)
     required_cols = {
@@ -243,8 +245,8 @@ def create_tpch_duckdb_provenance_capped_overhead_chart(
         )
 
     plot_specs = [
-        ("SOA Data Flow 1", float(complete_overheads["logical"].mean()), "#2ca02c"),
-        ("SOA Data Flow 2", float(complete_overheads["physical"].mean()), "#d62728"),
+        (logical_label, float(complete_overheads["logical"].mean()), "#2ca02c"),
+        (physical_label, float(complete_overheads["physical"].mean()), "#d62728"),
         ("DFC Rewriter", float(complete_overheads["dfc"].mean()), "#ff7f0e"),
     ]
 
@@ -283,7 +285,7 @@ def create_tpch_duckdb_provenance_capped_overhead_chart(
         if label == "DFC Rewriter" and not show_dfc_label:
             continue
         x = bar.get_x() + bar.get_width() / 2.0
-        if label.startswith("SOA Data Flow"):
+        if label in {logical_label, physical_label}:
             y = plot_value / 1.15
             vertical_alignment = "top"
             text_color = "white"
@@ -1067,6 +1069,15 @@ def generate_all_final_visualizations(final_results_dir: str | Path) -> list[Pat
         output_path=final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10.png",
     )
     output_paths.append(final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10.png")
+    create_tpch_duckdb_provenance_capped_overhead_chart(
+        tpch_sf10_df,
+        output_path=final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10_prov_labels.png",
+        logical_label="Provenance 1",
+        physical_label="Provenance 2",
+    )
+    output_paths.append(
+        final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10_prov_labels.png"
+    )
     create_tpch_duckdb_provenance_capped_overhead_chart(
         tpch_sf10_df,
         output_path=final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10_no_dfc_label.png",
