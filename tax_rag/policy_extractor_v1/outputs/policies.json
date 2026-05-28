@@ -1,0 +1,16 @@
+﻿[
+  {
+    "source_citation": "26 U.S.C. \u00a7 274(h)(7)",
+    "supporting_citations": [
+      "26 U.S.C. \u00a7 274(h)(7)",
+      "26 U.S.C. \u00a7 212"
+    ],
+    "policy": "SOURCE Receipt AS R SINK Expense AS E\nCONSTRAINT NOT (E.category IN ('convention', 'seminar', 'similar_meeting') AND E.deduction_section = 212)\nON FAIL KILL",
+    "explanation": "No deduction is allowed under section 212 for expenses allocable to a convention, seminar, or similar meeting.",
+    "detected_refs": [
+      "212"
+    ],
+    "valid_dfc_subset": true,
+    "confidence": "HIGH"
+  }
+]
