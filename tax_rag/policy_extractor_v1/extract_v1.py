@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 
 INPUT = Path("inputs/sections.jsonl")
 OUTPUT = Path("outputs/policies.json")
-MODEL = os.getenv("MODEL", "gpt-4.1-mini")
-
 load_dotenv()
+MODEL = os.getenv("MODEL", "gpt-4.1-mini")
 client = OpenAI()
 
 def load_sections():
@@ -126,5 +125,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
