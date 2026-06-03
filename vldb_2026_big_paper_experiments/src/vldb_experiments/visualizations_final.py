@@ -340,9 +340,9 @@ def create_phase_competition_heatmap(
     grouped = plot_df.groupby(["join_fanout", "policy_column_count"], as_index=False)[
         ["dfc_1phase_exec_time_ms", "dfc_2phase_exec_time_ms"]
     ].mean()
-    grouped["relative_perf"] = (
-        grouped["dfc_1phase_exec_time_ms"] / grouped["dfc_2phase_exec_time_ms"]
-    )
+    grouped["partial_push_faster_pct"] = (
+        grouped["dfc_1phase_exec_time_ms"] / grouped["dfc_2phase_exec_time_ms"] - 1.0
+    ) * 100.0
 
     fanouts = sorted(grouped["join_fanout"].astype(int).unique().tolist())
     policy_counts = sorted(grouped["policy_column_count"].astype(int).unique().tolist())
@@ -350,17 +350,19 @@ def create_phase_competition_heatmap(
     for _, row in grouped.iterrows():
         x_idx = fanouts.index(int(row["join_fanout"]))
         y_idx = policy_counts.index(int(row["policy_column_count"]))
-        heatmap.iat[y_idx, x_idx] = float(row["relative_perf"])
+        heatmap.iat[y_idx, x_idx] = float(row["partial_push_faster_pct"])
 
-    log_heatmap = np.log2(heatmap.astype(float))
-    finite_vals = log_heatmap.values[np.isfinite(log_heatmap.values)]
+    finite_vals = heatmap.values[np.isfinite(heatmap.values)]
 
     fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 2.55))
-    max_abs = float(np.nanmax(np.abs(finite_vals)))
+    max_abs = min(float(np.nanmax(np.abs(finite_vals))), 100.0)
+    if max_abs == 0.0:
+        max_abs = 1.0
     cmap = RELATIVE_PERF_CMAP
     cmap.set_bad(color="#f0f0f0")
     norm = matplotlib.colors.TwoSlopeNorm(vmin=-max_abs, vcenter=0.0, vmax=max_abs)
-    ax.imshow(log_heatmap.astype(float), cmap=cmap, norm=norm, aspect="auto")
+    clipped_heatmap = heatmap.astype(float).clip(lower=-max_abs, upper=max_abs)
+    ax.imshow(clipped_heatmap, cmap=cmap, norm=norm, aspect="auto")
     ax.set_facecolor("white")
     ax.set_xticks(range(len(fanouts)))
     ax.set_xticklabels(fanouts, fontsize=COLUMN_TICK_FONTSIZE)
@@ -378,11 +380,10 @@ def create_phase_competition_heatmap(
         for x_idx in range(len(fanouts)):
             val = heatmap.iat[y_idx, x_idx]
             if np.isfinite(val):
-                log_val = log_heatmap.iat[y_idx, x_idx]
                 ax.text(
                     x_idx,
                     y_idx,
-                    f"{log_val:.2f}",
+                    f"{val:+.0f}%",
                     ha="center",
                     va="center",
                     fontsize=COLUMN_ANNOTATION_FONTSIZE,
@@ -392,8 +393,34 @@ def create_phase_competition_heatmap(
     sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.03)
-    cbar.set_label("Relative Execution Time", fontsize=COLUMN_AXIS_LABEL_FONTSIZE)
-    cbar.ax.tick_params(labelsize=COLUMN_TICK_FONTSIZE)
+    cbar.set_ticks([])
+    cbar.ax.text(
+        1.55,
+        0.0,
+        FULL_PUSH_LABEL,
+        transform=cbar.ax.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=COLUMN_AXIS_LABEL_FONTSIZE,
+    )
+    cbar.ax.text(
+        1.55,
+        1.0,
+        PARTIAL_PUSH_LABEL,
+        transform=cbar.ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=COLUMN_AXIS_LABEL_FONTSIZE,
+    )
+    cbar.ax.text(
+        1.55,
+        0.5,
+        "% Faster",
+        transform=cbar.ax.transAxes,
+        ha="left",
+        va="center",
+        fontsize=COLUMN_AXIS_LABEL_FONTSIZE,
+    )
     plt.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=150, bbox_inches="tight")

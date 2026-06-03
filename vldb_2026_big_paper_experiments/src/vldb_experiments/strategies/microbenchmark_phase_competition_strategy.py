@@ -17,7 +17,7 @@ DEFAULT_TOTAL_COLUMNS = 4096  # total columns including pk
 DEFAULT_BASE_AGGREGATE_COLUMNS = 128
 DEFAULT_JOIN_FANOUTS = [2, 4, 8, 16, 32, 64]
 DEFAULT_WARMUP_PER_SETTING = 1
-DEFAULT_RUNS_PER_SETTING = 5
+DEFAULT_RUNS_PER_SETTING = 20
 
 
 class MicrobenchmarkPhaseCompetitionStrategy(ExperimentStrategy):

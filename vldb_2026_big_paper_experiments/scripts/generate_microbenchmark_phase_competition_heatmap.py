@@ -73,34 +73,34 @@ def main() -> int:
     grouped = df.groupby([x_dimension, "policy_column_count"], as_index=False)[
         ["dfc_1phase_exec_time_ms", "dfc_2phase_exec_time_ms"]
     ].mean()
-    grouped["ratio_1phase_to_2phase"] = (
-        grouped["dfc_1phase_exec_time_ms"] / grouped["dfc_2phase_exec_time_ms"]
-    )
-    grouped["ratio_delta"] = grouped["ratio_1phase_to_2phase"] - 1.0
+    grouped["partial_push_faster_pct"] = (
+        grouped["dfc_1phase_exec_time_ms"] / grouped["dfc_2phase_exec_time_ms"] - 1.0
+    ) * 100.0
 
     x_values = sorted(grouped[x_dimension].astype(int).unique().tolist())
     policy_values = sorted(grouped["policy_column_count"].astype(int).unique().tolist())
-    ratio_matrix = np.full((len(policy_values), len(x_values)), np.nan)
-    delta_matrix = np.full((len(policy_values), len(x_values)), np.nan)
+    faster_pct_matrix = np.full((len(policy_values), len(x_values)), np.nan)
 
     for _, row in grouped.iterrows():
         j = x_values.index(int(row[x_dimension]))
         p = policy_values.index(int(row["policy_column_count"]))
-        ratio_matrix[p, j] = float(row["ratio_1phase_to_2phase"])
-        delta_matrix[p, j] = float(row["ratio_delta"])
+        faster_pct_matrix[p, j] = float(row["partial_push_faster_pct"])
 
-    valid = delta_matrix[np.isfinite(delta_matrix)]
+    valid = faster_pct_matrix[np.isfinite(faster_pct_matrix)]
     if valid.size == 0:
         raise ValueError("No valid ratio values to plot.")
-    delta_matrix = np.clip(delta_matrix, -1.0, 1.0)
+    max_abs = min(max(abs(float(valid.min())), abs(float(valid.max()))), 100.0)
+    if max_abs == 0.0:
+        max_abs = 1.0
+    faster_pct_matrix = np.clip(faster_pct_matrix, -max_abs, max_abs)
 
     fig, ax = plt.subplots(figsize=(10, 7))
     im = ax.imshow(
-        delta_matrix,
+        faster_pct_matrix,
         aspect="auto",
         origin="lower",
         cmap="RdBu_r",
-        norm=TwoSlopeNorm(vmin=-1.0, vcenter=0.0, vmax=1.0),
+        norm=TwoSlopeNorm(vmin=-max_abs, vcenter=0.0, vmax=max_abs),
     )
 
     ax.set_xticks(range(len(x_values)))
@@ -114,16 +114,43 @@ def main() -> int:
     else:
         ax.set_xlabel("Number of Rows", fontsize=12)
     ax.set_ylabel("Policy Columns Summed", fontsize=12)
-    ax.set_title("1Phase / 2Phase Execution Time Ratio", fontsize=14, fontweight="bold")
+    ax.set_title("Partial-Push Speedup Over Full-Push", fontsize=14, fontweight="bold")
 
     for y_idx in range(len(policy_values)):
         for x_idx in range(len(x_values)):
-            val = delta_matrix[y_idx, x_idx]
+            val = faster_pct_matrix[y_idx, x_idx]
             if np.isfinite(val):
-                ax.text(x_idx, y_idx, f"{val:+.2f}", ha="center", va="center", fontsize=9)
+                ax.text(x_idx, y_idx, f"{val:+.0f}%", ha="center", va="center", fontsize=9)
 
     cbar = fig.colorbar(im, ax=ax)
-    cbar.set_label("Ratio Delta ((1Phase / 2Phase) - 1), clipped to [-1, 1]", fontsize=11)
+    cbar.set_ticks([])
+    cbar.ax.text(
+        1.55,
+        0.0,
+        "Full-Push",
+        transform=cbar.ax.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=11,
+    )
+    cbar.ax.text(
+        1.55,
+        1.0,
+        "Partial-Push",
+        transform=cbar.ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=11,
+    )
+    cbar.ax.text(
+        1.55,
+        0.5,
+        "% Faster",
+        transform=cbar.ax.transAxes,
+        ha="left",
+        va="center",
+        fontsize=11,
+    )
     plt.tight_layout()
 
     output_path = Path("./results") / args.output_filename

@@ -17,7 +17,7 @@ DEFAULT_JOIN_FANOUTS = [2, 4, 8, 16, 32, 64]
 DEFAULT_BASE_QUERY_COLUMN_COUNTS = [128]
 DEFAULT_POLICY_COLUMN_COUNTS = [2, 4, 8, 16, 32, 64, 128, 256, 512]
 DEFAULT_WARMUP_PER_SETTING = 1
-DEFAULT_RUNS_PER_SETTING = 5
+DEFAULT_RUNS_PER_SETTING = 20
 DEFAULT_OUTPUT_FILENAME = "microbenchmark_phase_competition.csv"
 
 
@@ -57,7 +57,7 @@ def main() -> int:
         "--runs-per-setting",
         type=int,
         default=DEFAULT_RUNS_PER_SETTING,
-        help="Measured runs per setting (default: 5)",
+        help="Measured runs per setting (default: 20)",
     )
     parser.add_argument(
         "--warmup-per-setting",
