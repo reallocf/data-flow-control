@@ -2,71 +2,105 @@
 import os
 import re
 from pathlib import Path
-from openai import OpenAI
-from dotenv import load_dotenv
+from typing import Literal
 
-INPUT = Path("inputs/sections.jsonl")
-OUTPUT = Path("outputs/policies.json")
+from dotenv import load_dotenv
+from openai import OpenAI
+from pydantic import BaseModel
+
 load_dotenv()
+
+INPUT = Path(os.getenv("INPUT", "inputs/title26_sections.jsonl"))
+OUTPUT = Path(os.getenv("OUTPUT", "outputs/policies_274.json"))
+TARGETS = {x.strip() for x in os.getenv("TARGETS", "274").split(",") if x.strip()}
 MODEL = os.getenv("MODEL", "gpt-4.1-mini")
+
 client = OpenAI()
+
+class Candidate(BaseModel):
+    source_citation: str
+    supporting_citations: list[str]
+    constraint: str
+    explanation: str
+
+class CandidateBatch(BaseModel):
+    policies: list[Candidate]
+
+class Judgment(BaseModel):
+    confidence: Literal["HIGH", "LOW"]
 
 def load_sections():
     if not INPUT.exists():
-        raise FileNotFoundError("Missing inputs/sections.jsonl")
+        raise FileNotFoundError(f"Missing {INPUT}")
     return [json.loads(line) for line in INPUT.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+
+def section_number(citation):
+    match = re.search(r"§\s*(\d+[A-Za-z0-9-]*)", citation)
+    return match.group(1) if match else None
 
 def detect_refs(text):
     refs = set()
-    for m in re.finditer(r"(?:section|§)\s*(\d+[A-Za-z0-9-]*)", text, re.I):
-        refs.add(m.group(1))
+    for match in re.finditer(r"(?:section|§)\s*(\d+[A-Za-z0-9-]*)", text, re.I):
+        ref = match.group(1)
+        if len(ref) <= 4 or re.match(r"^\d+[A-Z]$", ref):
+            refs.add(ref)
     return sorted(refs)
-
-def clean_json(text):
-    text = text.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?", "", text).strip()
-        text = re.sub(r"```$", "", text).strip()
-    return json.loads(text)
-
-def llm(prompt):
-    response = client.responses.create(
-        model=MODEL,
-        input=prompt,
-    )
-    return response.output_text
 
 def valid_dfc(policy):
     upper = policy.upper()
-    return all(x in upper for x in ["SOURCE", "SINK", "CONSTRAINT", "ON FAIL"])
+    if not all(part in upper for part in ["SOURCE", "SINK", "CONSTRAINT", "ON FAIL"]):
+        return False
+
+    blocked = ["SELECT ", " EXISTS ", " WHERE "]
+    if any(term in upper for term in blocked):
+        return False
+
+    constraint = upper.split("CONSTRAINT", 1)[1].split("ON FAIL", 1)[0].strip()
+    if re.search(r"(^|\bAND\b|\bOR\b|\()\s*E\.DEDUCT\s*($|\)|\bAND\b|\bOR\b)", constraint):
+        return False
+
+    return True
+
+def parsed(prompt, schema):
+    response = client.responses.parse(
+        model=MODEL,
+        input=[{"role": "user", "content": prompt}],
+        text_format=schema,
+        temperature=0,
+    )
+    return response.output_parsed
 
 def generate_policy(section, context):
     prompt = f"""
-You extract candidate Data Flow Control policies from U.S. tax law.
+Extract candidate Data Flow Control policies from U.S. tax law.
 
-Return JSON only. Return a list of objects.
-Each object must have:
-- source_citation
-- supporting_citations
-- policy
-- explanation
+Return every policy clearly supported by the main legal text and referenced context.
+Only fill the SQL-like boolean constraint.
 
-Use only this DFC shape:
+The fixed policy wrapper is:
 SOURCE Receipt AS R SINK Expense AS E
-CONSTRAINT <SQL-like boolean condition>
+CONSTRAINT <constraint>
 ON FAIL KILL
 
-If no DFC policy is clearly supported, return [].
+Reference Receipt fields with alias R and Expense fields with alias E.
+Prefer simple fields such as R.category, R.type, R.purpose, R.cost, R.qual, E.cost, and E.deduct.
+Use E.deduct as a numeric deduction fraction, for example E.deduct <= 0.5.
+Use decimal fractions for percentages, for example 0.5 instead of 50%.
 
-Example:
-[
-  {{
-    "source_citation": "26 U.S.C. § 274(n)",
-    "supporting_citations": ["26 U.S.C. § 274(n)"],
-    "policy": "SOURCE Receipt AS R SINK Expense AS E\\nCONSTRAINT R.category != 'Meal' OR E.deduct <= 0.5\\nON FAIL KILL",
-    "explanation": "Meal expenses may be deducted only up to 50 percent."
-  }}
-]
+Every constraint must be implication-style:
+<receipt does not match this rule> OR <deduction is allowed>
+
+Examples:
+R.category != 'food' OR E.deduct <= 0.5
+R.category != 'gift' OR SUM(E.cost * E.deduct) <= 25
+R.category != 'club dues' OR E.deduct = 0
+
+Do not use SELECT subqueries.
+Do not use EXISTS.
+Do not use WHERE.
+Do not use a bare boolean E.deduct.
+Do not create constraints that reject unrelated receipts.
+If no DFC policy is clearly supported, return an empty policies list.
 
 Main legal text:
 {section["citation"]}
@@ -75,56 +109,64 @@ Main legal text:
 Referenced context:
 {context}
 """
-    return clean_json(llm(prompt))
+    return parsed(prompt, CandidateBatch).policies
 
 def judge_policy(policy_obj, legal_text):
     prompt = f"""
-Return only HIGH or LOW.
+Decide whether the DFC constraint is clearly supported by the legal text.
 
-Is this DFC policy clearly supported by the legal text?
+Return HIGH only if the constraint follows directly from the text.
+Return LOW if it is plausible but needs manual review.
 
 Legal text:
 {legal_text}
 
-Policy:
-{policy_obj["policy"]}
+Constraint:
+{policy_obj["constraint"]}
 """
-    answer = llm(prompt).strip().upper()
-    return "HIGH" if "HIGH" in answer else "LOW"
+    return parsed(prompt, Judgment).confidence
 
 def main():
     sections = load_sections()
 
     by_number = {}
-    for s in sections:
-        m = re.search(r"§\s*(\d+[A-Za-z0-9-]*)", s["citation"])
-        if m:
-            by_number[m.group(1)] = s
+    for section in sections:
+        number = section_number(section["citation"])
+        if number:
+            by_number[number] = section
 
     results = []
 
     for section in sections:
+        number = section_number(section["citation"])
+        if TARGETS and number not in TARGETS:
+            continue
+
         refs = detect_refs(section["text"])
         context_parts = []
         for ref in refs:
-            if ref in by_number:
-                ref_section = by_number[ref]
+            ref_section = by_number.get(ref)
+            if ref_section:
                 context_parts.append(ref_section["citation"] + "\n" + ref_section["text"])
-        context = "\n\n".join(context_parts)
 
+        context = "\n\n".join(context_parts)
         candidates = generate_policy(section, context)
 
-        for p in candidates:
-            p["detected_refs"] = refs
-            p["valid_dfc_subset"] = valid_dfc(p.get("policy", ""))
-            p["confidence"] = judge_policy(p, section["text"]) if p["valid_dfc_subset"] else "LOW"
-            results.append(p)
+        for candidate in candidates:
+            row = candidate.model_dump()
+            row["policy"] = (
+                "SOURCE Receipt AS R SINK Expense AS E\n"
+                f"CONSTRAINT {row['constraint']}\n"
+                "ON FAIL KILL"
+            )
+            row["detected_refs"] = refs
+            row["valid_dfc_subset"] = valid_dfc(row["policy"])
+            row["confidence"] = judge_policy(row, section["text"]) if row["valid_dfc_subset"] else "LOW"
+            results.append(row)
 
+    OUTPUT.parent.mkdir(exist_ok=True)
     OUTPUT.write_text(json.dumps(results, indent=2), encoding="utf-8-sig")
     print(f"Wrote {OUTPUT} with {len(results)} policies")
 
 if __name__ == "__main__":
     main()
-
-
-
