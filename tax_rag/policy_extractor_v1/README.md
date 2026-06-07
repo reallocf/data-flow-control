@@ -1,20 +1,10 @@
-﻿\# Policy extractor v1
-
-
+﻿# Policy extractor v1
 
 Minimal tax-law Data Flow Control policy extractor for the TaxAgent demo.
 
-
-
-\## Setup
-
-
+## Setup
 
 Install dependencies:
 
-
-
 ```powershell
-
 python -m pip install -r requirements.txt
-
