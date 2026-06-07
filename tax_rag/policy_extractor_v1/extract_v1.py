@@ -101,7 +101,7 @@ Do not use WHERE.
 Do not use a bare boolean E.deduct.
 Do not create constraints that reject unrelated receipts.
 Pay special attention to subsection 274(h), including convention, seminar, and similar meeting rules that reference section 212.
-For section 274(h)(7), extract a policy like: R.type != investment OR R.category != seminar OR E.deduct = 0, if supported by the text and referenced context.
+For section 274(h)(7), extract a policy like: R.type != 'investment' OR R.category != 'seminar' OR E.deduct = 0, if supported by the text and referenced context.
 Do not skip a policy only because it requires context from a referenced section.
 If no DFC policy is clearly supported, return an empty policies list.
 
