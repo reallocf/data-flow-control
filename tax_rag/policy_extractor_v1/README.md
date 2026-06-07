@@ -1,17 +1,20 @@
-﻿# policy_extractor_v1
+﻿\# Policy extractor v1
 
-Minimal script for extracting candidate DFC-style tax policies from JSONL section inputs.
 
-Input:
-- inputs/sections.jsonl
 
-Output:
-- outputs/policies.json
+Minimal tax-law Data Flow Control policy extractor for the TaxAgent demo.
 
-Setup:
-- create a Python virtual environment
-- install requirements.txt
-- create a local .env file with OPENAI_API_KEY
 
-Run:
-python .\extract_v1.py
+
+\## Setup
+
+
+
+Install dependencies:
+
+
+
+```powershell
+
+python -m pip install -r requirements.txt
+
