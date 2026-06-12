@@ -1,0 +1,4608 @@
+{
+  "sections_file": "C:\\Users\\A\\Documents\\research\\data-flow-control\\tax_rag\\policy_extractor_v1\\inputs\\title26_sections.jsonl",
+  "policies_file": "C:\\Users\\A\\Documents\\research\\data-flow-control\\tax_rag\\policy_extractor_v1\\outputs\\policies_274.json",
+  "audit": [
+    {
+      "source_section": "274",
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "reference_mentions": [
+        {
+          "source_section": "274",
+          "span_start": 467,
+          "span_end": 483,
+          "surface": "subparagraph (A)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "A",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 528,
+          "span_end": 541,
+          "surface": "paragraph (1)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 701,
+          "span_end": 712,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 1185,
+          "span_end": 1199,
+          "surface": "section 132(f)",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "f",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 1303,
+          "span_end": 1314,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 1318,
+          "span_end": 1329,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 1670,
+          "span_end": 1681,
+          "surface": "section 102",
+          "ref_class": "explicit",
+          "target_section": "102",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 2229,
+          "span_end": 2243,
+          "surface": "paragraph (1) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 2329,
+          "span_end": 2342,
+          "surface": "paragraph (1)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 2598,
+          "span_end": 2609,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 2647,
+          "span_end": 2658,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 2662,
+          "span_end": 2673,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 2893,
+          "span_end": 2907,
+          "surface": "Paragraph (1) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 3227,
+          "span_end": 3238,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 3574,
+          "span_end": 3585,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 3760,
+          "span_end": 3778,
+          "surface": "section 280F(d)(4)",
+          "ref_class": "explicit",
+          "target_section": "280F",
+          "target_path": "d.4",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 4477,
+          "span_end": 4491,
+          "surface": "subsection (i)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "i",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 4536,
+          "span_end": 4551,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 4551,
+          "span_end": 4566,
+          "surface": "Subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 4855,
+          "span_end": 4871,
+          "surface": "subparagraph (B)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "B",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 5356,
+          "span_end": 5373,
+          "surface": "subparagraph (A) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "A",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 5377,
+          "span_end": 5391,
+          "surface": "paragraph (9) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "9",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 5591,
+          "span_end": 5601,
+          "surface": "clause (i)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "i",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 5699,
+          "span_end": 5712,
+          "surface": "section 16(a)",
+          "ref_class": "explicit",
+          "target_section": "16",
+          "target_path": "a",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 6126,
+          "span_end": 6140,
+          "surface": "section 267(b)",
+          "ref_class": "explicit",
+          "target_section": "267",
+          "target_path": "b",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 6592,
+          "span_end": 6605,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 6741,
+          "span_end": 6755,
+          "surface": "subsection (d)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "d",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 7030,
+          "span_end": 7044,
+          "surface": "section 414(q)",
+          "ref_class": "explicit",
+          "target_section": "414",
+          "target_path": "q",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 7354,
+          "span_end": 7371,
+          "surface": "section 267(c)(4)",
+          "ref_class": "explicit",
+          "target_section": "267",
+          "target_path": "c.4",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 7421,
+          "span_end": 7438,
+          "surface": "subsection (a)(3)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a.3",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 7788,
+          "span_end": 7805,
+          "surface": "section 501(c)(6)",
+          "ref_class": "explicit",
+          "target_section": "501",
+          "target_path": "c.6",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 7931,
+          "span_end": 7945,
+          "surface": "section 501(a)",
+          "ref_class": "explicit",
+          "target_section": "501",
+          "target_path": "a",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 8681,
+          "span_end": 8691,
+          "surface": "section 74",
+          "ref_class": "explicit",
+          "target_section": "74",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 9063,
+          "span_end": 9078,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 9566,
+          "span_end": 9581,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 9993,
+          "span_end": 10004,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 10966,
+          "span_end": 10977,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 11064,
+          "span_end": 11078,
+          "surface": "paragraph (5) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "5",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 11558,
+          "span_end": 11569,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 12036,
+          "span_end": 12052,
+          "surface": "subparagraph (B)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "B",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 12122,
+          "span_end": 12133,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 12785,
+          "span_end": 12796,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 14245,
+          "span_end": 14262,
+          "surface": "subparagraph (C) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "C",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 14669,
+          "span_end": 14689,
+          "surface": "section 212(a)(1)(A)",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "a.1.A",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 15008,
+          "span_end": 15019,
+          "surface": "clause (ii)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "ii",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 17330,
+          "span_end": 17347,
+          "surface": "subparagraph (C) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "C",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 17408,
+          "span_end": 17426,
+          "surface": "section 6103(k)(4)",
+          "ref_class": "explicit",
+          "target_section": "6103",
+          "target_path": "k.4",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 17585,
+          "span_end": 17601,
+          "surface": "subparagraph (C)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "C",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 17759,
+          "span_end": 17780,
+          "surface": "subparagraph (C)(ii) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "C.ii",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 17874,
+          "span_end": 17895,
+          "surface": "subparagraph (C)(ii) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "C.ii",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 17988,
+          "span_end": 18009,
+          "surface": "subparagraph (A)(ii) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "A.ii",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 18063,
+          "span_end": 18074,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 18120,
+          "span_end": 18131,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 18255,
+          "span_end": 18269,
+          "surface": "subsection (d)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "d",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 18529,
+          "span_end": 18540,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 18544,
+          "span_end": 18555,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 18683,
+          "span_end": 18696,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 19846,
+          "span_end": 19856,
+          "surface": "clause (i)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "i",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 20578,
+          "span_end": 20592,
+          "surface": "section 414(q)",
+          "ref_class": "explicit",
+          "target_section": "414",
+          "target_path": "q",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 21305,
+          "span_end": 21319,
+          "surface": "paragraph (2) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 21679,
+          "span_end": 21696,
+          "surface": "section 132(e)(1)",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "e.1",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 21986,
+          "span_end": 22003,
+          "surface": "section 132(e)(1)",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "e.1",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 22164,
+          "span_end": 22175,
+          "surface": "clause (ii)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "ii",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 22615,
+          "span_end": 22629,
+          "surface": "Paragraph (1) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 22678,
+          "span_end": 22691,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 22723,
+          "span_end": 22737,
+          "surface": "subsection (e)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 23741,
+          "span_end": 23758,
+          "surface": "Subparagraph (A) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "A",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 23915,
+          "span_end": 23928,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 23960,
+          "span_end": 23974,
+          "surface": "subsection (e)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 24218,
+          "span_end": 24229,
+          "surface": "section 217",
+          "ref_class": "explicit",
+          "target_section": "217",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 25023,
+          "span_end": 25037,
+          "surface": "Paragraph (1) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 25105,
+          "span_end": 25118,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 25150,
+          "span_end": 25164,
+          "surface": "subsection (e)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 25317,
+          "span_end": 25327,
+          "surface": "section 82",
+          "ref_class": "explicit",
+          "target_section": "82",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 26217,
+          "span_end": 26229,
+          "surface": "section 2101",
+          "ref_class": "explicit",
+          "target_section": "2101",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 26510,
+          "span_end": 26530,
+          "surface": "section 143(k)(2)(B)",
+          "ref_class": "explicit",
+          "target_section": "143",
+          "target_path": "k.2.B",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 26660,
+          "span_end": 26672,
+          "surface": "Clauses (i) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "i",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 26684,
+          "span_end": 26701,
+          "surface": "subparagraph (C) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "C",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 26823,
+          "span_end": 26837,
+          "surface": "subsection (m)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "m",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 26886,
+          "span_end": 26903,
+          "surface": "subparagraph (A) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "A",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 26944,
+          "span_end": 26960,
+          "surface": "subparagraph (B)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "B",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27134,
+          "span_end": 27151,
+          "surface": "section 162(a)(2)",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "a.2",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27294,
+          "span_end": 27308,
+          "surface": "paragraph (1) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27464,
+          "span_end": 27482,
+          "surface": "subsection (e)(8) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e.8",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27611,
+          "span_end": 27628,
+          "surface": "section 132(e)(2)",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "e.2",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27685,
+          "span_end": 27702,
+          "surface": "section 132(e)(1)",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "e.1",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27777,
+          "span_end": 27791,
+          "surface": "section 119(a)",
+          "ref_class": "explicit",
+          "target_section": "119",
+          "target_path": "a",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27975,
+          "span_end": 27990,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 27993,
+          "span_end": 28008,
+          "surface": "subsection (b) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "b",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 30340,
+          "span_end": 30350,
+          "surface": "Section 16",
+          "ref_class": "explicit",
+          "target_section": "16",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 30446,
+          "span_end": 30457,
+          "surface": "section 78p",
+          "ref_class": "explicit",
+          "target_section": "78p",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 30492,
+          "span_end": 30512,
+          "surface": "Section 212(a)(1)(A)",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "a.1.A",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 30610,
+          "span_end": 30631,
+          "surface": "section 2702(a)(1)(A)",
+          "ref_class": "explicit",
+          "target_section": "2702",
+          "target_path": "a.1.A",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 30946,
+          "span_end": 30966,
+          "surface": "section 132(f)(5)(F)",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "f.5.F",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 31259,
+          "span_end": 31277,
+          "surface": "subsection (e)(8) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e.8",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 31702,
+          "span_end": 31718,
+          "surface": "subparagraph (A)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "A",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 31816,
+          "span_end": 31832,
+          "surface": "subparagraph (A)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "A",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 32380,
+          "span_end": 32397,
+          "surface": "paragraph (1)(B) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1.B",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 34340,
+          "span_end": 34356,
+          "surface": "subparagraph (B)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "B",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 34366,
+          "span_end": 34382,
+          "surface": "subparagraph (D)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "D",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 34519,
+          "span_end": 34535,
+          "surface": "subparagraph (D)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "D",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 34545,
+          "span_end": 34561,
+          "surface": "subparagraph (E)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "E",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 34576,
+          "span_end": 34592,
+          "surface": "subparagraph (C)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "C",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 34602,
+          "span_end": 34618,
+          "surface": "subparagraph (D)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "D",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 34978,
+          "span_end": 34989,
+          "surface": "section 132",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 35003,
+          "span_end": 35018,
+          "surface": "subsection (e) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 36461,
+          "span_end": 36475,
+          "surface": "section 267(b)",
+          "ref_class": "explicit",
+          "target_section": "267",
+          "target_path": "b",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 37249,
+          "span_end": 37266,
+          "surface": "subsection (a)(3)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a.3",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 37769,
+          "span_end": 37785,
+          "surface": "subparagraph (D)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "D",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 37805,
+          "span_end": 37821,
+          "surface": "subparagraph (E)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "E",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 37831,
+          "span_end": 37847,
+          "surface": "subparagraph (E)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "E",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 37857,
+          "span_end": 37873,
+          "surface": "subparagraph (F)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "F",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 38352,
+          "span_end": 38368,
+          "surface": "paragraph (2)(D)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2.D",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 39476,
+          "span_end": 39490,
+          "surface": "Paragraph (1) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 39524,
+          "span_end": 39539,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 39583,
+          "span_end": 39596,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 39628,
+          "span_end": 39642,
+          "surface": "subsection (e)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 39796,
+          "span_end": 39811,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 39839,
+          "span_end": 39852,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 39884,
+          "span_end": 39898,
+          "surface": "subsection (e)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 40384,
+          "span_end": 40399,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 40443,
+          "span_end": 40456,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 40488,
+          "span_end": 40502,
+          "surface": "subsection (e)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "e",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 41973,
+          "span_end": 41986,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 41993,
+          "span_end": 42006,
+          "surface": "paragraph (3)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "3",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 42193,
+          "span_end": 42207,
+          "surface": "section 414(q)",
+          "ref_class": "explicit",
+          "target_section": "414",
+          "target_path": "q",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 42420,
+          "span_end": 42440,
+          "surface": "section 142(a)(2)(A)",
+          "ref_class": "explicit",
+          "target_section": "142",
+          "target_path": "a.2.A",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 42748,
+          "span_end": 42759,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 42914,
+          "span_end": 42925,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 43558,
+          "span_end": 43572,
+          "surface": "subsection (i)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "i",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 44519,
+          "span_end": 44531,
+          "surface": "section 6103",
+          "ref_class": "explicit",
+          "target_section": "6103",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 44989,
+          "span_end": 45000,
+          "surface": "section 212",
+          "ref_class": "explicit",
+          "target_section": "212",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 45044,
+          "span_end": 45055,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 45417,
+          "span_end": 45431,
+          "surface": "Section 102(a)",
+          "ref_class": "explicit",
+          "target_section": "102",
+          "target_path": "a",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 48570,
+          "span_end": 48581,
+          "surface": "clause (ii)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "ii",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 49271,
+          "span_end": 49287,
+          "surface": "section 70112(c)",
+          "ref_class": "explicit",
+          "target_section": "70112",
+          "target_path": "c",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 49370,
+          "span_end": 49386,
+          "surface": "section 70112(d)",
+          "ref_class": "explicit",
+          "target_section": "70112",
+          "target_path": "d",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 49431,
+          "span_end": 49442,
+          "surface": "section 132",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 50089,
+          "span_end": 50102,
+          "surface": "paragraph (2)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "2",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 50167,
+          "span_end": 50179,
+          "surface": "section 7701",
+          "ref_class": "explicit",
+          "target_section": "7701",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 50383,
+          "span_end": 50398,
+          "surface": "subsection (d) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "d",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 50827,
+          "span_end": 50841,
+          "surface": "section 221(b)",
+          "ref_class": "explicit",
+          "target_section": "221",
+          "target_path": "b",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 50887,
+          "span_end": 50896,
+          "surface": "section 1",
+          "ref_class": "explicit",
+          "target_section": "1",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 51106,
+          "span_end": 51121,
+          "surface": "section 403(nn)",
+          "ref_class": "explicit",
+          "target_section": "403",
+          "target_path": "nn",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 51167,
+          "span_end": 51177,
+          "surface": "section 26",
+          "ref_class": "explicit",
+          "target_section": "26",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 51611,
+          "span_end": 51626,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 52441,
+          "span_end": 52456,
+          "surface": "section 7816(a)",
+          "ref_class": "explicit",
+          "target_section": "7816",
+          "target_path": "a",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 52660,
+          "span_end": 52672,
+          "surface": "section 7817",
+          "ref_class": "explicit",
+          "target_section": "7817",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 52718,
+          "span_end": 52727,
+          "surface": "section 1",
+          "ref_class": "explicit",
+          "target_section": "1",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 52790,
+          "span_end": 52808,
+          "surface": "section 1001(g)(1)",
+          "ref_class": "explicit",
+          "target_section": "1001",
+          "target_path": "g.1",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 52998,
+          "span_end": 53013,
+          "surface": "section 1019(a)",
+          "ref_class": "explicit",
+          "target_section": "1019",
+          "target_path": "a",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53059,
+          "span_end": 53068,
+          "surface": "section 1",
+          "ref_class": "explicit",
+          "target_section": "1",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53177,
+          "span_end": 53189,
+          "surface": "Clauses (i) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "i",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53201,
+          "span_end": 53221,
+          "surface": "section 274(n)(2)(F)",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "n.2.F",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53271,
+          "span_end": 53285,
+          "surface": "subsection (a)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53357,
+          "span_end": 53371,
+          "surface": "Clauses (iii) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "iii",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53383,
+          "span_end": 53403,
+          "surface": "section 274(n)(2)(F)",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "n.2.F",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53453,
+          "span_end": 53467,
+          "surface": "subsection (a)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53581,
+          "span_end": 53595,
+          "surface": "section 122(c)",
+          "ref_class": "explicit",
+          "target_section": "122",
+          "target_path": "c",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53685,
+          "span_end": 53699,
+          "surface": "section 151(c)",
+          "ref_class": "explicit",
+          "target_section": "151",
+          "target_path": "c",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53744,
+          "span_end": 53753,
+          "surface": "section 1",
+          "ref_class": "explicit",
+          "target_section": "1",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53783,
+          "span_end": 53797,
+          "surface": "section 142(a)",
+          "ref_class": "explicit",
+          "target_section": "142",
+          "target_path": "a",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53884,
+          "span_end": 53898,
+          "surface": "section 151(a)",
+          "ref_class": "explicit",
+          "target_section": "151",
+          "target_path": "a",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53943,
+          "span_end": 53952,
+          "surface": "section 1",
+          "ref_class": "explicit",
+          "target_section": "1",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 53982,
+          "span_end": 54000,
+          "surface": "section 1114(b)(6)",
+          "ref_class": "explicit",
+          "target_section": "1114",
+          "target_path": "b.6",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54075,
+          "span_end": 54093,
+          "surface": "section 1114(c)(1)",
+          "ref_class": "explicit",
+          "target_section": "1114",
+          "target_path": "c.1",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54138,
+          "span_end": 54149,
+          "surface": "section 414",
+          "ref_class": "explicit",
+          "target_section": "414",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54394,
+          "span_end": 54410,
+          "surface": "subsections (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54421,
+          "span_end": 54430,
+          "surface": "section 1",
+          "ref_class": "explicit",
+          "target_section": "1",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54468,
+          "span_end": 54485,
+          "surface": "section 179(b)(2)",
+          "ref_class": "explicit",
+          "target_section": "179",
+          "target_path": "b.2",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54527,
+          "span_end": 54540,
+          "surface": "sections 6653",
+          "ref_class": "explicit",
+          "target_section": "6653",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54624,
+          "span_end": 54638,
+          "surface": "section 179(b)",
+          "ref_class": "explicit",
+          "target_section": "179",
+          "target_path": "b",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54767,
+          "span_end": 54781,
+          "surface": "section 274(d)",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "d",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 54895,
+          "span_end": 54912,
+          "surface": "section 179(b)(1)",
+          "ref_class": "explicit",
+          "target_section": "179",
+          "target_path": "b.1",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55108,
+          "span_end": 55117,
+          "surface": "section 2",
+          "ref_class": "explicit",
+          "target_section": "2",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55254,
+          "span_end": 55271,
+          "surface": "section 179(b)(1)",
+          "ref_class": "explicit",
+          "target_section": "179",
+          "target_path": "b.1",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55354,
+          "span_end": 55371,
+          "surface": "section 179(d)(2)",
+          "ref_class": "explicit",
+          "target_section": "179",
+          "target_path": "d.2",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55432,
+          "span_end": 55444,
+          "surface": "section 280F",
+          "ref_class": "explicit",
+          "target_section": "280F",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55474,
+          "span_end": 55488,
+          "surface": "section 801(c)",
+          "ref_class": "explicit",
+          "target_section": "801",
+          "target_path": "c",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55601,
+          "span_end": 55618,
+          "surface": "section 805(a)(1)",
+          "ref_class": "explicit",
+          "target_section": "805",
+          "target_path": "a.1",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55675,
+          "span_end": 55686,
+          "surface": "section 245",
+          "ref_class": "explicit",
+          "target_section": "245",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 55840,
+          "span_end": 55855,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 56658,
+          "span_end": 56673,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 57058,
+          "span_end": 57072,
+          "surface": "section 274(h)",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "h",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 57730,
+          "span_end": 57741,
+          "surface": "section 201",
+          "ref_class": "explicit",
+          "target_section": "201",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 57786,
+          "span_end": 57796,
+          "surface": "section 32",
+          "ref_class": "explicit",
+          "target_section": "32",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 58691,
+          "span_end": 58706,
+          "surface": "subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 58999,
+          "span_end": 59011,
+          "surface": "section 4(c)",
+          "ref_class": "explicit",
+          "target_section": "4",
+          "target_path": "c",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 59090,
+          "span_end": 59101,
+          "surface": "section 162",
+          "ref_class": "explicit",
+          "target_section": "162",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 59253,
+          "span_end": 59265,
+          "surface": "section 1114",
+          "ref_class": "explicit",
+          "target_section": "1114",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 59290,
+          "span_end": 59302,
+          "surface": "section 1141",
+          "ref_class": "explicit",
+          "target_section": "1141",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 59347,
+          "span_end": 59358,
+          "surface": "section 401",
+          "ref_class": "explicit",
+          "target_section": "401",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 59598,
+          "span_end": 59610,
+          "surface": "sections 274",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 59701,
+          "span_end": 59713,
+          "surface": "sections 274",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 59981,
+          "span_end": 59998,
+          "surface": "paragraphs (1)(C)",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "1.C",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 60016,
+          "span_end": 60030,
+          "surface": "section 179(b)",
+          "ref_class": "explicit",
+          "target_section": "179",
+          "target_path": "b",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 60089,
+          "span_end": 60101,
+          "surface": "sections 274",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 60511,
+          "span_end": 60527,
+          "surface": "section 11821(b)",
+          "ref_class": "explicit",
+          "target_section": "11821",
+          "target_path": "b",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 60573,
+          "span_end": 60584,
+          "surface": "section 45K",
+          "ref_class": "explicit",
+          "target_section": "45K",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 60978,
+          "span_end": 60990,
+          "surface": "section 1140",
+          "ref_class": "explicit",
+          "target_section": "1140",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 61047,
+          "span_end": 61058,
+          "surface": "section 401",
+          "ref_class": "explicit",
+          "target_section": "401",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 61202,
+          "span_end": 61213,
+          "surface": "section 132",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 61234,
+          "span_end": 61246,
+          "surface": "section 1567",
+          "ref_class": "explicit",
+          "target_section": "1567",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 61291,
+          "span_end": 61302,
+          "surface": "section 132",
+          "ref_class": "explicit",
+          "target_section": "132",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 61683,
+          "span_end": 61703,
+          "surface": "such subsection (d) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "d",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 61970,
+          "span_end": 61985,
+          "surface": "Subsection (a) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "a",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 61988,
+          "span_end": 61999,
+          "surface": "section 274",
+          "ref_class": "explicit",
+          "target_section": "274",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 62460,
+          "span_end": 62470,
+          "surface": "section 74",
+          "ref_class": "explicit",
+          "target_section": "74",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 62525,
+          "span_end": 62536,
+          "surface": "Clause (i) ",
+          "ref_class": "local_structural",
+          "target_section": "274",
+          "target_path": "i",
+          "status": "needs_structural_resolution"
+        },
+        {
+          "source_section": "274",
+          "span_start": 62749,
+          "span_end": 62761,
+          "surface": "section 6031",
+          "ref_class": "explicit",
+          "target_section": "6031",
+          "target_path": "",
+          "status": "resolved_section"
+        },
+        {
+          "source_section": "274",
+          "span_start": 63106,
+          "span_end": 63118,
+          "surface": "section 1681",
+          "ref_class": "explicit",
+          "target_section": "1681",
+          "target_path": "",
+          "status": "unresolved_missing_section"
+        }
+      ]
+    }
+  ],
+  "policy_detected_refs": [
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1001",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1018",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1019",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "102",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "108",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1114",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1140",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1141",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "119",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "122",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "132",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "142",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "143",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "151",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1567",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "16",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "162",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1681",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "179",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1800",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1906",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "201",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "210",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "212",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "217",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "221",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "222",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "227",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "245",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "26",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "265",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "267",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2702",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "274",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "280F",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "301",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "307",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "32",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "361",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "4",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "401",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "403",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "414",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "45K",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "5",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "501",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "543",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6003",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "602",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6031",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "74",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7816",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7817",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7841",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "78p",
+      "target_exists": false
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "801",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "805",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "82",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "907",
+      "target_exists": true
+    },
+    {
+      "policy_index": 0,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "969",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1001",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1018",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1019",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "102",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "108",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1114",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1140",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1141",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "119",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "122",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "132",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "142",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "143",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "151",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1567",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "16",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "162",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1681",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "179",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1800",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1906",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "201",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "210",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "212",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "217",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "221",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "222",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "227",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "245",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "26",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "265",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "267",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2702",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "274",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "280F",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "301",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "307",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "32",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "361",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "4",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "401",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "403",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "414",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "45K",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "5",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "501",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "543",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6003",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "602",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6031",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "74",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7816",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7817",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7841",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "78p",
+      "target_exists": false
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "801",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "805",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "82",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "907",
+      "target_exists": true
+    },
+    {
+      "policy_index": 1,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "969",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1001",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1018",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1019",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "102",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "108",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1114",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1140",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1141",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "119",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "122",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "132",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "142",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "143",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "151",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1567",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "16",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "162",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1681",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "179",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1800",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1906",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "201",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "210",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "212",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "217",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "221",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "222",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "227",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "245",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "26",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "265",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "267",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2702",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "274",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "280F",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "301",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "307",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "32",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "361",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "4",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "401",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "403",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "414",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "45K",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "5",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "501",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "543",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6003",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "602",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6031",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "74",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7816",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7817",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7841",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "78p",
+      "target_exists": false
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "801",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "805",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "82",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "907",
+      "target_exists": true
+    },
+    {
+      "policy_index": 2,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "969",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1001",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1018",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1019",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "102",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "108",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1114",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1140",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1141",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "119",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "122",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "132",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "142",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "143",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "151",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1567",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "16",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "162",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1681",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "179",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1800",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1906",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "201",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "210",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "212",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "217",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "221",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "222",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "227",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "245",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "26",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "265",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "267",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2702",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "274",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "280F",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "301",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "307",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "32",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "361",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "4",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "401",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "403",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "414",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "45K",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "5",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "501",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "543",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6003",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "602",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6031",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "74",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7816",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7817",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7841",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "78p",
+      "target_exists": false
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "801",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "805",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "82",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "907",
+      "target_exists": true
+    },
+    {
+      "policy_index": 3,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "969",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1001",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1018",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1019",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "102",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "108",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1114",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1140",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1141",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "119",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "122",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "132",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "142",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "143",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "151",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1567",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "16",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "162",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1681",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "179",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1800",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1906",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "201",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "210",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "212",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "217",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "221",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "222",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "227",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "245",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "26",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "265",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "267",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2702",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "274",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "280F",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "301",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "307",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "32",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "361",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "4",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "401",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "403",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "414",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "45K",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "5",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "501",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "543",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6003",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "602",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6031",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "74",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7816",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7817",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7841",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "78p",
+      "target_exists": false
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "801",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "805",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "82",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "907",
+      "target_exists": true
+    },
+    {
+      "policy_index": 4,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "969",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1001",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1018",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1019",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "102",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "108",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1114",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1140",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1141",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "119",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "122",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "132",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "142",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "143",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "151",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1567",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "16",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "162",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1681",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "179",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1800",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "1906",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "201",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "210",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2101",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "212",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "217",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "221",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "222",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "227",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "245",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "26",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "265",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "267",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "2702",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "274",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "280F",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "301",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "307",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "32",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "361",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "4",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "401",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "403",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "414",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "45K",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "5",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "501",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "543",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6003",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "602",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6031",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "6103",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "74",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7701",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7816",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7817",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "7841",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "78p",
+      "target_exists": false
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "801",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "805",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "82",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "907",
+      "target_exists": true
+    },
+    {
+      "policy_index": 5,
+      "source_citation": "26 U.S.C. \u00a7 274",
+      "detected_ref": "969",
+      "target_exists": false
+    }
+  ]
+}

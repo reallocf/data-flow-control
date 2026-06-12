@@ -36,3 +36,26 @@ outputs/policies_274.json
 Each policy candidate includes citations, a constraint, an explanation, wrapped DFC policy text, local subset validation, and a confidence label.
 
 This is a review and iteration checkpoint, not a final full tax-law extractor.
+
+### Section 274 reference audit
+
+Run:
+
+    python .\reference_audit_274.py
+    python .\filter_reference_audit_274.py
+
+Outputs:
+
+- outputs/reference_audit_274.csv: raw section 274 reference scan
+- outputs/reference_audit_274_annotated.csv: raw scan with main-text vs notes/amendments labels
+- outputs/reference_audit_274_main.csv: references from main section 274 text only
+- outputs/reference_audit_274_part_summary.csv: count of main-text vs notes/amendments references
+
+Current main-text result:
+
+- 89 main-text references
+- 39 resolved Title 26 section references
+- 49 local structural references needing hierarchy-aware resolution
+- 1 external reference to section 16(a) of the Securities Exchange Act
+- 9 section 212 references relevant to the seminar policy
+
