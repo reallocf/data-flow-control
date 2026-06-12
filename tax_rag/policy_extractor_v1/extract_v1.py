@@ -29,22 +29,85 @@ class CandidateBatch(BaseModel):
 class Judgment(BaseModel):
     confidence: Literal["HIGH", "LOW"]
 
+section_re = re.compile(r"§\s*(\d+[A-Za-z0-9-]*)")
+explicit_ref_re = re.compile(r"\b(?:sections?|§{1,2})\s+([0-9][0-9A-Za-z-]*)(?P<trail>(?:\s*\([A-Za-z0-9-]+\))*)", re.I)
+local_ref_re = re.compile(r"\b(?:this\s+|such\s+)?(subsection|paragraph|subparagraph|clause)s?\s+(?P<trail>(?:\([A-Za-z0-9-]+\)\s*)+)", re.I)
+part_re = re.compile(r"\(([A-Za-z0-9-]+)\)")
+
 def load_sections():
     if not INPUT.exists():
         raise FileNotFoundError(f"Missing {INPUT}")
     return [json.loads(line) for line in INPUT.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
 
 def section_number(citation):
-    match = re.search(r"§\s*(\d+[A-Za-z0-9-]*)", citation)
+    match = section_re.search(citation)
     return match.group(1) if match else None
 
-def detect_refs(text):
-    refs = set()
-    for match in re.finditer(r"(?:section|§)\s*(\d+[A-Za-z0-9-]*)", text, re.I):
-        ref = match.group(1)
-        if len(ref) <= 4 or re.match(r"^\d+[A-Z]$", ref):
-            refs.add(ref)
+def section_main_cut(text):
+    markers = ["Editorial Notes", "Source Credit", "Statutory Notes and Related Subsidiaries", "Executive Documents"]
+    positions = [text.find(marker) for marker in markers if text.find(marker) > 0]
+    return min(positions) if positions else len(text)
+
+def ref_path(text):
+    return ".".join(part_re.findall(text or ""))
+
+def reference_records(source, text, known_sections):
+    cut = section_main_cut(text)
+    rows = []
+    for match in explicit_ref_re.finditer(text):
+        target = match.group(1)
+        part = "main_text" if match.start() < cut else "notes_or_amendments"
+        status = "resolved_section" if target in known_sections else "unresolved_missing_section"
+        rows.append({
+            "source_section": source,
+            "span_start": match.start(),
+            "span_end": match.end(),
+            "surface": match.group(0),
+            "ref_class": "explicit",
+            "target_section": target,
+            "target_path": ref_path(match.group("trail")),
+            "status": status,
+            "section_part": part,
+        })
+    for match in local_ref_re.finditer(text):
+        part = "main_text" if match.start() < cut else "notes_or_amendments"
+        rows.append({
+            "source_section": source,
+            "span_start": match.start(),
+            "span_end": match.end(),
+            "surface": match.group(0),
+            "ref_class": "local_structural",
+            "target_section": source,
+            "target_path": ref_path(match.group("trail")),
+            "status": "needs_structural_resolution",
+            "section_part": part,
+        })
+    return sorted(rows, key=lambda row: (row["span_start"], row["span_end"], row["surface"]))
+
+def detected_section_refs(records):
+    refs = {
+        row["target_section"]
+        for row in records
+        if row["section_part"] == "main_text"
+        and row["ref_class"] == "explicit"
+        and row["status"] == "resolved_section"
+    }
     return sorted(refs)
+
+def reference_summary(records):
+    summary = {
+        "main_text": 0,
+        "notes_or_amendments": 0,
+        "resolved_section": 0,
+        "needs_structural_resolution": 0,
+        "unresolved_missing_section": 0,
+    }
+    for row in records:
+        if row["section_part"] in summary:
+            summary[row["section_part"]] += 1
+        if row["section_part"] == "main_text" and row["status"] in summary:
+            summary[row["status"]] += 1
+    return summary
 
 def valid_dfc(policy):
     upper = policy.upper()
@@ -107,7 +170,7 @@ If no DFC policy is clearly supported, return an empty policies list.
 
 Main legal text:
 {section["citation"]}
-{section["text"]}
+{section["text"][:section_main_cut(section["text"])]}
 
 Referenced context:
 {context}
@@ -145,15 +208,18 @@ def main():
         if TARGETS and number not in TARGETS:
             continue
 
-        refs = detect_refs(section["text"])
+        records = reference_records(number, section["text"], by_number)
+        refs = detected_section_refs(records)
         context_parts = []
         for ref in refs:
             ref_section = by_number.get(ref)
             if ref_section:
-                context_parts.append(ref_section["citation"] + "\n" + ref_section["text"])
+                context_parts.append(ref_section["citation"] + "\n" + ref_section["text"][:section_main_cut(ref_section["text"])])
 
         context = "\n\n".join(context_parts)
         candidates = generate_policy(section, context)
+        main_records = [row for row in records if row["section_part"] == "main_text"]
+        summary = reference_summary(records)
 
         for candidate in candidates:
             row = candidate.model_dump()
@@ -163,8 +229,10 @@ def main():
                 "ON FAIL KILL"
             )
             row["detected_refs"] = refs
+            row["detected_ref_records"] = main_records
+            row["reference_summary"] = summary
             row["valid_dfc_subset"] = valid_dfc(row["policy"])
-            row["confidence"] = judge_policy(row, section["text"]) if row["valid_dfc_subset"] else "LOW"
+            row["confidence"] = judge_policy(row, section["text"][:section_main_cut(section["text"])]) if row["valid_dfc_subset"] else "LOW"
             results.append(row)
 
     OUTPUT.parent.mkdir(exist_ok=True)
