@@ -1,3 +1,9 @@
+### THIS VERSION OF PASSANT IS OLD - DO NOT USE
+Instead, see the official oss release at: https://github.com/dataflowcontrol/data-flow-control
+
+Or install with `pip install data-flow-control`
+
+
 # Passant
 
 Passant is a Rust-backed Data Flow Control (DFC) SQL rewrite engine with a
