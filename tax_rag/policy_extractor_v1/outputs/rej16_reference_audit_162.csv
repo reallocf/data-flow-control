@@ -1,0 +1,150 @@
+source_section,span_start,span_end,surface,ref_class,target_section,target_path,status,method
+162,1177,1190,paragraph (2),local_structural,162,2,needs_structural_resolution,rej16
+162,1761,1776,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,1851,1862,section 170,explicit,170,,resolved_section,rej16
+162,2149,2164,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,2810,2822,section 7454,explicit,7454,,resolved_section,rej16
+162,2952,2967,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,3018,3031,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,3788,3800,section 7454,explicit,7454,,resolved_section,rej16
+162,3966,3981,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,4742,4756,section 303(c),explicit,303,c,resolved_section,rej16
+162,5206,5221,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,5809,5824,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,6009,6034,section 6033(e)(1)(A)(ii),explicit,6033,e.1.A.ii,resolved_section,rej16
+162,6073,6087,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,6500,6518,section 4911(e)(2),explicit,4911,e.2,resolved_section,rej16
+162,6679,6692,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,6694,6708,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,6962,6976,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,7263,7281,paragraphs (1)(A) ,local_structural,162,1.A,needs_structural_resolution,rej16
+162,7333,7343,clause (i),local_structural,162,i,needs_structural_resolution,rej16
+162,7410,7428,paragraphs (1)(A) ,local_structural,162,1.A,needs_structural_resolution,rej16
+162,7560,7574,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,7754,7767,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,7962,7976,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,8494,8506,section 5312,explicit,5312,,resolved_section,rej16
+162,8687,8698,clause (i) ,local_structural,162,i,needs_structural_resolution,rej16
+162,8808,8823,section 6033(e),explicit,6033,e,resolved_section,rej16
+162,9404,9418,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,9800,9813,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,10239,10251,clause (ii) ,local_structural,162,ii,needs_structural_resolution,rej16
+162,10322,10332,clause (i),local_structural,162,i,needs_structural_resolution,rej16
+162,10349,10366,Subparagraph (A) ,local_structural,162,A,needs_structural_resolution,rej16
+162,10589,10603,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,10780,10794,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,11196,11214,section 1256(g)(7),explicit,1256,g.7,resolved_section,rej16
+162,11737,11752,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,11866,11875,section 4,explicit,4,,resolved_section,rej16
+162,12269,12278,section 4,explicit,4,,resolved_section,rej16
+162,12415,12429,subsection (a),local_structural,162,a,needs_structural_resolution,rej16
+162,13222,13234,clause (ii) ,local_structural,162,ii,needs_structural_resolution,rej16
+162,13603,13616,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,14623,14638,subsection (a) ,local_structural,162,a,needs_structural_resolution,rej16
+162,15075,15088,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,15257,15270,paragraph (2),local_structural,162,2,needs_structural_resolution,rej16
+162,15493,15513,section 465(b)(3)(C),explicit,465,b.3.C,resolved_section,rej16
+162,15531,15545,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,15632,15643,section 163,explicit,163,,resolved_section,rej16
+162,15851,15862,section 561,explicit,561,,resolved_section,rej16
+162,16274,16291,section 401(c)(1),explicit,401,c.1,resolved_section,rej16
+162,16568,16585,section 152(f)(1),explicit,152,f.1,resolved_section,rej16
+162,16736,16750,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,16858,16872,section 401(c),explicit,401,c,resolved_section,rej16
+162,17027,17041,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,17285,17302,subparagraph (D) ,local_structural,162,D,needs_structural_resolution,rej16
+162,17305,17319,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,17504,17520,section 7702B(c),explicit,7702B,c,resolved_section,rej16
+162,17589,17605,section 7702B(b),explicit,7702B,b,resolved_section,rej16
+162,17790,17806,section 7702B(b),explicit,7702B,b,resolved_section,rej16
+162,17862,17880,section 213(d)(10),explicit,213,d.10,resolved_section,rej16
+162,17916,17929,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,18024,18038,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,18149,18163,section 213(a),explicit,213,a,resolved_section,rej16
+162,18397,18412,section 1402(a),explicit,1402,a,resolved_section,rej16
+162,18659,18674,section 1372(a),explicit,1372,a,resolved_section,rej16
+162,18765,18777,section 3121,explicit,3121,,resolved_section,rej16
+162,18877,18894,section 401(c)(1),explicit,401,c.1,resolved_section,rej16
+162,19528,19537,section 3,explicit,3,,resolved_section,rej16
+162,19661,19671,section 12,explicit,12,,resolved_section,rej16
+162,19750,19763,section 15(d),explicit,15,d,resolved_section,rej16
+162,20390,20406,subparagraph (A),local_structural,162,A,needs_structural_resolution,rej16
+162,20597,20614,subparagraph (A) ,local_structural,162,A,needs_structural_resolution,rej16
+162,20665,20682,subparagraph (A) ,local_structural,162,A,needs_structural_resolution,rej16
+162,20856,20873,subparagraph (B) ,local_structural,162,B,needs_structural_resolution,rej16
+162,21948,21966,section 3121(a)(5),explicit,3121,a.5,resolved_section,rej16
+162,21979,21996,subparagraph (E) ,local_structural,162,E,needs_structural_resolution,rej16
+162,22243,22253,clause (i),local_structural,162,i,needs_structural_resolution,rej16
+162,22255,22273,section 3121(a)(5),explicit,3121,a.5,resolved_section,rej16
+162,22309,22327,section 3121(v)(1),explicit,3121,v.1,resolved_section,rej16
+162,22423,22437,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,22645,22657,section 280G,explicit,280G,,resolved_section,rej16
+162,22759,22773,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,22931,22943,section 4985,explicit,4985,,resolved_section,rej16
+162,24475,24486,clause (ii),local_structural,162,ii,needs_structural_resolution,rej16
+162,24638,24652,section 101(a),explicit,101,a,resolved_section,rej16
+162,24944,24955,clause (i) ,local_structural,162,i,needs_structural_resolution,rej16
+162,25017,25031,section 113(c),explicit,113,c,resolved_section,rej16
+162,25136,25147,clause (i) ,local_structural,162,i,needs_structural_resolution,rej16
+162,25328,25343,subsection (b) ,local_structural,162,b,needs_structural_resolution,rej16
+162,25353,25364,section 414,explicit,414,,resolved_section,rej16
+162,25428,25443,section 1563(a),explicit,1563,a,resolved_section,rej16
+162,25484,25499,paragraphs (2) ,local_structural,162,2,needs_structural_resolution,rej16
+162,25793,25807,section 101(a),explicit,101,a,resolved_section,rej16
+162,25892,25903,section 120,explicit,120,,resolved_section,rej16
+162,26080,26101,subparagraph (B)(ii) ,local_structural,162,B.ii,needs_structural_resolution,rej16
+162,26552,26566,section 101(a),explicit,101,a,resolved_section,rej16
+162,26651,26662,section 120,explicit,120,,resolved_section,rej16
+162,26867,26878,clause (ii),local_structural,162,ii,needs_structural_resolution,rej16
+162,27101,27114,clause (i)(I),local_structural,162,i.I,needs_structural_resolution,rej16
+162,27412,27425,clause (i)(I),local_structural,162,i.I,needs_structural_resolution,rej16
+162,28094,28108,paragraph (4) ,local_structural,162,4,needs_structural_resolution,rej16
+162,28126,28143,subparagraph (B) ,local_structural,162,B,needs_structural_resolution,rej16
+162,28751,28769,subparagraphs (D) ,local_structural,162,D,needs_structural_resolution,rej16
+162,28780,28794,paragraph (4) ,local_structural,162,4,needs_structural_resolution,rej16
+162,30962,30980,section 9832(b)(2),explicit,9832,b.2,resolved_section,rej16
+162,31066,31084,section 9832(b)(1),explicit,9832,b.1,resolved_section,rej16
+162,31225,31243,section 9832(b)(2),explicit,9832,b.2,resolved_section,rej16
+162,31383,31401,section 9832(b)(1),explicit,9832,b.1,resolved_section,rej16
+162,31453,31469,section 5000A(f),explicit,5000A,f,resolved_section,rej16
+162,31558,31572,subsection (b),local_structural,162,b,needs_structural_resolution,rej16
+162,31596,31607,section 414,explicit,414,,resolved_section,rej16
+162,31671,31686,section 1563(a),explicit,1563,a,resolved_section,rej16
+162,31724,31739,paragraphs (2) ,local_structural,162,2,needs_structural_resolution,rej16
+162,32144,32158,paragraph (4) ,local_structural,162,4,needs_structural_resolution,rej16
+162,32176,32193,subparagraph (B) ,local_structural,162,B,needs_structural_resolution,rej16
+162,33255,33273,subparagraphs (D) ,local_structural,162,D,needs_structural_resolution,rej16
+162,33284,33298,paragraph (4) ,local_structural,162,4,needs_structural_resolution,rej16
+162,33646,33660,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,34014,34035,subparagraph (B)(ii) ,local_structural,162,B.ii,needs_structural_resolution,rej16
+162,34107,34121,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,34192,34206,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,34528,34545,subparagraph (A) ,local_structural,162,A,needs_structural_resolution,rej16
+162,35123,35139,subparagraph (A),local_structural,162,A,needs_structural_resolution,rej16
+162,35156,35169,paragraph (3),local_structural,162,3,needs_structural_resolution,rej16
+162,35309,35326,subparagraph (C) ,local_structural,162,C,needs_structural_resolution,rej16
+162,35329,35343,paragraph (3) ,local_structural,162,3,needs_structural_resolution,rej16
+162,35586,35600,subsection (b),local_structural,162,b,needs_structural_resolution,rej16
+162,35624,35635,section 414,explicit,414,,resolved_section,rej16
+162,35964,35982,subparagraphs (B) ,local_structural,162,B,needs_structural_resolution,rej16
+162,36757,36771,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,36994,37007,paragraph (1),local_structural,162,1,needs_structural_resolution,rej16
+162,38112,38131,section 62(a)(2)(A),explicit,62,a.2.A,resolved_section,rej16
+162,38137,38150,section 62(c),explicit,62,c,resolved_section,rej16
+162,38272,38288,paragraph (1)(A),local_structural,162,1.A,needs_structural_resolution,rej16
+162,38391,38405,paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,38573,38583,section 67,explicit,67,,resolved_section,rej16
+162,39409,39424,section 1(f)(3),explicit,1,f.3,resolved_section,rej16
+162,39546,39567,subparagraph (A)(ii) ,local_structural,162,A.ii,needs_structural_resolution,rej16
+162,39687,39704,subsection (a)(2),local_structural,162,a.2,needs_structural_resolution,rej16
+162,40624,40638,Paragraph (1) ,local_structural,162,1,needs_structural_resolution,rej16
+162,41338,41350,section 7(b),explicit,7,b,unresolved_missing_section,rej16
+162,41549,41560,section 165,explicit,165,,resolved_section,rej16
+162,41956,41971,section 1504(a),explicit,1504,a,resolved_section,rej16
+162,42104,42119,paragraphs (2) ,local_structural,162,2,needs_structural_resolution,rej16
+162,42130,42145,section 1504(b),explicit,1504,b,resolved_section,rej16
+162,42360,42377,section 954(d)(3),explicit,954,d.3,resolved_section,rej16
+162,42608,42620,section 1237,explicit,1237,,resolved_section,rej16
+162,42743,42755,section 1253,explicit,1253,,resolved_section,rej16
+162,42830,42841,section 419,explicit,419,,resolved_section,rej16
+162,42906,42917,section 404,explicit,404,,resolved_section,rej16
