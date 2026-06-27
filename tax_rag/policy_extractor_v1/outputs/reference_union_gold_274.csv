@@ -1,106 +1,90 @@
-﻿surface,target_section,target_path,ref_class,span_start,span_end,rej16,llm,gold,note
-clause (I),274,C(i)(ii)(I),local_structural,-1,-1,0,1,0,no exact surface span
-clause (i),274,e(2)(B)(i),local_structural,5591,5601,0,1,1,
+surface,target_section,target_path,ref_class,span_start,span_end,rej16,llm,gold,note
+clause (I),274,c.i.ii.i,local_structural,-1,-1,0,1,0,no exact surface span
+clause (i),274,e.2.b.i,local_structural,5591,5601,0,1,1,
 clause (i),274,i,local_structural,5591,5601,1,0,1,
-clause (ii),274,(ii),local_structural,22164,22175,0,1,1,
-clause (II),274,C(i)(ii)(II),local_structural,-1,-1,0,1,0,no exact surface span
-clause (ii),274,e(2)(B)(ii),local_structural,15008,15019,0,1,1,
-clause (ii),274,ii,local_structural,15008,15019,1,0,1,
+clause (II),274,c.i.ii.ii,local_structural,-1,-1,0,1,0,no exact surface span
+clause (ii),274,e.2.b.ii,local_structural,15008,15019,0,1,1,
+clause (ii),274,ii,local_structural,15008,15019,1,1,1,
 Clauses (i),274,i,local_structural,26660,26672,1,0,1,
 paragraph (1),274,,local_structural,528,541,0,1,1,
 paragraph (1),274,1,local_structural,528,541,1,0,1,
-paragraph (1),274,e(1),local_structural,27294,27307,0,1,1,
-paragraph (2),,paragraph (2),explicit,18683,18696,0,1,0,wrong class or target
-paragraph (2),274,(2),local_structural,21305,21318,0,1,1,
-paragraph (2),274,2,local_structural,6592,6605,1,0,1,
-paragraph (2),274,e(2),local_structural,6592,6605,0,1,1,
-paragraph (2),274,n(2),local_structural,25105,25118,0,1,1,
-"paragraph (2), (3), (4), (7), (8), or (9) of subsection (e)",274,"e(2), e(3), e(4), e(7), e(8), e(9)",local_structural,22678,22737,0,1,1,
-paragraph (3),274,e(3),local_structural,-1,-1,0,1,0,no exact standalone surface span
-paragraph (4),274,e(4),local_structural,-1,-1,0,1,0,no exact standalone surface span
+paragraph (1),274,e.1,local_structural,27294,27307,0,1,1,
+paragraph (2),,2,explicit,18683,18696,0,1,0,wrong class or target
+paragraph (2),274,2,local_structural,6592,6605,1,1,1,
+paragraph (2),274,e.2,local_structural,6592,6605,0,1,1,
+paragraph (2),274,n.2,local_structural,25105,25118,0,1,1,
+"paragraph (2), (3), (4), (7), (8), or (9) of subsection (e)",274,"e.2, e.3, e.4, e.7, e.8, e.9",local_structural,22678,22737,0,1,1,
+paragraph (3),274,e.3,local_structural,-1,-1,0,1,0,no exact standalone surface span
+paragraph (4),274,e.4,local_structural,-1,-1,0,1,0,no exact standalone surface span
 paragraph (5),274,,local_structural,11064,11077,0,1,1,
 paragraph (5),274,5,local_structural,11064,11078,1,0,1,
-paragraph (8),274,e(8),explicit,-1,-1,0,1,0,wrong class and no exact span
+paragraph (8),274,e.8,explicit,-1,-1,0,1,0,wrong class and no exact span
 paragraph (9),274,9,local_structural,5377,5391,1,0,1,
-paragraph (9),274,e(9),local_structural,5377,5390,0,1,1,
+paragraph (9),274,e.9,local_structural,5377,5390,0,1,1,
 paragraph (A),274,,local_structural,17991,18004,0,1,0,should be subparagraph
 paragraph (B),274,,local_structural,12039,12052,0,1,0,should be subparagraph
 paragraph (i),274,,local_structural,-1,-1,0,1,0,no exact surface span
 paragraph (ii),274,,local_structural,-1,-1,0,1,0,no exact surface span
 paragraph (iii),274,,local_structural,-1,-1,0,1,0,no exact surface span
-part III of subchapter A of chapter 61,61,subchapter A/part III,explicit,8943,8981,0,1,1,
+part III of subchapter A of chapter 61,61,subchapter.a.part.iii,explicit,8943,8981,0,1,1,
 section 102,102,,explicit,1670,1681,1,1,1,
 section 119(a),119,a,explicit,27777,27791,1,1,1,
-section 132(e)(1),132,e(1),explicit,21679,21696,0,1,1,
-section 132(e)(1),132,e.1,explicit,21679,21696,1,0,1,
-section 132(e)(2),132,e(2),explicit,27611,27628,0,1,1,
-section 132(e)(2),132,e.2,explicit,27611,27628,1,0,1,
-section 132(f),132,(f),explicit,1185,1199,0,1,1,
-section 132(f),132,f,explicit,1185,1199,1,0,1,
-section 143(k)(2)(B),143,k(2)(B),explicit,26510,26530,0,1,1,
-section 143(k)(2)(B),143,k.2.B,explicit,26510,26530,1,0,1,
+section 132(e)(1),132,e.1,explicit,21679,21696,1,1,1,
+section 132(e)(2),132,e.2,explicit,27611,27628,1,1,1,
+section 132(f),132,f,explicit,1185,1199,1,1,1,
+section 143(k)(2)(B),143,k.2.b,explicit,26510,26530,1,1,1,
 section 16(a),16,a,explicit,5699,5712,1,0,1,
-section 16(a) of the Securities Exchange Act of 1934,16(a),Securities Exchange Act of 1934,explicit,5699,5751,0,1,1,
+section 16(a) of the Securities Exchange Act of 1934,16,a|securities.exchange.act.of.1934,explicit,5699,5751,0,1,1,
 section 162,162,,explicit,1303,1314,1,1,1,
-section 162(a)(2),162,a(2),explicit,27134,27151,0,1,1,
-section 162(a)(2),162,a.2,explicit,27134,27151,1,0,1,
+section 162(a)(2),162,a.2,explicit,27134,27151,1,1,1,
 section 2101,2101,,explicit,26217,26229,1,0,1,
-"section 2101 of title 46 , United States Code",2101,title 46,explicit,26217,26262,0,1,1,
+"section 2101 of title 46 , United States Code",2101,title.46,explicit,26217,26262,0,1,1,
 section 212,212,,explicit,701,712,1,1,1,
-section 212(a)(1)(A),212,a(1)(A),explicit,14669,14689,0,1,1,
-section 212(a)(1)(A),212,a.1.A,explicit,14669,14689,1,0,1,
+section 212(a)(1)(A),212,a.1.a,explicit,14669,14689,1,1,1,
 section 217,217,,explicit,24218,24229,1,1,1,
 section 267(b),267,b,explicit,6126,6140,1,1,1,
-section 267(c)(4),267,c.4,explicit,7354,7371,1,0,1,
-section 267(c)(4),267(c)(4),,explicit,7354,7371,0,1,1,
-section 280F(d)(4),280F,d(4),explicit,3760,3778,0,1,1,
-section 280F(d)(4),280F,d.4,explicit,3760,3778,1,0,1,
-section 414(q),414,q,explicit,7030,7044,1,0,1,
-section 414(q),414(q),,explicit,7030,7044,0,1,1,
-section 501(a),501,a,explicit,7931,7945,1,0,1,
-section 501(a),501(a),,explicit,7931,7945,0,1,1,
-section 501(c)(6),501,c.6,explicit,7788,7805,1,0,1,
-section 501(c)(6),501(c)(6),,explicit,7788,7805,0,1,1,
-section 6103(k)(4),6103,k(4),explicit,17408,17426,0,1,1,
-section 6103(k)(4),6103,k.4,explicit,17408,17426,1,0,1,
+section 267(c)(4),267,c.4,explicit,7354,7371,1,1,1,
+section 280F(d)(4),280f,d.4,explicit,3760,3778,1,1,1,
+section 414(q),414,q,explicit,7030,7044,1,1,1,
+section 501(a),501,a,explicit,7931,7945,1,1,1,
+section 501(c)(6),501,c.6,explicit,7788,7805,1,1,1,
+section 6103(k)(4),6103,k.4,explicit,17408,17426,1,1,1,
 section 707(b),707,b,explicit,-1,-1,0,1,0,actual text likely omits repeated word section
 section 74,74,,explicit,8681,8691,1,1,1,
 section 82,82,,explicit,25317,25327,1,1,1,
-subchapter A of chapter 7,7,A,explicit,17475,17500,0,1,1,
+subchapter A of chapter 7,7,a,explicit,17475,17500,0,1,1,
 subparagraph (A),274,,local_structural,467,483,0,1,1,
-subparagraph (A),274,(A),local_structural,26886,26902,0,1,1,
-subparagraph (A),274,A,local_structural,467,483,1,0,1,
-subparagraph (A),274,e(2)(A),local_structural,5356,5372,0,1,1,
-subparagraph (A),274,h/1/A,local_structural,17988,18004,0,1,1,
-subparagraph (A)(i),,subparagraph (A)(i),explicit,-1,-1,0,1,0,wrong class or target
-subparagraph (A)(ii),,subparagraph (A)(ii),explicit,17988,18008,0,1,0,wrong class or target
-subparagraph (A)(ii),274,A.ii,local_structural,17988,18009,1,0,1,
-subparagraph (aa),274,n(2)(D)(v)(II)(aa),local_structural,-1,-1,0,1,0,no exact surface span
-subparagraph (B),274,B,local_structural,4855,4871,1,0,1,
-subparagraph (B),274,e(2)(B),local_structural,4855,4871,0,1,1,
-subparagraph (B),274,h/1/B,local_structural,12036,12052,0,1,1,
-subparagraph (B),274,n(2)(B),local_structural,26944,26960,0,1,1,
-subparagraph (bb),274,n(2)(D)(v)(II)(bb),local_structural,-1,-1,0,1,0,no exact surface span
-subparagraph (C),,subparagraph (C),explicit,17585,17601,0,1,0,wrong class or target
-subparagraph (C),274,C,local_structural,14245,14262,1,0,1,
-subparagraph (C),274,h/1/C,local_structural,14245,14261,0,1,1,
-subparagraph (C),274,n(2)(C),local_structural,26684,26700,0,1,1,
-subparagraph (C)(ii),,subparagraph (C)(ii),explicit,17759,17779,0,1,0,wrong class or target
-subparagraph (C)(ii),274,C.ii,local_structural,17759,17780,1,0,1,
-subparagraph (D),274,n(2)(D),local_structural,-1,-1,0,1,0,no exact surface span
-subparagraph (E),274,n(2)(D)(v),local_structural,-1,-1,0,1,0,no exact surface span
-subparagraph (i),,subparagraph (i),explicit,-1,-1,0,1,0,wrong class and no exact span
-subparagraph (ii),,subparagraph (ii),explicit,-1,-1,0,1,0,wrong class and no exact span
-subparagraph (II),274,n(2)(D)(v)(II),local_structural,-1,-1,0,1,0,no exact surface span
-subparagraph (iii),274,C(iii),local_structural,-1,-1,0,1,0,no exact surface span
-subparagraph (iv),274,C(iv),local_structural,-1,-1,0,1,0,no exact surface span
+subparagraph (A),274,a,local_structural,467,483,1,1,1,
+subparagraph (A),274,e.2.a,local_structural,5356,5372,0,1,1,
+subparagraph (A),274,h.1.a,local_structural,17988,18004,0,1,1,
+subparagraph (A)(i),,a.i,explicit,-1,-1,0,1,0,wrong class or target
+subparagraph (A)(ii),,a.ii,explicit,17988,18008,0,1,0,wrong class or target
+subparagraph (A)(ii),274,a.ii,local_structural,17988,18009,1,0,1,
+subparagraph (aa),274,n.2.d.v.ii.aa,local_structural,-1,-1,0,1,0,no exact surface span
+subparagraph (B),274,b,local_structural,4855,4871,1,0,1,
+subparagraph (B),274,e.2.b,local_structural,4855,4871,0,1,1,
+subparagraph (B),274,h.1.b,local_structural,12036,12052,0,1,1,
+subparagraph (B),274,n.2.b,local_structural,26944,26960,0,1,1,
+subparagraph (bb),274,n.2.d.v.ii.bb,local_structural,-1,-1,0,1,0,no exact surface span
+subparagraph (C),,c,explicit,17585,17601,0,1,0,wrong class or target
+subparagraph (C),274,c,local_structural,14245,14262,1,0,1,
+subparagraph (C),274,h.1.c,local_structural,14245,14261,0,1,1,
+subparagraph (C),274,n.2.c,local_structural,26684,26700,0,1,1,
+subparagraph (C)(ii),,c.ii,explicit,17759,17779,0,1,0,wrong class or target
+subparagraph (C)(ii),274,c.ii,local_structural,17759,17780,1,0,1,
+subparagraph (D),274,n.2.d,local_structural,-1,-1,0,1,0,no exact surface span
+subparagraph (E),274,n.2.d.v,local_structural,-1,-1,0,1,0,no exact surface span
+subparagraph (i),,i,explicit,-1,-1,0,1,0,wrong class and no exact span
+subparagraph (ii),,ii,explicit,-1,-1,0,1,0,wrong class and no exact span
+subparagraph (II),274,n.2.d.v.ii,local_structural,-1,-1,0,1,0,no exact surface span
+subparagraph (iii),274,c.iii,local_structural,-1,-1,0,1,0,no exact surface span
+subparagraph (iv),274,c.iv,local_structural,-1,-1,0,1,0,no exact surface span
 subsection (a),274,,local_structural,4536,4550,0,1,1,
-subsection (a),274,C(a),local_structural,27975,27989,0,1,1,
 subsection (a),274,a,local_structural,4536,4551,1,1,1,
+subsection (a),274,c.a,local_structural,27975,27989,0,1,1,
 subsection (a)(3),274,a.3,local_structural,7421,7438,1,0,1,
 subsection (b),274,b,local_structural,27993,28008,1,0,1,
 subsection (d),274,d,local_structural,6741,6755,1,1,1,
-subsection (d),274,subsection (d),local_structural,18255,18269,0,1,1,
 subsection (e),274,e,local_structural,22723,22737,1,0,1,
 subsection (e),274,e,explicit,25150,25164,0,1,0,wrong class
 subsection (e)(8),274,e.8,local_structural,27464,27482,1,0,1,
@@ -109,4 +93,4 @@ subsection (m),274,m,local_structural,26823,26837,1,1,1,
 this paragraph,274,,local_structural,7064,7078,0,1,1,
 this section,274,,local_structural,27919,27931,0,1,1,
 this subsection,274,,local_structural,11639,11654,0,1,1,
-Â§ 274,274,,explicit,0,5,0,1,0,section heading not cross-reference
+§ 274,274,,explicit,0,5,0,1,0,section heading
