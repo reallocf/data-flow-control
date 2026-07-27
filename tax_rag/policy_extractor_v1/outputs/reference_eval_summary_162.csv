@@ -1,0 +1,3 @@
+section,method,tp,fp,fn,precision,recall,f1
+162,rej16,68,4,13,0.9444,0.8395,0.8889
+162,llm,64,30,17,0.6809,0.7901,0.7314

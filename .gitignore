@@ -222,3 +222,9 @@ USCODE-2023-title26.htm
 *.duckdb
 
 dfc_paper.pdf
+tax_rag/policy_extractor_v1/.env
+!tax_rag/policy_extractor_v1/inputs/sections.jsonl
+tax_rag/policy_extractor_v1/.venv/
+tax_rag/policy_extractor_v1/__pycache__/
+tax_rag/policy_extractor_v1/**/*.pyc
+tax_rag/policy_extractor_v1/inputs/title26_sections.jsonl
