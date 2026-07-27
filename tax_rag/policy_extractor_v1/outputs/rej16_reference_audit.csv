@@ -12,27 +12,27 @@ source_section,span_start,span_end,surface,ref_class,target_section,target_path,
 274,1573,1585,this section,local_structural,274,,resolved_local,rej16
 274,1670,1681,section 102,explicit,102,,resolved_section,rej16
 274,1757,1769,this chapter,local_structural,1,,resolved_structure,rej16
-274,2229,2243,paragraph (1) ,local_structural,274,b.1,resolved_local,rej16
+274,2229,2242,paragraph (1),local_structural,274,b.1,resolved_local,rej16
 274,2329,2342,paragraph (1),local_structural,274,b.1,resolved_local,rej16
 274,2598,2609,section 212,explicit,212,,resolved_section,rej16
 274,2647,2658,section 162,explicit,162,,resolved_section,rej16
 274,2662,2673,section 212,explicit,212,,resolved_section,rej16
-274,2893,2907,Paragraph (1) ,local_structural,274,c.1,resolved_local,rej16
+274,2893,2906,Paragraph (1),local_structural,274,c.1,resolved_local,rej16
 274,3227,3238,section 212,explicit,212,,resolved_section,rej16
 274,3342,3357,this subsection,local_structural,274,c,resolved_local,rej16
 274,3574,3585,section 162,explicit,162,,resolved_section,rej16
 274,3760,3778,section 280F(d)(4),explicit,280F,d.4,resolved_section,rej16
 274,4389,4404,This subsection,local_structural,274,d,resolved_local,rej16
 274,4477,4491,subsection (i),local_structural,274,i,resolved_local,rej16
-274,4536,4551,subsection (a) ,local_structural,274,a,resolved_local,rej16
-274,4551,4566,Subsection (a) ,local_structural,274,a,resolved_local,rej16
+274,4536,4550,subsection (a),local_structural,274,a,resolved_local,rej16
+274,4551,4565,Subsection (a),local_structural,274,a,resolved_local,rej16
 274,4855,4871,subparagraph (B),local_structural,274,e.2.b,resolved_local,rej16
 274,5127,5139,this chapter,local_structural,1,,resolved_structure,rej16
 274,5186,5196,chapter 24,explicit,24,,resolved_structure,rej16
-274,5356,5373,subparagraph (A) ,local_structural,274,e.2.a,resolved_local,rej16
-274,5377,5391,paragraph (9) ,local_structural,274,e.9,resolved_local,rej16
+274,5356,5372,subparagraph (A),local_structural,274,e.2.a,resolved_local,rej16
+274,5377,5390,paragraph (9),local_structural,274,e.9,resolved_local,rej16
 274,5591,5601,clause (i),local_structural,274,e.2.b.i,resolved_local,rej16
-274,5699,5712,section 16(a),explicit,16,a,unresolved_missing_section,rej16
+274,5699,5751,section 16(a) of the Securities Exchange Act of 1934,external,16,a|securities.exchange.act.of.1934,resolved_external,rej16
 274,6126,6140,section 267(b),explicit,267,b,resolved_section,rej16
 274,6144,6150,707(b),explicit,707,b,resolved_section,rej16
 274,6433,6447,this paragraph,local_structural,274,e.3,resolved_local,rej16
@@ -48,13 +48,13 @@ source_section,span_start,span_end,surface,ref_class,target_section,target_path,
 274,8681,8691,section 74,explicit,74,,resolved_section,rej16
 274,8943,8981,part III of subchapter A of chapter 61,explicit,61,subchapter.a.part.iii,resolved_structure,rej16
 274,9022,9037,this subsection,local_structural,274,e,resolved_local,rej16
-274,9063,9078,subsection (a) ,local_structural,274,a,resolved_local,rej16
+274,9063,9077,subsection (a),local_structural,274,a,resolved_local,rej16
 274,9153,9165,This section,local_structural,274,,resolved_local,rej16
 274,9517,9529,this chapter,local_structural,1,,resolved_structure,rej16
-274,9566,9581,subsection (a) ,local_structural,274,a,resolved_local,rej16
+274,9566,9580,subsection (a),local_structural,274,a,resolved_local,rej16
 274,9993,10004,section 162,explicit,162,,resolved_section,rej16
 274,10966,10977,section 162,explicit,162,,resolved_section,rej16
-274,11064,11078,paragraph (5) ,local_structural,274,h.5,resolved_local,rej16
+274,11064,11077,paragraph (5),local_structural,274,h.5,resolved_local,rej16
 274,11558,11569,section 162,explicit,162,,resolved_section,rej16
 274,11639,11654,this subsection,local_structural,274,h,resolved_local,rej16
 274,12036,12052,subparagraph (B),local_structural,274,h.4.b,resolved_local,rej16
@@ -64,17 +64,17 @@ source_section,span_start,span_end,surface,ref_class,target_section,target_path,
 274,12659,12697,part III of subchapter A of chapter 61,explicit,61,subchapter.a.part.iii,resolved_structure,rej16
 274,12785,12796,section 162,explicit,162,,resolved_section,rej16
 274,13987,14002,this subsection,local_structural,274,h,resolved_local,rej16
-274,14245,14262,subparagraph (C) ,local_structural,274,h.6.c,resolved_local,rej16
+274,14245,14261,subparagraph (C),local_structural,274,h.6.c,resolved_local,rej16
 274,14584,14598,this paragraph,local_structural,274,h.6,resolved_local,rej16
-274,14669,14689,section 212(a)(1)(A),explicit,212,a.1.a,resolved_section,rej16
+274,14669,14734,section 212(a)(1)(A) of the Caribbean Basin Economic Recovery Act,external,212,a.1.a|caribbean.basin.economic.recovery.act,resolved_external,rej16
 274,15008,15019,clause (ii),local_structural,274,h.6.c.ii,resolved_local,rej16
-274,17330,17347,subparagraph (C) ,local_structural,274,h.6.c,resolved_local,rej16
+274,17330,17346,subparagraph (C),local_structural,274,h.6.c,resolved_local,rej16
 274,17408,17426,section 6103(k)(4),explicit,6103,k.4,resolved_section,rej16
 274,17475,17501,subchapter A of chapter 78,explicit,78,subchapter.a,resolved_structure,rej16
 274,17585,17601,subparagraph (C),local_structural,274,h.6.c,resolved_local,rej16
-274,17759,17780,subparagraph (C)(ii) ,local_structural,274,h.6.c.ii,resolved_local,rej16
-274,17874,17895,subparagraph (C)(ii) ,local_structural,274,h.6.c.ii,resolved_local,rej16
-274,17988,18009,subparagraph (A)(ii) ,local_structural,274,h.6.a.ii,resolved_local,rej16
+274,17759,17779,subparagraph (C)(ii),local_structural,274,h.6.c.ii,resolved_local,rej16
+274,17874,17894,subparagraph (C)(ii),local_structural,274,h.6.c.ii,resolved_local,rej16
+274,17988,18008,subparagraph (A)(ii),local_structural,274,h.6.a.ii,resolved_local,rej16
 274,18063,18074,section 212,explicit,212,,resolved_section,rej16
 274,18120,18131,section 212,explicit,212,,resolved_section,rej16
 274,18255,18269,subsection (d),local_structural,274,d,resolved_local,rej16
@@ -85,16 +85,16 @@ source_section,span_start,span_end,surface,ref_class,target_section,target_path,
 274,19846,19856,clause (i),local_structural,274,j.3.a.i,resolved_local,rej16
 274,20578,20592,section 414(q),explicit,414,q,resolved_section,rej16
 274,21164,21179,this subsection,local_structural,274,j,resolved_local,rej16
-274,21305,21319,paragraph (2) ,local_structural,274,j.2,resolved_local,rej16
+274,21305,21318,paragraph (2),local_structural,274,j.2,resolved_local,rej16
 274,21679,21696,section 132(e)(1),explicit,132,e.1,resolved_section,rej16
 274,21986,22003,section 132(e)(1),explicit,132,e.1,resolved_section,rej16
 274,22164,22175,clause (ii),local_structural,274,j.4.c.ii,resolved_local,rej16
 274,22357,22369,this chapter,local_structural,1,,resolved_structure,rej16
-274,22615,22629,Paragraph (1) ,local_structural,274,k.1,resolved_local,rej16
+274,22615,22628,Paragraph (1),local_structural,274,k.1,resolved_local,rej16
 274,22678,22737,"paragraph (2), (3), (4), (7), (8), or (9) of subsection (e)",local_structural,274,"e.2, e.3, e.4, e.7, e.8, e.9",resolved_local,rej16
 274,22882,22894,this chapter,local_structural,1,,resolved_structure,rej16
 274,23292,23304,this chapter,local_structural,1,,resolved_structure,rej16
-274,23741,23758,Subparagraph (A) ,local_structural,274,m.1.a,resolved_local,rej16
+274,23741,23757,Subparagraph (A),local_structural,274,m.1.a,resolved_local,rej16
 274,23915,23974,"paragraph (2), (3), (4), (7), (8), or (9) of subsection (e)",local_structural,274,"e.2, e.3, e.4, e.7, e.8, e.9",resolved_local,rej16
 274,24044,24056,this chapter,local_structural,1,,resolved_structure,rej16
 274,24193,24205,this chapter,local_structural,1,,resolved_structure,rej16
@@ -102,23 +102,23 @@ source_section,span_start,span_end,surface,ref_class,target_section,target_path,
 274,24814,24826,this chapter,local_structural,1,,resolved_structure,rej16
 274,24944,24958,this paragraph,local_structural,274,n.1,resolved_local,rej16
 274,24994,25006,this chapter,local_structural,1,,resolved_structure,rej16
-274,25023,25037,Paragraph (1) ,local_structural,274,n.1,resolved_local,rej16
+274,25023,25036,Paragraph (1),local_structural,274,n.1,resolved_local,rej16
 274,25105,25164,"paragraph (2), (3), (4), (7), (8), or (9) of subsection (e)",local_structural,274,"e.2, e.3, e.4, e.7, e.8, e.9",resolved_local,rej16
 274,25317,25327,section 82,explicit,82,,resolved_section,rej16
 274,26217,26241,section 2101 of title 46,external,2101,title.46,resolved_external,rej16
 274,26510,26530,section 143(k)(2)(B),explicit,143,k.2.b,resolved_section,rej16
 274,26660,26700,Clauses (i) and (ii) of subparagraph (C),local_structural,274,"n.2.c.i, n.2.c.ii",resolved_local,rej16
 274,26823,26837,subsection (m),local_structural,274,m,resolved_local,rej16
-274,26886,26903,subparagraph (A) ,local_structural,274,n.2.a,resolved_local,rej16
+274,26886,26902,subparagraph (A),local_structural,274,n.2.a,resolved_local,rej16
 274,26944,26960,subparagraph (B),local_structural,274,n.2.b,resolved_local,rej16
 274,27134,27151,section 162(a)(2),explicit,162,a.2,resolved_section,rej16
-274,27294,27308,paragraph (1) ,local_structural,274,n.1,resolved_local,rej16
-274,27464,27482,subsection (e)(8) ,local_structural,274,e.8,resolved_local,rej16
+274,27294,27307,paragraph (1),local_structural,274,n.1,resolved_local,rej16
+274,27464,27481,subsection (e)(8),local_structural,274,e.8,resolved_local,rej16
 274,27485,27494,(n)(2)(C),local_structural,274,n.2.c,resolved_local,rej16
 274,27532,27544,this chapter,local_structural,1,,resolved_structure,rej16
 274,27611,27628,section 132(e)(2),explicit,132,e.2,resolved_section,rej16
 274,27685,27702,section 132(e)(1),explicit,132,e.1,resolved_section,rej16
 274,27777,27791,section 119(a),explicit,119,a,resolved_section,rej16
 274,27919,27931,this section,local_structural,274,,resolved_local,rej16
-274,27975,27990,subsection (a) ,local_structural,274,a,resolved_local,rej16
-274,27993,28008,subsection (b) ,local_structural,274,b,resolved_local,rej16
+274,27975,27989,subsection (a),local_structural,274,a,resolved_local,rej16
+274,27993,28007,subsection (b),local_structural,274,b,resolved_local,rej16

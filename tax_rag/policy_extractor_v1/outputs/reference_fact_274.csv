@@ -1,7 +1,7 @@
 ﻿surface,target_section,target_path,ref_class,span_start,span_end,gold,note
-707(b),707,b,explicit,,,1,source: §274(e)(2)(B)(ii) concluding sentence; target: 26 U.S.C. §707(b)
-(n)(2)(C),274,n.2.c,local_structural,,,1,source: §274(o); target: §274(n)(2)(C)
-chapter 24,24,,explicit,,,1,source: §274(e)(2)(A); target: 26 U.S.C. chapter 24
+707(b),707,b,explicit,6144,6150,1,source: §274(e)(2)(B)(ii) concluding sentence; target: 26 U.S.C. §707(b)
+(n)(2)(C),274,n.2.c,local_structural,27485,27494,1,source: §274(o); target: §274(n)(2)(C)
+chapter 24,24,,explicit,5186,5196,1,source: §274(e)(2)(A); target: 26 U.S.C. chapter 24
 clause (i),274,e.2.b.i,local_structural,5591,5601,1,source: §274(e)(2)(B)(ii); target: §274(e)(2)(B)(i)
 clause (i),274,j.3.a.i,local_structural,19846,19856,1,source: §274(j)(3)(A)(ii); target: §274(j)(3)(A)(i)
 clause (ii),274,h.6.c.ii,local_structural,15008,15019,1,source: §274(h)(6)(C)(i); target: §274(h)(6)(C)(ii)
@@ -53,7 +53,7 @@ section 212,212,,explicit,3227,3238,1,source: §274(c)(2)(B); target: 26 U.S.C. 
 section 212,212,,explicit,18063,18074,1,source: §274(h)(7) title; target: 26 U.S.C. §212
 section 212,212,,explicit,18120,18131,1,source: §274(h)(7) paragraph; target: 26 U.S.C. §212
 section 212,212,,explicit,18544,18555,1,source: §274(j)(1); target: 26 U.S.C. §212
-section 212(a)(1)(A) of the Caribbean Basin Economic Recovery Act,212,a.1.a|caribbean.basin.economic.recovery.act,explicit,,,1,source: §274(h)(6)(B); target: 19 U.S.C. §2702(a)(1)(A)
+section 212(a)(1)(A) of the Caribbean Basin Economic Recovery Act,212,a.1.a|caribbean.basin.economic.recovery.act,explicit,14669,14734,1,source: §274(h)(6)(B); target: 19 U.S.C. §2702(a)(1)(A)
 section 217,217,,explicit,24218,24229,1,source: §274(m)(3); target: 26 U.S.C. §217
 section 267(b),267,b,explicit,6126,6140,1,source: §274(e)(2)(B)(ii) concluding sentence; target: 26 U.S.C. §267(b)
 section 267(c)(4),267,c.4,explicit,7354,7371,1,source: §274(e)(4); target: 26 U.S.C. §267(c)(4)
@@ -64,10 +64,10 @@ section 501(a),501,a,explicit,7931,7945,1,source: §274(e)(6); target: 26 U.S.C.
 section 501(c)(6),501,c.6,explicit,7788,7805,1,source: §274(e)(6); target: 26 U.S.C. §501(c)(6)
 section 2101 of title 46,2101,title.46,explicit,26217,26241,1,source: §274(n)(2)(C)(v)(I); target: 46 U.S.C. §2101
 section 6103(k)(4),6103,k.4,explicit,17408,17426,1,source: §274(h)(6)(D); target: 26 U.S.C. §6103(k)(4)
-subchapter A of chapter 78,78,subchapter.a,explicit,,,1,source: §274(h)(6)(D); target: 26 U.S.C. chapter 78 subchapter A
+subchapter A of chapter 78,78,subchapter.a,explicit,17475,17501,1,source: §274(h)(6)(D); target: 26 U.S.C. chapter 78 subchapter A
 subparagraph (A),274,a.1.a,local_structural,467,483,1,source: §274(a)(1)(B); target: §274(a)(1)(A)
 subparagraph (A),274,e.2.a,local_structural,5356,5372,1,source: §274(e)(2)(B)(i); target: §274(e)(2)(a)
-Subparagraph (A),274,m.1.a,local_structural,23741,23757,1,source: §274(m)(1)(B); target: §274(m)(1)(B)(A)
+Subparagraph (A),274,m.1.a,local_structural,23741,23757,1,source: ?274(m)(1)(B); target: ?274(m)(1)(A)
 subparagraph (A),274,n.2.a,local_structural,26886,26902,1,source: §274(n)(2) concluding sentence; target: §274(n)(2)(A)
 subparagraph (A)(ii),274,h.6.a.ii,local_structural,17988,18008,1,source: §274(h)(6)(E)(iii); target: §274(h)(6)(A)(ii)
 subparagraph (B),274,e.2.b,local_structural,4855,4871,1,source: §274(e)(2)(A); target: §274(e)(2)(b)
@@ -78,16 +78,16 @@ subparagraph (C),274,h.6.c,local_structural,17330,17346,1,"source: §274(h)(6)(D
 subparagraph (C),274,h.6.c,local_structural,17585,17601,1,"source: §274(h)(6)(D), second emergence in second sentence; target: §274(h)(6)(C)"
 subparagraph (C)(ii),274,h.6.c.ii,local_structural,17759,17779,1,source: §274(h)(6)(E)(i); target: §274(h)(6)(C)(ii)
 subparagraph (C)(ii),274,h.6.c.ii,local_structural,17874,17894,1,source: §274(h)(6)(E)(ii); target: §274(h)(6)(C)(ii)
-subsection (a),274,a,local_structural,4536,4551,1,"source: §274(e) title; target: §274(a); caution: displayed ""A"" text in code formatting should be understood as lowercase ""a"""
+subsection (a),274,a,local_structural,4536,4550,1,"source: §274(e) title; target: §274(a); caution: displayed ""A"" text in code formatting should be understood as lowercase ""a"""
 Subsection (a),274,a,local_structural,4551,4565,1,source: §274(e) lead-in; target: §274(a)
 subsection (a),274,a,local_structural,9063,9077,1,source: §274(e)(9) concluding sentence; target: §274(a)
 subsection (a),274,a,local_structural,9566,9580,1,source: §274(g); target: §274(a)
 subsection (a),274,a,local_structural,27975,27989,1,source: §274(p); target: §274(a)
 subsection (a)(3),274,a.3,local_structural,7421,7438,1,source: §274(e)(4) concluding sentence; target: §274(a)(3)
-subsection (b),274,b,local_structural,27993,28008,1,source: §274(p); target: §274(b)
+subsection (b),274,b,local_structural,27993,28007,1,source: §274(p); target: §274(b)
 subsection (d),274,d,local_structural,6741,6755,1,source: §274(e)(3)(B); target: §274(d)
 subsection (d),274,d,local_structural,18255,18269,1,source: §274(i); target: §274(d)
-subsection (e)(8),274,e.8,local_structural,27464,27482,1,"source: §274(o); target: §274(e)(8); caution: do not add a standalone §274(e) target here because the text refers specifically to subsection (e)(8), and the broader paragraph (2), (3), (4), (7), (8), or (9) references are already captured."
+subsection (e)(8),274,e.8,local_structural,27464,27481,1,"source: §274(o); target: §274(e)(8); caution: do not add a standalone §274(e) target here because the text refers specifically to subsection (e)(8), and the broader paragraph (2), (3), (4), (7), (8), or (9) references are already captured."
 subsection (i),274,i,local_structural,4477,4491,1,source: §274(d) concluding sentence; target: §274(i)
 subsection (m),274,m,local_structural,26823,26837,1,source: §274(n)(2) concluding sentence; target: §274(m)
 this chapter,1,,local_structural,193,205,1,source: §274(a)(1); target: Title 26 chapter 1

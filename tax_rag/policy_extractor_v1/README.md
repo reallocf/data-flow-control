@@ -1,4 +1,4 @@
-﻿# Policy extractor v1
+# Policy extractor v1
 
 Minimal tax-law Data Flow Control policy extractor for the TaxAgent demo.
 
@@ -37,25 +37,17 @@ Each policy candidate includes citations, a constraint, an explanation, wrapped 
 
 This is a review and iteration checkpoint, not a final full tax-law extractor.
 
-### Section 274 reference audit
-
+### Section 274 REJ16-style reference layer
 Run:
-
-    python .\reference_audit_274.py
-    python .\filter_reference_audit_274.py
-
-Outputs:
-
-- outputs/reference_audit_274.csv: raw section 274 reference scan
-- outputs/reference_audit_274_annotated.csv: raw scan with main-text vs notes/amendments labels
-- outputs/reference_audit_274_main.csv: references from main section 274 text only
-- outputs/reference_audit_274_part_summary.csv: count of main-text vs notes/amendments references
-
-Current main-text result:
-
-- 89 main-text references
-- 39 resolved Title 26 section references
-- 49 local structural references needing hierarchy-aware resolution
-- 1 external reference to section 16(a) of the Securities Exchange Act
-- 9 section 212 references relevant to the seminar policy
-
+    python .\rej16_reference_audit.py
+    python .\evaluate_reference_274_exact.py
+Reviewed section 274 result:
+- 123 gold reference occurrences
+- 123 predicted occurrences
+- 123 exact surface, span, and target matches
+- 0 wrong matches
+- 0 missing occurrences
+- 0 extra occurrences
+This is an in-sample result. Section 274 was used while adapting the rules, so this result does not establish performance on unseen law.
+The implementation is a Title 26 adaptation of the REJ16 pattern-and-hierarchy approach. It is not a full reproduction of REJ16.
+The project use of this layer is to form resolved cross-reference edges that can supply referenced legal text to the policy extractor.

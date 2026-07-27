@@ -19,6 +19,10 @@ part_structure_re = re.compile(r"\bpart\s+([IVXLCDM]+)\s+of\s+subchapter\s+([A-Z
 subchapter_re = re.compile(r"\bsubchapter\s+([A-Z])\s+of\s+chapter\s+([0-9][0-9A-Za-z-]*)\b", re.I)
 chapter_re = re.compile(r"\bchapter\s+([0-9][0-9A-Za-z-]*)\b", re.I)
 title_re = re.compile(r"\bsection\s+(?P<section>[0-9][0-9A-Za-z-]*)(?P<trail>(?:\([A-Za-z0-9-]+\))*)\s+of\s+title\s+(?P<title>\d+)\b", re.I)
+external_act_re = re.compile(
+    r"\bsection\s+(?P<section>[0-9][0-9A-Za-z-]*)(?P<trail>(?:\([A-Za-z0-9-]+\))*)\s+"
+    r"of\s+the\s+(?P<act>[A-Z][A-Za-z0-9 ,'-]+?Act(?:\s+of\s+\d{4})?)\b"
+)
 coordinated_local_re = re.compile(
     r"\b(?:subsection|paragraph|subparagraph|clause)\s+"
     r"(?:\([A-Za-z0-9-]+\))+\s+(?:or|and)\s+"
@@ -56,6 +60,8 @@ def main_cut(text):
     return min(positions) if positions else len(text)
 def path_parts(text):
     return [part.lower() for part in part_re.findall(text or "")]
+def norm_name(text):
+    return re.sub(r"[^a-z0-9]+", ".", text.lower()).strip(".")
 def next_mark(level, value):
     if level == 1 and len(value) == 1:
         return chr(ord(value) + 1)
@@ -167,6 +173,11 @@ def scan(text, source, known):
         full = [base_path + [item] for item in items] if base_path else []
         target_path = ", ".join(".".join(path) for path in full) if full else ", ".join(".".join(parent_parts + [item]) for item in items)
         add(match.start(), match.end(), match.group(0), "local_structural", source, target_path, "resolved_local" if full else "needs_structural_resolution")
+    for match in external_act_re.finditer(text):
+        trail = ".".join(path_parts(match.group("trail")))
+        name = norm_name(match.group("act"))
+        target_path = f"{trail}|{name}" if trail else name
+        add(match.start(), match.end(), match.group(0), "external", match.group("section"), target_path, "resolved_external")
     for match in title_re.finditer(text):
         trail = path_parts(match.group("trail"))
         add(match.start(), match.end(), match.group(0), "external", match.group("section"), ".".join(trail + ["title", match.group("title")]), "resolved_external")
@@ -182,7 +193,11 @@ def scan(text, source, known):
         source_node = deepest(nodes, match.start())
         parts = path_parts(match.group("trail"))
         full = resolve_path(nodes, source_node, level_by_word[word], parts, source)
-        add(match.start(), match.end(), match.group(0), "local_structural", source, ".".join(full if full else parts), "resolved_local" if full else "needs_structural_resolution")
+        start = match.start()
+        end = match.end()
+        while end > start and text[end - 1].isspace():
+            end -= 1
+        add(start, end, text[start:end], "local_structural", source, ".".join(full if full else parts), "resolved_local" if full else "needs_structural_resolution")
     for match in self_re.finditer(text):
         word = match.group(1).lower()
         source_node = deepest(nodes, match.start())
