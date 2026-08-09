@@ -15,6 +15,24 @@ INPUT = Path(os.getenv("INPUT", "inputs/title26_sections.jsonl"))
 OUTPUT = Path(os.getenv("OUTPUT", "outputs/policies_274.json"))
 TARGETS = {x.strip() for x in os.getenv("TARGETS", "274").split(",") if x.strip()}
 MODEL = os.getenv("MODEL", "gpt-4.1-mini")
+CONTEXT_MODE = os.getenv(
+    "CONTEXT_MODE",
+    "scoped",
+).strip().lower()
+
+if CONTEXT_MODE not in {"none", "detected", "scoped"}:
+    raise ValueError(
+        f"invalid CONTEXT_MODE: {CONTEXT_MODE}"
+    )
+
+RUN_JUDGE = os.getenv(
+    "RUN_JUDGE",
+    "1",
+).strip().lower() not in {
+    "0",
+    "false",
+    "no",
+}
 
 client = OpenAI()
 
@@ -154,19 +172,14 @@ Use decimal fractions for percentages, for example 0.5 instead of 50%.
 Every constraint must be implication-style:
 <receipt does not match this rule> OR <deduction is allowed>
 
-Examples:
-R.category != 'food' OR E.deduct <= 0.5
-R.category != 'gift' OR SUM(E.cost * E.deduct) <= 25
-R.category != 'club dues' OR E.deduct = 0
 
 Do not use SELECT subqueries.
 Do not use EXISTS.
 Do not use WHERE.
 Do not use a bare boolean E.deduct.
 Do not create constraints that reject unrelated receipts.
-Pay special attention to subsection 274(h), including convention, seminar, and similar meeting rules that reference section 212.
-For section 274(h)(7), extract a policy like: R.type != 'investment' OR R.category != 'seminar' OR E.deduct = 0, if supported by the text and referenced context.
-Do not skip a policy only because it requires context from a referenced section.
+Use referenced context only when it is supplied.
+Do not infer a legal rule that is not supported by the supplied text.
 If no DFC policy is clearly supported, return an empty policies list.
 
 Main legal text:
@@ -212,26 +225,41 @@ def main():
 
         records = reference_records(number, section["text"], by_number)
         detected_refs = detected_section_refs(records)
+        context_blocks = []
+        context_refs = []
+        context_identifiers = []
+        context = ""
 
-        context_blocks = scoped_context(
-            number,
-            by_number,
-            reference_graph,
+        if CONTEXT_MODE == "scoped":
+            context_blocks = scoped_context(
+                number,
+                by_number,
+                reference_graph,
+            )
+
+            if context_blocks:
+                context_refs = sorted({
+                    block["section"]
+                    for block in context_blocks
+                })
+                context_identifiers = [
+                    block["identifier"]
+                    for block in context_blocks
+                ]
+                context = render_context(
+                    context_blocks
+                )
+
+        use_detected = (
+            CONTEXT_MODE == "detected"
+            or (
+                CONTEXT_MODE == "scoped"
+                and not context_blocks
+            )
         )
 
-        if context_blocks:
-            context_refs = sorted({
-                block["section"]
-                for block in context_blocks
-            })
-            context_identifiers = [
-                block["identifier"]
-                for block in context_blocks
-            ]
-            context = render_context(context_blocks)
-        else:
+        if use_detected:
             context_refs = detected_refs
-            context_identifiers = []
             context_parts = []
 
             for ref in context_refs:
@@ -273,13 +301,22 @@ def main():
             row["context_refs"] = context_refs
             row["context_identifiers"] = context_identifiers
             row["context_chars"] = len(context)
+            row["context_mode"] = CONTEXT_MODE
             row["detected_ref_records"] = main_records
             row["reference_summary"] = summary
             row["valid_dfc_subset"] = valid_dfc(row["policy"])
-            row["confidence"] = judge_policy(
-                row,
-                legal_context,
-            ) if row["valid_dfc_subset"] else "LOW"
+            if row["valid_dfc_subset"] and RUN_JUDGE:
+                row["confidence"] = judge_policy(
+                    row,
+                    legal_context,
+                )
+                row["judge_ran"] = True
+            elif row["valid_dfc_subset"]:
+                row["confidence"] = "NOT_RUN"
+                row["judge_ran"] = False
+            else:
+                row["confidence"] = "LOW"
+                row["judge_ran"] = False
             results.append(row)
 
     OUTPUT.parent.mkdir(exist_ok=True)
