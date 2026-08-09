@@ -1,0 +1,23 @@
+{
+  "both": 5,
+  "compared_source_sections": 2114,
+  "cornell_only": 3980,
+  "cornell_overlap_pct": 0.13,
+  "cornell_pages_cached": 2148,
+  "cornell_pairs": 3985,
+  "cornell_release_expected": "119-84",
+  "cornell_release_observed": "119-84",
+  "fetch_status": {
+    "http_404": 34,
+    "ok": 2114
+  },
+  "section_274_to_212": {
+    "cornell": true,
+    "uslm": false
+  },
+  "uslm_only": 0,
+  "uslm_overlap_pct": 100.0,
+  "uslm_pairs_same_sources": 5,
+  "uslm_release": "119-95",
+  "uslm_sections": 2148
+}
