@@ -3,6 +3,7 @@ import os
 import re
 from pathlib import Path
 from typing import Literal
+from reference_context import load_graph, render_context, scoped_context
 
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -194,6 +195,7 @@ Constraint:
 
 def main():
     sections = load_sections()
+    reference_graph = load_graph()
 
     by_number = {}
     for section in sections:
@@ -209,14 +211,53 @@ def main():
             continue
 
         records = reference_records(number, section["text"], by_number)
-        refs = detected_section_refs(records)
-        context_parts = []
-        for ref in refs:
-            ref_section = by_number.get(ref)
-            if ref_section:
-                context_parts.append(ref_section["citation"] + "\n" + ref_section["text"][:section_main_cut(ref_section["text"])])
+        detected_refs = detected_section_refs(records)
 
-        context = "\n\n".join(context_parts)
+        context_blocks = scoped_context(
+            number,
+            by_number,
+            reference_graph,
+        )
+
+        if context_blocks:
+            context_refs = sorted({
+                block["section"]
+                for block in context_blocks
+            })
+            context_identifiers = [
+                block["identifier"]
+                for block in context_blocks
+            ]
+            context = render_context(context_blocks)
+        else:
+            context_refs = detected_refs
+            context_identifiers = []
+            context_parts = []
+
+            for ref in context_refs:
+                ref_section = by_number.get(ref)
+                if ref_section:
+                    ref_text = ref_section["text"]
+                    ref_text = ref_text[
+                        :section_main_cut(ref_text)
+                    ]
+                    context_parts.append(
+                        ref_section["citation"]
+                        + "\n"
+                        + ref_text
+                    )
+
+            context = "\n\n".join(context_parts)
+
+        source_main = section["text"][
+            :section_main_cut(section["text"])
+        ]
+        legal_context = source_main
+        if context:
+            legal_context += (
+                "\n\nReferenced context:\n"
+                + context
+            )
         candidates = generate_policy(section, context)
         main_records = [row for row in records if row["section_part"] == "main_text"]
         summary = reference_summary(records)
@@ -228,11 +269,17 @@ def main():
                 f"CONSTRAINT {row['constraint']}\n"
                 "ON FAIL KILL"
             )
-            row["detected_refs"] = refs
+            row["detected_refs"] = detected_refs
+            row["context_refs"] = context_refs
+            row["context_identifiers"] = context_identifiers
+            row["context_chars"] = len(context)
             row["detected_ref_records"] = main_records
             row["reference_summary"] = summary
             row["valid_dfc_subset"] = valid_dfc(row["policy"])
-            row["confidence"] = judge_policy(row, section["text"][:section_main_cut(section["text"])]) if row["valid_dfc_subset"] else "LOW"
+            row["confidence"] = judge_policy(
+                row,
+                legal_context,
+            ) if row["valid_dfc_subset"] else "LOW"
             results.append(row)
 
     OUTPUT.parent.mkdir(exist_ok=True)
