@@ -35,51 +35,83 @@ def section_key(value):
     return 10**9, value
 
 
+ATOM = r"[0-9][0-9A-Za-z-]*(?:\s*\([A-Za-z0-9-]+\))*"
+SECTION_EXPR_RE = re.compile(
+    rf"\b(?:sections?|\u00a7{{1,2}})\s+"
+    rf"(?P<items>{ATOM}(?:(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+)"
+    rf"(?:sections?\s+)?{ATOM})*)",
+    re.I,
+)
+SECTION_HEAD_RE = re.compile(r"^[0-9][0-9A-Za-z-]*")
+EXTERNAL_SUFFIX_RE = re.compile(
+    r"^\s+of\s+(?:the\s+)?(?:"
+    r"such\s+Act\b|"
+    r"Public\s+Law\b|"
+    r"Pub\.?\s*L\.?\b|"
+    r"[A-Z][A-Za-z0-9&,'\u2019.\- ]{1,100}\s+Act\b"
+    r")",
+    re.I,
+)
+
+
+def statute_text(node):
+    parts = []
+
+    def walk(cur):
+        if local(cur.tag) in {"notes", "sourceCredit"}:
+            if cur.tail:
+                parts.append(cur.tail)
+            return
+
+        if cur.text:
+            parts.append(cur.text)
+
+        for child in cur:
+            walk(child)
+
+        if cur.tail:
+            parts.append(cur.tail)
+
+    walk(node)
+    return re.sub(r"\s+", " ", " ".join(parts))
+
+
 def load_xml():
     root = ET.parse(XML_PATH).getroot()
-    sections = []
-    xml_pairs = set()
+    sections = {}
 
     for sec in root.iter():
         if local(sec.tag) != "section":
             continue
 
-        ident = sec.attrib.get("identifier", "")
-        m = re.fullmatch(r"/us/usc/t26/s([^/]+)", ident)
-        if not m:
-            continue
+        m = re.fullmatch(
+            r"/us/usc/t26/s([^/]+)",
+            sec.attrib.get("identifier", ""),
+        )
+        if m:
+            sections[m.group(1)] = sec
 
-        source = m.group(1)
-        sections.append(source)
-        parent = {child: node for node in sec.iter() for child in node}
+    known = set(sections)
+    xml_pairs = set()
 
-        for ref in sec.iter():
-            if local(ref.tag) != "ref":
+    for source, sec in sections.items():
+        text = statute_text(sec)
+
+        for match in SECTION_EXPR_RE.finditer(text):
+            suffix = text[match.end():match.end() + 140]
+            if EXTERNAL_SUFFIX_RE.match(suffix):
                 continue
 
-            node = ref
-            blocked = False
-            while node is not sec:
-                if local(node.tag) in {"notes", "sourceCredit"}:
-                    blocked = True
-                    break
-                node = parent.get(node)
-                if node is None:
-                    break
+            for item in re.finditer(ATOM, match.group("items"), re.I):
+                head = SECTION_HEAD_RE.match(item.group(0))
+                if not head:
+                    continue
 
-            if blocked:
-                continue
+                target = head.group(0)
+                if target in known and target != source:
+                    xml_pairs.add((source, target))
 
-            href = ref.attrib.get("href", "")
-            target_match = re.match(r"/us/usc/t26/s([^/]+)(?:/|$)", href)
-            if not target_match:
-                continue
-
-            target = target_match.group(1)
-            if target != source:
-                xml_pairs.add((source, target))
-
-    return list(dict.fromkeys(sections)), xml_pairs
+    return list(sections), xml_pairs
 
 
 def target_from_href(href):
@@ -300,6 +332,12 @@ def write_outputs(sections, xml_pairs, cache, release):
         if pair[0] in good_sources
     }
 
+    known_sections = set(sections)
+    cornell_section_pairs = {
+        pair for pair in cornell_pairs
+        if pair[1] in known_sections
+    }
+    cornell_target_not_in_uslm = cornell_pairs - cornell_section_pairs
     all_pairs = cornell_pairs | xml_scoped
 
     with COMPARE_PATH.open("w", newline="", encoding="utf-8") as f:
@@ -313,7 +351,11 @@ def write_outputs(sections, xml_pairs, cache, release):
             if (source, target) in cornell_pairs and (source, target) in xml_scoped:
                 status = "both"
             elif (source, target) in cornell_pairs:
-                status = "cornell_only"
+                status = (
+                    "cornell_only"
+                    if target in known_sections
+                    else "cornell_target_not_in_uslm"
+                )
             else:
                 status = "uslm_only"
 
@@ -350,7 +392,8 @@ def write_outputs(sections, xml_pairs, cache, release):
             })
 
     both = cornell_pairs & xml_scoped
-    cornell_only = cornell_pairs - xml_scoped
+    both_section = cornell_section_pairs & xml_scoped
+    cornell_only = cornell_section_pairs - xml_scoped
     uslm_only = xml_scoped - cornell_pairs
 
     statuses = {}
@@ -367,10 +410,16 @@ def write_outputs(sections, xml_pairs, cache, release):
         "fetch_status": statuses,
         "compared_source_sections": len(good_sources),
         "cornell_pairs": len(cornell_pairs),
+        "cornell_pairs_with_uslm_section_target": len(cornell_section_pairs),
+        "cornell_target_not_in_uslm": len(cornell_target_not_in_uslm),
         "uslm_pairs_same_sources": len(xml_scoped),
         "both": len(both),
         "cornell_only": len(cornell_only),
         "uslm_only": len(uslm_only),
+        "cornell_section_overlap_pct": (
+            round(100 * len(both_section) / len(cornell_section_pairs), 2)
+            if cornell_section_pairs else None
+        ),
         "cornell_overlap_pct": (
             round(100 * len(both) / len(cornell_pairs), 2)
             if cornell_pairs else None
@@ -397,6 +446,7 @@ def main():
     ap.add_argument("--sections", nargs="*")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--offline", action="store_true")
     args = ap.parse_args()
 
     sections, xml_pairs = load_xml()
@@ -417,15 +467,23 @@ def main():
     if args.limit is not None:
         selected = selected[:args.limit]
 
-    release = observed_release()
-    print("Cornell release:", release or "not found")
+    if args.offline:
+        release = EXPECTED_CORNELL_RELEASE
+        print("Cornell release: cached", release)
+    else:
+        release = observed_release()
+        print("Cornell release:", release or "not found")
 
-    if release != EXPECTED_CORNELL_RELEASE:
-        raise SystemExit(
-            f"Expected Cornell {EXPECTED_CORNELL_RELEASE}; observed {release!r}"
-        )
+        if release != EXPECTED_CORNELL_RELEASE:
+            raise SystemExit(
+                f"Expected Cornell {EXPECTED_CORNELL_RELEASE}; observed {release!r}"
+            )
 
     cache = read_cache()
+
+    if args.offline:
+        write_outputs(sections, xml_pairs, cache, release)
+        return
 
     total = len(selected)
 
