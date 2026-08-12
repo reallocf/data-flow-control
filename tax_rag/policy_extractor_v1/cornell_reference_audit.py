@@ -1,6 +1,7 @@
 import argparse
 import csv
 import json
+import os
 import re
 import time
 import urllib.error
@@ -13,12 +14,12 @@ from xml.etree import ElementTree as ET
 
 BASE = "https://www.law.cornell.edu"
 TITLE_URL = BASE + "/uscode/text/26"
-XML_PATH = Path("inputs/usc26.xml")
+XML_PATH = Path(os.environ.get("USLM_XML_PATH", "inputs/usc26.xml"))
 CACHE_PATH = Path("inputs/cornell_title26_refs.jsonl")
 COMPARE_PATH = Path("outputs/cornell_reference_compare.csv")
 FETCH_PATH = Path("outputs/cornell_title26_fetch_status.csv")
 SUMMARY_PATH = Path("outputs/cornell_reference_summary.json")
-USLM_RELEASE = "119-95"
+USLM_RELEASE = os.environ.get("USLM_RELEASE", "119-95")
 EXPECTED_CORNELL_RELEASE = "119-84"
 DELAY = 10.5
 UA = "data-flow-control-research/1.0"
