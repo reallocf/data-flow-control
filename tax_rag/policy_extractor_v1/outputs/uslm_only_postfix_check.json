@@ -1,0 +1,10 @@
+{
+  "current_uslm_only_population": 5456,
+  "original_sample_size": 150,
+  "sample_pairs_retained": 144,
+  "retained_valid": 144,
+  "retained_invalid": 0,
+  "sample_pairs_removed": 6,
+  "removed_valid": 0,
+  "removed_invalid": 6
+}

@@ -45,7 +45,9 @@ SECTION_EXPR_RE = re.compile(
 )
 SECTION_HEAD_RE = re.compile(r"^[0-9][0-9A-Za-z-]*")
 EXTERNAL_SUFFIX_RE = re.compile(
-    r"^\s+of\s+(?:the\s+)?(?:"
+    r"^\s*(?:(?:,?\s*(?:and|or)\s+)?\(\s*[A-Za-z0-9-]+\s*\)\s*)*"
+    r"of\s+(?:the\s+)?(?:"
+    r"title\s+\d+\s*,?\s*United States Code\b|"
     r"such\s+Act\b|"
     r"Public\s+Law\b|"
     r"Pub\.?\s*L\.?\b|"
@@ -129,7 +131,10 @@ def target_from_href(href):
     if len(parts) < 4 or parts[:3] != ["uscode", "text", "26"]:
         return None
 
-    return parts[3]
+    target = parts[3]
+    if not re.fullmatch(r"\d+[A-Za-z0-9-]*", target):
+        return None
+    return target
 
 
 class PageParser(HTMLParser):
@@ -325,7 +330,7 @@ def write_outputs(sections, xml_pairs, cache, release):
         (source, target)
         for source in good_sources
         for target in cache[source].get("targets", [])
-        if target != source
+        if target != source and re.fullmatch(r"\d+[A-Za-z0-9-]*", target)
     }
 
     xml_scoped = {

@@ -360,7 +360,6 @@ source_section,target_section,status
 40A,6427,uslm_only
 40B,38,uslm_only
 40B,45K,uslm_only
-40B,211,uslm_only
 40B,4101,uslm_only
 40B,6426,both
 40B,6427,uslm_only
@@ -447,7 +446,6 @@ source_section,target_section,status
 45A,415,uslm_only
 45A,416,both
 45AA,38,uslm_only
-45AA,101,uslm_only
 45AA,402,both
 45AA,408,uslm_only
 45AA,414,both
@@ -534,7 +532,6 @@ source_section,target_section,status
 45Q,45,both
 45Q,165,both
 45Q,193,uslm_only
-45Q,211,uslm_only
 45Q,638,both
 45Q,7701,both
 45R,1,uslm_only
@@ -568,7 +565,6 @@ source_section,target_section,status
 45V,38,uslm_only
 45V,45,both
 45V,45Q,both
-45V,211,uslm_only
 45V,638,uslm_only
 45W,30B,uslm_only
 45W,30D,both
@@ -590,7 +586,6 @@ source_section,target_section,status
 45Y,48A,both
 45Y,48E,both
 45Y,52,both
-45Y,211,uslm_only
 45Y,638,both
 45Y,661,uslm_only
 45Y,1381,both
@@ -606,7 +601,6 @@ source_section,target_section,status
 45Z,46,both
 45Z,48,uslm_only
 45Z,52,both
-45Z,211,uslm_only
 45Z,4101,both
 45Z,7701,both
 46,38,uslm_only
@@ -702,7 +696,6 @@ source_section,target_section,status
 50,7701,uslm_only
 51,38,uslm_only
 51,52,uslm_only
-51,101,uslm_only
 51,152,uslm_only
 51,267,uslm_only
 51,482,both
@@ -956,7 +949,6 @@ source_section,target_section,status
 72,6331,both
 72,7702,uslm_only
 72,7702A,both
-72,chapter-21,cornell_target_not_in_uslm
 73,6201,uslm_only
 74,85,uslm_only
 74,86,uslm_only
@@ -1007,7 +999,6 @@ source_section,target_section,status
 83,3401,both
 83,3402,uslm_only
 83,4980E,both
-83,chapter-24,cornell_target_not_in_uslm
 84,527,uslm_only
 85,86,uslm_only
 85,135,uslm_only
@@ -1061,7 +1052,6 @@ source_section,target_section,status
 104,404,uslm_only
 104,501,uslm_only
 104,692,both
-104,1403,uslm_only
 105,104,both
 105,115,both
 105,152,uslm_only
@@ -1131,7 +1121,6 @@ source_section,target_section,status
 118,7701,uslm_only
 119,170,both
 121,5,uslm_only
-121,101,uslm_only
 121,216,both
 121,267,both
 121,707,uslm_only
@@ -1142,12 +1131,10 @@ source_section,target_section,status
 121,1041,uslm_only
 121,1223,both
 121,1250,both
-121,2105,uslm_only
 122,72,uslm_only
 125,1,uslm_only
 125,52,uslm_only
 125,79,uslm_only
-125,101,uslm_only
 125,105,uslm_only
 125,106,both
 125,117,both
@@ -1196,7 +1183,6 @@ source_section,target_section,status
 132,414,uslm_only
 132,1504,uslm_only
 134,112,uslm_only
-134,2613,uslm_only
 135,1,uslm_only
 135,25A,both
 135,72,uslm_only
@@ -1225,7 +1211,6 @@ source_section,target_section,status
 137,219,uslm_only
 137,469,uslm_only
 137,541,uslm_only
-137,1052,uslm_only
 138,72,uslm_only
 138,220,both
 139,165,both
@@ -1234,7 +1219,6 @@ source_section,target_section,status
 139B,170,both
 139C,104,uslm_only
 139C,402,uslm_only
-139D,4,uslm_only
 139D,45A,uslm_only
 139D,105,uslm_only
 139D,152,uslm_only
@@ -1246,7 +1230,6 @@ source_section,target_section,status
 139K,25F,uslm_only
 139L,265,both
 139L,7701,both
-140,5301,uslm_only
 141,1,uslm_only
 141,142,both
 141,146,both
@@ -1264,13 +1247,11 @@ source_section,target_section,status
 142,167,both
 142,168,both
 142,179,uslm_only
-142,403,uslm_only
 142,1391,uslm_only
 142,1393,uslm_only
 142,6652,uslm_only
 142,7872,both
 143,25,uslm_only
-143,101,uslm_only
 143,103,uslm_only
 143,121,both
 143,141,uslm_only
@@ -1399,7 +1380,6 @@ source_section,target_section,status
 162,4911,uslm_only
 162,4985,uslm_only
 162,5000A,uslm_only
-162,5312,uslm_only
 162,6033,both
 162,7454,both
 162,7702B,both
@@ -1593,7 +1573,6 @@ source_section,target_section,status
 170,2106,both
 170,2522,both
 170,3304,both
-170,4043,uslm_only
 170,4942,both
 170,4943,both
 170,4948,both
@@ -1601,7 +1580,6 @@ source_section,target_section,status
 170,6033,both
 170,6050L,both
 170,7871,uslm_only
-170,chapter-42,cornell_target_not_in_uslm
 171,75,uslm_only
 171,368,uslm_only
 171,584,uslm_only
@@ -1661,7 +1639,6 @@ source_section,target_section,status
 179D,45,both
 179E,179,uslm_only
 181,45D,uslm_only
-181,101,uslm_only
 181,167,both
 181,168,uslm_only
 181,194,both
@@ -1822,7 +1799,6 @@ source_section,target_section,status
 221,7703,uslm_only
 223,1,uslm_only
 223,72,both
-223,101,uslm_only
 223,106,both
 223,121,both
 223,151,both
@@ -2043,7 +2019,6 @@ source_section,target_section,status
 274,414,both
 274,501,uslm_only
 274,707,uslm_only
-274,2101,uslm_only
 274,6103,uslm_only
 275,164,both
 275,901,uslm_only
@@ -2574,7 +2549,6 @@ source_section,target_section,status
 408,4974,uslm_only
 408,4975,uslm_only
 408,4979,uslm_only
-408,5112,uslm_only
 408,6051,uslm_only
 408,6693,uslm_only
 408,7701,both
@@ -2696,7 +2670,6 @@ source_section,target_section,status
 414,1563,both
 414,3121,both
 414,3401,both
-414,4403,uslm_only
 414,4975,uslm_only
 414,4980B,uslm_only
 414,4980D,uslm_only
@@ -2713,7 +2686,6 @@ source_section,target_section,status
 415,131,both
 415,132,uslm_only
 415,170,uslm_only
-415,216,uslm_only
 415,401,both
 415,402,both
 415,403,both
@@ -2785,7 +2757,6 @@ source_section,target_section,status
 423,414,both
 423,421,both
 423,424,both
-423,chapter-24,cornell_target_not_in_uslm
 424,305,uslm_only
 424,354,both
 424,355,both
@@ -2820,8 +2791,6 @@ source_section,target_section,status
 432,418E,both
 432,430,both
 432,431,both
-432,704,uslm_only
-432,706,uslm_only
 432,4971,uslm_only
 432,4975,both
 432,4980F,uslm_only
@@ -3130,9 +3099,6 @@ source_section,target_section,status
 507,642,uslm_only
 507,4946,both
 507,6104,uslm_only
-507,chapter-1,cornell_target_not_in_uslm
-507,chapter-11,cornell_target_not_in_uslm
-507,chapter-12,cornell_target_not_in_uslm
 508,170,uslm_only
 508,501,both
 508,507,both
@@ -3250,9 +3216,6 @@ source_section,target_section,status
 529,530,both
 529,2503,uslm_only
 529,2651,both
-529,chapter-11,cornell_target_not_in_uslm
-529,chapter-12,cornell_target_not_in_uslm
-529,chapter-13,cornell_target_not_in_uslm
 529A,72,both
 529A,152,uslm_only
 529A,219,both
@@ -3265,9 +3228,6 @@ source_section,target_section,status
 529A,529,uslm_only
 529A,530A,uslm_only
 529A,2503,both
-529A,chapter-11,cornell_target_not_in_uslm
-529A,chapter-12,cornell_target_not_in_uslm
-529A,chapter-13,cornell_target_not_in_uslm
 530,25A,uslm_only
 530,72,both
 530,168,uslm_only
@@ -3339,7 +3299,6 @@ source_section,target_section,status
 542,1501,uslm_only
 542,1504,both
 542,7701,uslm_only
-543,3,uslm_only
 543,162,both
 543,167,uslm_only
 543,174,uslm_only
@@ -3559,8 +3518,6 @@ source_section,target_section,status
 664,6212,uslm_only
 664,6621,uslm_only
 664,7520,uslm_only
-664,chapter-11,cornell_target_not_in_uslm
-664,chapter-42,cornell_target_not_in_uslm
 665,643,both
 665,661,both
 665,666,uslm_only
@@ -3574,7 +3531,6 @@ source_section,target_section,status
 667,666,both
 667,668,uslm_only
 667,904,both
-667,chapter-11,cornell_target_not_in_uslm
 668,666,both
 668,667,both
 668,6621,uslm_only
@@ -3639,7 +3595,6 @@ source_section,target_section,status
 702,901,uslm_only
 702,1231,uslm_only
 702,6221,uslm_only
-702,chapter-63,cornell_target_not_in_uslm
 703,108,uslm_only
 703,151,uslm_only
 703,164,uslm_only
@@ -4376,7 +4331,6 @@ source_section,target_section,status
 905,901,uslm_only
 905,986,uslm_only
 905,6511,uslm_only
-905,chapter-66,cornell_target_not_in_uslm
 906,871,uslm_only
 906,873,uslm_only
 906,882,uslm_only
@@ -4678,7 +4632,6 @@ source_section,target_section,status
 1014,2044,uslm_only
 1014,6018,uslm_only
 1014,6035,both
-1014,chapter-11,cornell_target_not_in_uslm
 1015,1016,uslm_only
 1015,1041,uslm_only
 1015,2503,uslm_only
@@ -5419,7 +5372,6 @@ source_section,target_section,status
 1446,864,both
 1446,1445,both
 1446,6655,both
-1464,chapter-65,cornell_target_not_in_uslm
 1471,475,both
 1471,954,both
 1471,1441,uslm_only
@@ -5480,7 +5432,6 @@ source_section,target_section,status
 2001,2513,both
 2001,2701,uslm_only
 2001,6501,both
-2001,chapter-12,cornell_target_not_in_uslm
 2010,1,uslm_only
 2010,2001,both
 2010,2521,both
@@ -5494,7 +5445,6 @@ source_section,target_section,status
 2012,2513,uslm_only
 2012,2522,uslm_only
 2012,2523,uslm_only
-2012,chapter-12,cornell_target_not_in_uslm
 2013,2001,both
 2013,2010,uslm_only
 2013,2012,uslm_only
@@ -5533,7 +5483,6 @@ source_section,target_section,status
 2032,2055,both
 2032,2056,uslm_only
 2032,2106,uslm_only
-2032,chapter-13,cornell_target_not_in_uslm
 2032A,1,uslm_only
 2032A,152,both
 2032A,170,both
@@ -5591,8 +5540,6 @@ source_section,target_section,status
 2055,2001,uslm_only
 2055,2032,uslm_only
 2055,2041,uslm_only
-2055,3113,uslm_only
-2055,4043,uslm_only
 2055,4942,uslm_only
 2055,4943,both
 2055,4947,uslm_only
@@ -5691,7 +5638,6 @@ source_section,target_section,status
 2207,2056,uslm_only
 2207A,2044,uslm_only
 2207A,2519,uslm_only
-2207A,chapter-12,cornell_target_not_in_uslm
 2207B,664,both
 2207B,2036,uslm_only
 2501,501,uslm_only
@@ -5726,7 +5672,6 @@ source_section,target_section,status
 2512,7517,uslm_only
 2513,2514,uslm_only
 2513,6212,uslm_only
-2515,chapter-13,cornell_target_not_in_uslm
 2519,2056,both
 2519,2207A,uslm_only
 2519,2523,both
@@ -5758,7 +5703,6 @@ source_section,target_section,status
 2622,2053,uslm_only
 2624,2032,uslm_only
 2624,2032A,uslm_only
-2624,chapter-11,cornell_target_not_in_uslm
 2631,2010,both
 2632,664,uslm_only
 2632,2503,both
@@ -5766,7 +5710,6 @@ source_section,target_section,status
 2632,2631,both
 2632,2642,both
 2632,6075,both
-2632,chapter-12,cornell_target_not_in_uslm
 2641,2001,uslm_only
 2642,2001,uslm_only
 2642,2035,both
@@ -5779,10 +5722,7 @@ source_section,target_section,status
 2642,2652,both
 2642,6019,uslm_only
 2642,6075,both
-2642,chapter-11,cornell_target_not_in_uslm
 2651,511,uslm_only
-2651,chapter-11,cornell_target_not_in_uslm
-2651,chapter-12,cornell_target_not_in_uslm
 2652,642,uslm_only
 2652,664,uslm_only
 2652,2055,uslm_only
@@ -5809,9 +5749,6 @@ source_section,target_section,status
 2701,2106,uslm_only
 2701,2503,uslm_only
 2701,2523,uslm_only
-2701,chapter-11,cornell_target_not_in_uslm
-2701,chapter-12,cornell_target_not_in_uslm
-2701,chapter-13,cornell_target_not_in_uslm
 2702,2701,both
 2702,2704,uslm_only
 2702,7520,uslm_only
@@ -5824,7 +5761,6 @@ source_section,target_section,status
 2801,2503,both
 2801,2522,uslm_only
 2801,2523,uslm_only
-2801,chapter-12,cornell_target_not_in_uslm
 3101,3121,both
 3101,7703,uslm_only
 3102,3101,both
@@ -5841,9 +5777,6 @@ source_section,target_section,status
 3121,74,uslm_only
 3121,83,both
 3121,101,uslm_only
-3121,105,uslm_only
-3121,106,uslm_only
-3121,107,uslm_only
 3121,108,uslm_only
 3121,117,uslm_only
 3121,119,uslm_only
@@ -5878,7 +5811,6 @@ source_section,target_section,status
 3121,3310,uslm_only
 3121,4985,uslm_only
 3121,5312,uslm_only
-3121,5351,uslm_only
 3121,6051,uslm_only
 3121,6053,uslm_only
 3121,6413,uslm_only
@@ -5969,7 +5901,6 @@ source_section,target_section,status
 3134,6501,uslm_only
 3134,6511,uslm_only
 3134,6656,uslm_only
-3134,chapter-22,cornell_target_not_in_uslm
 3201,3101,both
 3201,3231,uslm_only
 3201,3241,uslm_only
@@ -6140,8 +6071,6 @@ source_section,target_section,status
 3502,3101,uslm_only
 3502,3201,uslm_only
 3502,3211,uslm_only
-3503,chapter-21,cornell_target_not_in_uslm
-3503,chapter-22,cornell_target_not_in_uslm
 3505,3102,uslm_only
 3505,3202,uslm_only
 3505,3402,uslm_only
@@ -6155,8 +6084,6 @@ source_section,target_section,status
 3509,6041A,both
 3509,6051,both
 3509,6521,uslm_only
-3509,chapter-21,cornell_target_not_in_uslm
-3509,chapter-24,cornell_target_not_in_uslm
 3510,31,uslm_only
 3510,3121,uslm_only
 3510,3306,uslm_only
@@ -6346,7 +6273,6 @@ source_section,target_section,status
 4424,7602,uslm_only
 4462,4042,uslm_only
 4462,4461,both
-4475,5312,uslm_only
 4475,7701,uslm_only
 4482,4481,both
 4483,4053,uslm_only
@@ -6416,7 +6342,6 @@ source_section,target_section,status
 4941,501,uslm_only
 4941,503,both
 4941,4946,both
-4941,5702,uslm_only
 4941,6212,uslm_only
 4941,7872,uslm_only
 4942,11,both
@@ -6459,7 +6384,6 @@ source_section,target_section,status
 4946,507,uslm_only
 4946,4941,uslm_only
 4946,4943,uslm_only
-4946,5382,uslm_only
 4947,170,both
 4947,501,uslm_only
 4947,507,both
@@ -6668,7 +6592,6 @@ source_section,target_section,status
 4980B,1561,uslm_only
 4980B,5000,uslm_only
 4980B,7702B,uslm_only
-4980B,chapter-100,cornell_target_not_in_uslm
 4980C,21,uslm_only
 4980C,22,uslm_only
 4980C,24,uslm_only
@@ -6732,7 +6655,6 @@ source_section,target_section,status
 5000A,937,both
 5000A,1311,both
 5000A,1402,uslm_only
-5000A,2504,uslm_only
 5000A,6012,both
 5000D,4132,both
 5000D,4612,uslm_only
@@ -6800,9 +6722,6 @@ source_section,target_section,status
 5041,5051,both
 5041,6611,both
 5041,6621,both
-5041,chapter-2,cornell_target_not_in_uslm
-5041,chapter-21,cornell_target_not_in_uslm
-5041,chapter-22,cornell_target_not_in_uslm
 5042,5362,uslm_only
 5042,5370,uslm_only
 5042,5372,uslm_only
@@ -7361,13 +7280,11 @@ source_section,target_section,status
 6050G,72,uslm_only
 6050G,86,both
 6050H,216,both
-6050I,5312,uslm_only
 6050I,6045,both
 6050K,751,uslm_only
 6050L,170,both
 6050L,501,uslm_only
 6050M,102,uslm_only
-6050M,105,uslm_only
 6050N,6049,uslm_only
 6050P,581,uslm_only
 6050P,591,uslm_only
@@ -7376,7 +7293,6 @@ source_section,target_section,status
 6050R,6050I,uslm_only
 6050S,25A,both
 6050S,221,uslm_only
-6050S,chapter-68,cornell_target_not_in_uslm
 6050T,7527,uslm_only
 6050U,72,both
 6050V,168,uslm_only
@@ -7417,7 +7333,6 @@ source_section,target_section,status
 6051,7204,uslm_only
 6051,9831,both
 6051,9832,both
-6051,chapter-24,cornell_target_not_in_uslm
 6052,79,both
 6053,52,uslm_only
 6053,3101,uslm_only
@@ -7490,12 +7405,10 @@ source_section,target_section,status
 6103,135,both
 6103,151,both
 6103,263A,uslm_only
-6103,593,uslm_only
 6103,737,both
 6103,911,both
 6103,931,both
 6103,933,both
-6103,1315,uslm_only
 6103,1362,both
 6103,1398,both
 6103,1402,both
@@ -7508,7 +7421,6 @@ source_section,target_section,status
 6103,4481,uslm_only
 6103,5000,both
 6103,5181,uslm_only
-6103,5313,uslm_only
 6103,6050I,both
 6103,6051,both
 6103,6057,uslm_only
@@ -7538,9 +7450,6 @@ source_section,target_section,status
 6103,7624,uslm_only
 6103,7703,uslm_only
 6103,7802,uslm_only
-6103,chapter-1,cornell_target_not_in_uslm
-6103,chapter-6,cornell_target_not_in_uslm
-6103,chapter-61,cornell_target_not_in_uslm
 6104,170,uslm_only
 6104,401,both
 6104,403,uslm_only
@@ -7666,10 +7575,6 @@ source_section,target_section,status
 6211,6014,uslm_only
 6211,6851,uslm_only
 6211,6852,uslm_only
-6211,chapter-41,cornell_target_not_in_uslm
-6211,chapter-42,cornell_target_not_in_uslm
-6211,chapter-43,cornell_target_not_in_uslm
-6211,chapter-44,cornell_target_not_in_uslm
 6212,63,uslm_only
 6212,183,uslm_only
 6212,505,uslm_only
@@ -7682,7 +7587,6 @@ source_section,target_section,status
 6212,6852,uslm_only
 6212,6861,uslm_only
 6212,6903,uslm_only
-6212,chapter-11,cornell_target_not_in_uslm
 6213,21,both
 6213,24,both
 6213,25A,both
@@ -7762,13 +7666,11 @@ source_section,target_section,status
 6232,6621,both
 6232,6651,uslm_only
 6232,7421,uslm_only
-6232,chapter-63,cornell_target_not_in_uslm
 6233,6226,uslm_only
 6233,6603,uslm_only
 6233,6651,both
 6234,1,uslm_only
 6234,6231,both
-6234,chapter-67,cornell_target_not_in_uslm
 6235,905,uslm_only
 6235,6020,uslm_only
 6235,6225,both
@@ -7792,19 +7694,12 @@ source_section,target_section,status
 6241,6502,uslm_only
 6241,6851,uslm_only
 6241,6861,uslm_only
-6241,chapter-2,cornell_target_not_in_uslm
-6241,chapter-2A,cornell_target_not_in_uslm
 6302,4251,both
 6302,4261,both
 6302,4271,both
 6302,4481,uslm_only
 6302,5061,uslm_only
 6302,5703,uslm_only
-6302,chapter-21,cornell_target_not_in_uslm
-6302,chapter-22,cornell_target_not_in_uslm
-6302,chapter-24,cornell_target_not_in_uslm
-6302,chapter-32,cornell_target_not_in_uslm
-6302,chapter-38,cornell_target_not_in_uslm
 6303,6203,uslm_only
 6303,7508A,uslm_only
 6304,7433,uslm_only
@@ -7857,7 +7752,6 @@ source_section,target_section,status
 6325,6621,both
 6325,7122,uslm_only
 6325,7426,both
-6325,chapter-73,cornell_target_not_in_uslm
 6327,545,uslm_only
 6327,724,uslm_only
 6327,5004,uslm_only
@@ -7885,7 +7779,6 @@ source_section,target_section,status
 6332,6331,uslm_only
 6332,6621,both
 6334,1,uslm_only
-6334,101,uslm_only
 6334,121,both
 6334,151,both
 6334,6331,both
@@ -7921,7 +7814,6 @@ source_section,target_section,status
 6401,1446,uslm_only
 6401,6013,uslm_only
 6402,24,both
-6402,103,uslm_only
 6402,3304,uslm_only
 6403,6402,uslm_only
 6404,6212,both
@@ -7971,8 +7863,6 @@ source_section,target_section,status
 6416,4223,uslm_only
 6416,6427,uslm_only
 6416,7701,both
-6416,chapter-31,cornell_target_not_in_uslm
-6416,chapter-32,cornell_target_not_in_uslm
 6417,24,uslm_only
 6417,30C,both
 6417,30D,both
@@ -8078,23 +7968,11 @@ source_section,target_section,status
 6428,2,uslm_only
 6428,24,both
 6428,151,both
-6428,5502,uslm_only
-6428,6106,uslm_only
-6428,6108,uslm_only
 6428,6213,both
 6428A,2,uslm_only
 6428A,24,both
 6428A,101,uslm_only
 6428A,151,both
-6428A,1312,uslm_only
-6428A,1313,uslm_only
-6428A,1315,uslm_only
-6428A,1505,uslm_only
-6428A,1562,uslm_only
-6428A,5313,uslm_only
-6428A,5502,uslm_only
-6428A,6106,uslm_only
-6428A,6108,uslm_only
 6428A,6213,both
 6428A,6428,uslm_only
 6428B,2,uslm_only
@@ -8146,7 +8024,6 @@ source_section,target_section,status
 6433,6013,uslm_only
 6433,6058,uslm_only
 6433,6402,both
-6433,chapter-68,cornell_target_not_in_uslm
 6434,24,uslm_only
 6434,152,both
 6434,530A,uslm_only
@@ -8207,9 +8084,6 @@ source_section,target_section,status
 6501,6511,uslm_only
 6501,6707A,both
 6501,7701,both
-6501,chapter-2,cornell_target_not_in_uslm
-6501,chapter-2A,cornell_target_not_in_uslm
-6501,chapter-42,cornell_target_not_in_uslm
 6502,6335,both
 6502,6343,both
 6503,507,uslm_only
@@ -8231,7 +8105,6 @@ source_section,target_section,status
 6503,6502,both
 6503,6694,uslm_only
 6503,7426,both
-6503,chapter-11,cornell_target_not_in_uslm
 6504,63,uslm_only
 6504,905,uslm_only
 6504,1033,uslm_only
@@ -8302,7 +8175,6 @@ source_section,target_section,status
 6531,7207,uslm_only
 6531,7212,uslm_only
 6531,7214,uslm_only
-6531,chapter-61,cornell_target_not_in_uslm
 6532,505,uslm_only
 6532,6343,uslm_only
 6532,7405,uslm_only
@@ -8327,8 +8199,6 @@ source_section,target_section,status
 6601,6653,both
 6601,6654,both
 6601,6655,uslm_only
-6601,chapter-11,cornell_target_not_in_uslm
-6601,chapter-70,cornell_target_not_in_uslm
 6602,6621,uslm_only
 6602,7405,uslm_only
 6603,6601,uslm_only
@@ -8700,10 +8570,6 @@ source_section,target_section,status
 6867,6861,uslm_only
 6867,7429,uslm_only
 6871,6213,both
-6871,chapter-41,cornell_target_not_in_uslm
-6871,chapter-42,cornell_target_not_in_uslm
-6871,chapter-43,cornell_target_not_in_uslm
-6871,chapter-44,cornell_target_not_in_uslm
 6872,6036,uslm_only
 6873,6161,uslm_only
 6873,6503,uslm_only
@@ -8774,7 +8640,6 @@ source_section,target_section,status
 7213A,7213,uslm_only
 7215,7512,both
 7216,6713,both
-7217,5312,uslm_only
 7217,6103,both
 7231,7001,uslm_only
 7232,4083,both
@@ -8827,7 +8692,6 @@ source_section,target_section,status
 7410,1396,uslm_only
 7421,6015,uslm_only
 7421,6212,uslm_only
-7421,chapter-71,cornell_target_not_in_uslm
 7422,507,uslm_only
 7422,1346,uslm_only
 7422,1502,uslm_only
@@ -8850,7 +8714,6 @@ source_section,target_section,status
 7422,6700,uslm_only
 7422,6701,uslm_only
 7422,7479,both
-7422,chapter-42,cornell_target_not_in_uslm
 7424,1444,uslm_only
 7426,6325,uslm_only
 7426,6335,uslm_only
@@ -8866,7 +8729,7 @@ source_section,target_section,status
 7428,4942,both
 7428,6033,uslm_only
 7428,7481,both
-7429,1402,both
+7429,1402,cornell_only
 7429,6213,uslm_only
 7429,6331,both
 7429,6851,both
@@ -8921,7 +8784,6 @@ source_section,target_section,status
 7448,7443A,uslm_only
 7448,7447,both
 7448,7447A,uslm_only
-7448,9503,uslm_only
 7453,7436,uslm_only
 7453,7463,uslm_only
 7454,501,uslm_only
@@ -8949,14 +8811,10 @@ source_section,target_section,status
 7463,7453,uslm_only
 7463,7459,uslm_only
 7463,7460,uslm_only
-7463,chapter-63,cornell_target_not_in_uslm
 7465,6902,uslm_only
 7466,354,uslm_only
-7466,355,uslm_only
 7466,361,uslm_only
 7466,7443,uslm_only
-7470,451,uslm_only
-7471,5373,uslm_only
 7471,7443A,uslm_only
 7472,7475,uslm_only
 7473,7470A,uslm_only
@@ -8973,7 +8831,6 @@ source_section,target_section,status
 7481,6512,both
 7481,7436,both
 7481,7463,both
-7481,chapter-11,cornell_target_not_in_uslm
 7482,1254,uslm_only
 7482,6015,uslm_only
 7482,6213,uslm_only
@@ -8995,7 +8852,6 @@ source_section,target_section,status
 7501,6672,uslm_only
 7501,7202,uslm_only
 7502,6302,both
-7508,101,uslm_only
 7508,112,both
 7508,6013,uslm_only
 7508,6502,uslm_only
@@ -9015,7 +8871,6 @@ source_section,target_section,status
 7508A,6511,uslm_only
 7508A,7508,both
 7512,581,uslm_only
-7512,chapter-33,cornell_target_not_in_uslm
 7513,7213,uslm_only
 7518,1,uslm_only
 7518,11,both
@@ -9035,7 +8890,6 @@ source_section,target_section,status
 7519,707,uslm_only
 7519,1366,both
 7520,1274,both
-7521,chapter-78,cornell_target_not_in_uslm
 7522,6155,uslm_only
 7522,6212,uslm_only
 7522,6303,uslm_only
@@ -9083,9 +8937,6 @@ source_section,target_section,status
 7605,7602,uslm_only
 7605,7611,uslm_only
 7606,7342,uslm_only
-7608,1341,uslm_only
-7608,2105,uslm_only
-7608,3302,uslm_only
 7608,6301,uslm_only
 7609,6420,uslm_only
 7609,6421,uslm_only
@@ -9125,7 +8976,6 @@ source_section,target_section,status
 7652,5314,uslm_only
 7652,6302,uslm_only
 7652,7651,uslm_only
-7652,chapter-51,cornell_target_not_in_uslm
 7654,931,uslm_only
 7654,932,uslm_only
 7655,931,uslm_only
@@ -9223,14 +9073,8 @@ source_section,target_section,status
 7704,6655,both
 7705,414,both
 7705,3511,both
-7705,chapter-21,cornell_target_not_in_uslm
-7705,chapter-22,cornell_target_not_in_uslm
-7705,chapter-24,cornell_target_not_in_uslm
 7801,301,uslm_only
-7801,chapter-53,cornell_target_not_in_uslm
-7803,405,uslm_only
 7803,448,both
-7803,5382,uslm_only
 7803,6103,both
 7803,6108,uslm_only
 7803,6212,both
@@ -9243,7 +9087,6 @@ source_section,target_section,status
 7803,7521,both
 7803,7802,uslm_only
 7803,7811,uslm_only
-7803,chapter-64,cornell_target_not_in_uslm
 7809,6103,uslm_only
 7809,6108,uslm_only
 7809,6110,uslm_only
@@ -9258,7 +9101,6 @@ source_section,target_section,status
 7809,7810,uslm_only
 7810,7425,uslm_only
 7811,6306,both
-7812,9503,uslm_only
 7812,9504,uslm_only
 7812,9505,uslm_only
 7851,1,uslm_only
@@ -9276,13 +9118,6 @@ source_section,target_section,status
 7851,6531,uslm_only
 7851,7502,both
 7851,7503,uslm_only
-7851,chapter-1,cornell_target_not_in_uslm
-7851,chapter-11,cornell_target_not_in_uslm
-7851,chapter-12,cornell_target_not_in_uslm
-7851,chapter-2,cornell_target_not_in_uslm
-7851,chapter-3,cornell_target_not_in_uslm
-7851,chapter-6,cornell_target_not_in_uslm
-7851,chapter-75,cornell_target_not_in_uslm
 7871,103,both
 7871,105,uslm_only
 7871,141,uslm_only
@@ -9307,8 +9142,6 @@ source_section,target_section,status
 7872,643,both
 7872,1272,both
 7872,1274,both
-7872,chapter-11,cornell_target_not_in_uslm
-7872,chapter-24,cornell_target_not_in_uslm
 7874,11,uslm_only
 7874,172,uslm_only
 7874,267,both

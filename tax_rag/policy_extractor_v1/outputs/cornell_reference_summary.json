@@ -1,15 +1,15 @@
 {
-  "both": 3868,
+  "both": 3867,
   "compared_source_sections": 2114,
-  "cornell_only": 0,
-  "cornell_overlap_pct": 97.06,
+  "cornell_only": 1,
+  "cornell_overlap_pct": 99.49,
   "cornell_pages_cached": 2148,
-  "cornell_pairs": 3985,
+  "cornell_pairs": 3887,
   "cornell_pairs_with_uslm_section_target": 3868,
   "cornell_release_expected": "119-84",
   "cornell_release_observed": "119-84",
-  "cornell_section_overlap_pct": 100.0,
-  "cornell_target_not_in_uslm": 117,
+  "cornell_section_overlap_pct": 99.97,
+  "cornell_target_not_in_uslm": 19,
   "fetch_status": {
     "http_404": 34,
     "ok": 2114
@@ -18,9 +18,9 @@
     "cornell": true,
     "uslm": true
   },
-  "uslm_only": 5525,
-  "uslm_overlap_pct": 41.18,
-  "uslm_pairs_same_sources": 9393,
+  "uslm_only": 5456,
+  "uslm_overlap_pct": 41.48,
+  "uslm_pairs_same_sources": 9323,
   "uslm_release": "119-84",
   "uslm_sections": 2148
 }

@@ -1,0 +1,12 @@
+{
+  "population_uslm_only_pairs": 5525,
+  "sample_size": 150,
+  "seed": 11984,
+  "valid": 144,
+  "invalid": 6,
+  "unsure": 0,
+  "decided": 150,
+  "estimated_precision_pct": 96.0,
+  "wilson_95_low_pct": 91.55,
+  "wilson_95_high_pct": 98.15
+}
