@@ -1,0 +1,11 @@
+Title 26 REJ16 baseline
+Sections: 2116
+Raw XML comparison: precision 0.9867, recall 0.9065, F1 0.9449
+Disagreements: 986
+Multi-section list misses: 832
+Dash-delimiter misses: 20
+External-law false positives: 111
+XML external-reference false positives: 20
+XML typographic-dash omissions: 3
+Rule-adjudicated estimate: precision 0.9871, recall 0.9085, F1 0.9462
+Caveat: the comparator is parser-derived rather than an independent hand-labeled gold set.
