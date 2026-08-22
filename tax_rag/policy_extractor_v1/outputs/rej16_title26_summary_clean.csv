@@ -1,2 +1,2 @@
 input_sections,xml_sections,eligible_sections,rej16_pairs,xml_pairs,tp,fp,fn,precision,recall,f1
-2116,2148,2116,8573,9331,8459,114,872,0.9867,0.9065,0.9449
+2116,2148,2116,9426,9331,9312,114,19,0.9879,0.9980,0.9929

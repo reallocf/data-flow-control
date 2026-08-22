@@ -1,0 +1,19 @@
+{
+  "input_sections": 2116,
+  "predicted_internal_pairs": 9426,
+  "xml_internal_pairs": 9331,
+  "accepted_graph_edges": 9315,
+  "typographic_dash_pairs_added": 3,
+  "prompt_count": 2116,
+  "average_prompt_chars": 6333019.736767486,
+  "maximum_prompt_chars": 9460820,
+  "maximum_prompt_section": "9707",
+  "average_approx_tokens_4chars": 1583255.370510397,
+  "maximum_approx_tokens_4chars": 2365205,
+  "p50_approx_tokens_4chars": 2350116.0,
+  "p90_approx_tokens_4chars": 2350622.5,
+  "p95_approx_tokens_4chars": 2351435.0,
+  "p99_approx_tokens_4chars": 2358341.0,
+  "lt_32000": 691,
+  "gte_1000000": 1425
+}

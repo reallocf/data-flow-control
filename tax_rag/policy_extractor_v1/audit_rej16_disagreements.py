@@ -1,4 +1,4 @@
-﻿import csv
+import csv
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -145,9 +145,7 @@ for row in diff_rows:
     })
 
 expected = {
-    "rej16_multi_section_list": 832,
-    "rej16_dash_delimiter": 20,
-    "xml_external_reference": 20,
+    "xml_external_reference": 19,
     "rej16_external_law": 111,
     "xml_typographic_dash": 3,
 }

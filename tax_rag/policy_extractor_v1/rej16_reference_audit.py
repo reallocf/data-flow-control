@@ -10,6 +10,24 @@ targets = {x.strip() for x in os.getenv("TARGETS", "274").split(",") if x.strip(
 section_re = re.compile(r"\u00a7\s*([0-9][0-9A-Za-z-]*)")
 id_re = re.compile(r"(?:section|usc)[:_\s-]*([0-9][0-9A-Za-z-]*)", re.I)
 explicit_re = re.compile(r"\b(?:sections?|\u00a7{1,2})\s+([0-9][0-9A-Za-z-]*)(?P<trail>(?:\s*\([A-Za-z0-9-]+\))*)", re.I)
+section_atom = r"[0-9][0-9A-Za-z-]*(?:\s*\([A-Za-z0-9-]+\))*"
+section_list_re = re.compile(
+    rf"\b(?:sections?|\u00a7{{1,2}})\s+(?P<items>{section_atom}(?:(?:\s*,\s*(?:(?:and|or)\s+)?|\s+(?:and|or)\s+){section_atom})+)",
+    re.I,
+)
+section_atom_re = re.compile(section_atom, re.I)
+section_head_re = re.compile(r"^[0-9][0-9A-Za-z-]*")
+external_suffix_re = re.compile(
+    r"^\s*(?:(?:,?\s*(?:and|or)\s+)?\(\s*[A-Za-z0-9-]+\s*\)\s*)*"
+    r"of\s+(?:the\s+)?(?:"
+    r"title\s+\d+\s*,?\s*United States Code\b|"
+    r"such\s+Act\b|"
+    r"Public\s+Law\b|"
+    r"Pub\.?\s*L\.?\b|"
+    r"[A-Z][A-Za-z0-9&,'\u2019.\- ]{1,100}\s+Act\b"
+    r")",
+    re.I,
+)
 local_re = re.compile(r"\b(?:this\s+|such\s+)?(subsection|paragraph|subparagraph|clause)s?\s+(?P<trail>(?:\([A-Za-z0-9-]+\)\s*)+)", re.I)
 part_re = re.compile(r"\(([A-Za-z0-9-]+)\)")
 mark_re = re.compile(r"(?<![A-Za-z0-9)])\(([A-Za-z0-9]+)\)")
@@ -151,6 +169,13 @@ def resolve_path(nodes, source_node, target_level, parts, section):
         path = current[:target_level - 1] + list(parts)
     ident = make_id(section, path)
     return [str(x).lower() for x in path] if any(node["id"].lower() == ident.lower() for node in nodes) else []
+def normalize_section_target(value, known):
+    if value in known:
+        return value
+    if value.endswith("-") and value[:-1] in known:
+        return value[:-1]
+    return value
+
 def scan(text, source, known):
     text = text[:main_cut(text)]
     nodes = build_tree(text, source)
@@ -181,8 +206,22 @@ def scan(text, source, known):
     for match in title_re.finditer(text):
         trail = path_parts(match.group("trail"))
         add(match.start(), match.end(), match.group(0), "external", match.group("section"), ".".join(trail + ["title", match.group("title")]), "resolved_external")
+    for match in section_list_re.finditer(text):
+        if external_suffix_re.match(text[match.end():match.end() + 140]):
+            continue
+        items_start = match.start("items")
+        for item in section_atom_re.finditer(match.group("items")):
+            raw = item.group(0)
+            head = section_head_re.match(raw)
+            if not head:
+                continue
+            target = normalize_section_target(head.group(0), known)
+            trail = raw[head.end():]
+            start = items_start + item.start()
+            end = items_start + item.end()
+            add(start, end, text[start:end], "explicit", target, ".".join(path_parts(trail)), "resolved_section" if target in known else "unresolved_missing_section")
     for match in explicit_re.finditer(text):
-        target = match.group(1)
+        target = normalize_section_target(match.group(1), known)
         add(match.start(), match.end(), match.group(0), "explicit", target, ".".join(path_parts(match.group("trail"))), "resolved_section" if target in known else "unresolved_missing_section")
     for match in coordinated_local_re.finditer(text):
         start, end = match.span("trail")
