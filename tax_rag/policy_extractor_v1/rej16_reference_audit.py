@@ -31,6 +31,17 @@ external_suffix_re = re.compile(
 local_re = re.compile(r"\b(?:this\s+|such\s+)?(subsection|paragraph|subparagraph|clause)s?\s+(?P<trail>(?:\([A-Za-z0-9-]+\)\s*)+)", re.I)
 part_re = re.compile(r"\(([A-Za-z0-9-]+)\)")
 mark_re = re.compile(r"(?<![A-Za-z0-9)])\(([A-Za-z0-9]+)\)")
+structure_ref_first_re = re.compile(r"\b(?P<kind>subsection|paragraph|subparagraph|clause)s?\s*$", re.I)
+structure_ref_join_re = re.compile(
+    r"\b(?P<kind>subsection|paragraph|subparagraph|clause)s?\s+"
+    r"(?:\([A-Za-z0-9-]+\)\s*,\s*)*\([A-Za-z0-9-]+\)\s*,?\s*(?:and|or)\s*$",
+    re.I,
+)
+structure_ref_plural_re = re.compile(
+    r"\b(?P<kind>subsections|paragraphs|subparagraphs|clauses)\s+"
+    r"(?:\([A-Za-z0-9-]+\)\s*,\s*)+$",
+    re.I,
+)
 complex_local_re = re.compile(r"\b(?P<kind>subsections?|paragraphs?|subparagraphs?|clauses?)\s+(?P<items>\([A-Za-z0-9-]+\)(?:\s*,\s*\([A-Za-z0-9-]+\))*(?:\s*,?\s*(?:and|or)\s*\([A-Za-z0-9-]+\))?)\s+of\s+(?P<parent_kind>subsections?|paragraphs?|subparagraphs?|clauses?)\s+(?P<parent>(?:\([A-Za-z0-9-]+\))+)", re.I)
 self_re = re.compile(r"\bthis\s+(chapter|section|subsection|paragraph)\b", re.I)
 part_structure_re = re.compile(r"\bpart\s+([IVXLCDM]+)\s+of\s+subchapter\s+([A-Z])\s+of\s+chapter\s+([0-9][0-9A-Za-z-]*)\b", re.I)
@@ -123,6 +134,55 @@ def node_score(level, token, stack, seen, source):
     if previous is None and check == (first_mark(level).lower() if level == 4 else first_mark(level)):
         return 80 + level
     return None
+def structure_word_level(kind):
+    return level_by_word.get(kind.lower().rstrip("s"))
+
+def mark_is_heading(text, match, level, stack, seen, source):
+    tail = text[match.end():match.end() + 40]
+    first = next((ch for ch in tail if not ch.isspace()), "")
+    if first in {",", ";", ".", ")", "("}:
+        return False
+
+    prefix = text[max(0, match.start() - 160):match.start()]
+
+    for pattern in (
+        structure_ref_first_re,
+        structure_ref_join_re,
+        structure_ref_plural_re,
+    ):
+        hit = pattern.search(prefix)
+        if hit and structure_word_level(hit.group("kind")) == level:
+            return False
+
+    if level >= 3:
+        parent = (
+            source
+            if level == 1
+            else (
+                stack[level - 2]["id"]
+                if len(stack) >= level - 1
+                else None
+            )
+        )
+
+        previous = seen.get((parent, level)) if parent else None
+
+        if previous is None:
+            before = text[:match.start()].rstrip()[-1:]
+            next_word = re.search(r"[A-Za-z]", tail)
+            capital = bool(
+                next_word
+                and next_word.group(0).isupper()
+            )
+
+            if (
+                before not in {"-", "\u2013", "\u2014", ":"}
+                and not capital
+            ):
+                return False
+
+    return True
+
 def build_tree(text, source):
     root = {"id": source, "level": 0, "token": source, "path": [], "start": 0, "end": len(text)}
     nodes = [root]
@@ -131,12 +191,28 @@ def build_tree(text, source):
     used = set()
     for match in mark_re.finditer(text):
         token = match.group(1)
-        if text[match.end():match.end() + 1] in {",", ";"}:
-            continue
         choices = []
+
         for level in level_options(token):
-            value = node_score(level, token, stack, seen, source)
-            if value is not None:
+            value = node_score(
+                level,
+                token,
+                stack,
+                seen,
+                source,
+            )
+
+            if (
+                value is not None
+                and mark_is_heading(
+                    text,
+                    match,
+                    level,
+                    stack,
+                    seen,
+                    source,
+                )
+            ):
                 choices.append((value, level))
         if not choices:
             continue

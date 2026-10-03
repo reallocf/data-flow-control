@@ -1,0 +1,9 @@
+layer,section_count,mapped_blocks,marginal_tokens,cumulative_context_tokens,legal_context_capacity,fits
+1,15,19,15119,15119,992498,true
+2,175,,562782,577901,992498,true
+3,434,,780975,1358876,992498,false
+4,371,,406815,1765691,992498,false
+5,133,,84747,1850438,992498,false
+6,40,,17690,1868128,992498,false
+7,20,,8610,1876738,992498,false
+8,6,,1182,1877920,992498,false

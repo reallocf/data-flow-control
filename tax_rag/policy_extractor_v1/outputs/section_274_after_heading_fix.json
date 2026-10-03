@@ -1,0 +1,59 @@
+{
+  "cross_code_tokens": 9179,
+  "last_complete_layer": 3,
+  "first_layer_beyond_capacity": 4,
+  "layers": [
+    {
+      "layer": 1,
+      "new_units": 19,
+      "cumulative_units": 19,
+      "tax_code_tokens": 15119,
+      "cross_code_tokens": 9179,
+      "combined_tokens": 24298,
+      "capacity": 992498,
+      "fits": "true",
+      "external_items": 3,
+      "structural_items": 0,
+      "missing_sections": 0
+    },
+    {
+      "layer": 2,
+      "new_units": 63,
+      "cumulative_units": 74,
+      "tax_code_tokens": 162161,
+      "cross_code_tokens": 9179,
+      "combined_tokens": 171340,
+      "capacity": 992498,
+      "fits": "true",
+      "external_items": 10,
+      "structural_items": 5,
+      "missing_sections": 0
+    },
+    {
+      "layer": 3,
+      "new_units": 289,
+      "cumulative_units": 332,
+      "tax_code_tokens": 617986,
+      "cross_code_tokens": 9179,
+      "combined_tokens": 627165,
+      "capacity": 992498,
+      "fits": "true",
+      "external_items": 99,
+      "structural_items": 153,
+      "missing_sections": 17
+    },
+    {
+      "layer": 4,
+      "new_units": 460,
+      "cumulative_units": 708,
+      "tax_code_tokens": 1188451,
+      "cross_code_tokens": 9179,
+      "combined_tokens": 1197630,
+      "capacity": 992498,
+      "fits": "false",
+      "external_items": 172,
+      "structural_items": 435,
+      "missing_sections": 61
+    }
+  ]
+}

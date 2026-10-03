@@ -1,0 +1,5 @@
+layer,new_units,new_sections,cumulative_units,exact_mappings,ancestor_mappings,context_tokens,legal_context_capacity,fits,resolved_external,needs_structural_resolution,unresolved_missing_section,mapping_missing
+1,19,15,19,19,0,15119,992498,true,3,0,0,0
+2,63,53,74,63,0,162161,992498,true,10,5,0,0
+3,289,256,332,281,8,617986,992498,true,99,153,17,0
+4,460,402,708,452,8,1188451,992498,false,172,435,61,0

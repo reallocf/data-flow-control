@@ -1,0 +1,70 @@
+{
+  "baseline_status": "ADDITIONAL_RESOLUTION_REQUIRED",
+  "target_diagnostic_count": 3,
+  "target_external_count": 3,
+  "legal_context_capacity": 992498,
+  "conditional_last_complete_structural_layer": 3,
+  "conditional_first_structural_layer_beyond_capacity": 4,
+  "layers": [
+    {
+      "layer": 1,
+      "new_units": 19,
+      "new_sections": 15,
+      "cumulative_units": 19,
+      "exact_mappings": 19,
+      "ancestor_mappings": 0,
+      "context_tokens": 15119,
+      "legal_context_capacity": 992498,
+      "fits": "true",
+      "resolved_external": 3,
+      "needs_structural_resolution": 0,
+      "unresolved_missing_section": 0,
+      "mapping_missing": 0
+    },
+    {
+      "layer": 2,
+      "new_units": 63,
+      "new_sections": 53,
+      "cumulative_units": 74,
+      "exact_mappings": 63,
+      "ancestor_mappings": 0,
+      "context_tokens": 162161,
+      "legal_context_capacity": 992498,
+      "fits": "true",
+      "resolved_external": 10,
+      "needs_structural_resolution": 5,
+      "unresolved_missing_section": 0,
+      "mapping_missing": 0
+    },
+    {
+      "layer": 3,
+      "new_units": 289,
+      "new_sections": 256,
+      "cumulative_units": 332,
+      "exact_mappings": 281,
+      "ancestor_mappings": 8,
+      "context_tokens": 617986,
+      "legal_context_capacity": 992498,
+      "fits": "true",
+      "resolved_external": 99,
+      "needs_structural_resolution": 153,
+      "unresolved_missing_section": 17,
+      "mapping_missing": 0
+    },
+    {
+      "layer": 4,
+      "new_units": 460,
+      "new_sections": 402,
+      "cumulative_units": 708,
+      "exact_mappings": 452,
+      "ancestor_mappings": 8,
+      "context_tokens": 1188451,
+      "legal_context_capacity": 992498,
+      "fits": "false",
+      "resolved_external": 172,
+      "needs_structural_resolution": 435,
+      "unresolved_missing_section": 61,
+      "mapping_missing": 0
+    }
+  ]
+}

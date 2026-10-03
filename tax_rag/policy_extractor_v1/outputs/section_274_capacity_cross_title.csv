@@ -1,0 +1,5 @@
+layer,tax_code_context_tokens,cross_title_tokens,combined_accounting_tokens,legal_context_capacity,fits
+1,15119,9179,24298,992498,true
+2,158153,9179,167332,992498,true
+3,615648,9179,624827,992498,true
+4,1189464,9179,1198643,992498,false

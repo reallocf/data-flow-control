@@ -1,0 +1,956 @@
+layer,status,source_section,source_path,span_start,span_end,surface,target_section,target_path
+1,resolved_external,274,e.2.b.ii,5699,5751,section 16(a) of the Securities Exchange Act of 1934,16,a|securities.exchange.act.of.1934
+1,resolved_external,274,h.6.b,14669,14734,section 212(a)(1)(A) of the Caribbean Basin Economic Recovery Act,212,a.1.a|caribbean.basin.economic.recovery.act
+1,resolved_external,274,n.2.c.v,26217,26241,section 2101 of title 46,2101,title.46
+2,resolved_external,162,d,4742,4813,section 303(c) of the Federal National Mortgage Association Charter Act,303,c|federal.national.mortgage.association.charter.act
+2,resolved_external,162,m.2,19528,19576,section 3 of the Securities Exchange Act of 1934,3,securities.exchange.act.of.1934
+2,resolved_external,162,m.5.b.i,24638,24704,section 101(a) of the Emergency Economic Stabilization Act of 2008,101,a|emergency.economic.stabilization.act.of.2008
+2,resolved_external,162,m.5.b.ii,25017,25083,section 113(c) of the Emergency Economic Stabilization Act of 2008,113,c|emergency.economic.stabilization.act.of.2008
+2,resolved_external,162,m.5.c.i,25793,25859,section 101(a) of the Emergency Economic Stabilization Act of 2008,101,a|emergency.economic.stabilization.act.of.2008
+2,resolved_external,162,m.5.d.i,26552,26618,section 101(a) of the Emergency Economic Stabilization Act of 2008,101,a|emergency.economic.stabilization.act.of.2008
+2,resolved_external,162,r.4,41338,41387,section 7(b) of the Federal Deposit Insurance Act,7,b|federal.deposit.insurance.act
+2,resolved_external,162,r.5,41549,41625,section 165 of the Dodd-Frank Wall Street Reform and Consumer Protection Act,165,dodd.frank.wall.street.reform.and.consumer.protection.act
+2,resolved_external,162,e.5.c,8494,8517,section 5312 of title 5,5312,title.5
+2,needs_structural_resolution,162,e.5.c,8687,8697,clause (i),162,i
+2,needs_structural_resolution,162,m.5.d.ii,27101,27114,clause (i)(I),162,i.i
+2,needs_structural_resolution,162,m.5.d.ii,27412,27425,clause (i)(I),162,i.i
+2,needs_structural_resolution,162,o.3.b,39546,39566,subparagraph (A)(ii),162,a.ii
+2,resolved_external,217,k.2,7859,7905,section 3 of the National Security Act of 1947,3,national.security.act.of.1947
+2,needs_structural_resolution,217,d,2114,2135,subsection (c)(2) (1),217,c.2.1
+3,needs_structural_resolution,1,f.3.c,5598,5609,clause (ii),1,ii
+3,resolved_external,117,c.2.a,1462,1516,section 338A(g)(1)(A) of the Public Health Service Act,338A,g.1.a|public.health.service.act
+3,resolved_external,117,c.2.c,1746,1796,section 448(e) of the Higher Education Act of 1965,448,e|higher.education.act.of.1965
+3,resolved_external,119,d.4.b.ii,5275,5314,section 1886 of the Social Security Act,1886,social.security.act
+3,needs_structural_resolution,119,d.4.b.ii,5244,5264,subsection (d)(5)(B),119,d.5.b
+3,resolved_external,132,g.2,9571,9617,section 3 of the National Security Act of 1947,3,national.security.act.of.1947
+3,resolved_external,132,n.1,17769,17850,section 1013 of the Demonstration Cities and Metropolitan Development Act of 1966,1013,demonstration.cities.and.metropolitan.development.act.of.1966
+3,resolved_external,135,c.1.c,2650,2674,section 3105 of title 31,3105,title.31
+3,needs_structural_resolution,135,b.2.b.ii,2054,2074,subparagraph (A)(ii),135,a.ii
+3,resolved_external,137,c.2,2205,2229,section 1052 of title 10,1052,title.10
+3,needs_structural_resolution,137,f.2,3316,3336,subparagraph (A)(ii),137,a.ii
+3,resolved_external,1402,a.1,798,849,section 1233(a)(2) of the Food Security Act of 1985,1233,a.2|food.security.act.of.1985
+3,unresolved_missing_section,1402,a.1,915,926,section 202,202,
+3,needs_structural_resolution,1402,a.17,11637,11648,clauses (i),1402,i
+3,needs_structural_resolution,163,i,20945,20976,Clause (iv) of subparagraph (E),163,e.iv
+3,resolved_external,163,i,29755,29805,section 2 of the Homeowners Protection Act of 1998,2,homeowners.protection.act.of.1998
+3,needs_structural_resolution,163,d.4.b.i,3286,3300,clause (ii)(I),163,ii.i
+3,needs_structural_resolution,163,d.4.b.iii,3610,3625,clause (ii)(II),163,ii.ii
+3,needs_structural_resolution,163,d.4.b.iii,3670,3684,clause (ii)(I),163,ii.i
+3,needs_structural_resolution,163,e.2.b,5749,5762,paragraph (7),163,7
+3,needs_structural_resolution,163,e.5.f,11332,11345,paragraph (i),163,i
+3,needs_structural_resolution,163,h.3.d.iv,19197,19212,clause (iii)(I),163,iii.i
+3,needs_structural_resolution,163,h.3.d.iv,19272,19287,clause (iii)(I),163,iii.i
+3,needs_structural_resolution,163,i,20247,20257,Clause (i),163,i
+3,needs_structural_resolution,163,i,20372,20382,Clause (i),163,i
+3,needs_structural_resolution,163,i,20706,20726,Subparagraph (A)(ii),163,a.ii
+3,needs_structural_resolution,163,i,20788,20808,Subparagraph (B)(ii),163,b.ii
+3,needs_structural_resolution,163,i,22037,22052,clause (i)(III),163,i.iii
+3,needs_structural_resolution,163,i,24184,24194,clause (i),163,i
+3,needs_structural_resolution,163,i,24333,24349,subparagraph (B),163,b
+3,needs_structural_resolution,163,i,24660,24670,clause (i),163,i
+3,needs_structural_resolution,163,i,25957,25973,subparagraph (D),163,d
+3,needs_structural_resolution,163,i,26415,26431,subparagraph (B),163,b
+3,needs_structural_resolution,163,i,26847,26863,subparagraph (B),163,b
+3,needs_structural_resolution,163,i,27637,27647,clause (i),163,i
+3,needs_structural_resolution,163,i,27894,27908,clause (i)(II),163,i.ii
+3,needs_structural_resolution,163,j.4.a.ii,35989,36004,clause (ii)(II),163,ii.ii
+3,needs_structural_resolution,163,j.4.b.iii,38070,38084,clause (i)(II),163,i.ii
+3,needs_structural_resolution,163,j.4.b.iii,38460,38474,clause (i)(II),163,i.ii
+3,needs_structural_resolution,163,j.12.a.ii,46389,46412,paragraph (4)(B)(i)(II),163,4.b.i.ii
+3,needs_structural_resolution,163,i,23219,23233,this paragraph,163,i
+3,needs_structural_resolution,163,i,24057,24071,this paragraph,163,i
+3,needs_structural_resolution,163,i,25906,25920,this paragraph,163,i
+3,resolved_external,170,b.1.a.ix,4408,4502,"section 1404 of the National Agricultural Research, Extension, and Teaching Policy Act of 1977",1404,national.agricultural.research.extension.and.teaching.policy.act.of.1977
+3,resolved_external,170,b.2.c.iii,19542,19597,section 3(m) of the Alaska Native Claims Settlement Act,3,m|alaska.native.claims.settlement.act
+3,resolved_external,170,e.3.c.vi,35891,35960,section 22(b)(2) of the Bill Emerson Good Samaritan Food Donation Act,22,b.2|bill.emerson.good.samaritan.food.donation.act
+3,resolved_external,170,q.7,93942,94006,section 25 of the State Department Basic Authorities Act of 1956,25,state.department.basic.authorities.act.of.1956
+3,resolved_external,170,q.6,93640,93664,section 8473 of title 10,8473,title.10
+3,resolved_external,170,q.8,94183,94207,section 4043 of title 18,4043,title.18
+3,unresolved_missing_section,170,f.11.e.iii,59757,59771,section 330(c),330,c
+3,needs_structural_resolution,170,b.1.f.ii,12327,12340,paragraph (3),170,3
+3,needs_structural_resolution,170,d.2.a,26493,26504,clause (ii),170,ii
+3,needs_structural_resolution,170,d.2.c,27642,27652,clause (i),170,i
+3,needs_structural_resolution,170,d.2.c,27667,27678,clause (ii),170,ii
+3,needs_structural_resolution,170,e.3.c.iii,34243,34258,clause (ii)(II),170,ii.ii
+3,needs_structural_resolution,170,f.10.e,52865,52881,paragraph (1)(A),170,1.a
+3,needs_structural_resolution,170,f.13.b,64682,64706,subsection (h)(4)(C)(ii),170,h.4.c.ii
+3,needs_structural_resolution,170,f.19.b.i,69619,69639,subsection (h)(4)(C),170,h.4.c
+3,needs_structural_resolution,170,f.19.b.iii,69870,69887,subsection (h)(7),170,h.7
+3,needs_structural_resolution,170,g.3,72072,72089,subparagraphs (A),170,a
+3,needs_structural_resolution,170,i,74435,74455,subparagraph (C)(ii),170,c.ii
+3,needs_structural_resolution,170,i,75002,75015,paragraph (3),170,3
+3,needs_structural_resolution,170,i,75737,75757,subparagraph (A)(iv),170,a.iv
+3,needs_structural_resolution,170,i,76722,76733,clause (ii),170,ii
+3,needs_structural_resolution,170,i,76841,76857,subparagraph (A),170,a
+3,needs_structural_resolution,170,i,77140,77156,subparagraph (A),170,a
+3,needs_structural_resolution,170,i,78266,78282,subparagraph (A),170,a
+3,needs_structural_resolution,170,i,78491,78507,subparagraph (A),170,a
+3,needs_structural_resolution,170,i,78772,78788,Subparagraph (A),170,a
+3,needs_structural_resolution,170,i,79547,79563,Subparagraph (A),170,a
+3,needs_structural_resolution,170,i,80063,80080,subparagraphs (A),170,a
+3,needs_structural_resolution,170,i,80189,80205,Subparagraph (A),170,a
+3,needs_structural_resolution,170,i,80390,80406,paragraph (4)(C),170,4.c
+3,needs_structural_resolution,170,i,77952,77966,this paragraph,170,i
+3,needs_structural_resolution,170,i,80523,80537,this paragraph,170,i
+3,needs_structural_resolution,170,i,80801,80815,this paragraph,170,i
+3,needs_structural_resolution,170,i,81024,81038,this paragraph,170,i
+3,needs_structural_resolution,213,a,312,330,subsections (b)(1),213,b.1
+3,resolved_external,219,g.6.a,12857,12882,section 10101 of title 10,10101,title.10
+3,needs_structural_resolution,219,b.5.c.i,2205,2225,subparagraph (A)(ii),219,a.ii
+3,needs_structural_resolution,219,b.5.c.iii,2831,2851,subparagraph (A)(ii),219,a.ii
+3,needs_structural_resolution,219,f.1,6087,6104,subsection (c)(6),219,c.6
+3,needs_structural_resolution,219,g.6.a,12727,12748,subparagraph (A)(iii),219,a.iii
+3,needs_structural_resolution,219,g.6.b.i,13111,13132,subparagraph (A)(iii),219,a.iii
+3,needs_structural_resolution,219,g.8.b,14241,14261,subparagraph (A)(ii),219,a.ii
+3,resolved_external,221,d.2,2860,2907,section 472 of the Higher Education Act of 1965,472,higher.education.act.of.1965
+3,needs_structural_resolution,221,f.1.b,5525,5545,subparagraph (A)(ii),221,a.ii
+3,needs_structural_resolution,267,f.1.b,11901,11919,subsections (a)(4),267,a.4
+3,resolved_external,280G,e.1,8723,8789,section 101(a) of the Emergency Economic Stabilization Act of 2008,101,a|emergency.economic.stabilization.act.of.2008
+3,needs_structural_resolution,280G,b.5.a.i,3850,3866,paragraph (1)(C),280G,1.c
+3,needs_structural_resolution,280G,b.5.a.ii,4700,4714,clause (ii)(I),280G,ii.i
+3,needs_structural_resolution,280G,d.1.a,7254,7270,paragraph (2)(A),280G,2.a
+3,needs_structural_resolution,280G,d.2,7591,7607,paragraph (2)(A),280G,2.a
+3,resolved_external,3121,a.1,534,572,section 230 of the Social Security Act,230,social.security.act
+3,resolved_external,3121,a.1,1554,1592,section 230 of the Social Security Act,230,social.security.act
+3,resolved_external,3121,a.5.f,4701,4775,section 3(2)(B)(ii) of the Employee Retirement Income Security Act of 1974,3,2.b.ii|employee.retirement.income.security.act.of.1974
+3,resolved_external,3121,a.6.c.ii,9447,9488,section 223(a) of the Social Security Act,223,a|social.security.act
+3,resolved_external,3121,b,13163,13201,section 233 of the Social Security Act,233,social.security.act
+3,resolved_external,3121,b.2.b.i,17787,17841,section 104(e)(2) of the Indian Self-Determination Act,104,e.2|indian.self.determination.act
+3,resolved_external,3121,b.2.h.i,21905,21966,section 307 of the Central Intelligence Agency Retirement Act,307,central.intelligence.agency.retirement.act
+3,resolved_external,3121,b.2.h.ii,22282,22328,section 860 of the Foreign Service Act of 1980,860,foreign.service.act.of.1980
+3,resolved_external,3121,b.2.h.iv,26225,26263,section 218 of the Social Security Act,218,social.security.act
+3,resolved_external,3121,b.2.h.iv,27329,27376,section 218(c)(8)(B) of the Social Security Act,218,c.8.b|social.security.act
+3,resolved_external,3121,b.2.h.v,27884,27928,section 218(b)(4) of the Social Security Act,218,b.4|social.security.act
+3,resolved_external,3121,b.2.h.v,29415,29459,section 218(c)(5) of the Social Security Act,218,c.5|social.security.act
+3,resolved_external,3121,b.2.h.v,32514,32578,section 101(a)(15)(H)(ii) of the Immigration and Nationality Act,101,a.15.h.ii|immigration.and.nationality.act
+3,resolved_external,3121,b.2.h.v,32802,32859,section 101(a)(15) of the Immigration and Nationality Act,101,a.15|immigration.and.nationality.act
+3,resolved_external,3121,b.2.h.v,34739,34778,section 218A of the Social Security Act,218A,social.security.act
+3,resolved_external,3121,g.3,40131,40178,section 15(g) of the Agricultural Marketing Act,15,g|agricultural.marketing.act
+3,resolved_external,3121,j.2.d,47884,47922,section 218 of the Social Security Act,218,social.security.act
+3,resolved_external,3121,j.4.b,50083,50121,section 218 of the Social Security Act,218,social.security.act
+3,resolved_external,3121,l.4,53892,53930,section 201 of the Social Security Act,201,social.security.act
+3,resolved_external,3121,l.6,55198,55239,section 210(a) of the Social Security Act,210,a|social.security.act
+3,resolved_external,3121,r.3.a,63163,63207,section 210(a)(8) of the Social Security Act,210,a.8|social.security.act
+3,resolved_external,3121,u.2.b.i,66147,66185,section 218 of the Social Security Act,218,social.security.act
+3,resolved_external,3121,u.2.b.ii,67349,67396,section 218(c)(8)(B) of the Social Security Act,218,c.8.b|social.security.act
+3,resolved_external,3121,u.2.b.ii,67711,67752,section 218(b) of the Social Security Act,218,b|social.security.act
+3,resolved_external,3121,u.2.d.i,68681,68722,section 218(b) of the Social Security Act,218,b|social.security.act
+3,resolved_external,3121,x,74878,74929,section 215(a)(1)(B)(ii) of the Social Security Act,215,a.1.b.ii|social.security.act
+3,resolved_external,3121,b.2.g.ii,20181,20207,section 8342(a) of title 5,8342,a.title.5
+3,resolved_external,3121,b.2.h.ii,22702,22728,section 5351(2) of title 5,5351,2.title.5
+3,resolved_external,3121,b.2.h.ii,25011,25037,section 5351(2) of title 5,5351,2.title.5
+3,resolved_external,3121,i.2,43830,43854,section 1009 of title 37,1009,title.37
+3,resolved_external,3121,i.2,44047,44073,section 206(a) of title 37,206,a.title.37
+3,resolved_external,3121,i.5,45762,45785,section 294 of title 28,294,title.28
+3,resolved_external,3121,m.2,57168,57191,section 101 of title 38,101,title.38
+3,resolved_external,3121,n,57741,57768,section 101(27) of title 38,101,27.title.38
+3,resolved_external,3121,u.2.b.ii,66778,66804,section 5351(2) of title 5,5351,2.title.5
+3,resolved_external,3121,y.1,75622,75645,section 3582 of title 5,3582,title.5
+3,resolved_external,3121,y.2.a,76226,76252,section 3581(1) of title 5,3581,1.title.5
+3,resolved_external,3121,y.2.b,76382,76408,section 3581(3) of title 5,3581,3.title.5
+3,unresolved_missing_section,3121,b.2.b.i,16443,16455,section 3343,3343,
+3,unresolved_missing_section,3121,b.2.b.i,16529,16541,section 3581,3581,
+3,unresolved_missing_section,3121,b.2.g.ii,21084,21099,section 8334(a),8334,a
+3,unresolved_missing_section,3121,b.2.g.ii,21213,21231,section 8332(k)(1),8332,k.1
+3,unresolved_missing_section,3121,i.5,45932,45946,section 371(b),371,b
+3,unresolved_missing_section,3121,y.1.b,76087,76099,section 3582,3582,
+3,needs_structural_resolution,3121,a.5.h,5173,5192,paragraph (2)(A)(i),3121,2.a.i
+3,needs_structural_resolution,3121,a.6.c,6750,6767,subsection (g)(5),3121,g.5
+3,needs_structural_resolution,3121,b.2,14546,14557,clause (ii),3121,ii
+3,needs_structural_resolution,3121,b.2,14810,14821,clause (ii),3121,ii
+3,needs_structural_resolution,3121,b.2.a,15646,15660,paragraphs (5),3121,5
+3,needs_structural_resolution,3121,b.2.h.v,33036,33052,paragraph (3)(A),3121,3.a
+3,needs_structural_resolution,3121,b.2.h.v,34796,34810,paragraph (20),3121,20
+3,needs_structural_resolution,3121,c,35954,35971,subsection (b)(9),3121,b.9
+3,needs_structural_resolution,3121,g.3,41010,41026,subparagraph (A),3121,a
+3,needs_structural_resolution,3121,g.3,41410,41427,subparagraphs (A),3121,a
+3,needs_structural_resolution,3121,i.1,42719,42739,subsection (a)(7)(B),3121,a.7.b
+3,needs_structural_resolution,3121,i.1,43394,43414,subsection (a)(7)(B),3121,a.7.b
+3,needs_structural_resolution,3121,i.2,43934,43950,subparagraph (A),3121,a
+3,needs_structural_resolution,3121,i.2,44153,44169,subparagraph (B),3121,b
+3,needs_structural_resolution,3121,m.2,57150,57164,paragraph (21),3121,21
+3,needs_structural_resolution,3121,m.2,57291,57305,paragraph (22),3121,22
+3,needs_structural_resolution,3121,m.3,57431,57445,paragraph (23),3121,23
+3,needs_structural_resolution,3121,r.3.a,63125,63142,subsection (b)(8),3121,b.8
+3,needs_structural_resolution,3121,u.1,65724,65737,paragraph (5),3121,5
+3,needs_structural_resolution,3121,u.2.a,65959,65972,paragraph (7),3121,7
+3,needs_structural_resolution,3121,x,74644,74664,subsection (a)(7)(B),3121,a.7.b
+3,needs_structural_resolution,3121,x,75039,75053,this paragraph,3121,x
+3,unresolved_missing_section,3121,i.3,44648,44652,6(1),6,1
+3,resolved_external,401,a.33.c,52655,52722,section 4021 of the Employee Retirement Income Security Act of 1974,4021,employee.retirement.income.security.act.of.1974
+3,resolved_external,401,a.35.g.iii,59244,59316,section 407(d)(1) of the Employee Retirement Income Security Act of 1974,407,d.1|employee.retirement.income.security.act.of.1974
+3,resolved_external,401,a.36.b,61278,61357,section 4203(b)(1)(B)(i) of the Employee Retirement Income Security Act of 1974,4203,b.1.b.i|employee.retirement.income.security.act.of.1974
+3,unresolved_missing_section,401,a.34,53349,53361,section 4050,4050,
+3,needs_structural_resolution,401,a.9.b.iv,9009,9024,clause (iii)(I),401,iii.i
+3,needs_structural_resolution,401,a.9.b.iv,9162,9178,clause (iii)(II),401,iii.ii
+3,needs_structural_resolution,401,a.9.b.iv,9327,9344,clause (iii)(III),401,iii.iii
+3,needs_structural_resolution,401,a.9.c.iii,10570,10584,clause (i)(II),401,i.ii
+3,needs_structural_resolution,401,a.9.e.iii,13113,13128,clause (ii)(II),401,ii.ii
+3,needs_structural_resolution,401,a.9.e.iii,13300,13320,subparagraph (H)(ii),401,h.ii
+3,needs_structural_resolution,401,a.9.i,16867,16882,clause (iv)(II),401,iv.ii
+3,needs_structural_resolution,401,a.9.i,17346,17357,clause (iv),401,iv
+3,needs_structural_resolution,401,a.11.b.iii,23332,23349,Clause (iii)(III),401,iii.iii
+3,needs_structural_resolution,401,a.13.d.i,30072,30098,subparagraph (C)(iii)(III),401,c.iii.iii
+3,needs_structural_resolution,401,a.26.f,40621,40637,paragraph (2)(A),401,2.a
+3,needs_structural_resolution,401,a.26.i.iii,41844,41858,clause (i)(II),401,i.ii
+3,needs_structural_resolution,401,a.35.i,60526,60536,clause (i),401,i
+3,needs_structural_resolution,401,a.39.b.ii,65731,65745,clause (i)(II),401,i.ii
+3,needs_structural_resolution,401,a.39.b.ii,66026,66046,subparagraph (A)(ii),401,a.ii
+3,needs_structural_resolution,401,a.39.e.iii,69024,69041,subsection (e)(2),401,e.2
+3,needs_structural_resolution,404,o.6,40833,40868,clause (iv) of subsection (h)(2)(C),404,h.2.c.iv
+3,resolved_external,404,a.7.c.iv,15965,16032,section 4021 of the Employee Retirement Income Security Act of 1974,4021,employee.retirement.income.security.act.of.1974
+3,resolved_external,404,g.3.b,26933,27003,section 4041(b) of the Employee Retirement Income Security Act of 1974,4041,b|employee.retirement.income.security.act.of.1974
+3,resolved_external,404,o.3.b.ii,39090,39157,section 4021 of the Employee Retirement Income Security Act of 1974,4021,employee.retirement.income.security.act.of.1974
+3,resolved_external,404,o.5,40299,40366,section 4041 of the Employee Retirement Income Security Act of 1974,4041,employee.retirement.income.security.act.of.1974
+3,unresolved_missing_section,404,g.1,25608,25612,4062,4062,
+3,unresolved_missing_section,404,g.1,25614,25618,4063,4063,
+3,unresolved_missing_section,404,g.3.b,27200,27212,section 4022,4022,
+3,unresolved_missing_section,404,g.3.c,27357,27372,section 4062(c),4062,c
+3,needs_structural_resolution,404,a.12,21037,21053,subparagraph (C),404,c
+3,needs_structural_resolution,404,k.4.b,33395,33411,clause (iii)(II),404,iii.ii
+3,needs_structural_resolution,404,k.7,34940,34956,clause (iii)(II),404,iii.ii
+3,needs_structural_resolution,404,n,36639,36655,paragraph (1)(C),404,1.c
+3,needs_structural_resolution,404,o.3,38187,38211,paragraph (2)(A)(i)(III),404,2.a.i.iii
+3,resolved_external,414,f.5.a,16996,17072,section 3(37)(A)(iii) of the Employee Retirement Income Security Act of 1974,3,37.a.iii|employee.retirement.income.security.act.of.1974
+3,resolved_external,414,l.2.g,28093,28143,section 11(i) of the Federal Deposit Insurance Act,11,i|federal.deposit.insurance.act
+3,resolved_external,414,y.1.a,93464,93513,section 104 of the Pension Protection Act of 2006,104,pension.protection.act.of.2006
+3,resolved_external,414,y.1.a.ii,93620,93730,section 202(b) of the Preservation of Access to Care for Medicare Beneficiaries and Pension Relief Act of 2010,202,b|preservation.of.access.to.care.for.medicare.beneficiaries.and.pension.relief.act.of.2010
+3,resolved_external,414,y.3.b,95378,95427,section 104 of the Pension Protection Act of 2006,104,pension.protection.act.of.2006
+3,resolved_external,414,z.5.b.i,101228,101297,section 104(b) of the Employee Retirement Income Security Act of 1974,104,b|employee.retirement.income.security.act.of.1974
+3,resolved_external,414,z.5.d,102087,102156,section 111(c) of the Employee Retirement Income Security Act of 1974,111,c|employee.retirement.income.security.act.of.1974
+3,needs_structural_resolution,414,e.5.a.ii,12566,12579,clause (i)(I),414,i.i
+3,needs_structural_resolution,414,e.5.b,12850,12872,subparagraph (A)(i)(I),414,a.i.i
+3,needs_structural_resolution,414,e.5.e,14880,14903,subparagraph (A)(i)(II),414,a.i.ii
+3,needs_structural_resolution,414,m.6.b.ii,32701,32722,paragraphs (1)(A)(ii),414,1.a.ii
+3,needs_structural_resolution,414,v.2.b.iii,70873,70896,subparagraphs (B)(i)(I),414,b.i.i
+3,needs_structural_resolution,414,v.4.b,74807,74817,clause (i),414,i
+3,needs_structural_resolution,414,v.4.b,74982,74993,clause (ii),414,ii
+3,needs_structural_resolution,414,x.2.c.ii,87486,87500,clause (i)(II),414,i.ii
+3,needs_structural_resolution,414,x.2.d.ii,88252,88275,subparagraph (C)(i)(II),414,c.i.ii
+3,needs_structural_resolution,414,x.3.b,90654,90665,clauses (i),414,i
+3,needs_structural_resolution,414,z.5.d.v,105005,105021,paragraph (2)(B),414,2.b
+3,needs_structural_resolution,414,z.5.d.v,105208,105227,paragraph (2)(A)(i),414,2.a.i
+3,needs_structural_resolution,414,z.5.d.v,105537,105557,paragraph (2)(B)(ii),414,2.b.ii
+3,needs_structural_resolution,414,z.5.d.v,105601,105621,paragraph (2)(B)(iv),414,2.b.iv
+3,needs_structural_resolution,414,z.5.d.v,105693,105713,paragraph (2)(B)(ii),414,2.b.ii
+3,needs_structural_resolution,414,z.5.d.v,105814,105834,paragraph (2)(B)(ii),414,2.b.ii
+3,resolved_external,415,d.2.b,26035,26082,section 215(i)(2)(A) of the Social Security Act,215,i.2.a|social.security.act
+3,needs_structural_resolution,416,i.1.b,14409,14419,clause (i),416,i
+3,needs_structural_resolution,416,i.1.b,14493,14503,clause (i),416,i
+3,needs_structural_resolution,419,e.3.a,4283,4296,paragraph (7),419,7
+3,needs_structural_resolution,469,h.4.b,13907,13918,clause (iv),469,iv
+3,resolved_external,4985,e.1.a,2670,2722,section 16(a) of the Securities Exchange Act of 1934,16,a|securities.exchange.act.of.1934
+3,resolved_external,5000A,f.1.a.iii,12823,12865,section 2107(g) of the Social Security Act,2107,g|social.security.act
+3,resolved_external,5000A,f.1.a.vii,13485,13538,section 349 of the National Defense Authorization Act,349,national.defense.authorization.act
+3,resolved_external,5000A,f.2.a,14367,14418,section 2791(d)(8) of the Public Health Service Act,2791,d.8|public.health.service.act
+3,resolved_external,5000A,f.3.a,14870,14915,section 2791 of the Public Health Service Act,2791,public.health.service.act
+3,resolved_external,5000A,f.1.a.vi,13290,13317,section 2504(e) of title 22,2504,e.title.22
+3,needs_structural_resolution,501,c.2,1480,1514,subparagraph (G) of paragraph (25),501,25.g
+3,needs_structural_resolution,501,c.3.g.ix,27988,28020,clause (ii) of paragraph (21)(D),501,21.d.ii
+3,resolved_external,501,c.3.g.ix,26948,26994,section 101(7) of the Federal Credit Union Act,101,7|federal.credit.union.act
+3,resolved_external,501,c.3.g.ix,27120,27165,section 402(d) of the Black Lung Benefits Act,402,d|black.lung.benefits.act
+3,resolved_external,501,c.3.g.ix,28140,28210,section 4223(c) of the Employee Retirement Income Security Act of 1974,4223,c|employee.retirement.income.security.act.of.1974
+3,resolved_external,501,c.3.g.ix,28794,28861,section 4049 of the Employee Retirement Income Security Act of 1974,4049,employee.retirement.income.security.act.of.1974
+3,resolved_external,501,c.3.g.ix,36875,36927,section 15(j) of the Railroad Retirement Act of 1974,15,j|railroad.retirement.act.of.1974
+3,resolved_external,501,c.3.g.ix,37054,37116,section 1322 of the Patient Protection and Affordable Care Act,1322,patient.protection.and.affordable.care.act
+3,resolved_external,501,c.3.g.ix,37665,37733,section 1322(c)(4) of the Patient Protection and Affordable Care Act,1322,c.4|patient.protection.and.affordable.care.act
+3,resolved_external,501,l.3,49416,49461,section 21B of the Federal Home Loan Bank Act,21B,federal.home.loan.bank.act
+3,resolved_external,501,l.4,49534,49576,section 1181(b) of the Social Security Act,1181,b|social.security.act
+3,resolved_external,501,o,55667,55709,section 1855(d) of the Social Security Act,1855,d|social.security.act
+3,resolved_external,501,p.2.b,56819,56876,section 5 of the United Nations Participation Act of 1945,5,united.nations.participation.act.of.1945
+3,resolved_external,501,p.2.c.i,57225,57284,section 212(a)(3)(B) of the Immigration and Nationality Act,212,a.3.b|immigration.and.nationality.act
+3,resolved_external,501,p.2.c.i,57325,57385,section 140(d)(2) of the Foreign Relations Authorization Act,140,d.2|foreign.relations.authorization.act
+3,resolved_external,501,r.4.b,70667,70706,section 1867 of the Social Security Act,1867,social.security.act
+3,unresolved_missing_section,501,c.3.b.iv,6203,6207,306A,306A,
+3,unresolved_missing_section,501,c.3.b.iv,6209,6213,306B,306B,
+3,unresolved_missing_section,501,l.2,49310,49321,section 21A,21A,
+3,needs_structural_resolution,501,c.3.g.v,11233,11248,clause (iv)(II),501,iv.ii
+3,needs_structural_resolution,501,c.3.g.ix,21118,21131,paragraph (9),501,9
+3,needs_structural_resolution,501,c.3.g.ix,25635,25658,subparagraph (A)(i)(IV),501,a.i.iv
+3,needs_structural_resolution,501,c.3.g.ix,25702,25725,subparagraph (A)(i)(IV),501,a.i.iv
+3,needs_structural_resolution,501,c.3.g.ix,26078,26100,subparagraph (A)(i)(I),501,a.i.i
+3,needs_structural_resolution,501,f.3,41764,41775,clause (ii),501,ii
+3,needs_structural_resolution,501,g,42104,42121,subsection (c)(5),501,c.5
+3,needs_structural_resolution,501,i,46669,46686,subsection (c)(7),501,c.7
+3,needs_structural_resolution,501,i.1.a,47247,47264,subsection (c)(8),501,c.8
+3,needs_structural_resolution,501,q.3,66035,66052,subsection (c)(4),501,c.4
+3,needs_structural_resolution,503,a.1,156,170,paragraph (17),503,17
+3,resolved_external,67,c.2.b.i,2721,2760,section 4 of the Securities Act of 1933,4,securities.act.of.1933
+3,needs_structural_resolution,67,c.2.b.ii,3076,3091,clause (i)(III),67,i.iii
+3,needs_structural_resolution,67,g.1.b,5253,5264,clause (ii),67,ii
+3,needs_structural_resolution,67,g.1.c,5360,5371,clause (ii),67,ii
+3,resolved_external,7702B,c.4,5701,5746,section 1861(r)(1) of the Social Security Act,1861,r.1|social.security.act
+3,resolved_external,86,a.1,224,262,section 207 of the Social Security Act,207,social.security.act
+3,resolved_external,86,d.3,3617,3655,section 224 of the Social Security Act,224,social.security.act
+3,resolved_external,86,d.3,3673,3727,section 3(a)(1) of the Railroad Retirement Act of 1974,3,a.1|railroad.retirement.act.of.1974
+3,resolved_external,86,d.4.b,4538,4592,section 3(f)(3) of the Railroad Retirement Act of 1974,3,f.3|railroad.retirement.act.of.1974
+3,resolved_external,86,d.5,4691,4729,section 708 of the Social Security Act,708,social.security.act
+3,resolved_external,9832,b.2,1204,1276,section 514(b)(2) of the Employee Retirement Income Security Act of 1974,514,b.2|employee.retirement.income.security.act.of.1974
+4,needs_structural_resolution,1,i.3,27241,27289,"clauses (i), (ii), and (iii) of subparagraph (B)",1,"b.i, b.ii, b.iii"
+4,needs_structural_resolution,1,f.3.c,5598,5609,clause (ii),1,ii
+4,needs_structural_resolution,1,g.7.a.ii,13099,13122,paragraph (4)(A)(ii)(I),1,4.a.ii.i
+4,needs_structural_resolution,1,g.7.b.i,13869,13892,paragraph (4)(A)(ii)(I),1,4.a.ii.i
+4,needs_structural_resolution,1,g.7.b.ii,14249,14272,paragraph (4)(A)(ii)(I),1,4.a.ii.i
+4,needs_structural_resolution,1,i.3,26698,26708,clause (i),1,i
+4,needs_structural_resolution,1,i.3,26988,26998,clause (i),1,i
+4,needs_structural_resolution,1,i.3,27032,27048,subparagraph (C),1,c
+4,needs_structural_resolution,1,j.3.b.i,32257,32277,subparagraph (A)(ii),1,a.ii
+4,needs_structural_resolution,1,j.5.a.ii,32996,33019,subparagraph (C)(ii)(I),1,c.ii.i
+4,needs_structural_resolution,1,i,23543,23557,this paragraph,1,i
+4,resolved_external,101,g.4.d,16102,16147,section 1861(r)(1) of the Social Security Act,1861,r.1|social.security.act
+4,resolved_external,101,h.1,16864,16934,section 1204 of the Omnibus Crime Control and Safe Streets Act of 1968,1204,omnibus.crime.control.and.safe.streets.act.of.1968
+4,unresolved_missing_section,101,g.2.b.ii,12698,12708,sections 8,8,
+4,unresolved_missing_section,101,h.2.b,17789,17801,section 1204,1204,
+4,needs_structural_resolution,101,a.1,207,221,subsection (j),101,j
+4,needs_structural_resolution,101,g.2.b.iii,13299,13313,clause (ii)(I),101,ii.i
+4,needs_structural_resolution,101,h.4.a.ii,20087,20107,paragraph (1)(B)(ii),101,1.b.ii
+4,needs_structural_resolution,101,h.4.a.ii,20266,20282,subparagraph (C),101,c
+4,needs_structural_resolution,101,i,21224,21244,subparagraph (B)(ii),101,b.ii
+4,needs_structural_resolution,101,i,21920,21939,subparagraph (A)(i),101,a.i
+4,needs_structural_resolution,101,i,22100,22110,clause (i),101,i
+4,needs_structural_resolution,101,i,22389,22403,this paragraph,101,i
+4,resolved_external,104,a.4,1263,1309,section 808 of the Foreign Service Act of 1980,808,foreign.service.act.of.1980
+4,resolved_external,104,a.6.a,1536,1606,section 1201 of the Omnibus Crime Control and Safe Streets Act of 1968,1201,omnibus.crime.control.and.safe.streets.act.of.1968
+4,resolved_external,104,d.2,5893,5917,section 1403 of title 10,1403,title.10
+4,resolved_external,108,f.4,21137,21185,section 338B(g) of the Public Health Service Act,338B,g|public.health.service.act
+4,unresolved_missing_section,108,f.4,21222,21234,section 338I,338I,
+4,needs_structural_resolution,108,h.2,25834,25845,clause (ii),108,ii
+4,resolved_external,112,d.1,3057,3083,section 551(2) of title 37,551,2.title.37
+4,resolved_external,112,d.2,3730,3753,section 5561 of title 5,5561,title.5
+4,unresolved_missing_section,112,c.5.b,2609,2620,section 310,310,
+4,unresolved_missing_section,112,d.1,3240,3254,section 552(c),552,c
+4,resolved_external,121,d.9.c.iii,11609,11655,section 103 of the Foreign Service Act of 1980,103,foreign.service.act.of.1980
+4,resolved_external,121,d.9.c.ii,11293,11322,section 101(a)(5) of title 10,101,a.5.title.10
+4,resolved_external,121,d.9.c.iv,11841,11864,section 2105 of title 5,2105,title.5
+4,unresolved_missing_section,121,d.12.a.ii,14357,14358,6,6,
+4,needs_structural_resolution,1212,a.1.c,1961,1977,such clause (ii),1212,ii
+4,needs_structural_resolution,1231,b.1.d,4092,4105,paragraph (5),1231,5
+4,resolved_external,125,f.3.a,5071,5136,section 1301(a) of the Patient Protection and Affordable Care Act,1301,a|patient.protection.and.affordable.care.act
+4,resolved_external,125,f.3.b,5385,5453,section 1312(f)(2) of the Patient Protection and Affordable Care Act,1312,f.2|patient.protection.and.affordable.care.act
+4,resolved_external,125,h.2.a,8538,8561,section 101 of title 37,101,title.37
+4,needs_structural_resolution,125,h.2.b.i,9783,9803,subparagraph (A)(ii),125,a.ii
+4,needs_structural_resolution,125,i,14440,14456,subparagraph (A),125,a
+4,needs_structural_resolution,125,i,14924,14940,subparagraph (A),125,a
+4,needs_structural_resolution,125,i,15643,15657,subsection (n),125,n
+4,needs_structural_resolution,125,i,15939,15952,paragraph (2),125,2
+4,needs_structural_resolution,125,i,15440,15454,this paragraph,125,i
+4,resolved_external,1250,a.1.b.ii,1674,1724,section 8 of the United States Housing Act of 1937,8,united.states.housing.act.of.1937
+4,unresolved_missing_section,1250,a.1.b.iii,2138,2141,100,100,
+4,unresolved_missing_section,1250,a.2.b.iv,5266,5269,100,100,
+4,needs_structural_resolution,1250,d.7,16743,16759,paragraph (1)(B),1250,1.b
+4,resolved_external,1256,g.6.b,12223,12278,section 3(a)(55) of the Securities Exchange Act of 1934,3,a.55|securities.exchange.act.of.1934
+4,needs_structural_resolution,127,d.1.b,6031,6051,subparagraph (A)(ii),127,a.ii
+4,needs_structural_resolution,1288,a.1,276,289,paragraph (7),1288,7
+4,needs_structural_resolution,1288,a.2,439,452,paragraph (7),1288,7
+4,needs_structural_resolution,129,a.2.c,974,988,paragraphs (3),129,3
+4,resolved_external,1297,e.3.a,5387,5441,section 11A of the Securities and Exchange Act of 1934,11A,securities.and.exchange.act.of.1934
+4,resolved_external,134,b.5,2382,2406,section 2613 of title 10,2613,title.10
+4,resolved_external,1401,c,1610,1648,section 233 of the Social Security Act,233,social.security.act
+4,needs_structural_resolution,1401,b.2.b,1212,1222,clause (i),1401,i
+4,resolved_external,1402,a.1,798,849,section 1233(a)(2) of the Food Security Act of 1985,1233,a.2|food.security.act.of.1985
+4,resolved_external,1402,b,13200,13238,section 233 of the Social Security Act,233,social.security.act
+4,resolved_external,1402,b.1,13512,13550,section 230 of the Social Security Act,230,social.security.act
+4,resolved_external,1402,c.1,15405,15443,section 218 of the Social Security Act,218,social.security.act
+4,resolved_external,1402,c.2.e,16290,16328,section 218 of the Social Security Act,218,social.security.act
+4,resolved_external,1402,l.1,28988,29029,section 213(d) of the Social Security Act,213,d|social.security.act
+4,unresolved_missing_section,1402,a.1,915,926,section 202,202,
+4,unresolved_missing_section,1402,g.1.e,23754,23765,section 203,203,
+4,needs_structural_resolution,1402,a.17,11637,11648,clauses (i),1402,i
+4,needs_structural_resolution,1402,e.1,18576,18592,subparagraph (A),1402,a
+4,needs_structural_resolution,1402,g.2.a,24445,24462,subparagraphs (C),1402,c
+4,needs_structural_resolution,1402,g.2.b,24763,24779,subparagraph (C),1402,c
+4,needs_structural_resolution,1402,g.3,24916,24932,subparagraph (B),1402,b
+4,needs_structural_resolution,1402,g.3,24981,24997,subparagraph (A),1402,a
+4,needs_structural_resolution,1442,a,1274,1290,subparagraph (A),1442,a
+4,needs_structural_resolution,1442,a,1331,1342,clause (ii),1442,ii
+4,needs_structural_resolution,1442,c.1,2352,2369,subparagraphs (A),1442,a
+4,needs_structural_resolution,15,f,2097,2111,subsection (i),15,i
+4,resolved_external,1504,f.1,6535,6585,section 805(b)(2)(A) of the Tax Reform Act of 1984,805,b.2.a|tax.reform.act.of.1984
+4,needs_structural_resolution,151,d.4.b,2761,2781,subparagraph (A)(ii),151,a.ii
+4,needs_structural_resolution,164,b.5.i,5420,5430,clause (i),164,i
+4,needs_structural_resolution,164,b.5.i,5621,5634,clause (i)(I),164,i.i
+4,needs_structural_resolution,167,f.2,5491,5507,subparagraph (B),167,b
+4,needs_structural_resolution,171,b.2,1950,1969,paragraph (1)(B)(i),171,1.b.i
+4,needs_structural_resolution,171,b.3.b,2950,2969,paragraph (1)(B)(i),171,1.b.i
+4,needs_structural_resolution,172,b.1.d.iii,4673,4686,clause (i)(I),172,i.i
+4,needs_structural_resolution,172,b.1.d.iv,5102,5115,clause (i)(I),172,i.i
+4,needs_structural_resolution,172,b.1.d.v,5371,5388,paragraph (3) (I),172,3.i
+4,needs_structural_resolution,172,b.1.d.v,5472,5485,clause (i)(I),172,i.i
+4,needs_structural_resolution,172,d.6.c,11057,11084,subsection (a)(2)(B)(ii)(I),172,a.2.b.ii.i
+4,unresolved_missing_section,199A,g.5.e.ii,26712,26732,section 927(a)(2)(C),927,a.2.c
+4,needs_structural_resolution,199A,c.3.b.iv,7955,7971,subparagraph (C),199A,c
+4,needs_structural_resolution,199A,e.2.b.ii,12186,12206,subparagraph (A)(ii),199A,a.ii
+4,needs_structural_resolution,199A,g.3.d.ii,22877,22891,subsection (m),199A,m
+4,needs_structural_resolution,199A,i.3.b,28999,29019,subparagraph (A)(ii),199A,a.ii
+4,resolved_external,2,a.3.a,1928,1951,section 556 of title 37,556,title.37
+4,resolved_external,2,a.3.a,1987,2010,section 5566 of title 5,5566,title.5
+4,needs_structural_resolution,2,b.3.b.i,4562,4578,subparagraph (H),2,h
+4,resolved_external,2055,g.6,14848,14912,section 25 of the State Department Basic Authorities Act of 1956,25,state.department.basic.authorities.act.of.1956
+4,resolved_external,2055,g.4,14287,14311,section 8622 of title 10,8622,title.10
+4,resolved_external,2055,g.7,15111,15135,section 4043 of title 18,4043,title.18
+4,resolved_external,2055,g.8,15258,15285,section 3113(e) of title 31,3113,e.title.31
+4,resolved_external,2055,g.9,15446,15470,section 8473 of title 10,8473,title.10
+4,resolved_external,2055,g.10,15639,15663,section 8474 of title 10,8474,title.10
+4,resolved_external,2055,g.11,15779,15803,section 2308 of title 44,2308,title.44
+4,unresolved_missing_section,2055,g.5,14489,14498,section 8,8,
+4,needs_structural_resolution,2055,e.3.j,10768,10784,paragraph (1)(D),2055,1.d
+4,needs_structural_resolution,2055,f,13740,13756,paragraph (4)(A),2055,4.a
+4,resolved_external,213,d.4,3407,3449,section 1861(r) of the Social Security Act,1861,r|social.security.act
+4,needs_structural_resolution,213,a,312,330,subsections (b)(1),213,b.1
+4,needs_structural_resolution,22,c.3.a.ii,3171,3186,clause (i)(III),22,i.iii
+4,needs_structural_resolution,23,h.1.b,7141,7161,subparagraph (A)(ii),23,a.ii
+4,needs_structural_resolution,23,h.3.a,7598,7614,subparagraph (B),23,b
+4,needs_structural_resolution,24,c.2,1450,1466,subparagraph (A),24,a
+4,needs_structural_resolution,243,b.3.a,2475,2495,paragraph (1)(B)(ii),243,1.b.ii
+4,unresolved_missing_section,245,c.5,7754,7757,922,922,
+4,unresolved_missing_section,245,c.5,7759,7762,923,923,
+4,unresolved_missing_section,245,c.5,7767,7770,927,927,
+4,unresolved_missing_section,245,c.2.a,6651,6668,section 923(a)(2),923,a.2
+4,unresolved_missing_section,245,c.2.a,6709,6726,section 927(d)(6),927,d.6
+4,unresolved_missing_section,245,c.2.b,6755,6772,section 923(a)(4),923,a.4
+4,unresolved_missing_section,245,c.4.a,7282,7293,section 923,923,
+4,unresolved_missing_section,245,c.4.c,7669,7680,section 922,922,
+4,resolved_external,246,a.2.d.iv,3015,3059,section 20 of the Federal Home Loan Bank Act,20,federal.home.loan.bank.act
+4,resolved_external,246A,c.3.b.ii,2562,2614,section 2(a) of the Bank Holding Company Act of 1956,2,a|bank.holding.company.act.of.1956
+4,needs_structural_resolution,25,f.2.b.i,12689,12709,subparagraph (A)(ii),25,a.ii
+4,needs_structural_resolution,250,b.2.c.ii,4099,4119,subparagraph (A)(ii),250,a.ii
+4,needs_structural_resolution,250,b.2.e,5101,5125,paragraph (3)(A)(i)(VII),250,3.a.i.vii
+4,needs_structural_resolution,2522,d,7127,7143,paragraph (4)(A),2522,4.a
+4,resolved_external,25A,b.3.a,2772,2825,section 484(a)(1) of the Higher Education Act of 1965,484,a.1|higher.education.act.of.1965
+4,resolved_external,25A,f.2.a,7746,7793,section 481 of the Higher Education Act of 1965,481,higher.education.act.of.1965
+4,needs_structural_resolution,25A,i,12199,12213,this paragraph,25A,i
+4,needs_structural_resolution,26,b.2.c,837,857,subsection (m)(5)(B),26,m.5.b
+4,needs_structural_resolution,26,b.2.v,2900,2924,subsections (a)(1)(B)(i),26,a.1.b.i
+4,needs_structural_resolution,264,e,3284,3305,subsection (a)(4) (1),264,a.4.1
+4,needs_structural_resolution,264,e.5.b,6804,6818,subsection (m),264,m
+4,needs_structural_resolution,267,f.1.b,11901,11919,subsections (a)(4),267,a.4
+4,needs_structural_resolution,301,e.1,2551,2566,subsections (k),301,k
+4,needs_structural_resolution,301,e.3,3388,3402,subsection (n),301,n
+4,needs_structural_resolution,301,e.3,3467,3480,paragraph (7),301,7
+4,resolved_external,3101,c,1397,1435,section 233 of the Social Security Act,233,social.security.act
+4,needs_structural_resolution,3102,a,288,304,paragraph (7)(B),3102,7.b
+4,needs_structural_resolution,3102,a,732,748,paragraph (7)(C),3102,7.c
+4,needs_structural_resolution,3102,a,1111,1127,paragraph (8)(B),3102,8.b
+4,needs_structural_resolution,3102,a,1538,1555,paragraph (12)(B),3102,12.b
+4,resolved_external,3111,c,848,886,section 233 of the Social Security Act,233,social.security.act
+4,needs_structural_resolution,3111,e.3.b,2487,2507,subsection (i)(3)(A),3111,i.3.a
+4,resolved_external,32,c.2.b.v,4811,4852,section 407(d) of the Social Security Act,407,d|social.security.act
+4,resolved_external,3231,d.7,6191,6242,section 1(c) of the Railroad Retirement Act of 1937,1,c|railroad.retirement.act.of.1937
+4,resolved_external,3231,e.1,9002,9059,section 101(a)(15) of the Immigration and Nationality Act,101,a.15|immigration.and.nationality.act
+4,resolved_external,3231,e.2.b.i,11367,11405,section 230 of the Social Security Act,230,social.security.act
+4,resolved_external,3231,e.2.b.ii,11590,11641,section 3(j) of the Railroad Retirement Act of 1974,3,j|railroad.retirement.act.of.1974
+4,resolved_external,3231,e.2.b.ii,11831,11869,section 230 of the Social Security Act,230,social.security.act
+4,resolved_external,3231,e.3.b,13358,13413,section 2(a) of the Railroad Unemployment Insurance Act,2,a|railroad.unemployment.insurance.act
+4,needs_structural_resolution,3231,e.1,8964,8980,subparagraph (F),3231,f
+4,needs_structural_resolution,3231,e.1,9134,9150,subparagraph (F),3231,f
+4,needs_structural_resolution,3231,e.2.b.ii,11751,11761,clause (2),3231,2
+4,needs_structural_resolution,3304,f,17327,17344,subsection (a)(6),3304,a.6
+4,resolved_external,3310,a,771,795,section 2112 of title 28,2112,title.28
+4,resolved_external,3310,c,1649,1673,section 1254 of title 28,1254,title.28
+4,resolved_external,401,a.33.c,52655,52722,section 4021 of the Employee Retirement Income Security Act of 1974,4021,employee.retirement.income.security.act.of.1974
+4,resolved_external,401,a.35.g.iii,59244,59316,section 407(d)(1) of the Employee Retirement Income Security Act of 1974,407,d.1|employee.retirement.income.security.act.of.1974
+4,resolved_external,401,a.36.b,61278,61357,section 4203(b)(1)(B)(i) of the Employee Retirement Income Security Act of 1974,4203,b.1.b.i|employee.retirement.income.security.act.of.1974
+4,resolved_external,401,g,77478,77532,section 2(a)(15) of the Investment Company Act of 1940,2,a.15|investment.company.act.of.1940
+4,resolved_external,401,k.15.b.i,115622,115697,section 202(c)(1)(B) of the Employee Retirement Income Security Act of 1974,202,c.1.b|employee.retirement.income.security.act.of.1974
+4,resolved_external,401,l.5.a.ii,126656,126694,section 230 of the Social Security Act,230,social.security.act
+4,resolved_external,401,l.5.d.ii,127773,127811,section 230 of the Social Security Act,230,social.security.act
+4,resolved_external,401,l.5.e.i,128001,128039,section 230 of the Social Security Act,230,social.security.act
+4,resolved_external,401,l.5.f.ii,129508,129549,section 223(d) of the Social Security Act,223,d|social.security.act
+4,resolved_external,401,m.4.d.ii,134749,134796,section 472 of the Higher Education Act of 1965,472,higher.education.act.of.1965
+4,unresolved_missing_section,401,a.34,53349,53361,section 4050,4050,
+4,needs_structural_resolution,401,a.9.b.iv,9009,9024,clause (iii)(I),401,iii.i
+4,needs_structural_resolution,401,a.9.b.iv,9162,9178,clause (iii)(II),401,iii.ii
+4,needs_structural_resolution,401,a.9.b.iv,9327,9344,clause (iii)(III),401,iii.iii
+4,needs_structural_resolution,401,a.9.c.iii,10570,10584,clause (i)(II),401,i.ii
+4,needs_structural_resolution,401,a.9.e.iii,13113,13128,clause (ii)(II),401,ii.ii
+4,needs_structural_resolution,401,a.9.e.iii,13300,13320,subparagraph (H)(ii),401,h.ii
+4,needs_structural_resolution,401,a.9.i,16867,16882,clause (iv)(II),401,iv.ii
+4,needs_structural_resolution,401,a.9.i,17346,17357,clause (iv),401,iv
+4,needs_structural_resolution,401,a.11.b.iii,23332,23349,Clause (iii)(III),401,iii.iii
+4,needs_structural_resolution,401,a.13.d.i,30072,30098,subparagraph (C)(iii)(III),401,c.iii.iii
+4,needs_structural_resolution,401,a.26.f,40621,40637,paragraph (2)(A),401,2.a
+4,needs_structural_resolution,401,a.26.i.iii,41844,41858,clause (i)(II),401,i.ii
+4,needs_structural_resolution,401,a.35.i,60526,60536,clause (i),401,i
+4,needs_structural_resolution,401,a.39.b.ii,65731,65745,clause (i)(II),401,i.ii
+4,needs_structural_resolution,401,a.39.b.ii,66026,66046,subparagraph (A)(ii),401,a.ii
+4,needs_structural_resolution,401,a.39.e.iii,69024,69041,subsection (e)(2),401,e.2
+4,needs_structural_resolution,401,k.2.b.iii,83794,83808,clause (i)(VI),401,i.vi
+4,needs_structural_resolution,401,k.7.c,93680,93703,paragraph (2)(B)(i)(IV),401,2.b.i.iv
+4,needs_structural_resolution,401,k.11.b.ii,99034,99048,clause (i)(II),401,i.ii
+4,needs_structural_resolution,401,k.11.e,101322,101344,subparagraph (B)(i)(I),401,b.i.i
+4,needs_structural_resolution,401,k.11.e,101470,101494,subparagraphs (B)(i)(II),401,b.i.ii
+4,needs_structural_resolution,401,k.12.f.ii,106017,106040,paragraph (13)(D)(i)(I),401,13.d.i.i
+4,needs_structural_resolution,401,k.12.f.iii,106108,106122,Clause (i)(II),401,i.ii
+4,needs_structural_resolution,401,k.13.b.i,107089,107111,subparagraph (D)(i)(I),401,d.i.i
+4,needs_structural_resolution,401,k.13.b.ii,107214,107237,subparagraph (D)(i)(II),401,d.i.ii
+4,needs_structural_resolution,401,k.13.d.ii,110226,110239,clause (i)(I),401,i.i
+4,needs_structural_resolution,401,k.13.f.i,112582,112605,subparagraph (D)(i)(II),401,d.i.ii
+4,needs_structural_resolution,401,k.13.f.ii,113070,113092,subparagraph (D)(i)(I),401,d.i.i
+4,needs_structural_resolution,401,k.13.f.iii,113181,113195,Clause (i)(II),401,i.ii
+4,needs_structural_resolution,401,k.13.f.iii,113282,113305,subparagraph (D)(i)(II),401,d.i.ii
+4,needs_structural_resolution,401,k.14,113555,113578,paragraph (2)(B)(i)(IV),401,2.b.i.iv
+4,needs_structural_resolution,401,k.14.a.iii,113912,113935,paragraph (3)(D)(ii)(I),401,3.d.ii.i
+4,needs_structural_resolution,401,k.16.d.iii,119951,119965,clause (i)(II),401,i.ii
+4,needs_structural_resolution,401,m.13.b.iii,142557,142581,paragraph (11)(B)(i)(II),401,11.b.i.ii
+4,needs_structural_resolution,401,o.1.e,148448,148473,subparagraph (B)(iii)(IV),401,b.iii.iv
+4,needs_structural_resolution,401,o.2.a.iv,154108,154133,paragraph (1)(B)(iii)(IV),401,1.b.iii.iv
+4,needs_structural_resolution,401,o.2.d,156264,156276,clauses (ii),401,ii
+4,needs_structural_resolution,402,c.11.a.iii,13234,13245,clause (iv),402,iv
+4,needs_structural_resolution,402,f.2.a,25752,25765,paragraph (4),402,4
+4,resolved_external,402A,c.4.e.iii,5882,5905,section 8433 of title 5,8433,title.5
+4,resolved_external,403,b.12.a.ii,15548,15617,section 202(c) of the Employee Retirement Income Security Act of 1974,202,c|employee.retirement.income.security.act.of.1974
+4,resolved_external,403,b.12.d.ii,17139,17214,section 202(c)(1)(B) of the Employee Retirement Income Security Act of 1974,202,c.1.b|employee.retirement.income.security.act.of.1974
+4,needs_structural_resolution,403,b.7.a.ii,7909,7923,clause (i)(VI),403,i.vi
+4,needs_structural_resolution,403,b.13.b,18070,18087,subsection (k)(3),403,k.3
+4,needs_structural_resolution,403,b.16.d.iii,21622,21636,clause (i)(II),403,i.ii
+4,needs_structural_resolution,404A,b.3.b,1561,1574,paragraph (7),404A,7
+4,resolved_external,4064,c.1,3856,3888,section 206 of the Clean Air Act,206,clean.air.act
+4,resolved_external,4064,b.1.b,1281,1306,section 32901 of title 49,32901,title.49
+4,resolved_external,408,m.3.b,43363,43402,section 5 of the Commodity Exchange Act,5,commodity.exchange.act
+4,resolved_external,408,n.2,43882,43925,section 101 of the Federal Credit Union Act,101,federal.credit.union.act
+4,resolved_external,408,m.3.a.i,42942,42969,section 5112(a) of title 31,5112,a.title.31
+4,resolved_external,408,m.3.a.ii,43024,43051,section 5112(e) of title 31,5112,e.title.31
+4,resolved_external,408,m.3.a.iii,43109,43136,section 5112(k) of title 31,5112,k.title.31
+4,needs_structural_resolution,408,d.3.a.ii,6508,6520,clause (iii),408,iii
+4,needs_structural_resolution,408,d.3.i,9751,9762,clause (ii),408,ii
+4,needs_structural_resolution,408,d.3.i,9877,9887,clause (i),408,i
+4,needs_structural_resolution,408,d.3.i,10169,10179,clause (i),408,i
+4,needs_structural_resolution,408,d.6,13561,13571,clause (i),408,i
+4,needs_structural_resolution,408,d.9.c.i,22557,22572,clause (ii)(II),408,ii.ii
+4,needs_structural_resolution,408,k.6.a.ii,35288,35301,clause (i)(I),408,i.i
+4,needs_structural_resolution,408,m.3.a.i,42906,42919,paragraph (7),408,7
+4,needs_structural_resolution,408,n.2,43858,43871,paragraph (6),408,6
+4,needs_structural_resolution,408,p.2.a.iii,49551,49564,clause (i)(I),408,i.i
+4,needs_structural_resolution,408,p.2.b.iii,51323,51346,subparagraph (E)(i)(II),408,e.i.ii
+4,needs_structural_resolution,408,p.2.c.ii,53589,53612,subparagraph (E)(i)(II),408,e.i.ii
+4,needs_structural_resolution,408,p.2.e.ii,55466,55481,clause (i)(III),408,i.iii
+4,needs_structural_resolution,408,p.2.e.iii,55676,55691,clause (i)(III),408,i.iii
+4,needs_structural_resolution,408,p.2.f.i,57353,57375,subparagraph (A)(i)(I),408,a.i.i
+4,needs_structural_resolution,408,p.2.f.i,57683,57705,subparagraph (A)(i)(I),408,a.i.i
+4,needs_structural_resolution,408,p.2.f.iii,58567,58589,subparagraph (A)(i)(I),408,a.i.i
+4,needs_structural_resolution,408,p.2.g,58876,58900,subparagraph (A)(iv)(II),408,a.iv.ii
+4,needs_structural_resolution,408,p.2.h,59766,59789,subparagraph (E)(i)(II),408,e.i.ii
+4,needs_structural_resolution,408,p.2.h,59848,59871,subparagraph (C)(i)(II),408,c.i.ii
+4,resolved_external,408A,e.2.a,14198,14222,section 1477 of title 10,1477,title.10
+4,resolved_external,408A,e.2.a,14248,14272,section 1967 of title 38,1967,title.38
+4,needs_structural_resolution,408A,c.2.a,984,998,subsection (g),408A,g
+4,needs_structural_resolution,408A,c.4,3512,3530,subsections (a)(6),408A,a.6
+4,needs_structural_resolution,408A,d.4.b.ii,11164,11179,clause (ii)(II),408A,ii.ii
+4,needs_structural_resolution,408A,d.5,11437,11453,subparagraph (F),408A,f
+4,needs_structural_resolution,408A,d.6.b.iii,12513,12529,subparagraph (C),408A,c
+4,resolved_external,409,e.4.a,5122,5171,section 12 of the Securities Exchange Act of 1934,12,securities.exchange.act.of.1934
+4,resolved_external,409,j,12858,12930,section 403(c)(1) of the Employee Retirement Income Security Act of 1974,403,c.1|employee.retirement.income.security.act.of.1974
+4,resolved_external,409,k.2,14217,14289,section 403(c)(1) of the Employee Retirement Income Security Act of 1974,403,c.1|employee.retirement.income.security.act.of.1974
+4,needs_structural_resolution,409,e.4.b,5302,5322,subsection (g)(2)(H),409,g.2.h
+4,needs_structural_resolution,409,h.7,11171,11187,subparagraph (B),409,b
+4,needs_structural_resolution,409,l.4.a,16249,16267,subsections (a)(4),409,a.4
+4,needs_structural_resolution,409,m,18293,18309,subparagraph (A),409,a
+4,needs_structural_resolution,409,n.1.b.ii,19659,19678,paragraph (2)(B)(i),409,2.b.i
+4,needs_structural_resolution,409,p.4.c.ii,26824,26838,clause (i)(II),409,i.ii
+4,resolved_external,411,a.3.f.i,7343,7410,section 4281 of the Employee Retirement Income Security Act of 1974,4281,employee.retirement.income.security.act.of.1974
+4,resolved_external,411,a.3.f.ii,7497,7564,section 4281 of the Employee Retirement Income Security Act of 1974,4281,employee.retirement.income.security.act.of.1974
+4,resolved_external,411,a.4.g.i,9422,9489,section 4203 of the Employee Retirement Income Security Act of 1974,4203,employee.retirement.income.security.act.of.1974
+4,resolved_external,411,d.6.a,51257,51324,section 4281 of the Employee Retirement Income Security Act of 1974,4281,employee.retirement.income.security.act.of.1974
+4,unresolved_missing_section,411,a.4.g.i,9602,9626,section 4205(b)(2)(A)(i),4205,b.2.a.i
+4,unresolved_missing_section,411,a.4.g.ii,9811,9823,section 4048,4048,
+4,needs_structural_resolution,411,a.6.c,11784,11804,subsection (b)(1)(F),411,b.1.f
+4,needs_structural_resolution,411,b.1,27524,27541,Subparagraphs (A),411,a
+4,needs_structural_resolution,411,b.1,28159,28175,subparagraph (A),411,a
+4,needs_structural_resolution,411,b.1,28289,28306,subparagraphs (A),411,a
+4,needs_structural_resolution,411,b.1,28728,28745,subparagraphs (A),411,a
+4,needs_structural_resolution,411,b.1,28948,28965,subparagraphs (B),411,b
+4,needs_structural_resolution,411,b.1,29235,29252,subparagraphs (D),411,d
+4,needs_structural_resolution,411,b.1,32382,32392,clause (i),411,i
+4,needs_structural_resolution,411,b.5.a.i,36293,36312,paragraph (1)(H)(i),411,1.h.i
+4,needs_structural_resolution,411,b.5.b.i,37557,37573,paragraph (1)(H),411,1.h
+4,needs_structural_resolution,411,b.5.b.i,38128,38144,paragraph (1)(H),411,1.h
+4,needs_structural_resolution,411,b.5.b.ii,38904,38920,paragraph (1)(H),411,1.h
+4,needs_structural_resolution,411,b.5.b.iv,39767,39782,clause (iii)(I),411,iii.i
+4,needs_structural_resolution,411,b.5.c,42217,42236,paragraph (1)(H)(i),411,1.h.i
+4,needs_structural_resolution,411,b.5.d,42536,42552,paragraph (1)(H),411,1.h
+4,needs_structural_resolution,411,b.5.e.i,42800,42816,paragraph (1)(H),411,1.h
+4,resolved_external,412,c.4.a.i,5644,5718,section 4001(a)(15) of the Employee Retirement Income Security Act of 1974,4001,a.15|employee.retirement.income.security.act.of.1974
+4,resolved_external,412,c.4.a.ii,6101,6175,section 4001(a)(13) of the Employee Retirement Income Security Act of 1974,4001,a.13|employee.retirement.income.security.act.of.1974
+4,resolved_external,412,c.4.b.ii,6951,7018,section 3(4) of the Employee Retirement Income Security Act of 1974,3,4|employee.retirement.income.security.act.of.1974
+4,resolved_external,412,c.6.a,9903,9977,section 4001(a)(21) of the Employee Retirement Income Security Act of 1974,4001,a.21|employee.retirement.income.security.act.of.1974
+4,resolved_external,412,e.4,16485,16552,section 4021 of the Employee Retirement Income Security Act of 1974,4021,employee.retirement.income.security.act.of.1974
+4,unresolved_missing_section,412,c.4.a.ii,6248,6267,section 4001(a)(14),4001,a.14
+4,unresolved_missing_section,412,e.4,16649,16668,section 4041A(a)(2),4041A,a.2
+4,needs_structural_resolution,412,c.4.b.ii,6864,6878,clause (i)(II),412,i.ii
+4,needs_structural_resolution,412,c.4.c.ii,8129,8142,clause (i)(I),412,i.i
+4,resolved_external,415,d.2.b,26035,26082,section 215(i)(2)(A) of the Social Security Act,215,i.2.a|social.security.act
+4,needs_structural_resolution,415,c.6,20937,20950,paragraph (9),415,9
+4,needs_structural_resolution,415,g,29287,29301,this paragraph,415,g
+4,needs_structural_resolution,416,c.1.c.i,2102,2116,paragraphs (4),416,4
+4,needs_structural_resolution,416,g.4.h.i,11763,11777,paragraph (11),416,11
+4,needs_structural_resolution,416,i.1.b,14409,14419,clause (i),416,i
+4,needs_structural_resolution,416,i.1.b,14493,14503,clause (i),416,i
+4,needs_structural_resolution,417,a.2,1555,1571,subparagraph (A),417,a
+4,needs_structural_resolution,417,c.1.b,9321,9344,subparagraph (A)(ii)(I),417,a.ii.i
+4,needs_structural_resolution,417,c.2,9483,9494,clause (ii),417,ii
+4,needs_structural_resolution,417,e.3.c,13303,13314,clause (iv),417,iv
+4,needs_structural_resolution,417,e.3.d,13715,13726,clause (iv),417,iv
+4,resolved_external,419A,c.6.b,4788,4839,section 2791(d)(3) of the Public Health Service Act,2791,d.3|public.health.service.act
+4,needs_structural_resolution,419A,d.2,5803,5819,Subparagraph (B),419A,b
+4,needs_structural_resolution,419A,g.1,10508,10521,paragraph (7),419A,7
+4,needs_structural_resolution,419A,g.2,11011,11024,paragraph (7),419A,7
+4,needs_structural_resolution,42,i,50777,50821,clauses (I) and (II) of subparagraph (C)(ii),42,"c.ii.i, c.ii.ii"
+4,resolved_external,42,c.2.b,5578,5622,section 201(a) of the Tax Reform Act of 1986,201,a|tax.reform.act.of.1986
+4,resolved_external,42,d.6.b,16535,16581,section 3 of the Federal Deposit Insurance Act,3,federal.deposit.insurance.act
+4,resolved_external,42,d.6.c.i,16866,16916,section 8 of the United States Housing Act of 1937,8,united.states.housing.act.of.1937
+4,resolved_external,42,d.6.c.i,16984,17022,section 515 of the Housing Act of 1949,515,housing.act.of.1949
+4,resolved_external,42,g.2.b.i,28840,28890,section 8 of the United States Housing Act of 1937,8,united.states.housing.act.of.1937
+4,resolved_external,42,g.2.b.ii,29101,29151,section 8 of the United States Housing Act of 1937,8,united.states.housing.act.of.1937
+4,resolved_external,42,g.2.b.iv,29806,29844,section 515 of the Housing Act of 1949,515,housing.act.of.1949
+4,resolved_external,42,i,55874,55924,section 8 of the United States Housing Act of 1937,8,united.states.housing.act.of.1937
+4,resolved_external,42,i.3.b.iii,67447,67504,section 103 of the McKinney-Vento Homeless Assistance Act,103,mckinney.vento.homeless.assistance.act
+4,resolved_external,42,i.8,72131,72169,section 520 of the Housing Act of 1949,520,housing.act.of.1949
+4,resolved_external,42,i.9.a,73016,73086,section 1602 of the American Recovery and Reinvestment Tax Act of 2009,1602,american.recovery.and.reinvestment.tax.act.of.2009
+4,needs_structural_resolution,42,b.1.a.ii,1113,1133,subsection (h)(4)(B),42,h.4.b
+4,needs_structural_resolution,42,b.4.c,3392,3409,subsection (h)(7),42,h.7
+4,needs_structural_resolution,42,d.2.d.i,7733,7750,subsection (h)(5),42,h.5
+4,needs_structural_resolution,42,d.3.b.i,9675,9690,clause (ii)(II),42,ii.ii
+4,needs_structural_resolution,42,d.6,16165,16189,paragraph (2)(B)(ii) (A),42,2.b.ii.a
+4,needs_structural_resolution,42,e.3.b,20187,20210,subparagraph (A)(ii)(I),42,a.ii.i
+4,needs_structural_resolution,42,e.3.b,20356,20380,subsection (b)(2)(B)(ii),42,b.2.b.ii
+4,needs_structural_resolution,42,e.3.d,20733,20757,subparagraph (A)(ii)(II),42,a.ii.ii
+4,needs_structural_resolution,42,f.5.b.i,25634,25649,clause (ii)(II),42,ii.ii
+4,needs_structural_resolution,42,f.5.b.ii,25918,25945,subsection (e)(3)(A)(ii)(I),42,e.3.a.ii.i
+4,needs_structural_resolution,42,f.5.b.ii,26001,26029,subsection (e)(3)(A)(ii)(II),42,e.3.a.ii.ii
+4,needs_structural_resolution,42,g.2.d.iii,32589,32612,paragraph (1)(C)(ii)(I),42,1.c.ii.i
+4,needs_structural_resolution,42,g.2.d.iv,33582,33605,paragraph (1)(C)(ii)(I),42,1.c.ii.i
+4,needs_structural_resolution,42,g.2.d.v,33879,33902,paragraph (1)(C)(ii)(I),42,1.c.ii.i
+4,needs_structural_resolution,42,g.2.d.v,34187,34211,paragraph (1)(C)(ii)(II),42,1.c.ii.ii
+4,needs_structural_resolution,42,g.3.d,37642,37666,subsection (h)(1)(F)(ii),42,h.1.f.ii
+4,needs_structural_resolution,42,g.4,37855,37871,subparagraph (A),42,a
+4,needs_structural_resolution,42,h.1.d.iii,42558,42571,paragraph (2),42,2
+4,needs_structural_resolution,42,i,44259,44269,clause (i),42,i
+4,needs_structural_resolution,42,i,45369,45386,subparagraphs (D),42,d
+4,needs_structural_resolution,42,i,46093,46109,subparagraph (D),42,d
+4,needs_structural_resolution,42,i,46158,46168,clause (i),42,i
+4,needs_structural_resolution,42,i,46294,46306,clauses (ii),42,ii
+4,needs_structural_resolution,42,i,46409,46421,clause (iii),42,iii
+4,needs_structural_resolution,42,i,46635,46655,paragraph (1)(E)(ii),42,1.e.ii
+4,needs_structural_resolution,42,i,48509,48521,clause (iii),42,iii
+4,needs_structural_resolution,42,i,49969,49985,subparagraph (C),42,c
+4,needs_structural_resolution,42,i,50227,50247,subparagraph (A)(ii),42,a.ii
+4,needs_structural_resolution,42,i,50332,50342,clause (i),42,i
+4,needs_structural_resolution,42,i,50490,50500,clause (i),42,i
+4,needs_structural_resolution,42,i,50870,50886,subparagraph (H),42,h
+4,needs_structural_resolution,42,i,51699,51715,subparagraph (A),42,a
+4,needs_structural_resolution,42,i,51997,52013,subparagraph (A),42,a
+4,needs_structural_resolution,42,i,52182,52198,subparagraph (A),42,a
+4,needs_structural_resolution,42,i,52774,52790,subparagraph (B),42,b
+4,needs_structural_resolution,42,i,52865,52881,subparagraph (A),42,a
+4,needs_structural_resolution,42,i,53921,53937,subparagraph (B),42,b
+4,needs_structural_resolution,42,i,54070,54080,clause (i),42,i
+4,needs_structural_resolution,42,i,54443,54459,subparagraph (A),42,a
+4,needs_structural_resolution,42,i,55279,55299,subparagraph (E)(ii),42,e.ii
+4,needs_structural_resolution,42,i,55554,55564,clause (i),42,i
+4,needs_structural_resolution,42,i,57803,57819,subparagraph (I),42,i
+4,needs_structural_resolution,42,i,58297,58307,clause (i),42,i
+4,needs_structural_resolution,42,i,58676,58692,subparagraph (E),42,e
+4,needs_structural_resolution,42,i,59663,59679,subparagraph (E),42,e
+4,needs_structural_resolution,42,i,60059,60079,subparagraph (A)(ii),42,a.ii
+4,needs_structural_resolution,42,i,60734,60744,clause (i),42,i
+4,needs_structural_resolution,42,i,61917,61933,subparagraph (A),42,a
+4,needs_structural_resolution,42,i,63241,63252,clause (ii),42,ii
+4,needs_structural_resolution,42,i,63445,63455,clause (i),42,i
+4,needs_structural_resolution,42,i,63461,63472,clause (ii),42,ii
+4,needs_structural_resolution,42,i,63664,63676,clause (iii),42,iii
+4,needs_structural_resolution,42,i.3.b.iii,67715,67732,subsection (h)(5),42,h.5
+4,needs_structural_resolution,42,i.3.c.ii,68438,68463,subsection (d)(2)(D)(iii),42,d.2.d.iii
+4,needs_structural_resolution,42,i.3.e.i,69833,69853,subsection (h)(5)(C),42,h.5.c
+4,needs_structural_resolution,42,i.7.a,71196,71216,subsection (h)(5)(C),42,h.5.c
+4,needs_structural_resolution,42,i.9.a,72800,72811,clauses (i),42,i
+4,needs_structural_resolution,42,i.9.a,72828,72848,subsection (h)(3)(C),42,h.3.c
+4,needs_structural_resolution,42,j.5.c.i,77881,77900,subparagraph (B)(i),42,b.i
+4,needs_structural_resolution,42,k.1,79429,79454,subparagraphs (D)(ii)(II),42,d.ii.ii
+4,needs_structural_resolution,42,k.2.a,79922,79939,subsection (h)(5),42,h.5
+4,needs_structural_resolution,42,m.1.d,89479,89496,Subsection (h)(4),42,h.4
+4,needs_structural_resolution,42,m.2.d,91509,91526,Subsection (h)(4),42,h.4
+4,needs_structural_resolution,42,i,45222,45236,this paragraph,42,i
+4,needs_structural_resolution,42,i,49080,49094,this paragraph,42,i
+4,needs_structural_resolution,42,i,49444,49458,this paragraph,42,i
+4,needs_structural_resolution,42,i,49716,49730,this paragraph,42,i
+4,needs_structural_resolution,42,i,49763,49777,this paragraph,42,i
+4,needs_structural_resolution,42,i,53268,53282,this paragraph,42,i
+4,needs_structural_resolution,42,i,53790,53804,this paragraph,42,i
+4,needs_structural_resolution,42,i,54463,54477,this paragraph,42,i
+4,needs_structural_resolution,42,i,54847,54861,this paragraph,42,i
+4,needs_structural_resolution,42,i,56995,57009,this paragraph,42,i
+4,needs_structural_resolution,42,i,59482,59496,this paragraph,42,i
+4,needs_structural_resolution,42,i,61151,61165,this paragraph,42,i
+4,needs_structural_resolution,42,i,62136,62150,this paragraph,42,i
+4,resolved_external,430,c.2.d.iv,5275,5324,section 106 of the Pension Protection Act of 2006,106,pension.protection.act.of.2006
+4,resolved_external,430,c.7.e.i,17149,17216,section 4043 of the Employee Retirement Income Security Act of 1974,4043,employee.retirement.income.security.act.of.1974
+4,resolved_external,430,i,50603,50684,section 4006(a)(3)(E)(iii) of the Employee Retirement Income Security Act of 1974,4006,a.3.e.iii|employee.retirement.income.security.act.of.1974
+4,resolved_external,430,k.2,66874,66941,section 4021 of the Employee Retirement Income Security Act of 1974,4021,employee.retirement.income.security.act.of.1974
+4,resolved_external,430,k.4.c,68210,68277,section 4068 of the Employee Retirement Income Security Act of 1974,4068,employee.retirement.income.security.act.of.1974
+4,unresolved_missing_section,430,i,50774,50793,section 4001(a)(13),4001,a.13
+4,unresolved_missing_section,430,i,50870,50889,section 4001(a)(14),4001,a.14
+4,needs_structural_resolution,430,c.7.d.iv,14706,14719,clause (i)(I),430,i.i
+4,needs_structural_resolution,430,c.7.d.v,15281,15294,clause (i)(I),430,i.i
+4,needs_structural_resolution,430,c.7.d.vii,16306,16320,clause (i)(II),430,i.ii
+4,needs_structural_resolution,430,c.7.d.vii,16568,16588,subparagraph (A)(ii),430,a.ii
+4,needs_structural_resolution,430,f.3.d.ii,27358,27372,clause (i)(II),430,i.ii
+4,needs_structural_resolution,430,f.7.b,32945,32969,paragraph (1)(B)(ii)(II),430,1.b.ii.ii
+4,needs_structural_resolution,430,h.3.c.i,45695,45707,clause (iii),430,iii
+4,needs_structural_resolution,430,i,46283,46295,clause (iii),430,iii
+4,needs_structural_resolution,430,i,47202,47214,clause (iii),430,iii
+4,needs_structural_resolution,430,i,47687,47697,clause (i),430,i
+4,needs_structural_resolution,430,i,47875,47885,clause (i),430,i
+4,needs_structural_resolution,430,i,48077,48089,clause (iii),430,iii
+4,needs_structural_resolution,430,i,48252,48268,subparagraph (A),430,a
+4,needs_structural_resolution,430,i,48379,48395,subparagraph (A),430,a
+4,needs_structural_resolution,430,i,48894,48904,clause (i),430,i
+4,needs_structural_resolution,430,i,49199,49209,clause (i),430,i
+4,needs_structural_resolution,430,j.3.b.iii,60259,60273,clause (i)(II),430,i.ii
+4,needs_structural_resolution,430,i,50180,50194,this paragraph,430,i
+4,needs_structural_resolution,430,i,50294,50308,This paragraph,430,i
+4,resolved_external,431,b.8.b.ii,11712,11784,section 302(d)(1) of the Employee Retirement Income Security Act of 1974,302,d.1|employee.retirement.income.security.act.of.1974
+4,resolved_external,431,b.8.f.iii,14832,14899,section 4262 of the Employee Retirement Income Security Act of 1974,4262,employee.retirement.income.security.act.of.1974
+4,resolved_external,431,d.3.a,28556,28630,section 4001(a)(21) of the Employee Retirement Income Security Act of 1974,4001,a.21|employee.retirement.income.security.act.of.1974
+4,unresolved_missing_section,431,b.7.b.ii,6772,6787,section 4243(a),4243,a
+4,resolved_external,436,d.3.a.ii,5264,5331,section 4022 of the Employee Retirement Income Security Act of 1974,4022,employee.retirement.income.security.act.of.1974
+4,resolved_external,436,f.1.b.i,8498,8564,section 412 of the Employee Retirement Income Security Act of 1974,412,employee.retirement.income.security.act.of.1974
+4,needs_structural_resolution,448,c.2,1460,1474,subsection (m),448,m
+4,needs_structural_resolution,448,c.4.b,2768,2788,subparagraph (A)(ii),448,a.ii
+4,needs_structural_resolution,453,i,16380,16391,clause (ii),453,ii
+4,needs_structural_resolution,453,i,16447,16460,paragraph (3),453,3
+4,needs_structural_resolution,453,i,17538,17554,subparagraph (A),453,a
+4,needs_structural_resolution,453,i,18011,18027,paragraph (2)(B),453,2.b
+4,needs_structural_resolution,453,i,18224,18240,subparagraph (B),453,b
+4,needs_structural_resolution,453,i,18323,18339,subparagraph (A),453,a
+4,needs_structural_resolution,453,i,18890,18900,clause (i),453,i
+4,needs_structural_resolution,453,i,19033,19049,subparagraph (A),453,a
+4,needs_structural_resolution,453,i,16552,16566,this paragraph,453,i
+4,needs_structural_resolution,453,i,19271,19285,this paragraph,453,i
+4,resolved_external,457,e.11.d.ii,14892,14958,section 8101 of the Elementary and Secondary Education Act of 1965,8101,elementary.and.secondary.education.act.of.1965
+4,resolved_external,457,f.4.c.i,21870,21936,section 8101 of the Elementary and Secondary Education Act of 1965,8101,elementary.and.secondary.education.act.of.1965
+4,needs_structural_resolution,457,e.11.d.i,14275,14290,clause (ii)(II),457,ii.ii
+4,needs_structural_resolution,457,e.17.b,18405,18422,subsection (k)(3),457,k.3
+4,needs_structural_resolution,475,b.1.a.ii,1726,1742,subparagraph (C),475,c
+4,needs_structural_resolution,475,d.2.b,5759,5771,clause (iii),475,iii
+4,needs_structural_resolution,475,d.3.b.i,6870,6890,subsection (b)(1)(C),475,b.1.c
+4,needs_structural_resolution,4911,c.3,2124,2140,paragraph (1)(B),4911,1.b
+4,resolved_external,4941,d.2.g.vii,7627,7650,section 5702 of title 5,5702,title.5
+4,needs_structural_resolution,4941,d.2.g.i,6227,6240,paragraph (3),4941,3
+4,needs_structural_resolution,4942,g.2.c,9884,9899,clause (ii)(II),4942,ii.ii
+4,needs_structural_resolution,4942,g.2.c.ii,10310,10325,clause (ii)(II),4942,ii.ii
+4,needs_structural_resolution,4942,g.2.d,10882,10897,clause (ii)(II),4942,ii.ii
+4,needs_structural_resolution,4942,g.2.d,11117,11132,clause (ii)(II),4942,ii.ii
+4,needs_structural_resolution,4942,g.3,11896,11915,paragraph (1)(A)(i),4942,1.a.i
+4,resolved_external,4975,c.7,5286,5355,section 408(h) of the Employee Retirement Income Security Act of 1974,408,h|employee.retirement.income.security.act.of.1974
+4,resolved_external,4975,d.14,12103,12170,section 4223 of the Employee Retirement Income Security Act of 1974,4223,employee.retirement.income.security.act.of.1974
+4,resolved_external,4975,d.16.a,12880,12932,section 3(w)(1) of the Federal Deposit Insurance Act,3,w.1|federal.deposit.insurance.act
+4,resolved_external,4975,d.22.e,21243,21315,section 407(d)(7) of the Employee Retirement Income Security Act of 1974,407,d.7|employee.retirement.income.security.act.of.1974
+4,resolved_external,4975,e.3.c,27293,27368,section 405(c)(1)(B) of the Employee Retirement Income Security Act of 1974,405,c.1.b|employee.retirement.income.security.act.of.1974
+4,resolved_external,4975,e.9.b,30302,30369,section 4223 of the Employee Retirement Income Security Act of 1974,4223,employee.retirement.income.security.act.of.1974
+4,resolved_external,4975,f.8.j.i,47109,47161,section 3(b)(1) of the Federal Deposit Insurance Act,3,b.1|federal.deposit.insurance.act
+4,resolved_external,4975,f.8.j.ii,48622,48675,section 2(a)(3) of the Investment Company Act of 1940,2,a.3|investment.company.act.of.1940
+4,resolved_external,4975,f.8.j.iii,48819,48874,section 3(a)(18) of the Securities Exchange Act of 1934,3,a.18|securities.exchange.act.of.1934
+4,resolved_external,4975,f.8.j.iii,49004,49061,section 202(a)(17) of the Investment Advisers Act of 1940,202,a.17|investment.advisers.act.of.1940
+4,resolved_external,4975,f.10.a.i,49631,49679,section 6 of the Securities Exchange Act of 1934,6,securities.exchange.act.of.1934
+4,resolved_external,4975,f.11.b.i,51002,51074,section 407(d)(1) of the Employee Retirement Income Security Act of 1974,407,d.1|employee.retirement.income.security.act.of.1974
+4,resolved_external,4975,g.1,59479,59554,section 401(b)(2)(B) of the Employee Retirement Income Security Act of 1974,401,b.2.b|employee.retirement.income.security.act.of.1974
+4,resolved_external,4975,i,60796,60863,section 3003 of the Employee Retirement Income Security Act of 1974,3003,employee.retirement.income.security.act.of.1974
+4,unresolved_missing_section,4975,d.12,11625,11637,section 4044,4044,
+4,unresolved_missing_section,4975,d.15,12463,12475,section 4231,4231,
+4,needs_structural_resolution,4975,f.8.h.ii,45705,45729,subparagraph (F)(i)(III),4975,f.i.iii
+4,needs_structural_resolution,4975,f.11.d.i,52048,52069,subparagraph (F)(iii),4975,f.iii
+4,needs_structural_resolution,4975,f.12.a.i,53006,53018,clause (iii),4975,iii
+4,needs_structural_resolution,4975,f.12.b.i,53877,53899,subparagraph (A)(i)(I),4975,a.i.i
+4,needs_structural_resolution,4975,f.12.b.ii,54411,54434,subparagraph (A)(i)(II),4975,a.i.ii
+4,needs_structural_resolution,4975,f.12.b.iii,54855,54877,subparagraph (A)(i)(I),4975,a.i.i
+4,needs_structural_resolution,4975,f.12.b.iii,54926,54949,subparagraph (A)(i)(II),4975,a.i.ii
+4,needs_structural_resolution,4975,f.12.b.iv,55100,55123,subparagraph (A)(i)(II),4975,a.i.ii
+4,needs_structural_resolution,4975,f.12.b.v,55355,55377,subparagraph (A)(i)(I),4975,a.i.i
+4,needs_structural_resolution,4975,f.12.b.vi,56435,56457,subparagraph (A)(i)(I),4975,a.i.i
+4,needs_structural_resolution,4975,f.12.b.viii,57380,57402,subparagraph (A)(i)(I),4975,a.i.i
+4,needs_structural_resolution,4975,f.12.b.viii,57441,57464,subparagraph (A)(i)(II),4975,a.i.ii
+4,needs_structural_resolution,4975,f.12.b.ix,57570,57592,subparagraph (A)(i)(I),4975,a.i.i
+4,needs_structural_resolution,4975,f.12.b.ix,57732,57755,subparagraph (A)(i)(II),4975,a.i.ii
+4,needs_structural_resolution,4975,f.12.b.xii,59158,59181,subparagraph (A)(i)(II),4975,a.i.ii
+4,needs_structural_resolution,4975,f.12.b.xii,59306,59321,clause (ii)(II),4975,ii.ii
+4,resolved_external,4980B,f.1,8622,8667,section 1928(h)(6) of the Social Security Act,1928,h.6|social.security.act
+4,resolved_external,4980B,f.5.c.iii,22093,22165,section 701(c)(2) of the Employee Retirement Income Security Act of 1974,701,c.2|employee.retirement.income.security.act.of.1974
+4,resolved_external,4980B,f.5.c.iii,22171,22222,section 2704(c)(2) of the Public Health Service Act,2704,c.2|public.health.service.act
+4,resolved_external,4980B,g.3,29112,29183,section 3(16)(A) of the Employee Retirement Income Security Act of 1974,3,16.a|employee.retirement.income.security.act.of.1974
+4,needs_structural_resolution,4980B,b.2.b.ii,904,916,clause (iii),4980B,iii
+4,needs_structural_resolution,4980B,b.2.b.ii,963,983,subsection (e)(1)(B),4980B,e.1.b
+4,needs_structural_resolution,4980B,c.4.c,5554,5574,subsection (e)(1)(B),4980B,e.1.b
+4,needs_structural_resolution,4980B,c.4.c,5584,5604,subsection (e)(1)(A),4980B,e.1.a
+4,needs_structural_resolution,4980B,e.2,7147,7167,paragraph (1)(B) (A),4980B,1.b.a
+4,needs_structural_resolution,4980B,e.2.b,7738,7754,paragraph (1)(B),4980B,1.b
+4,needs_structural_resolution,4980B,f.2.b.i,12081,12105,paragraph (5)(C)(iv)(II),4980B,5.c.iv.ii
+4,resolved_external,5000A,d.2.a.i,5165,5236,section 1311(d)(4)(H) of the Patient Protection and Affordable Care Act,1311,d.4.h|patient.protection.and.affordable.care.act
+4,resolved_external,5000A,d.2.a.ii,6201,6272,section 1311(d)(4)(H) of the Patient Protection and Affordable Care Act,1311,d.4.h|patient.protection.and.affordable.care.act
+4,resolved_external,5000A,e.1.a,8520,8591,section 1412(b)(1)(B) of the Patient Protection and Affordable Care Act,1412,b.1.b|patient.protection.and.affordable.care.act
+4,resolved_external,5000A,e.2,10776,10847,section 1412(b)(1)(B) of the Patient Protection and Affordable Care Act,1412,b.1.b|patient.protection.and.affordable.care.act
+4,resolved_external,5000A,f.1.a.iii,12823,12865,section 2107(g) of the Social Security Act,2107,g|social.security.act
+4,resolved_external,5000A,f.1.a.vii,13485,13538,section 349 of the National Defense Authorization Act,349,national.defense.authorization.act
+4,resolved_external,5000A,f.2.a,14367,14418,section 2791(d)(8) of the Public Health Service Act,2791,d.8|public.health.service.act
+4,resolved_external,5000A,f.3.a,14870,14915,section 2791 of the Public Health Service Act,2791,public.health.service.act
+4,resolved_external,5000A,f.1.a.vi,13290,13317,section 2504(e) of title 22,2504,e.title.22
+4,needs_structural_resolution,5000A,d.2.a.ii,6300,6314,Clause (i)(II),5000A,i.ii
+4,needs_structural_resolution,505,,62,75,paragraph (9),505,9
+4,needs_structural_resolution,505,c.1,4231,4244,paragraph (9),505,9
+4,needs_structural_resolution,509,a.1,262,275,clauses (vii),509,vii
+4,needs_structural_resolution,509,a.2.a.ii,1205,1218,clauses (vii),509,vii
+4,resolved_external,512,b.15.c.iv,25816,25912,"section 107 of the Comprehensive Environmental Response, Compensation, and Liability Act of 1980",107,comprehensive.environmental.response.compensation.and.liability.act.of.1980
+4,resolved_external,512,b.15.c.iv,26929,27029,"section 101(39) of the Comprehensive Environmental Response, Compensation, and Liability Act of 1980",101,39|comprehensive.environmental.response.compensation.and.liability.act.of.1980
+4,resolved_external,512,b.15.d.i,28743,28842,"section 117(b) of the Comprehensive Environmental Response, Compensation, and Liability Act of 1980",117,b|comprehensive.environmental.response.compensation.and.liability.act.of.1980
+4,resolved_external,512,b.15.d.ii,29273,29372,"section 121(d) of the Comprehensive Environmental Response, Compensation, and Liability Act of 1980",121,d|comprehensive.environmental.response.compensation.and.liability.act.of.1980
+4,resolved_external,512,b.15.d.ii,31117,31216,"section 117(a) of the Comprehensive Environmental Response, Compensation, and Liability Act of 1980",117,a|comprehensive.environmental.response.compensation.and.liability.act.of.1980
+4,needs_structural_resolution,512,a.3,1110,1123,paragraph (7),512,7
+4,needs_structural_resolution,512,a.3.a,1217,1230,paragraph (7),512,7
+4,needs_structural_resolution,512,a.3.b.ii,2622,2635,paragraph (9),512,9
+4,needs_structural_resolution,512,a.3.c,3311,3324,paragraph (7),512,7
+4,needs_structural_resolution,512,a.3.d,3794,3807,paragraph (7),512,7
+4,needs_structural_resolution,512,a.3.e,4731,4744,paragraph (9),512,9
+4,needs_structural_resolution,512,a.3.e.i,4831,4844,paragraph (9),512,9
+4,needs_structural_resolution,512,a.3.e.i,5179,5196,subsection (f)(6),512,f.6
+4,needs_structural_resolution,512,b.15.d.i,28682,28696,clause (ii)(V),512,ii.v
+4,needs_structural_resolution,512,b.15.e.i,33271,33294,subparagraph (D)(i)(II),512,d.i.ii
+4,needs_structural_resolution,512,b.15.g.ii,35937,35957,subparagraphs (B)(i),512,b.i
+4,needs_structural_resolution,512,b.15.g.ii,36216,36236,subparagraph (B)(ii),512,b.ii
+4,needs_structural_resolution,512,b.15.i,38802,38812,clause (i),512,i
+4,needs_structural_resolution,512,b.15.i,39284,39294,clause (i),512,i
+4,needs_structural_resolution,512,d.2.b,42974,42994,subparagraph (A)(ii),512,a.ii
+4,needs_structural_resolution,513,h.2.c.ii,10572,10592,subparagraph (A)(ii),513,a.ii
+4,needs_structural_resolution,52,a.2,733,751,subsections (a)(4),52,a.4
+4,resolved_external,527,f.3,8884,8907,section 610 of title 18,610,title.18
+4,resolved_external,529,c.8,13445,13489,section 1 of the National Apprenticeship Act,1,national.apprenticeship.act
+4,resolved_external,529,e.3.b.ii,19020,19067,section 472 of the Higher Education Act of 1965,472,higher.education.act.of.1965
+4,resolved_external,529,e.5.a,19924,19971,section 481 of the Higher Education Act of 1965,481,higher.education.act.of.1965
+4,resolved_external,529,f.2.a,21212,21274,section 122(d) of the Workforce Innovation and Opportunity Act,122,d|workforce.innovation.and.opportunity.act
+4,resolved_external,529,f.3.d,23351,23412,section 3(52) of the Workforce Innovation and Opportunity Act,3,52|workforce.innovation.and.opportunity.act
+4,needs_structural_resolution,529,c.3.c.iii,7830,7843,Clause (i)(I),529,i.i
+4,resolved_external,530,d.4.b.iv,9473,9503,section 2005(e)(3) of title 10,2005,e.3.title.10
+4,resolved_external,530,d.9.a,12220,12244,section 1477 of title 10,1477,title.10
+4,resolved_external,530,d.9.a,12270,12294,section 1967 of title 38,1967,title.38
+4,needs_structural_resolution,530,d.4.b.v,9696,9719,paragraph (2)(C)(i)(II),530,2.c.i.ii
+4,needs_structural_resolution,530,e,13161,13175,paragraphs (2),530,2
+4,needs_structural_resolution,542,d,6573,6594,subsection (c)(6) (1),542,c.6.1
+4,needs_structural_resolution,55,b.1.c,1258,1268,clause (i),55,i
+4,needs_structural_resolution,55,b.1.c,1273,1284,clause (ii),55,ii
+4,needs_structural_resolution,55,c.1,4303,4317,subsection (j),55,j
+4,needs_structural_resolution,55,d.4.a.iii,8059,8073,subsection (j),55,j
+4,needs_structural_resolution,55,d.4.b.i,8264,8287,subparagraph (A)(ii)(I),55,a.ii.i
+4,needs_structural_resolution,55,d.4.b.i,8685,8707,subparagraph (A)(i)(I),55,a.i.i
+4,needs_structural_resolution,55,d.4.b.i,8734,8757,subparagraph (A)(i)(II),55,a.i.ii
+4,needs_structural_resolution,55,d.4.b.i,8829,8852,subparagraph (A)(ii)(I),55,a.ii.i
+4,needs_structural_resolution,55,d.4.b.ii,8941,8963,subparagraph (A)(i)(I),55,a.i.i
+4,needs_structural_resolution,55,d.4.b.ii,8987,9010,subparagraph (A)(i)(II),55,a.i.ii
+4,needs_structural_resolution,55,d.4.b.ii,9041,9064,subparagraph (A)(ii)(I),55,a.ii.i
+4,needs_structural_resolution,562,b.2,2020,2036,subparagraph (B),562,b
+4,needs_structural_resolution,584,h.4,7992,8003,clause (iv),584,iv
+4,resolved_external,6033,g.3.c,14881,14940,section 301(6) of the Federal Election Campaign Act of 1971,301,6|federal.election.campaign.act.of.1971
+4,resolved_external,6033,g.3.d,15026,15086,section 301(14) of the Federal Election Campaign Act of 1971,301,14|federal.election.campaign.act.of.1971
+4,needs_structural_resolution,6033,l.2,20051,20061,clause (i),6033,i
+4,needs_structural_resolution,6050L,b.1.d,2424,2441,paragraph (10)(B),6050L,10.b
+4,needs_structural_resolution,6050L,b.1.d,2500,2514,paragraphs (5),6050L,5
+4,needs_structural_resolution,6051,a,253,267,subsection (n),6051,n
+4,needs_structural_resolution,6051,a.16,3094,3110,subparagraph (A),6051,a
+4,needs_structural_resolution,6051,a.16,3169,3185,subparagraph (B),6051,b
+4,needs_structural_resolution,6051,g.2.a,10360,10376,subparagraph (G),6051,g
+4,unresolved_missing_section,6058,g,2416,2428,section 3004,3004,
+4,needs_structural_resolution,6058,f,2035,2049,paragraph (15),6058,15
+4,unresolved_missing_section,6059,d,1814,1826,section 3004,3004,
+4,needs_structural_resolution,6166,g.1.c,16793,16812,Subparagraph (A)(i),6166,a.i
+4,needs_structural_resolution,6166,g.1.c,17132,17151,subparagraph (A)(i),6166,a.i
+4,needs_structural_resolution,6166,g.1.d,17207,17226,Subparagraph (A)(i),6166,a.i
+4,resolved_external,642,b.2.c.ii,1403,1442,section 1917 of the Social Security Act,1917,social.security.act
+4,resolved_external,642,b.2.c.ii,1646,1691,section 1614(a)(3) of the Social Security Act,1614,a.3|social.security.act
+4,needs_structural_resolution,642,b.2.c.ii,1375,1399,subsection (c)(2)(B)(iv),642,c.2.b.iv
+4,needs_structural_resolution,642,c.5.a,6601,6614,clauses (vii),642,vii
+4,needs_structural_resolution,6601,j.3,9106,9122,paragraph (2)(A),6601,2.a
+4,needs_structural_resolution,6601,j.3.b,9350,9370,subparagraph (A)(ii),6601,a.ii
+4,needs_structural_resolution,664,f.1,7472,7488,paragraph (1)(A),664,1.a
+4,needs_structural_resolution,664,f.3,8013,8029,paragraph (1)(A),664,1.a
+4,needs_structural_resolution,664,g.5.b,13224,13243,paragraph (2)(B)(i),664,2.b.i
+4,needs_structural_resolution,6651,j.1,7274,7294,subparagraph (A)(ii),6651,a.ii
+4,needs_structural_resolution,702,b,1227,1241,paragraphs (1),702,1
+4,resolved_external,72,l,23516,23570,section 2(a)(15) of the Investment Company Act of 1940,2,a.15|investment.company.act.of.1940
+4,resolved_external,72,r.2.c.i,45789,45840,section 2(b) of the Railroad Retirement Act of 1974,2,b|railroad.retirement.act.of.1974
+4,resolved_external,72,t.11.f.i,86049,86122,section 301 of the Taxpayer Certainty and Disaster Tax Relief Act of 2020,301,taxpayer.certainty.and.disaster.tax.relief.act.of.2020
+4,resolved_external,72,t.2.g.iii,55660,55683,section 101 of title 37,101,title.37
+4,unresolved_missing_section,72,t.10.b.ii,80884,80892,8331(31),8331,31
+4,unresolved_missing_section,72,t.10.b.ii,80896,80904,8401(36),8401,36
+4,unresolved_missing_section,72,t.10.b.ii,80965,80973,8331(21),8331,21
+4,unresolved_missing_section,72,t.10.b.ii,80977,80985,8401(14),8401,14
+4,unresolved_missing_section,72,t.10.b.ii,81128,81136,8331(27),8331,27
+4,unresolved_missing_section,72,t.10.b.ii,81140,81148,8401(33),8401,33
+4,unresolved_missing_section,72,t.2.a.viii,50743,50762,section 8366a(a)(5),8366a,a.5
+4,unresolved_missing_section,72,t.2.a.viii,50808,50821,section 8336a,8336a,
+4,unresolved_missing_section,72,t.2.a.viii,50910,50929,section 8366a(a)(1),8366a,a.1
+4,unresolved_missing_section,72,t.10.b.ii,80752,80768,section 8331(20),8331,20
+4,needs_structural_resolution,72,e.5.d.iii,14548,14562,clause (ii)(I),72,ii.i
+4,needs_structural_resolution,72,o.5.c,32343,32366,subsection (p)(3)(A)(i),72,p.3.a.i
+4,needs_structural_resolution,72,t.2.d.iii,53267,53280,clause (i)(I),72,i.i
+4,needs_structural_resolution,72,t.2.i.iv,62258,62281,subparagraph (H)(vi)(I),72,h.vi.i
+4,needs_structural_resolution,72,t.2.i.v,63503,63527,subparagraph (H)(iv)(II),72,h.iv.ii
+4,needs_structural_resolution,72,t.2.i.vi,63678,63697,subparagraph (H)(v),72,h.v
+4,needs_structural_resolution,72,t.2.i.viii,64583,64603,subparagraph (H)(vi),72,h.vi
+4,needs_structural_resolution,72,t.2.k.iv,66567,66591,subparagraph (H)(iv)(II),72,h.iv.ii
+4,needs_structural_resolution,72,t.2.k.v,66721,66740,subparagraph (H)(v),72,h.v
+4,needs_structural_resolution,72,t.2.k.vii,67861,67875,clause (ii)(I),72,ii.i
+4,needs_structural_resolution,72,t.2.l.iv,69098,69117,subparagraph (H)(v),72,h.v
+4,needs_structural_resolution,72,t.3.a,70095,70115,Subparagraphs (A)(v),72,a.v
+4,needs_structural_resolution,72,t.10.a,79974,79986,clause (iii),72,iii
+4,unresolved_missing_section,72,t.10.b.ii,80772,80780,8401(17),8401,17
+4,needs_structural_resolution,7428,a.1.e,1120,1133,paragraph (3),7428,3
+4,needs_structural_resolution,761,f.2.b,3538,3551,paragraph (5),761,5
+4,resolved_external,7702B,c.4,5701,5746,section 1861(r)(1) of the Social Security Act,1861,r.1|social.security.act
+4,unresolved_missing_section,7702B,g.2.a.i,11749,11759,Section 7A,7A,
+4,unresolved_missing_section,7702B,g.2.a.i,11839,11849,section 6B,6B,
+4,unresolved_missing_section,7702B,g.2.a.i,11884,11894,section 7A,7A,
+4,unresolved_missing_section,7702B,g.2.a.i,11901,11911,Section 7B,7B,
+4,unresolved_missing_section,7702B,g.2.a.i,11976,11986,Section 7C,7C,
+4,unresolved_missing_section,7702B,g.2.a.i,12029,12039,Section 7D,7D,
+4,unresolved_missing_section,7702B,g.2.a.i,12098,12108,Section 7E,7E,
+4,unresolved_missing_section,7702B,g.2.a.i,12172,12181,Section 8,8,
+4,unresolved_missing_section,7702B,g.2.a.i,12223,12232,Section 9,9,
+4,unresolved_missing_section,7702B,g.2.a.i,12270,12280,section 9F,9F,
+4,unresolved_missing_section,7702B,g.2.a.i,12297,12307,Section 10,10,
+4,unresolved_missing_section,7702B,g.2.a.ii,12850,12860,Section 6C,6C,
+4,unresolved_missing_section,7702B,g.2.a.ii,12904,12914,Section 6D,6D,
+4,needs_structural_resolution,78,,274,289,subsections (a),78,a
+4,needs_structural_resolution,78,,373,390,subsection (d)(1),78,d.1
+4,resolved_external,7871,f.3.b.i,9201,9246,section 4 of the Indian Gaming Regulatory Act,4,indian.gaming.regulatory.act
+4,resolved_external,83,c.3,2737,2789,section 16(b) of the Securities Exchange Act of 1934,16,b|securities.exchange.act.of.1934
+4,resolved_external,83,c.3,2871,2923,section 16(b) of the Securities Exchange Act of 1934,16,b|securities.exchange.act.of.1934
+4,needs_structural_resolution,83,i.2.c,9168,9192,subparagraph (A)(ii)(II),83,a.ii.ii
+4,needs_structural_resolution,83,i.2.c.ii,9917,9931,clause (i)(II),83,i.ii
+4,needs_structural_resolution,83,i.2.c.iii,10627,10641,clause (i)(II),83,i.ii
+4,needs_structural_resolution,83,i.2.c.iv,10870,10884,clause (i)(II),83,i.ii
+4,needs_structural_resolution,831,b.2.b.ii,2231,2245,clause (i)(II),831,i.ii
+4,resolved_external,851,b.2.a,1218,1272,section 2(a)(36) of the Investment Company Act of 1940,2,a.36|investment.company.act.of.1940
+4,needs_structural_resolution,851,c.1,4261,4277,subparagraph (B),851,b
+4,needs_structural_resolution,851,d.2.c.ii,9947,9961,clause (i)(II),851,i.ii
+4,needs_structural_resolution,911,b.2.d.ii,3039,3059,subparagraph (A)(ii),911,a.ii
+4,needs_structural_resolution,933,,742,756,this paragraph,933,
+4,needs_structural_resolution,933,,1523,1537,this paragraph,933,
+4,resolved_external,9501,b.2.a,971,1013,section 424 of the Black Lung Benefits Act,424,black.lung.benefits.act
+4,resolved_external,9501,d.1,2466,2508,section 422 of the Black Lung Benefits Act,422,black.lung.benefits.act
+4,resolved_external,9501,d.7,4866,4911,section 402(i) of the Black Lung Benefits Act,402,i|black.lung.benefits.act
+4,unresolved_missing_section,9501,d.5.a,4136,4142,427(a),427,a
+4,unresolved_missing_section,9501,d.7,5171,5174,435,435,
+4,unresolved_missing_section,9501,d.7,5007,5018,section 435,435,
+4,needs_structural_resolution,952,c.1.b.ii,3623,3638,clause (iii)(I),952,iii.i
+4,resolved_external,954,h.2.b.iii,21752,21804,section 15(a) of the Securities Exchange Act of 1934,15,a|securities.exchange.act.of.1934
+4,unresolved_missing_section,954,h.2.b.iii,21872,21886,section 15C(a),15C,a
+4,needs_structural_resolution,954,h.3.e,24605,24629,subparagraph (A)(ii)(II),954,a.ii.ii
+4,needs_structural_resolution,954,h.3.e.i,25005,25029,subparagraph (A)(ii)(II),954,a.ii.ii
+4,needs_structural_resolution,958,b.1,1706,1722,paragraph (1)(A),958,1.a
+4,needs_structural_resolution,958,b.2,1932,1949,subparagraphs (A),958,a
+4,needs_structural_resolution,958,b.3,2260,2276,subparagraph (C),958,c
+4,needs_structural_resolution,958,b.3,2380,2396,subparagraph (C),958,c
+4,needs_structural_resolution,958,b.4,2402,2419,Subparagraphs (A),958,a
+4,resolved_external,9832,b.2,1204,1276,section 514(b)(2) of the Employee Retirement Income Security Act of 1974,514,b.2|employee.retirement.income.security.act.of.1974
+4,resolved_external,9832,b.3.a,1545,1593,section 1301(a) of the Public Health Service Act,1301,a|public.health.service.act
+4,resolved_external,9832,c.4,3273,3318,section 1882(g)(1) of the Social Security Act,1882,g.1|social.security.act
+4,unresolved_missing_section,9832,d.1.b,3883,3894,section 609,609,
+4,needs_structural_resolution,9832,d.1.a,3683,3700,subsection (f)(1),9832,f.1
+4,needs_structural_resolution,9832,d.3.b,4229,4245,paragraph (1)(D),9832,1.d

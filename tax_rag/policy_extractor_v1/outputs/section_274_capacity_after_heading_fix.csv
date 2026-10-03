@@ -1,0 +1,5 @@
+layer,new_units,cumulative_units,tax_code_tokens,cross_code_tokens,combined_tokens,capacity,fits,external_items,structural_items,missing_sections
+1,19,19,15119,9179,24298,992498,true,3,0,0
+2,63,74,162161,9179,171340,992498,true,10,5,0
+3,289,332,617986,9179,627165,992498,true,99,153,17
+4,460,708,1188451,9179,1197630,992498,false,172,435,61

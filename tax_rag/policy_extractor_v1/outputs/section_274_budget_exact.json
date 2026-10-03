@@ -1,0 +1,19 @@
+{
+  "model": "gpt-4.1-mini",
+  "tokenizer": "o200k_base",
+  "context_window": 1047576,
+  "output_reserve": 32768,
+  "safety_margin": 16384,
+  "fixed_literal_tokens": 246,
+  "target_provision_tokens": 5680,
+  "direct_mapped_blocks": 19,
+  "direct_context_tokens": 15119,
+  "direct_prompt_tokens": 21045,
+  "legal_context_capacity": 992498,
+  "remaining_after_direct": 977379,
+  "external_reference_occurrences": 3,
+  "section_level_recursive_sections": 1194,
+  "section_level_recursive_prompt_tokens": 1968118,
+  "direct_layer_fits": true,
+  "section_level_full_recursion_fits": false
+}
