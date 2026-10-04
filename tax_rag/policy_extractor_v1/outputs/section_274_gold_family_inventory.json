@@ -1,0 +1,229 @@
+{
+  "section": "26 U.S.C. § 274",
+  "source_citation": "26 U.S.C. § 274",
+  "source_sha256": "d505090343d6d4c01aa918f58f0e50836491f57e75c10274a9df97e10e628546",
+  "representation_model": "Single Receipt -> Expense implication-style DFC constraint; no SELECT, EXISTS, or WHERE.",
+  "global_cross_cutting_modifier": "26 U.S.C. § 274(f)",
+  "family_count": 17,
+  "evaluation_eligible_count": 14,
+  "inventory": [
+    {
+      "family_id": "entertainment_disallowance",
+      "title": "Entertainment, amusement, and recreation disallowance",
+      "statutory_basis": "26 U.S.C. § 274(a)(1), subject to § 274(e)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Entertainment, amusement, recreation, or qualified transportation fringes",
+      "mandatory_modifiers": [
+        "§274(e)(1)-(9) exceptions",
+        "§274(f) where applicable"
+      ],
+      "reason": "The basic category disallowance is per-receipt, but executable correctness requires exception eligibility facts."
+    },
+    {
+      "family_id": "club_dues_disallowance",
+      "title": "Club dues disallowance",
+      "statutory_basis": "26 U.S.C. § 274(a)(3)",
+      "representability": "PER_RECEIPT_DIRECT",
+      "evaluation_eligible": true,
+      "anchor": "Denial of deduction for club dues",
+      "mandatory_modifiers": [],
+      "reason": "A receipt type and zero deduction are sufficient."
+    },
+    {
+      "family_id": "qualified_transportation_fringe",
+      "title": "Qualified transportation fringe disallowance",
+      "statutory_basis": "26 U.S.C. § 274(a)(4)",
+      "representability": "PER_RECEIPT_DIRECT",
+      "evaluation_eligible": true,
+      "anchor": "Qualified transportation fringes",
+      "mandatory_modifiers": [],
+      "reason": "A qualified-fringe receipt classification is sufficient."
+    },
+    {
+      "family_id": "gift_annual_limit",
+      "title": "Annual per-recipient gift limitation",
+      "statutory_basis": "26 U.S.C. § 274(b)",
+      "representability": "REQUIRES_CROSS_RECEIPT_STATE",
+      "evaluation_eligible": false,
+      "anchor": "exceeds $25",
+      "mandatory_modifiers": [
+        "prior gifts to the same individual in the taxable year",
+        "§274(b)(1)(A)-(B) exclusions",
+        "§274(b)(2) aggregation rules"
+      ],
+      "reason": "Exact enforcement requires cumulative annual per-recipient state, not only the current receipt."
+    },
+    {
+      "family_id": "foreign_travel_allocation",
+      "title": "Foreign travel business-allocation limitation",
+      "statutory_basis": "26 U.S.C. § 274(c)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Certain foreign travel",
+      "mandatory_modifiers": [
+        "§274(c)(2) one-week / 25-percent exceptions",
+        "§274(c)(3) domestic-travel exclusion"
+      ],
+      "reason": "Requires derived trip-duration and business-use allocation attributes."
+    },
+    {
+      "family_id": "substantiation",
+      "title": "Substantiation requirement",
+      "statutory_basis": "26 U.S.C. § 274(d), (i)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Substantiation required",
+      "mandatory_modifiers": [
+        "amount",
+        "time/place or date/description",
+        "business purpose",
+        "business relationship",
+        "qualified nonpersonal use vehicle exception"
+      ],
+      "reason": "A derived substantiation predicate can represent the evidentiary requirements."
+    },
+    {
+      "family_id": "foreign_convention_limitation",
+      "title": "Convention outside North American area limitation",
+      "statutory_basis": "26 U.S.C. § 274(h)(1), (3), (6)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Attendance at conventions, etc.",
+      "mandatory_modifiers": [
+        "business relationship test",
+        "North American area definition",
+        "qualifying Caribbean-country treatment"
+      ],
+      "reason": "Requires derived location and business-purpose facts."
+    },
+    {
+      "family_id": "cruise_convention_limit",
+      "title": "Cruise-ship convention limitation and annual cap",
+      "statutory_basis": "26 U.S.C. § 274(h)(2), (5)",
+      "representability": "REQUIRES_CROSS_RECEIPT_STATE",
+      "evaluation_eligible": false,
+      "anchor": "Conventions on cruise ships",
+      "mandatory_modifiers": [
+        "U.S.-registered vessel",
+        "qualifying ports",
+        "reporting requirements",
+        "$2,000 annual limitation"
+      ],
+      "reason": "The annual $2,000 cap requires state across multiple convention expenses."
+    },
+    {
+      "family_id": "section212_convention_disallowance",
+      "title": "Section 212 seminar and convention disallowance",
+      "statutory_basis": "26 U.S.C. § 274(h)(7)",
+      "representability": "PER_RECEIPT_DIRECT",
+      "evaluation_eligible": true,
+      "anchor": "Seminars, etc. for section 212 purposes",
+      "mandatory_modifiers": [],
+      "reason": "A receipt purpose/category predicate is sufficient."
+    },
+    {
+      "family_id": "employee_achievement_award",
+      "title": "Employee achievement award deduction limits",
+      "statutory_basis": "26 U.S.C. § 274(j)",
+      "representability": "REQUIRES_CROSS_RECEIPT_STATE",
+      "evaluation_eligible": false,
+      "anchor": "Employee achievement awards",
+      "mandatory_modifiers": [
+        "$400 nonqualified-plan annual limit",
+        "$1,600 qualified-plan annual limit",
+        "award definitions and special rules"
+      ],
+      "reason": "Exact annual award aggregation cannot be enforced from a single receipt alone."
+    },
+    {
+      "family_id": "business_meal_eligibility",
+      "title": "Business-meal eligibility requirements",
+      "statutory_basis": "26 U.S.C. § 274(k)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Business meals",
+      "mandatory_modifiers": [
+        "not lavish or extravagant",
+        "taxpayer/employee presence",
+        "§274(k)(2) exceptions"
+      ],
+      "reason": "Requires meal-quality, presence, and exception eligibility attributes."
+    },
+    {
+      "family_id": "commuting_transportation",
+      "title": "Employer-provided commuting transportation disallowance",
+      "statutory_basis": "26 U.S.C. § 274(l)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Transportation and commuting benefits",
+      "mandatory_modifiers": [
+        "employee-safety exception"
+      ],
+      "reason": "The base category is simple; exactness requires a safety-necessity predicate."
+    },
+    {
+      "family_id": "luxury_water_transport",
+      "title": "Luxury water transportation limitation",
+      "statutory_basis": "26 U.S.C. § 274(m)(1)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Luxury water transportation",
+      "mandatory_modifiers": [
+        "twice aggregate per-diem amount",
+        "§274(m)(1)(B) exceptions"
+      ],
+      "reason": "Requires a derived trip per-diem ceiling and exception classification."
+    },
+    {
+      "family_id": "travel_as_education",
+      "title": "Travel as a form of education disallowance",
+      "statutory_basis": "26 U.S.C. § 274(m)(2)",
+      "representability": "PER_RECEIPT_DIRECT",
+      "evaluation_eligible": true,
+      "anchor": "Travel as form of education",
+      "mandatory_modifiers": [],
+      "reason": "Travel purpose is sufficient for the prohibition."
+    },
+    {
+      "family_id": "accompanying_person_travel",
+      "title": "Spouse, dependent, or accompanying-person travel limitation",
+      "statutory_basis": "26 U.S.C. § 274(m)(3)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Travel expenses of spouse, dependent, or others",
+      "mandatory_modifiers": [
+        "accompanying person is employee",
+        "bona fide business purpose",
+        "expense otherwise deductible by accompanying person"
+      ],
+      "reason": "Requires relationship, employment, and purpose predicates."
+    },
+    {
+      "family_id": "meal_percentage_limit",
+      "title": "Meal deduction percentage limitation",
+      "statutory_basis": "26 U.S.C. § 274(n)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Only 50 percent of meal expenses allowed as deduction",
+      "mandatory_modifiers": [
+        "§274(n)(2) exceptions",
+        "§274(n)(3) 80-percent rule"
+      ],
+      "reason": "E.deduct can encode the percentage, but exactness requires exception and special-rate predicates."
+    },
+    {
+      "family_id": "employer_convenience_meals",
+      "title": "Meals provided for employer convenience disallowance",
+      "statutory_basis": "26 U.S.C. § 274(o)",
+      "representability": "PER_RECEIPT_ABSTRACTABLE",
+      "evaluation_eligible": true,
+      "anchor": "Meals provided at convenience of employer",
+      "mandatory_modifiers": [
+        "§274(e)(8) exception",
+        "§274(n)(2)(C) exception"
+      ],
+      "reason": "Requires meal-source and exception-eligibility attributes."
+    }
+  ]
+}

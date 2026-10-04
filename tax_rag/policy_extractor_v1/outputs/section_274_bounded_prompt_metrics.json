@@ -1,0 +1,29 @@
+{
+  "status": "CONDITIONAL_MATERIALIZATION",
+  "model": "gpt-4.1-mini",
+  "tokenizer": "o200k_base",
+  "context_window": 1047576,
+  "output_reserve": 32768,
+  "safety_margin": 16384,
+  "working_input_limit": 998424,
+  "legal_context_capacity": 992498,
+  "last_complete_layer": 3,
+  "first_layer_beyond_capacity": 4,
+  "admitted_tax_code_units": 332,
+  "tax_code_context_tokens": 617986,
+  "cross_title_provisions": 3,
+  "cross_title_context_tokens": 9179,
+  "combined_statutory_context_tokens": 627165,
+  "diagnostic_occurrences": 920,
+  "diagnostic_distinct_records": 843,
+  "diagnostic_status_counts": {
+    "needs_structural_resolution": 487,
+    "resolved_external": 278,
+    "unresolved_missing_section": 78
+  },
+  "assembled_prompt_tokens": 671210,
+  "working_headroom_tokens": 327214,
+  "overlay_entries": 25,
+  "overlay_applied": 25,
+  "api_called": false
+}

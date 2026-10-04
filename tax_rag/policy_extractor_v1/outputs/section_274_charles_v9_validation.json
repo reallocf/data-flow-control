@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "source": "section_274_charles_v8.pptx",
+  "output": "section_274_charles_v9.pptx",
+  "slides": 7,
+  "slides_1_to_6_unchanged": true,
+  "slide_7_table_unchanged": true,
+  "old_stability_sentence_removed": true,
+  "new_stability_sentence": "Bounded reproduced the same 7 unique constraints in all 3 runs (Jaccard = 1.000), indicating systematic rather than sampling-driven errors.",
+  "textbox": {
+    "left_inches": 1.05,
+    "top_inches": 6.05,
+    "width_inches": 11.2,
+    "height_inches": 0.72
+  },
+  "v8_sha256": "edb5cacdaa3c268cd1b635e35489caa43587b35684c1a6f9053254b5111d7f08",
+  "v9_sha256": "d3ee5ce759ec301e1dd578afdd3132b54541adc4801093c490ede635ec44ceb1"
+}

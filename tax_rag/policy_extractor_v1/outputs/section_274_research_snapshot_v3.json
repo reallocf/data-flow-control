@@ -1,0 +1,180 @@
+{
+  "stage": "three_replicate_evaluation_complete",
+  "retrieval": {
+    "bounded_last_complete_layer": 3,
+    "bounded_first_layer_beyond_capacity": 4,
+    "target_only_prompt_tokens": 5926,
+    "direct_prompt_tokens": 30260,
+    "bounded_prompt_tokens": 671210
+  },
+  "replication": {
+    "replicates_per_condition": 3,
+    "target_only_policy_counts": [
+      6,
+      7,
+      3
+    ],
+    "direct_policy_counts": [
+      6,
+      6,
+      5
+    ],
+    "bounded_policy_counts": [
+      8,
+      8,
+      8
+    ]
+  },
+  "aggregate_metrics": {
+    "target_only": {
+      "replicate_candidate_counts": [
+        6,
+        7,
+        3
+      ],
+      "mean_family_detection_recall": 0.2857142857142857,
+      "mean_usable_family_recall": 0.23809523809523808,
+      "mean_exact_family_recall": 0.047619047619047616,
+      "pooled_exact_candidate_precision": 0.0625,
+      "pooled_usable_candidate_rate": 0.5625,
+      "pooled_candidates": 16,
+      "pooled_exact_candidates": 1,
+      "pooled_usable_candidates": 9,
+      "exact_constraint_mean_jaccard": 0.0,
+      "family_detection_stability": {
+        "union_count": 6,
+        "all_three_count": 2,
+        "at_least_two_count": 4,
+        "mean_pairwise_jaccard": 0.5,
+        "pairwise_jaccard": [
+          0.6666666666666666,
+          0.5,
+          0.3333333333333333
+        ]
+      },
+      "usable_family_stability": {
+        "union_count": 4,
+        "all_three_count": 2,
+        "at_least_two_count": 4,
+        "mean_pairwise_jaccard": 0.6666666666666666,
+        "pairwise_jaccard": [
+          1.0,
+          0.5,
+          0.5
+        ]
+      },
+      "exact_family_stability": {
+        "union_count": 1,
+        "all_three_count": 0,
+        "at_least_two_count": 1,
+        "mean_pairwise_jaccard": 0.3333333333333333,
+        "pairwise_jaccard": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "direct": {
+      "replicate_candidate_counts": [
+        6,
+        6,
+        5
+      ],
+      "mean_family_detection_recall": 0.23809523809523808,
+      "mean_usable_family_recall": 0.23809523809523808,
+      "mean_exact_family_recall": 0.023809523809523808,
+      "pooled_exact_candidate_precision": 0.058823529411764705,
+      "pooled_usable_candidate_rate": 0.5882352941176471,
+      "pooled_candidates": 17,
+      "pooled_exact_candidates": 1,
+      "pooled_usable_candidates": 10,
+      "exact_constraint_mean_jaccard": 0.4266,
+      "family_detection_stability": {
+        "union_count": 4,
+        "all_three_count": 3,
+        "at_least_two_count": 3,
+        "mean_pairwise_jaccard": 0.8333333333333334,
+        "pairwise_jaccard": [
+          0.75,
+          1.0,
+          0.75
+        ]
+      },
+      "usable_family_stability": {
+        "union_count": 4,
+        "all_three_count": 3,
+        "at_least_two_count": 3,
+        "mean_pairwise_jaccard": 0.8333333333333334,
+        "pairwise_jaccard": [
+          0.75,
+          1.0,
+          0.75
+        ]
+      },
+      "exact_family_stability": {
+        "union_count": 1,
+        "all_three_count": 0,
+        "at_least_two_count": 0,
+        "mean_pairwise_jaccard": 0.3333333333333333,
+        "pairwise_jaccard": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      }
+    },
+    "bounded": {
+      "replicate_candidate_counts": [
+        8,
+        8,
+        8
+      ],
+      "mean_family_detection_recall": 0.35714285714285715,
+      "mean_usable_family_recall": 0.21428571428571427,
+      "mean_exact_family_recall": 0.0,
+      "pooled_exact_candidate_precision": 0.0,
+      "pooled_usable_candidate_rate": 0.5,
+      "pooled_candidates": 24,
+      "pooled_exact_candidates": 0,
+      "pooled_usable_candidates": 12,
+      "exact_constraint_mean_jaccard": 1.0,
+      "family_detection_stability": {
+        "union_count": 5,
+        "all_three_count": 5,
+        "at_least_two_count": 5,
+        "mean_pairwise_jaccard": 1.0,
+        "pairwise_jaccard": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "usable_family_stability": {
+        "union_count": 3,
+        "all_three_count": 3,
+        "at_least_two_count": 3,
+        "mean_pairwise_jaccard": 1.0,
+        "pairwise_jaccard": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "exact_family_stability": {
+        "union_count": 0,
+        "all_three_count": 0,
+        "at_least_two_count": 0,
+        "mean_pairwise_jaccard": 1.0,
+        "pairwise_jaccard": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      }
+    }
+  },
+  "main_case_study_result": "Bounded recursive retrieval increases statutory-family discovery breadth but does not improve faithful executable policy encoding. Bounded errors are highly reproducible across three generations.",
+  "next_stage": "Freeze the Section 274 experiment and update the Charles presentation with the algorithm, concrete Section 274 example, token boundary, and three-replicate result.",
+  "api_called": false
+}

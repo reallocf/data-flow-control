@@ -1,0 +1,49 @@
+{
+  "status": "FROZEN_FOR_PRESENTATION",
+  "created_at": "2026-10-04T03:44:24",
+  "deck": {
+    "filename": "section_274_charles_FINAL_v9.pptx",
+    "sha256": "d3ee5ce759ec301e1dd578afdd3132b54541adc4801093c490ede635ec44ceb1",
+    "slides": 7
+  },
+  "retrieval": {
+    "working_statutory_context_capacity": 992498,
+    "layer_1_combined_tokens": 24298,
+    "layer_2_combined_tokens": 171340,
+    "layer_3_combined_tokens": 627165,
+    "layer_4_candidate_tokens": 1197630,
+    "last_complete_admitted_layer": 3,
+    "first_complete_layer_beyond_capacity": 4
+  },
+  "experiment": {
+    "model": "gpt-4.1-mini",
+    "temperature": 0,
+    "replicates_per_condition": 3,
+    "target_only_prompt_tokens": 5926,
+    "direct_prompt_tokens": 30260,
+    "bounded_prompt_tokens": 671210
+  },
+  "aggregate_results": {
+    "target_only": {
+      "family_discovery_recall": 0.2857,
+      "usable_family_recall": 0.2381,
+      "exact_candidate_precision": 0.0625,
+      "exact_string_stability": 0.0
+    },
+    "direct": {
+      "family_discovery_recall": 0.2381,
+      "usable_family_recall": 0.2381,
+      "exact_candidate_precision": 0.0588,
+      "exact_string_stability": 0.4266
+    },
+    "bounded": {
+      "family_discovery_recall": 0.3571,
+      "usable_family_recall": 0.2143,
+      "exact_candidate_precision": 0.0,
+      "exact_string_stability": 1.0
+    }
+  },
+  "main_case_study_claim": "Bounded recursive retrieval increased statutory-family discovery breadth, but the additional legal context was not converted into more executable-correct DFC constraints.",
+  "scope_limit": "Section 274 case study only; three generations per condition; do not generalize without additional statutes and models.",
+  "api_called_during_finalization": false
+}

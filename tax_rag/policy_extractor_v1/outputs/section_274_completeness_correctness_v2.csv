@@ -1,0 +1,4 @@
+condition,raw_candidates,unique_constraints,family_detection_recall,usable_family_recall,exact_family_recall,exact_candidate_precision,unique_exact_candidate_precision,duplicate_candidates
+target_only,6,6,0.2857,0.2857,0.0714,0.1667,0.1667,0
+direct,6,6,0.2143,0.2143,0.0,0.0,0.0,0
+bounded,8,7,0.3571,0.2143,0.0,0.0,0.0,1

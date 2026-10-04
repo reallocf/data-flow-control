@@ -1,0 +1,150 @@
+{
+  "experiment": "section_274_three_mode_pilot_20261004-015917",
+  "evaluation_version": 2,
+  "api_called": false,
+  "gold_inventory": {
+    "all_rule_families": 17,
+    "evaluation_eligible": 14,
+    "per_receipt_direct": 4,
+    "per_receipt_abstractable": 10,
+    "requires_cross_receipt_state": 3
+  },
+  "metric_definitions": {
+    "family_detection_recall": "Eligible statutory families for which the condition produced any recognizable candidate, regardless of whether the constraint was correct.",
+    "usable_family_recall": "Eligible families for which at least one candidate was EXACT or PARTIAL.",
+    "exact_family_recall": "Eligible families for which at least one candidate was executable-correct.",
+    "exact_candidate_precision": "Fraction of raw generated candidates judged EXACT."
+  },
+  "conditions": {
+    "target_only": {
+      "raw_candidates": 6,
+      "unique_constraints": 6,
+      "eligible_family_denominator": 14,
+      "detected_eligible_families": [
+        "club_dues_disallowance",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 4,
+      "family_detection_recall": 0.2857,
+      "usable_eligible_families": [
+        "club_dues_disallowance",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "usable_family_count": 4,
+      "usable_family_recall": 0.2857,
+      "exact_eligible_families": [
+        "club_dues_disallowance"
+      ],
+      "exact_family_count": 1,
+      "exact_family_recall": 0.0714,
+      "exact_candidate_count": 1,
+      "exact_candidate_precision": 0.1667,
+      "usable_candidate_count": 4,
+      "usable_candidate_rate": 0.6667,
+      "unique_exact_candidate_count": 1,
+      "unique_exact_candidate_precision": 0.1667,
+      "unique_usable_candidate_count": 4,
+      "unique_usable_candidate_rate": 0.6667,
+      "duplicate_candidates": 0,
+      "citation_status_counts": {
+        "ALIGNED": 6
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 3,
+        "EXACT": 1,
+        "INCORRECT": 2
+      }
+    },
+    "direct": {
+      "raw_candidates": 6,
+      "unique_constraints": 6,
+      "eligible_family_denominator": 14,
+      "detected_eligible_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 3,
+      "family_detection_recall": 0.2143,
+      "usable_eligible_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "usable_family_count": 3,
+      "usable_family_recall": 0.2143,
+      "exact_eligible_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 3,
+      "usable_candidate_rate": 0.5,
+      "unique_exact_candidate_count": 0,
+      "unique_exact_candidate_precision": 0.0,
+      "unique_usable_candidate_count": 3,
+      "unique_usable_candidate_rate": 0.5,
+      "duplicate_candidates": 0,
+      "citation_status_counts": {
+        "PARTIAL": 1,
+        "ALIGNED": 3,
+        "MISALIGNED": 2
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 3,
+        "INCORRECT": 3
+      }
+    },
+    "bounded": {
+      "raw_candidates": 8,
+      "unique_constraints": 7,
+      "eligible_family_denominator": 14,
+      "detected_eligible_families": [
+        "accompanying_person_travel",
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 5,
+      "family_detection_recall": 0.3571,
+      "usable_eligible_families": [
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit"
+      ],
+      "usable_family_count": 3,
+      "usable_family_recall": 0.2143,
+      "exact_eligible_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 4,
+      "usable_candidate_rate": 0.5,
+      "unique_exact_candidate_count": 0,
+      "unique_exact_candidate_precision": 0.0,
+      "unique_usable_candidate_count": 3,
+      "unique_usable_candidate_rate": 0.4286,
+      "duplicate_candidates": 1,
+      "citation_status_counts": {
+        "PARTIAL": 3,
+        "ALIGNED": 2,
+        "MISALIGNED": 3
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 4,
+        "INCORRECT": 4
+      }
+    }
+  },
+  "interpretation": {
+    "primary_observation": "The bounded condition broadens statutory-family discovery, but broader discovery does not translate into executable-correct policies in this pilot.",
+    "separation_required": "Completeness and correctness must be reported separately. Raw policy count is not a valid completeness metric.",
+    "pilot_limitation": "This is one generation per condition. Stability must be measured with independent replicate generations before a final comparative claim."
+  }
+}

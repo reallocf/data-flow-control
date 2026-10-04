@@ -1,5 +1,7 @@
 {
   "baseline_status": "ADDITIONAL_RESOLUTION_REQUIRED",
+  "resolution_overlay_entries": 25,
+  "resolution_overlay_applied": 25,
   "target_diagnostic_count": 3,
   "target_external_count": 3,
   "legal_context_capacity": 992498,
@@ -32,7 +34,7 @@
       "legal_context_capacity": 992498,
       "fits": "true",
       "resolved_external": 10,
-      "needs_structural_resolution": 5,
+      "needs_structural_resolution": 0,
       "unresolved_missing_section": 0,
       "mapping_missing": 0
     },
@@ -47,7 +49,7 @@
       "legal_context_capacity": 992498,
       "fits": "true",
       "resolved_external": 99,
-      "needs_structural_resolution": 153,
+      "needs_structural_resolution": 133,
       "unresolved_missing_section": 17,
       "mapping_missing": 0
     },
@@ -62,7 +64,7 @@
       "legal_context_capacity": 992498,
       "fits": "false",
       "resolved_external": 172,
-      "needs_structural_resolution": 435,
+      "needs_structural_resolution": 428,
       "unresolved_missing_section": 61,
       "mapping_missing": 0
     }

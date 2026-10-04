@@ -1,0 +1,36 @@
+{
+  "tokenizer": "o200k_base",
+  "combined_tokens": 9179,
+  "provisions": [
+    {
+      "surface": "section 16(a) of the Securities Exchange Act of 1934",
+      "citation": "15 U.S.C. § 78p(a)",
+      "url": "https://www.law.cornell.edu/uscode/text/15/78p",
+      "snapshot_file": "inputs\\cross_title\\15usc_78p_a.txt",
+      "retrieved_utc": null,
+      "characters": 3262,
+      "tokens": 690,
+      "sha256": "daf4324e16a65be8b1974cb3180d7845671ce004731ac81cb4f017d92175c9b6"
+    },
+    {
+      "surface": "section 212(a)(1)(A) of the Caribbean Basin Economic Recovery Act",
+      "citation": "19 U.S.C. § 2702(a)(1)(A)",
+      "url": "https://www.law.cornell.edu/uscode/text/19/2702",
+      "snapshot_file": "inputs\\cross_title\\19usc_2702_a_1_A.txt",
+      "retrieved_utc": null,
+      "characters": 492,
+      "tokens": 101,
+      "sha256": "494836107fc299fe3fed5bf483b860be695208240a4a73dfd0ea10db4cbc04cc"
+    },
+    {
+      "surface": "section 2101 of title 46",
+      "citation": "46 U.S.C. § 2101",
+      "url": "https://www.law.cornell.edu/uscode/text/46/2101",
+      "snapshot_file": "inputs\\cross_title\\46usc_2101.txt",
+      "retrieved_utc": null,
+      "characters": 34012,
+      "tokens": 8388,
+      "sha256": "e30ed9942f19207140fbe0ed51234ae26a688846035c7c8dc4d93bf10eae4331"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+condition,mean_family_detection_recall,mean_usable_family_recall,mean_exact_family_recall,pooled_exact_candidate_precision,pooled_usable_candidate_rate,exact_constraint_mean_jaccard,family_detection_mean_jaccard,usable_family_mean_jaccard,family_union,family_all_three
+target_only,0.2857,0.2381,0.0476,0.0625,0.5625,0.0,0.5,0.6667,6,2
+direct,0.2381,0.2381,0.0238,0.0588,0.5882,0.4266,0.8333,0.8333,4,3
+bounded,0.3571,0.2143,0.0,0.0,0.5,1.0,1.0,1.0,5,5

@@ -1,0 +1,506 @@
+{
+  "status": "THREE_REPLICATE_EVALUATION_COMPLETE",
+  "section": "26 U.S.C. § 274",
+  "model": "gpt-4.1-mini",
+  "replicates": 3,
+  "gold_family_count": 17,
+  "evaluation_eligible_family_count": 14,
+  "per_run": {
+    "R1_target_only": {
+      "replicate": 1,
+      "condition": "target_only",
+      "raw_candidates": 6,
+      "unique_constraints": 6,
+      "detected_families": [
+        "club_dues_disallowance",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 4,
+      "family_detection_recall": 0.2857142857142857,
+      "usable_families": [
+        "club_dues_disallowance",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "usable_family_count": 4,
+      "usable_family_recall": 0.2857142857142857,
+      "exact_families": [
+        "club_dues_disallowance"
+      ],
+      "exact_family_count": 1,
+      "exact_family_recall": 0.07142857142857142,
+      "exact_candidate_count": 1,
+      "exact_candidate_precision": 0.16666666666666666,
+      "usable_candidate_count": 4,
+      "usable_candidate_rate": 0.6666666666666666,
+      "citation_status_counts": {
+        "ALIGNED": 6
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 3,
+        "EXACT": 1,
+        "INCORRECT": 2
+      }
+    },
+    "R1_direct": {
+      "replicate": 1,
+      "condition": "direct",
+      "raw_candidates": 6,
+      "unique_constraints": 6,
+      "detected_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 3,
+      "family_detection_recall": 0.21428571428571427,
+      "usable_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "usable_family_count": 3,
+      "usable_family_recall": 0.21428571428571427,
+      "exact_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 3,
+      "usable_candidate_rate": 0.5,
+      "citation_status_counts": {
+        "PARTIAL": 1,
+        "ALIGNED": 3,
+        "MISALIGNED": 2
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 3,
+        "INCORRECT": 3
+      }
+    },
+    "R1_bounded": {
+      "replicate": 1,
+      "condition": "bounded",
+      "raw_candidates": 8,
+      "unique_constraints": 7,
+      "detected_families": [
+        "accompanying_person_travel",
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 5,
+      "family_detection_recall": 0.35714285714285715,
+      "usable_families": [
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit"
+      ],
+      "usable_family_count": 3,
+      "usable_family_recall": 0.21428571428571427,
+      "exact_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 4,
+      "usable_candidate_rate": 0.5,
+      "citation_status_counts": {
+        "PARTIAL": 3,
+        "ALIGNED": 2,
+        "MISALIGNED": 3
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 4,
+        "INCORRECT": 4
+      }
+    },
+    "R2_target_only": {
+      "replicate": 2,
+      "condition": "target_only",
+      "raw_candidates": 7,
+      "unique_constraints": 7,
+      "detected_families": [
+        "business_meal_eligibility",
+        "club_dues_disallowance",
+        "entertainment_disallowance",
+        "foreign_travel_allocation",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 6,
+      "family_detection_recall": 0.42857142857142855,
+      "usable_families": [
+        "club_dues_disallowance",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "usable_family_count": 4,
+      "usable_family_recall": 0.2857142857142857,
+      "exact_families": [
+        "club_dues_disallowance"
+      ],
+      "exact_family_count": 1,
+      "exact_family_recall": 0.07142857142857142,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 3,
+      "usable_candidate_rate": 0.42857142857142855,
+      "citation_status_counts": {
+        "ALIGNED": 7
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 3,
+        "INCORRECT": 4
+      }
+    },
+    "R2_direct": {
+      "replicate": 2,
+      "condition": "direct",
+      "raw_candidates": 6,
+      "unique_constraints": 6,
+      "detected_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "qualified_transportation_fringe",
+        "substantiation"
+      ],
+      "detected_family_count": 4,
+      "family_detection_recall": 0.2857142857142857,
+      "usable_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "qualified_transportation_fringe",
+        "substantiation"
+      ],
+      "usable_family_count": 4,
+      "usable_family_recall": 0.2857142857142857,
+      "exact_families": [
+        "qualified_transportation_fringe"
+      ],
+      "exact_family_count": 1,
+      "exact_family_recall": 0.07142857142857142,
+      "exact_candidate_count": 1,
+      "exact_candidate_precision": 0.16666666666666666,
+      "usable_candidate_count": 4,
+      "usable_candidate_rate": 0.6666666666666666,
+      "citation_status_counts": {
+        "PARTIAL": 2,
+        "ALIGNED": 3,
+        "MISALIGNED": 1
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 3,
+        "INCORRECT": 2,
+        "EXACT": 1
+      }
+    },
+    "R2_bounded": {
+      "replicate": 2,
+      "condition": "bounded",
+      "raw_candidates": 8,
+      "unique_constraints": 7,
+      "detected_families": [
+        "accompanying_person_travel",
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 5,
+      "family_detection_recall": 0.35714285714285715,
+      "usable_families": [
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit"
+      ],
+      "usable_family_count": 3,
+      "usable_family_recall": 0.21428571428571427,
+      "exact_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 4,
+      "usable_candidate_rate": 0.5,
+      "citation_status_counts": {
+        "PARTIAL": 3,
+        "ALIGNED": 2,
+        "MISALIGNED": 3
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 4,
+        "INCORRECT": 4
+      }
+    },
+    "R3_target_only": {
+      "replicate": 3,
+      "condition": "target_only",
+      "raw_candidates": 3,
+      "unique_constraints": 3,
+      "detected_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit"
+      ],
+      "detected_family_count": 2,
+      "family_detection_recall": 0.14285714285714285,
+      "usable_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit"
+      ],
+      "usable_family_count": 2,
+      "usable_family_recall": 0.14285714285714285,
+      "exact_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 2,
+      "usable_candidate_rate": 0.6666666666666666,
+      "citation_status_counts": {
+        "ALIGNED": 2,
+        "MISALIGNED": 1
+      },
+      "semantic_status_counts": {
+        "INCORRECT": 1,
+        "PARTIAL": 2
+      }
+    },
+    "R3_direct": {
+      "replicate": 3,
+      "condition": "direct",
+      "raw_candidates": 5,
+      "unique_constraints": 5,
+      "detected_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 3,
+      "family_detection_recall": 0.21428571428571427,
+      "usable_families": [
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "usable_family_count": 3,
+      "usable_family_recall": 0.21428571428571427,
+      "exact_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 3,
+      "usable_candidate_rate": 0.6,
+      "citation_status_counts": {
+        "PARTIAL": 1,
+        "ALIGNED": 3,
+        "MISALIGNED": 1
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 3,
+        "INCORRECT": 2
+      }
+    },
+    "R3_bounded": {
+      "replicate": 3,
+      "condition": "bounded",
+      "raw_candidates": 8,
+      "unique_constraints": 7,
+      "detected_families": [
+        "accompanying_person_travel",
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit",
+        "substantiation"
+      ],
+      "detected_family_count": 5,
+      "family_detection_recall": 0.35714285714285715,
+      "usable_families": [
+        "commuting_transportation",
+        "entertainment_disallowance",
+        "meal_percentage_limit"
+      ],
+      "usable_family_count": 3,
+      "usable_family_recall": 0.21428571428571427,
+      "exact_families": [],
+      "exact_family_count": 0,
+      "exact_family_recall": 0.0,
+      "exact_candidate_count": 0,
+      "exact_candidate_precision": 0.0,
+      "usable_candidate_count": 4,
+      "usable_candidate_rate": 0.5,
+      "citation_status_counts": {
+        "PARTIAL": 3,
+        "ALIGNED": 2,
+        "MISALIGNED": 3
+      },
+      "semantic_status_counts": {
+        "PARTIAL": 4,
+        "INCORRECT": 4
+      }
+    }
+  },
+  "aggregate": {
+    "target_only": {
+      "replicate_candidate_counts": [
+        6,
+        7,
+        3
+      ],
+      "mean_family_detection_recall": 0.2857142857142857,
+      "mean_usable_family_recall": 0.23809523809523808,
+      "mean_exact_family_recall": 0.047619047619047616,
+      "pooled_exact_candidate_precision": 0.0625,
+      "pooled_usable_candidate_rate": 0.5625,
+      "pooled_candidates": 16,
+      "pooled_exact_candidates": 1,
+      "pooled_usable_candidates": 9,
+      "exact_constraint_mean_jaccard": 0.0,
+      "family_detection_stability": {
+        "union_count": 6,
+        "all_three_count": 2,
+        "at_least_two_count": 4,
+        "mean_pairwise_jaccard": 0.5,
+        "pairwise_jaccard": [
+          0.6666666666666666,
+          0.5,
+          0.3333333333333333
+        ]
+      },
+      "usable_family_stability": {
+        "union_count": 4,
+        "all_three_count": 2,
+        "at_least_two_count": 4,
+        "mean_pairwise_jaccard": 0.6666666666666666,
+        "pairwise_jaccard": [
+          1.0,
+          0.5,
+          0.5
+        ]
+      },
+      "exact_family_stability": {
+        "union_count": 1,
+        "all_three_count": 0,
+        "at_least_two_count": 1,
+        "mean_pairwise_jaccard": 0.3333333333333333,
+        "pairwise_jaccard": [
+          1.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "direct": {
+      "replicate_candidate_counts": [
+        6,
+        6,
+        5
+      ],
+      "mean_family_detection_recall": 0.23809523809523808,
+      "mean_usable_family_recall": 0.23809523809523808,
+      "mean_exact_family_recall": 0.023809523809523808,
+      "pooled_exact_candidate_precision": 0.058823529411764705,
+      "pooled_usable_candidate_rate": 0.5882352941176471,
+      "pooled_candidates": 17,
+      "pooled_exact_candidates": 1,
+      "pooled_usable_candidates": 10,
+      "exact_constraint_mean_jaccard": 0.4266,
+      "family_detection_stability": {
+        "union_count": 4,
+        "all_three_count": 3,
+        "at_least_two_count": 3,
+        "mean_pairwise_jaccard": 0.8333333333333334,
+        "pairwise_jaccard": [
+          0.75,
+          1.0,
+          0.75
+        ]
+      },
+      "usable_family_stability": {
+        "union_count": 4,
+        "all_three_count": 3,
+        "at_least_two_count": 3,
+        "mean_pairwise_jaccard": 0.8333333333333334,
+        "pairwise_jaccard": [
+          0.75,
+          1.0,
+          0.75
+        ]
+      },
+      "exact_family_stability": {
+        "union_count": 1,
+        "all_three_count": 0,
+        "at_least_two_count": 0,
+        "mean_pairwise_jaccard": 0.3333333333333333,
+        "pairwise_jaccard": [
+          0.0,
+          1.0,
+          0.0
+        ]
+      }
+    },
+    "bounded": {
+      "replicate_candidate_counts": [
+        8,
+        8,
+        8
+      ],
+      "mean_family_detection_recall": 0.35714285714285715,
+      "mean_usable_family_recall": 0.21428571428571427,
+      "mean_exact_family_recall": 0.0,
+      "pooled_exact_candidate_precision": 0.0,
+      "pooled_usable_candidate_rate": 0.5,
+      "pooled_candidates": 24,
+      "pooled_exact_candidates": 0,
+      "pooled_usable_candidates": 12,
+      "exact_constraint_mean_jaccard": 1.0,
+      "family_detection_stability": {
+        "union_count": 5,
+        "all_three_count": 5,
+        "at_least_two_count": 5,
+        "mean_pairwise_jaccard": 1.0,
+        "pairwise_jaccard": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "usable_family_stability": {
+        "union_count": 3,
+        "all_three_count": 3,
+        "at_least_two_count": 3,
+        "mean_pairwise_jaccard": 1.0,
+        "pairwise_jaccard": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "exact_family_stability": {
+        "union_count": 0,
+        "all_three_count": 0,
+        "at_least_two_count": 0,
+        "mean_pairwise_jaccard": 1.0,
+        "pairwise_jaccard": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      }
+    }
+  },
+  "interpretation": {
+    "bounded_discovery": "Bounded context has the highest mean eligible-family detection recall.",
+    "bounded_encoding": "The broader bounded context does not increase usable-family recall or exact executable correctness in this experiment.",
+    "bounded_stability": "Bounded output is perfectly stable at both exact normalized-constraint level and detected-family level across the three runs.",
+    "central_result": "More recursive statutory context increases rule-family discovery breadth, but the additional breadth is not converted into faithful executable DFC constraints. The bounded condition is especially notable because its errors are stable rather than run-to-run noise.",
+    "scope_limit": "This result is specific to Section 274, gpt-4.1-mini, the frozen prompt, and three replicates. It should be presented as a case-study result rather than a general model claim."
+  },
+  "api_called": false
+}

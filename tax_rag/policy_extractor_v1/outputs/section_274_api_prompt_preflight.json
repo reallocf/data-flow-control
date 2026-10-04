@@ -1,0 +1,55 @@
+{
+  "tokenizer": "o200k_base",
+  "representation": "exact UTF-8 LF bytes passed to API",
+  "api_called": false,
+  "conditions": {
+    "target_only": {
+      "canonical": {
+        "bytes": 29285,
+        "tokens": 5926,
+        "sha256": "97a4c2e53f100813484c13892516c5f5711d437d6e3c1bbc93a99311d9ccedbe"
+      },
+      "integrated": {
+        "bytes": 29285,
+        "tokens": 5926,
+        "sha256": "97a4c2e53f100813484c13892516c5f5711d437d6e3c1bbc93a99311d9ccedbe"
+      },
+      "hash_match": true,
+      "token_match": true,
+      "byte_match": true
+    },
+    "direct": {
+      "canonical": {
+        "bytes": 140415,
+        "tokens": 30260,
+        "sha256": "5075397b6928ae2d16f40c8bd874382210fa0f3f4536bd0f43bcdaaccf013550"
+      },
+      "integrated": {
+        "bytes": 140415,
+        "tokens": 30260,
+        "sha256": "5075397b6928ae2d16f40c8bd874382210fa0f3f4536bd0f43bcdaaccf013550"
+      },
+      "hash_match": true,
+      "token_match": true,
+      "byte_match": true
+    },
+    "bounded": {
+      "canonical": {
+        "bytes": 3150035,
+        "tokens": 671210,
+        "sha256": "def4bf33935d38daf72e78d8a49ccd273bc2643c26b49d289e374167eda89fd5"
+      },
+      "integrated": {
+        "bytes": 3150035,
+        "tokens": 671210,
+        "sha256": "def4bf33935d38daf72e78d8a49ccd273bc2643c26b49d289e374167eda89fd5"
+      },
+      "hash_match": true,
+      "token_match": true,
+      "byte_match": true
+    }
+  },
+  "strict_token_order": true,
+  "all_hashes_match": true,
+  "ready_for_api_pilot": true
+}
