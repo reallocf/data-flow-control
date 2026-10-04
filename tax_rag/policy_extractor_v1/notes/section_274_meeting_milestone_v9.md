@@ -36,9 +36,21 @@ Structural hierarchy validation:
 
 ## Exact budget boundary
 
-Working statutory-context capacity:
+Layer admission uses the frozen local `o200k_base` token accounting.
 
-- 992,498 tokens
+Budget accounting:
+
+- model context-window assumption: 1,047,576 tokens
+- output reserve: 32,768 tokens
+- safety margin: 16,384 tokens
+- working input limit: 998,424 tokens
+- fixed extraction instructions plus the Section 274 target: 5,926 local prompt tokens
+- statutory-context capacity: 992,498 tokens
+
+Arithmetic:
+
+- 1,047,576 - 32,768 - 16,384 = 998,424
+- 998,424 - 5,926 = 992,498
 
 Complete-layer trace:
 
@@ -49,8 +61,9 @@ Complete-layer trace:
 
 Therefore Layer 3 is the last complete structural dependency layer admitted under the baseline budget.
 
-This is a budget-complete admitted frontier of resolvable structural units. It is not a claim that every ambiguous, missing, or deeper external reference has achieved semantic closure.
+The API later reported a constant +128 input-token offset relative to each canonical local prompt count. This is recorded separately from the frozen local layer-admission calculation and does not alter the Layer-3 / Layer-4 admission decision.
 
+This is a budget-complete admitted frontier of resolvable structural units. It is not a claim that every ambiguous, missing, or deeper external reference has achieved semantic closure.
 ## Three-condition policy experiment
 
 Model:
@@ -133,3 +146,5 @@ After feedback, choose between:
 2. testing the same retrieval algorithm on additional statutes to measure generality.
 
 The current Section 274 result should remain frozen as the meeting baseline.
+
+

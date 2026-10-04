@@ -1,4 +1,4 @@
-# Section 274 — Charles presentation talking points
+﻿# Section 274 — Charles presentation talking points
 
 ## Slide 1 — Research question
 
@@ -40,19 +40,32 @@ This validates the hierarchy representation used to map cross-references into st
 
 The important result here is the complete-layer budget boundary.
 
-Layer 1: 24,298 combined statutory tokens.
+The frozen layer-admission calculation uses local `o200k_base` token accounting.
 
-Layer 2: 171,340.
+The model context-window assumption is 1,047,576 tokens. I reserve 32,768 tokens for model output and 16,384 tokens as a safety margin:
 
-Layer 3: 627,165 — still within the 992,498-token statutory-context capacity.
+**1,047,576 - 32,768 - 16,384 = 998,424**
 
-The complete Layer-4 candidate would require 1,197,630 tokens, so it cannot be admitted.
+That gives a 998,424-token working input limit.
+
+The fixed extraction instructions plus the Section 274 target require 5,926 local prompt tokens:
+
+**998,424 - 5,926 = 992,498**
+
+So the remaining statutory-context capacity used by the retrieval algorithm is 992,498 tokens.
+
+The complete-layer trace is:
+
+- Layer 1: 24,298 combined statutory tokens.
+- Layer 2: 171,340.
+- Layer 3: 627,165 — still within capacity.
+- Layer 4: 1,197,630 — beyond capacity.
 
 Therefore the bounded baseline admits through Layer 3 and stops before Layer 4.
 
-One caveat: this is a **budget-complete structural frontier**, not a claim that every ambiguous or external reference inside those layers has been semantically resolved.
+The API later reported a constant 128-token input-count offset above the canonical local prompt count in every experimental condition. I keep that observation separate from the frozen local layer-admission accounting; the offset does not change the Layer-3 / Layer-4 boundary.
 
-
+One caveat: Layer 3 is a **budget-complete admitted structural frontier**, not a claim that every ambiguous, missing, or deeper external reference has been semantically resolved.
 ## Slide 5 — Retrieval algorithm
 
 The baseline procedure is:
@@ -158,3 +171,4 @@ The Section 274 result suggests separating the pipeline into two stages:
 2. faithful compilation of discovered rules into executable DFC constraints.
 
 A natural next experiment is to improve the second stage while keeping the bounded retrieval frontier fixed.
+
