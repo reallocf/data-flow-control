@@ -1,0 +1,57 @@
+                                                                              QUERY PLAN                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=775309.02..775342.35 rows=13333 width=17)
+   Output: orders_1.o_orderpriority, (count(*))
+   Sort Key: orders_1.o_orderpriority
+   ->  HashAggregate  (cost=773895.53..774395.53 rows=13333 width=17)
+         Output: orders_1.o_orderpriority, (count(*))
+         Group Key: orders_1.o_orderpriority, (count(*))
+         Filter: (max((avg(lineitem.l_quantity))) >= '30'::numeric)
+         ->  HashAggregate  (cost=686533.74..738888.30 rows=2000413 width=57)
+               Output: orders_1.o_orderpriority, (count(*)), orders.o_orderkey, avg(lineitem.l_quantity)
+               Group Key: orders_1.o_orderpriority, (count(*)), orders.o_orderkey
+               Planned Partitions: 128
+               ->  Hash Join  (cost=265966.59..517123.77 rows=2000413 width=30)
+                     Output: orders_1.o_orderpriority, (count(*)), orders.o_orderkey, lineitem.l_quantity
+                     Inner Unique: true
+                     Hash Cond: ((orders.o_orderpriority)::text = (orders_1.o_orderpriority)::text)
+                     ->  Hash Join  (cost=69251.87..310707.03 rows=2000413 width=22)
+                           Output: orders.o_orderkey, orders.o_orderpriority, lineitem.l_quantity
+                           Hash Cond: (lineitem.l_orderkey = orders.o_orderkey)
+                           ->  Seq Scan on public.lineitem  (cost=0.00..185623.49 rows=2000413 width=13)
+                                 Output: lineitem.l_quantity, lineitem.l_orderkey
+                                 Filter: (lineitem.l_commitdate < lineitem.l_receiptdate)
+                           ->  Hash  (cost=41711.94..41711.94 rows=1499994 width=17)
+                                 Output: orders.o_orderkey, orders.o_orderpriority
+                                 ->  Seq Scan on public.orders  (cost=0.00..41711.94 rows=1499994 width=17)
+                                       Output: orders.o_orderkey, orders.o_orderpriority
+                     ->  Hash  (cost=196714.66..196714.66 rows=5 width=17)
+                           Output: orders_1.o_orderpriority, (count(*))
+                           ->  Finalize GroupAggregate  (cost=196668.56..196714.66 rows=5 width=17)
+                                 Output: orders_1.o_orderpriority, count(*)
+                                 Group Key: orders_1.o_orderpriority
+                                 ->  Gather Merge  (cost=196668.56..196714.56 rows=10 width=17)
+                                       Output: orders_1.o_orderpriority, (PARTIAL count(*))
+                                       Workers Planned: 2
+                                       ->  Partial GroupAggregate  (cost=195668.54..195713.39 rows=5 width=17)
+                                             Output: orders_1.o_orderpriority, PARTIAL count(*)
+                                             Group Key: orders_1.o_orderpriority
+                                             ->  Sort  (cost=195668.54..195683.47 rows=5973 width=9)
+                                                   Output: orders_1.o_orderpriority
+                                                   Sort Key: orders_1.o_orderpriority
+                                                   ->  Parallel Hash Semi Join  (cost=155539.27..195293.90 rows=5973 width=9)
+                                                         Output: orders_1.o_orderpriority
+                                                         Hash Cond: (orders_1.o_orderkey = lineitem_1.l_orderkey)
+                                                         ->  Parallel Seq Scan on public.orders orders_1  (cost=0.00..36086.96 rows=23528 width=17)
+                                                               Output: orders_1.o_orderpriority, orders_1.o_orderkey
+                                                               Filter: ((orders_1.o_orderdate >= '1993-07-01'::date) AND (orders_1.o_orderdate < '1993-10-01'::date))
+                                                         ->  Parallel Hash  (cost=141864.45..141864.45 rows=833505 width=8)
+                                                               Output: lineitem_1.l_orderkey
+                                                               ->  Parallel Seq Scan on public.lineitem lineitem_1  (cost=0.00..141864.45 rows=833505 width=8)
+                                                                     Output: lineitem_1.l_orderkey
+                                                                     Filter: (lineitem_1.l_commitdate < lineitem_1.l_receiptdate)
+ JIT:
+   Functions: 43
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+(53 rows)
+

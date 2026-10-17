@@ -1,0 +1,112 @@
+                                                                                                                                                                                                                                     QUERY PLAN                                                                                                                                                                                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=422395.67..440120.26 rows=1 width=72)
+   Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), max((sum(((lineitem_1.l_extendedprice * ('1'::numeric - lineitem_1.l_discount)) - (partsupp_1.ps_supplycost * lineitem_1.l_quantity)))))
+   Group Key: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate))
+   Filter: (avg(lineitem.l_quantity) >= '30'::numeric)
+   ->  Incremental Sort  (cost=422395.67..440120.22 rows=2 width=77)
+         Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), (sum(((lineitem_1.l_extendedprice * ('1'::numeric - lineitem_1.l_discount)) - (partsupp_1.ps_supplycost * lineitem_1.l_quantity)))), lineitem.l_quantity
+         Sort Key: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)) DESC NULLS LAST
+         Presorted Key: nation_1.n_name
+         ->  Nested Loop  (cost=404671.18..440120.13 rows=1 width=77)
+               Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), (sum(((lineitem_1.l_extendedprice * ('1'::numeric - lineitem_1.l_discount)) - (partsupp_1.ps_supplycost * lineitem_1.l_quantity)))), lineitem.l_quantity
+               Join Filter: ((supplier.s_nationkey = nation.n_nationkey) AND ((EXTRACT(year FROM orders_1.o_orderdate)) = EXTRACT(year FROM orders.o_orderdate)))
+               ->  Merge Join  (cost=219992.24..220018.86 rows=25 width=76)
+                     Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), (sum(((lineitem_1.l_extendedprice * ('1'::numeric - lineitem_1.l_discount)) - (partsupp_1.ps_supplycost * lineitem_1.l_quantity)))), nation.n_nationkey
+                     Merge Cond: ((nation_1.n_name)::text = (nation.n_name)::text)
+                     ->  Finalize GroupAggregate  (cost=219990.41..220016.17 rows=193 width=72)
+                           Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), sum(((lineitem_1.l_extendedprice * ('1'::numeric - lineitem_1.l_discount)) - (partsupp_1.ps_supplycost * lineitem_1.l_quantity)))
+                           Group Key: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate))
+                           ->  Gather Merge  (cost=219990.41..220011.68 rows=160 width=72)
+                                 Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), (PARTIAL sum(((lineitem_1.l_extendedprice * ('1'::numeric - lineitem_1.l_discount)) - (partsupp_1.ps_supplycost * lineitem_1.l_quantity))))
+                                 Workers Planned: 2
+                                 ->  Partial GroupAggregate  (cost=218990.38..218993.18 rows=80 width=72)
+                                       Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), PARTIAL sum(((lineitem_1.l_extendedprice * ('1'::numeric - lineitem_1.l_discount)) - (partsupp_1.ps_supplycost * lineitem_1.l_quantity)))
+                                       Group Key: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate))
+                                       ->  Sort  (cost=218990.38..218990.58 rows=80 width=63)
+                                             Output: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate)), lineitem_1.l_extendedprice, lineitem_1.l_discount, partsupp_1.ps_supplycost, lineitem_1.l_quantity
+                                             Sort Key: nation_1.n_name, (EXTRACT(year FROM orders_1.o_orderdate))
+                                             ->  Hash Join  (cost=183680.51..218987.86 rows=80 width=63)
+                                                   Output: nation_1.n_name, EXTRACT(year FROM orders_1.o_orderdate), lineitem_1.l_extendedprice, lineitem_1.l_discount, partsupp_1.ps_supplycost, lineitem_1.l_quantity
+                                                   Hash Cond: (supplier_1.s_nationkey = nation_1.n_nationkey)
+                                                   ->  Parallel Hash Join  (cost=183678.95..218984.99 rows=80 width=31)
+                                                         Output: lineitem_1.l_extendedprice, lineitem_1.l_discount, lineitem_1.l_quantity, supplier_1.s_nationkey, partsupp_1.ps_supplycost, orders_1.o_orderdate
+                                                         Hash Cond: (orders_1.o_orderkey = lineitem_1.l_orderkey)
+                                                         ->  Parallel Seq Scan on public.orders orders_1  (cost=0.00..32961.97 rows=624998 width=12)
+                                                               Output: orders_1.o_orderkey, orders_1.o_custkey, orders_1.o_orderstatus, orders_1.o_totalprice, orders_1.o_orderdate, orders_1.o_orderpriority, orders_1.o_clerk, orders_1.o_shippriority, orders_1.o_comment
+                                                         ->  Parallel Hash  (cost=183677.95..183677.95 rows=80 width=35)
+                                                               Output: lineitem_1.l_extendedprice, lineitem_1.l_discount, lineitem_1.l_quantity, lineitem_1.l_orderkey, supplier_1.s_nationkey, partsupp_1.ps_supplycost
+                                                               ->  Hash Join  (cost=29309.46..183677.95 rows=80 width=35)
+                                                                     Output: lineitem_1.l_extendedprice, lineitem_1.l_discount, lineitem_1.l_quantity, lineitem_1.l_orderkey, supplier_1.s_nationkey, partsupp_1.ps_supplycost
+                                                                     Hash Cond: (lineitem_1.l_suppkey = supplier_1.s_suppkey)
+                                                                     ->  Parallel Hash Join  (cost=28865.46..183232.83 rows=81 width=47)
+                                                                           Output: lineitem_1.l_extendedprice, lineitem_1.l_discount, lineitem_1.l_quantity, lineitem_1.l_suppkey, lineitem_1.l_orderkey, partsupp_1.ps_supplycost, partsupp_1.ps_suppkey
+                                                                           Hash Cond: ((lineitem_1.l_suppkey = partsupp_1.ps_suppkey) AND (lineitem_1.l_partkey = partsupp_1.ps_partkey))
+                                                                           ->  Parallel Seq Scan on public.lineitem lineitem_1  (cost=0.00..135613.16 rows=2500516 width=41)
+                                                                                 Output: lineitem_1.l_orderkey, lineitem_1.l_partkey, lineitem_1.l_suppkey, lineitem_1.l_linenumber, lineitem_1.l_quantity, lineitem_1.l_extendedprice, lineitem_1.l_discount, lineitem_1.l_tax, lineitem_1.l_returnflag, lineitem_1.l_linestatus, lineitem_1.l_shipdate, lineitem_1.l_commitdate, lineitem_1.l_receiptdate, lineitem_1.l_shipinstruct, lineitem_1.l_shipmode, lineitem_1.l_comment
+                                                                           ->  Parallel Hash  (cost=28461.40..28461.40 rows=26937 width=30)
+                                                                                 Output: part_1.p_partkey, partsupp_1.ps_supplycost, partsupp_1.ps_suppkey, partsupp_1.ps_partkey
+                                                                                 ->  Parallel Hash Join  (cost=4989.84..28461.40 rows=26937 width=30)
+                                                                                       Output: part_1.p_partkey, partsupp_1.ps_supplycost, partsupp_1.ps_suppkey, partsupp_1.ps_partkey
+                                                                                       Hash Cond: (partsupp_1.ps_partkey = part_1.p_partkey)
+                                                                                       ->  Parallel Seq Scan on public.partsupp partsupp_1  (cost=0.00..22109.33 rows=333333 width=22)
+                                                                                             Output: partsupp_1.ps_partkey, partsupp_1.ps_suppkey, partsupp_1.ps_availqty, partsupp_1.ps_supplycost, partsupp_1.ps_comment
+                                                                                       ->  Parallel Hash  (cost=4905.67..4905.67 rows=6734 width=8)
+                                                                                             Output: part_1.p_partkey
+                                                                                             ->  Parallel Seq Scan on public.part part_1  (cost=0.00..4905.67 rows=6734 width=8)
+                                                                                                   Output: part_1.p_partkey
+                                                                                                   Filter: ((part_1.p_name)::text ~~ '%green%'::text)
+                                                                     ->  Hash  (cost=319.00..319.00 rows=10000 width=12)
+                                                                           Output: supplier_1.s_suppkey, supplier_1.s_nationkey
+                                                                           ->  Seq Scan on public.supplier supplier_1  (cost=0.00..319.00 rows=10000 width=12)
+                                                                                 Output: supplier_1.s_suppkey, supplier_1.s_nationkey
+                                                   ->  Hash  (cost=1.25..1.25 rows=25 width=12)
+                                                         Output: nation_1.n_name, nation_1.n_nationkey
+                                                         ->  Seq Scan on public.nation nation_1  (cost=0.00..1.25 rows=25 width=12)
+                                                               Output: nation_1.n_name, nation_1.n_nationkey
+                     ->  Sort  (cost=1.83..1.89 rows=25 width=12)
+                           Output: nation.n_nationkey, nation.n_name
+                           Sort Key: nation.n_name
+                           ->  Seq Scan on public.nation  (cost=0.00..1.25 rows=25 width=12)
+                                 Output: nation.n_nationkey, nation.n_name
+               ->  Materialize  (cost=184678.95..220005.26 rows=193 width=13)
+                     Output: lineitem.l_quantity, supplier.s_nationkey, orders.o_orderdate
+                     ->  Gather  (cost=184678.95..220004.29 rows=193 width=13)
+                           Output: lineitem.l_quantity, supplier.s_nationkey, orders.o_orderdate
+                           Workers Planned: 2
+                           ->  Parallel Hash Join  (cost=183678.95..218984.99 rows=80 width=13)
+                                 Output: lineitem.l_quantity, supplier.s_nationkey, orders.o_orderdate
+                                 Hash Cond: (orders.o_orderkey = lineitem.l_orderkey)
+                                 ->  Parallel Seq Scan on public.orders  (cost=0.00..32961.97 rows=624998 width=12)
+                                       Output: orders.o_orderkey, orders.o_custkey, orders.o_orderstatus, orders.o_totalprice, orders.o_orderdate, orders.o_orderpriority, orders.o_clerk, orders.o_shippriority, orders.o_comment
+                                 ->  Parallel Hash  (cost=183677.95..183677.95 rows=80 width=17)
+                                       Output: lineitem.l_quantity, lineitem.l_orderkey, supplier.s_nationkey
+                                       ->  Hash Join  (cost=29309.46..183677.95 rows=80 width=17)
+                                             Output: lineitem.l_quantity, lineitem.l_orderkey, supplier.s_nationkey
+                                             Hash Cond: (lineitem.l_suppkey = supplier.s_suppkey)
+                                             ->  Parallel Hash Join  (cost=28865.46..183232.83 rows=81 width=29)
+                                                   Output: lineitem.l_quantity, lineitem.l_suppkey, lineitem.l_orderkey, partsupp.ps_suppkey
+                                                   Hash Cond: ((lineitem.l_suppkey = partsupp.ps_suppkey) AND (lineitem.l_partkey = partsupp.ps_partkey))
+                                                   ->  Parallel Seq Scan on public.lineitem  (cost=0.00..135613.16 rows=2500516 width=29)
+                                                         Output: lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment
+                                                   ->  Parallel Hash  (cost=28461.40..28461.40 rows=26937 width=24)
+                                                         Output: part.p_partkey, partsupp.ps_suppkey, partsupp.ps_partkey
+                                                         ->  Parallel Hash Join  (cost=4989.84..28461.40 rows=26937 width=24)
+                                                               Output: part.p_partkey, partsupp.ps_suppkey, partsupp.ps_partkey
+                                                               Hash Cond: (partsupp.ps_partkey = part.p_partkey)
+                                                               ->  Parallel Seq Scan on public.partsupp  (cost=0.00..22109.33 rows=333333 width=16)
+                                                                     Output: partsupp.ps_partkey, partsupp.ps_suppkey, partsupp.ps_availqty, partsupp.ps_supplycost, partsupp.ps_comment
+                                                               ->  Parallel Hash  (cost=4905.67..4905.67 rows=6734 width=8)
+                                                                     Output: part.p_partkey
+                                                                     ->  Parallel Seq Scan on public.part  (cost=0.00..4905.67 rows=6734 width=8)
+                                                                           Output: part.p_partkey
+                                                                           Filter: ((part.p_name)::text ~~ '%green%'::text)
+                                             ->  Hash  (cost=319.00..319.00 rows=10000 width=12)
+                                                   Output: supplier.s_suppkey, supplier.s_nationkey
+                                                   ->  Seq Scan on public.supplier  (cost=0.00..319.00 rows=10000 width=12)
+                                                         Output: supplier.s_suppkey, supplier.s_nationkey
+ JIT:
+   Functions: 117
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+(108 rows)
+

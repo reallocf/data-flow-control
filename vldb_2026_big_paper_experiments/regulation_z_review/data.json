@@ -1,0 +1,2744 @@
+{
+  "generated": "2026-10-14T20:50:14.477095+00:00",
+  "sources": {
+    "53:a": {
+      "anchor": "a",
+      "text": "(a) General rule. Except as provided in paragraph (b) of this section, when a consumer makes a payment in excess of the required minimum periodic payment for a credit card account under an open-end (not home-secured) consumer credit plan, the card issuer must allocate the excess amount first to the balance with the highest annual percentage rate and any remaining portion to the other balances in descending order based on the applicable annual percentage rate.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#a",
+      "kind": "Regulation",
+      "external": false
+    },
+    "53:53-a-Interp-1": {
+      "anchor": "53-a-Interp-1",
+      "text": "1. Required minimum periodic payment. Section 1026.53 addresses the allocation of amounts paid by the consumer in excess of the minimum periodic payment required by the card issuer. Section 1026.53 does not limit or otherwise address the card issuer's ability to determine, consistent with applicable law and regulatory guidance, the amount of the required minimum periodic payment or how that payment is allocated. A card issuer may, but is not required to, allocate the required minimum periodic payment consistent with the requirements in § 1026.53 to the extent consistent with other applicable law or regulatory guidance.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-1",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-2": {
+      "anchor": "53-a-Interp-2",
+      "text": "2. Applicable rates and balances. Section 1026.53 permits a card issuer to allocate an amount paid by the consumer in excess of the required minimum periodic payment based on the annual percentage rates and balances on the day the preceding billing cycle ends, on the day the payment is credited to the account, or on any day in between those two dates. The day used by the card issuer to determine the applicable annual percentage rates and balances for purposes of § 1026.53 generally must be consistent from billing cycle to billing cycle, although the card issuer may adjust this day from time to time. For example:",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-2",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-2-i": {
+      "anchor": "53-a-Interp-2-i",
+      "text": "i. Assume that the billing cycles for a credit card account start on the first day of the month and end on the last day of the month. On the date the March billing cycle ends (March 31), the account has a purchase balance of $500 at a promotional annual percentage rate of 5% and another purchase balance of $200 at a non-promotional annual percentage rate of 15%. On April 5, a $100 purchase to which the 15% rate applies is charged to the account. On April 15, the promotional rate expires and § 1026.55(b)(1) permits the card issuer to increase the rate that applies to the $500 balance from 5% to 18%. On April 25, the card issuer credits to the account $400 paid by the consumer in excess of the required minimum periodic payment. If the card issuer's practice is to allocate payments based on the rates and balances on the last day of the prior billing cycle, the card issuer would allocate the $400 payment to pay in full the $200 balance to which the 15% rate applied on March 31 and then allocate the remaining $200 to the $500 balance to which the 5% rate applied on March 31. In the alternative, if the card issuer's practice is to allocate payments based on the rates and balances on the day a payment is credited to the account, the card issuer would allocate the $400 payment to the $500 balance to which the 18% rate applied on April 25.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-2-i",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-2-ii": {
+      "anchor": "53-a-Interp-2-ii",
+      "text": "ii. Same facts as above except that, on April 25, the card issuer credits to the account $750 paid by the consumer in excess of the required minimum periodic payment. If the card issuer's practice is to allocate payments based on the rates and balances on the last day of the prior billing cycle, the card issuer would allocate the $750 payment to pay in full the $200 balance to which the 15% rate applied on March 31 and the $500 balance to which the 5% rate applied on March 31 and then allocate the remaining $50 to the $100 purchase made on April 5. In the alternative, if the card issuer's practice is to allocate payments based on the rates and balances on the day a payment is credited to the account, the card issuer would allocate the $750 payment to pay in full the $500 balance to which the 18% rate applied on April 25 and then allocate the remaining $250 to the $300 balance to which the 15% rate applied on April 25.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-2-ii",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-3": {
+      "anchor": "53-a-Interp-3",
+      "text": "3. Claims or defenses under § 1026.12(c) and billing error disputes under § 1026.13. When a consumer has asserted a claim or defense against the card issuer pursuant to § 1026.12(c) or alleged a billing error under § 1026.13, the card issuer must apply the consumer's payment in a manner that avoids or minimizes any reduction in the amount subject to that claim, defense, or dispute. For example:",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-3",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-3-i": {
+      "anchor": "53-a-Interp-3-i",
+      "text": "i. Assume that a credit card account has a $500 cash advance balance at an annual percentage rate of 25% and a $1,000 purchase balance at an annual percentage rate of 17%. Assume also that $200 of the cash advance balance is subject to a claim or defense under § 1026.12(c) or a billing error dispute under § 1026.13. If the consumer pays $900 in excess of the required minimum periodic payment, the card issuer must allocate $300 of the excess payment to pay in full the portion of the cash advance balance that is not subject to the claim, defense, or dispute and then allocate the remaining $600 to the $1,000 purchase balance.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-3-i",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-3-ii": {
+      "anchor": "53-a-Interp-3-ii",
+      "text": "ii. Same facts as above except that the consumer pays $1,400 in excess of the required minimum periodic payment. The card issuer must allocate $1,300 of the excess payment to pay in full the $300 cash advance balance that is not subject to the claim, defense, or dispute and the $1,000 purchase balance. If there are no new transactions or other amounts to which the remaining $100 can be allocated, the card issuer may apply that amount to the $200 cash advance balance that is subject to the claim, defense, or dispute. However, if the card issuer subsequently determines that a billing error occurred as asserted by the consumer, the card issuer must credit the account for the disputed amount and any related finance or other charges and send a correction notice consistent with § 1026.13(e).",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-3-ii",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-4": {
+      "anchor": "53-a-Interp-4",
+      "text": "4. Balances with the same rate. When the same annual percentage rate applies to more than one balance on an account and a different annual percentage rate applies to at least one other balance on that account, § 1026.53 generally does not require that any particular method be used when allocating among the balances with the same annual percentage rate. Under these circumstances, a card issuer may treat the balances with the same rate as a single balance or separate balances. See example in comment 53-5.iv. However, when a balance on a credit card account is subject to a deferred interest or similar program that provides that a consumer will not be obligated to pay interest that accrues on the balance if the balance is paid in full prior to the expiration of a specified period of time, that balance must be treated as a balance with an annual percentage rate of zero for purposes of § 1026.53 during that period of time. For example, if an account has a $1,000 purchase balance and a $2,000 balance that is subject to a deferred interest program that expires on July 1 and a 15% annual percentage rate applies to both, the balances must be treated as balances with different rates for purposes of § 1026.53 until July 1. In addition, unless the card issuer allocates amounts paid by the consumer in excess of the required minimum periodic payment in the manner requested by the consumer pursuant to § 1026.53(b)(1)(ii), § 1026.53(b)(1)(i) requires the card issuer to apply any excess payments first to the $1,000 purchase balance except during the last two billing cycles of the deferred interest period (when it must be applied first to any remaining portion of the $2,000 balance). See example in comment 53-5.v.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-4",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5": {
+      "anchor": "53-a-Interp-5",
+      "text": "5. Examples. For purposes of the following examples, assume that none of the required minimum periodic payment is allocated to the balances discussed (unless otherwise stated).",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5-i": {
+      "anchor": "53-a-Interp-5-i",
+      "text": "i. Assume that a credit card account has a cash advance balance of $500 at an annual percentage rate of 20% and a purchase balance of $1,500 at an annual percentage rate of 15% and that the consumer pays $800 in excess of the required minimum periodic payment. Under § 1026.53(a), the card issuer must allocate $500 to pay off the cash advance balance and then allocate the remaining $300 to the purchase balance.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5-i",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5-ii": {
+      "anchor": "53-a-Interp-5-ii",
+      "text": "ii. Assume that a credit card account has a cash advance balance of $500 at an annual percentage rate of 20% and a purchase balance of $1,500 at an annual percentage rate of 15% and that the consumer pays $400 in excess of the required minimum periodic payment. Under § 1026.53(a), the card issuer must allocate the entire $400 to the cash advance balance.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5-ii",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5-iii": {
+      "anchor": "53-a-Interp-5-iii",
+      "text": "iii. Assume that a credit card account has a cash advance balance of $100 at an annual percentage rate of 20%, a purchase balance of $300 at an annual percentage rate of 18%, and a $600 protected balance on which the 12% annual percentage rate cannot be increased pursuant to § 1026.55. If the consumer pays $500 in excess of the required minimum periodic payment, § 1026.53(a) requires the card issuer to allocate $100 to pay off the cash advance balance, $300 to pay off the purchase balance, and $100 to the protected balance.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5-iii",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5-iv": {
+      "anchor": "53-a-Interp-5-iv",
+      "text": "iv. Assume that a credit card account has a cash advance balance of $500 at an annual percentage rate of 20%, a purchase balance of $1,000 at an annual percentage rate of 15%, and a transferred balance of $2,000 that was previously at a discounted annual percentage rate of 5% but is now at an annual percentage rate of 15%. Assume also that the consumer pays $800 in excess of the required minimum periodic payment. Under § 1026.53(a), the card issuer must allocate $500 to pay off the cash advance balance and allocate the remaining $300 among the purchase balance and the transferred balance in the manner the card issuer deems appropriate.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5-iv",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5-v": {
+      "anchor": "53-a-Interp-5-v",
+      "text": "v. Assume that on January 1 a consumer uses a credit card account to make a $1,200 purchase subject to a deferred interest program under which interest accrues at an annual percentage rate of 15% but the consumer will not be obligated to pay that interest if the balance is paid in full on or before June 30. The billing cycles for this account begin on the first day of the month and end on the last day of the month. Each month from January through June, the consumer uses the account to make $200 in purchases that are not subject to the deferred interest program but are subject to the 15% rate.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5-v",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5-v-A": {
+      "anchor": "53-a-Interp-5-v-A",
+      "text": "A. Each month from February through June, the consumer pays $400 in excess of the required minimum periodic payment on the payment due date, which is the twenty-fifth of the month. Any interest that accrues on the purchases not subject to the deferred interest program is paid by the required minimum periodic payment. The card issuer does not accept requests from consumers regarding the allocation of excess payments pursuant to § 1026.53(b)(1)(ii). Thus, § 1026.53(b)(1)(i) requires the card issuer to allocate the $400 excess payments received on February 25, March 25, and April 25 consistent with § 1026.53(a). In other words, the card issuer must allocate those payments as follows: $200 to pay off the balance not subject to the deferred interest program (which is subject to the 15% rate) and the remaining $200 to the deferred interest balance (which is treated as a balance with a rate of zero). However, § 1026.53(b)(1)(i) requires the card issuer to allocate the entire $400 excess payment received on May 25 to the deferred interest balance. Similarly, § 1026.53(b)(1)(i) requires the card issuer to allocate the $400 excess payment received on June 25 as follows: $200 to the deferred interest balance (which pays that balance in full) and the remaining $200 to the balance not subject to the deferred interest program.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5-v-A",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-a-Interp-5-v-B": {
+      "anchor": "53-a-Interp-5-v-B",
+      "text": "B. Same facts as above, except that the card issuer does accept requests from consumers regarding the allocation of excess payments pursuant to § 1026.53(b)(1)(ii). In addition, on April 25, the card issuer receives an excess payment of $800, which the consumer requests be allocated to pay off the $800 balance subject to the deferred interest program. Section 1026.53(b)(1)(ii) permits the card issuer to allocate the $800 excess payment in the manner requested by the consumer.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-a-Interp-5-v-B",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:b": {
+      "anchor": "b",
+      "text": "(b) Special rules —",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#b",
+      "kind": "Regulation",
+      "external": false
+    },
+    "53:53-b-Interp-1": {
+      "anchor": "53-b-Interp-1",
+      "text": "1. Deferred interest and similar programs. Section 1026.53(b)(1) applies to deferred interest or similar programs under which the consumer is not obligated to pay interest that accrues on a balance if that balance is paid in full prior to the expiration of a specified period of time. For purposes of § 1026.53(b)(1), “deferred interest” has the same meaning as in § 1026.16(h)(2) and associated commentary. Section 1026.53(b)(1) applies regardless of whether the consumer is required to make payments with respect to that balance during the specified period. However, a grace period during which any credit extended may be repaid without incurring a finance charge due to a periodic interest rate is not a deferred interest or similar program for purposes of § 1026.53(b)(1). Similarly, a temporary annual percentage rate of zero percent that applies for a specified period of time consistent with § 1026.55(b)(1) is not a deferred interest or similar program for purposes of § 1026.53(b)(1) unless the consumer may be obligated to pay interest that accrues during the period if a balance is not paid in full prior to expiration of the period.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-1",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-2": {
+      "anchor": "53-b-Interp-2",
+      "text": "2. Expiration of deferred interest or similar program during billing cycle. For purposes of § 1026.53(b)(1)(i), a billing cycle does not constitute one of the two billing cycles immediately preceding expiration of a deferred interest or similar program if the expiration date for the program precedes the payment due date in that billing cycle. For example, assume that a credit card account has a balance subject to a deferred interest program that expires on June 15. Assume also that the billing cycles for the account begin on the first day of the month and end on the last day of the month and that the required minimum periodic payment is due on the twenty-fifth day of the month. The card issuer does not accept requests from consumers regarding the allocation of excess payments pursuant to § 1026.53(b)(1)(ii). Because the expiration date for the deferred interest program (June 15) precedes the due date in the June billing cycle (June 25), § 1026.53(b)(1)(i) requires the card issuer to allocate first to the deferred interest balance any amount paid by the consumer in excess of the required minimum periodic payment during the April and May billing cycles (as well as any amount paid by the consumer before June 15). However, if the deferred interest program expired on June 25 or on June 30 (or on any day in between), § 1026.53(b)(1)(i) would apply only to the May and June billing cycles.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-2",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3": {
+      "anchor": "53-b-Interp-3",
+      "text": "3. Consumer requests.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-i": {
+      "anchor": "53-b-Interp-3-i",
+      "text": "i. Generally. Section 1026.53(b) does not require a card issuer to allocate amounts paid by the consumer in excess of the required minimum periodic payment in the manner requested by the consumer, provided that the card issuer instead allocates such amounts consistent with § 1026.53(a) or (b)(1)(i), as applicable. For example, a card issuer may decline consumer requests regarding payment allocation as a general matter or may decline such requests when a consumer does not comply with requirements set by the card issuer (such as submitting the request in writing or submitting the request prior to or contemporaneously with submission of the payment), provided that amounts paid by the consumer in excess of the required minimum periodic payment are allocated consistent with § 1026.53(a) or (b)(1)(i), as applicable. Similarly, a card issuer that accepts requests pursuant to § 1026.53(b)(1)(ii) or (b)(2) must allocate amounts paid by a consumer in excess of the required minimum periodic payment consistent with § 1026.53(a) or (b)(1)(i), as applicable, if the consumer does not submit a request. Furthermore, a card issuer that accepts requests pursuant to § 1026.53(b)(1)(ii) or (b)(2) must allocate consistent with § 1026.53(a) or (b)(1)(i), as applicable, if the consumer submits a request with which the card issuer cannot comply (such as a request that contains a mathematical error), unless the consumer submits an additional request with which the card issuer can comply.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-i",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-ii": {
+      "anchor": "53-b-Interp-3-ii",
+      "text": "ii. Examples of consumer requests that satisfy § 1026.53(b)(1)(ii) or (b)(2). A consumer has made a request for purposes of § 1026.53(b)(1)(ii) or (b)(2) if:",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-ii",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-ii-A": {
+      "anchor": "53-b-Interp-3-ii-A",
+      "text": "A. The consumer contacts the card issuer orally, electronically, or in writing and specifically requests that a payment or payments be allocated in a particular manner during the period of time that the deferred interest or similar program applies to a balance on the account or the period of time that a balance on the account is secured.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-ii-A",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-ii-B": {
+      "anchor": "53-b-Interp-3-ii-B",
+      "text": "B. The consumer completes and submits to the card issuer a form or payment coupon provided by the card issuer for the purpose of requesting that a payment or payments be allocated in a particular manner during the period of time that the deferred interest or similar program applies to a balance on the account or the period of time that a balance on the account is secured.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-ii-B",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-ii-C": {
+      "anchor": "53-b-Interp-3-ii-C",
+      "text": "C. The consumer contacts the card issuer orally, electronically, or in writing and specifically requests that a payment that the card issuer has previously allocated consistent with § 1026.53(a) or (b)(1)(i), as applicable, instead be allocated in a different manner.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-ii-C",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-iii": {
+      "anchor": "53-b-Interp-3-iii",
+      "text": "iii. Examples of consumer requests that do not satisfy § 1026.53(b)(1)(ii) or (b)(2). A consumer has not made a request for purposes of § 1026.53(b)(1)(ii) or (b)(2) if:",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-iii",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-iii-A": {
+      "anchor": "53-b-Interp-3-iii-A",
+      "text": "A. The terms and conditions of the account agreement contain preprinted language stating that by applying to open an account, by using that account for transactions subject to a deferred interest or similar program, or by using the account to purchase property in which the card issuer holds a security interest the consumer requests that payments be allocated in a particular manner.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-iii-A",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-iii-B": {
+      "anchor": "53-b-Interp-3-iii-B",
+      "text": "B. The card issuer's online application contains a preselected check box indicating that the consumer requests that payments be allocated in a particular manner and the consumer does not deselect the box.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-iii-B",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-iii-C": {
+      "anchor": "53-b-Interp-3-iii-C",
+      "text": "C. The payment coupon provided by the card issuer contains preprinted language or a preselected check box stating that by submitting a payment the consumer requests that the payment be allocated in a particular manner.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-iii-C",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:53-b-Interp-3-iii-D": {
+      "anchor": "53-b-Interp-3-iii-D",
+      "text": "D. The card issuer requires a consumer to accept a particular payment allocation method as a condition of using a deferred interest or similar program, purchasing property in which the card issuer holds a security interest, making a payment, or receiving account services or features.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#53-b-Interp-3-iii-D",
+      "kind": "Official interpretation",
+      "external": false
+    },
+    "53:b-1": {
+      "anchor": "b-1",
+      "text": "(1) Accounts with balances subject to deferred interest or similar program. When a balance on a credit card account under an open-end (not home-secured) consumer credit plan is subject to a deferred interest or similar program that provides that a consumer will not be obligated to pay interest that accrues on the balance if the balance is paid in full prior to the expiration of a specified period of time:",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#b-1",
+      "kind": "Regulation",
+      "external": false
+    },
+    "53:b-1-i": {
+      "anchor": "b-1-i",
+      "text": "(i) Last two billing cycles. The card issuer must allocate any amount paid by the consumer in excess of the required minimum periodic payment consistent with paragraph (a) of this section, except that, during the two billing cycles immediately preceding expiration of the specified period, the excess amount must be allocated first to the balance subject to the deferred interest or similar program and any remaining portion allocated to any other balances consistent with paragraph (a) of this section; or",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#b-1-i",
+      "kind": "Regulation",
+      "external": false
+    },
+    "53:b-1-ii": {
+      "anchor": "b-1-ii",
+      "text": "(ii) Consumer request. The card issuer may at its option allocate any amount paid by the consumer in excess of the required minimum periodic payment among the balances on the account in the manner requested by the consumer.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#b-1-ii",
+      "kind": "Regulation",
+      "external": false
+    },
+    "53:b-2": {
+      "anchor": "b-2",
+      "text": "(2) Accounts with secured balances. When a balance on a credit card account under an open-end (not home-secured) consumer credit plan is secured, the card issuer may at its option allocate any amount paid by the consumer in excess of the required minimum periodic payment to that balance if requested by the consumer.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/#b-2",
+      "kind": "Regulation",
+      "external": false
+    },
+    "16:16-h-Interp-1": {
+      "anchor": "16-h-Interp-1",
+      "text": "1. Deferred interest or similar offers clarified. Deferred interest or similar offers do not include offers that allow a consumer to skip payments during a specified period of time, and under which the consumer is not obligated under any circumstances for any interest or other finance charges that could be attributable to that period. Deferred interest or similar offers also do not include 0% annual percentage rate offers where a consumer is not obligated under any circumstances for interest attributable to the time period the 0% annual percentage rate was in effect, though such offers may be considered promotional rates under § 1026.16(g)(2)(i). Deferred interest or similar offers also do not include skip payment programs that have no required minimum payment for one or more billing cycles but where interest continues to accrue and is imposed during that period.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/16/#16-h-Interp-1",
+      "kind": "Official interpretation",
+      "external": true
+    },
+    "16:16-h-Interp-2": {
+      "anchor": "16-h-Interp-2",
+      "text": "2. Deferred interest period clarified. Although the terms of an advertised deferred interest or similar offer may provide that a creditor may charge the accrued interest if the balance is not paid in full by a certain date, creditors sometimes have an informal policy or practice that delays charging the accrued interest for payment received a brief period of time after the date upon which a creditor has the contractual right to charge the accrued interest. The advertisement need not include the end of an informal “courtesy period” in disclosing the deferred interest period under § 1026.16(h)(3).",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/16/#16-h-Interp-2",
+      "kind": "Official interpretation",
+      "external": true
+    },
+    "16:h-2": {
+      "anchor": "h-2",
+      "text": "(2) Definitions. “Deferred interest” means finance charges, accrued on balances or transactions, that a consumer is not obligated to pay or that will be waived or refunded to a consumer if those balances or transactions are paid in full by a specified date. The maximum period from the date the consumer becomes obligated for the balance or transaction until the specified date by which the consumer must pay the balance or transaction in full in order to avoid finance charges, or receive a waiver or refund of finance charges, is the “deferred interest period.” “Deferred interest” does not include any finance charges the consumer avoids paying in connection with any recurring grace period.",
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/16/#h-2",
+      "kind": "Regulation",
+      "external": true
+    }
+  },
+  "metadata": [
+    {
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/53/",
+      "retrieved": "2026-10-14",
+      "version": "CFPB page marked current regulation at retrieval; no effective-date revision inferred",
+      "sha256": "10948eaf728e1f8be41b3c4465d9dcea3c2fcb99c20898a9c1de78cdb8f98027",
+      "file": "sources/1026-53.html"
+    },
+    {
+      "url": "https://www.consumerfinance.gov/rules-policy/regulations/1026/16/",
+      "retrieved": "2026-10-14",
+      "version": "CFPB page marked current regulation at retrieval; no effective-date revision inferred",
+      "sha256": "9b8c94649d1081b28574e326951ceb2b1d2a5186cb766613d49924ed37e08006",
+      "file": "sources/1026-16.html"
+    }
+  ],
+  "propositions": [
+    {
+      "id": "P01",
+      "name": "Highest-APR priority",
+      "authority": "53(a)",
+      "text": "Except for paragraph (b), allocate excess payment first to the highest-APR balance on an in-scope account.",
+      "refs": [
+        "53:a"
+      ],
+      "terms": [
+        "highest annual percentage rate"
+      ],
+      "implementation": "Exhaust the highest effective-rate group before lower groups.",
+      "limitation": "Dispute protection takes precedence; deferred-window and request branches are separate.",
+      "standalone": true
+    },
+    {
+      "id": "P02",
+      "name": "Descending remainder priority",
+      "authority": "53(a)",
+      "text": "Under the general rule, allocate the remaining excess to other balances in descending APR order.",
+      "refs": [
+        "53:a"
+      ],
+      "terms": [
+        "any remaining portion",
+        "descending order"
+      ],
+      "implementation": "Compare every remaining higher/lower rate pair; equal rates remain unordered.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P03",
+      "name": "Deferred-program applicability",
+      "authority": "53(b)(1); comment 53(b)-1",
+      "text": "The deferred-program provisions apply when accrued interest is avoided through full payoff within the specified period.",
+      "refs": [
+        "53:b-1",
+        "53:53-b-Interp-1"
+      ],
+      "terms": [
+        "not obligated to pay interest",
+        "paid in full"
+      ],
+      "implementation": "Runtime derives qualifying programs from conditional accrued interest and the grace/zero exclusions.",
+      "limitation": "External contract facts are trusted; this checks the proposed program classification.",
+      "standalone": true
+    },
+    {
+      "id": "P04",
+      "name": "Ordinary default outside the window",
+      "authority": "53(b)(1)(i)",
+      "text": "Under the default branch, use ordinary allocation outside the deferred-priority window.",
+      "refs": [
+        "53:b-1",
+        "53:b-1-i"
+      ],
+      "terms": [
+        "consistent with paragraph (a)",
+        "except that"
+      ],
+      "implementation": "Active programs outside the priority window use ordinary ordering.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P05",
+      "name": "Deferred-window priority",
+      "authority": "53(b)(1)(i)",
+      "text": "Under the default branch, prioritize the deferred balance during the two billing cycles immediately preceding expiration.",
+      "refs": [
+        "53:b-1",
+        "53:b-1-i"
+      ],
+      "terms": [
+        "two billing cycles",
+        "allocated first"
+      ],
+      "implementation": "Detect ordinary allocations while eligible priority-program capacity remains.",
+      "limitation": "Simultaneously eligible deferred balances form one unordered priority group; disputed capacity comes last.",
+      "standalone": true
+    },
+    {
+      "id": "P06",
+      "name": "Remainder after deferred priority",
+      "authority": "53(b)(1)(i)",
+      "text": "After deferred priority, allocate the remainder to other balances under the general rule.",
+      "refs": [
+        "53:b-1",
+        "53:b-1-i"
+      ],
+      "terms": [
+        "any remaining portion"
+      ],
+      "implementation": "The ordinary balances left after the priority group retain descending effective-rate order.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P07",
+      "name": "Optional deferred-program request",
+      "authority": "53(b)(1)(ii)",
+      "text": "For a qualifying deferred-program account, the issuer may elect the consumer's requested allocation among account balances.",
+      "refs": [
+        "53:b-1",
+        "53:b-1-ii"
+      ],
+      "terms": [
+        "may at its option",
+        "manner requested"
+      ],
+      "implementation": "A request may allocate among any account balances while a qualifying program applies.",
+      "limitation": "Targets need not themselves be deferred. Only recorded, specific instructions are supported.",
+      "standalone": true
+    },
+    {
+      "id": "P08",
+      "name": "Optional secured-balance request",
+      "authority": "53(b)(2)",
+      "text": "For a balance secured by a security interest, the issuer may elect the consumer's requested allocation to that balance.",
+      "refs": [
+        "53:b-2"
+      ],
+      "terms": [
+        "is secured",
+        "at its option",
+        "if requested by the consumer"
+      ],
+      "implementation": "Every positive requested amount must target a secured balance.",
+      "limitation": "Security-interest facts are externally established.",
+      "standalone": true
+    },
+    {
+      "id": "P09",
+      "name": "Excess-payment scope",
+      "authority": "comment 53-1",
+      "text": "The section addresses payment amounts above the required minimum.",
+      "refs": [
+        "53:53-a-Interp-1"
+      ],
+      "terms": [
+        "in excess of the minimum periodic payment"
+      ],
+      "implementation": "Only excess allocation enters rate-priority comparisons; minimum allocations are separate.",
+      "limitation": "Minimum accounting is supplied, not inferred by subtracting the full minimum from each payment.",
+      "standalone": false
+    },
+    {
+      "id": "P10",
+      "name": "Minimum amount outside scope",
+      "authority": "comment 53-1",
+      "text": "This section does not determine the required minimum amount; other applicable law and guidance remain relevant.",
+      "refs": [
+        "53:53-a-Interp-1"
+      ],
+      "terms": [
+        "does not limit or otherwise address",
+        "amount of the required minimum"
+      ],
+      "implementation": "Accept the supplied minimum portion without deriving a minimum-payment formula.",
+      "limitation": "Other applicable law is outside this adapter.",
+      "standalone": false
+    },
+    {
+      "id": "P11",
+      "name": "Minimum allocation outside scope",
+      "authority": "comment 53-1",
+      "text": "This section does not prescribe allocation of the required minimum payment.",
+      "refs": [
+        "53:53-a-Interp-1"
+      ],
+      "terms": [
+        "how that payment is allocated"
+      ],
+      "implementation": "Rate priority does not constrain minimum allocations; dispute protection still examines the whole payment.",
+      "limitation": "",
+      "standalone": false
+    },
+    {
+      "id": "P12",
+      "name": "Optional minimum allocation method",
+      "authority": "comment 53-1",
+      "text": "The issuer may voluntarily apply these allocation requirements to the minimum, consistently with other law and guidance.",
+      "refs": [
+        "53:53-a-Interp-1"
+      ],
+      "terms": [
+        "may, but is not required to"
+      ],
+      "implementation": "Either a rate-ordered or other minimum allocation is allowed.",
+      "limitation": "A permission is preserved by absence of an additional restriction.",
+      "standalone": false
+    },
+    {
+      "id": "P13",
+      "name": "Permitted snapshot date",
+      "authority": "comment 53-2",
+      "text": "The issuer may use rates and balances from cycle end, credit date, or an intervening date.",
+      "refs": [
+        "53:53-a-Interp-2"
+      ],
+      "terms": [
+        "day the preceding billing cycle ends",
+        "day the payment is credited",
+        "any day in between"
+      ],
+      "implementation": "Both amounts and rates are read from the selected complete snapshot.",
+      "limitation": "Snapshots must be authoritative complete account snapshots.",
+      "standalone": true
+    },
+    {
+      "id": "P14",
+      "name": "Consistent reference-day practice",
+      "authority": "comment 53-2",
+      "text": "The reference day generally must be consistent across billing cycles.",
+      "refs": [
+        "53:53-a-Interp-2"
+      ],
+      "terms": [
+        "generally must be consistent"
+      ],
+      "implementation": "Compute the date from the effective practice's cycle-end, credit-date, or offset convention.",
+      "limitation": "Operational choice, not a complete interpretation of 'generally'.",
+      "standalone": true
+    },
+    {
+      "id": "P15",
+      "name": "Permitted practice adjustments",
+      "authority": "comment 53-2",
+      "text": "The issuer may adjust the reference day from time to time.",
+      "refs": [
+        "53:53-a-Interp-2"
+      ],
+      "terms": [
+        "may adjust this day from time to time"
+      ],
+      "implementation": "Changed conventions require a recorded authorization and effective date.",
+      "limitation": "Cannot determine legal acceptability of 'from time to time'; authorization evidence does not resolve that legal standard.",
+      "standalone": true
+    },
+    {
+      "id": "P16",
+      "name": "Residual after historical snapshot",
+      "authority": "comment 53-2.ii",
+      "text": "The historical-snapshot example applies residual payment to a later purchase after the historical balances are paid. Generalizing this example requires a modeling choice.",
+      "refs": [
+        "53:53-a-Interp-2-i",
+        "53:53-a-Interp-2-ii"
+      ],
+      "terms": [
+        "remaining $50",
+        "$100 purchase made on April 5"
+      ],
+      "implementation": "After dispute/window priorities, exhaust historical lots before later lots.",
+      "limitation": "Generalization of the single later-purchase example; later lots use their payment-date APR.",
+      "standalone": true
+    },
+    {
+      "id": "P17",
+      "name": "Minimize disputed reduction",
+      "authority": "comment 53-3",
+      "text": "When the stated claim, defense, or billing-error conditions apply, allocate payment to avoid or minimize reduction of the disputed amount.",
+      "refs": [
+        "53:53-a-Interp-3"
+      ],
+      "terms": [
+        "must apply",
+        "avoids or minimizes"
+      ],
+      "implementation": "Compute reduction for minimum plus excess against all outstanding undisputed capacity.",
+      "limitation": "Dispute protection overrides request and program priority. Dispute merits are external.",
+      "standalone": true
+    },
+    {
+      "id": "P18",
+      "name": "Allow unavoidable disputed residual",
+      "authority": "comment 53-3.ii",
+      "text": "In the example, the issuer may apply the residual to the disputed amount when no new transaction or other amount can receive it.",
+      "refs": [
+        "53:53-a-Interp-3-i",
+        "53:53-a-Interp-3-ii"
+      ],
+      "terms": [
+        "If there are no new transactions or other amounts",
+        "may apply"
+      ],
+      "implementation": "When disputed reduction is unavoidable, require exhaustion of all other capacity. P17 separately rejects avoidable disputed reduction.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P19",
+      "name": "Error-correction credit",
+      "authority": "comment 53-3.ii",
+      "text": "If the asserted billing error is subsequently confirmed, credit the disputed amount and related charges.",
+      "refs": [
+        "53:53-a-Interp-3-i",
+        "53:53-a-Interp-3-ii"
+      ],
+      "terms": [
+        "subsequently determines",
+        "must credit",
+        "related finance or other charges"
+      ],
+      "implementation": "At completion, check each required principal/charge item against actual posted credits.",
+      "limitation": "Required charge attribution and checkpoint deadline come from external section 1026.13 requirements; this does not initiate a credit.",
+      "standalone": true
+    },
+    {
+      "id": "P20",
+      "name": "Correction notice dispatch",
+      "authority": "comment 53-3.ii",
+      "text": "Following the stated error determination, send a correction notice consistent with §1026.13(e).",
+      "refs": [
+        "53:53-a-Interp-3-i",
+        "53:53-a-Interp-3-ii"
+      ],
+      "terms": [
+        "send a correction notice",
+        "1026.13(e)"
+      ],
+      "implementation": "Require actual timely dispatch to the specified recipient, linked to the determination.",
+      "limitation": "Notice content certification is trusted external evidence; no autonomous dispatch or deadline scheduler.",
+      "standalone": true
+    },
+    {
+      "id": "P21",
+      "name": "Equal-rate discretion",
+      "authority": "comment 53-4",
+      "text": "When the stated equal-rate and other-rate conditions hold, no particular allocation method among equal-rate balances is generally required.",
+      "refs": [
+        "53:53-a-Interp-4"
+      ],
+      "terms": [
+        "generally does not require",
+        "any particular method"
+      ],
+      "implementation": "Strict rate comparisons impose no FIFO/pro-rata tie breaker; stronger dispute/program rules remain.",
+      "limitation": "Uses the enumerated exceptions, not a claim to resolve every possible meaning of 'generally'.",
+      "standalone": false
+    },
+    {
+      "id": "P22",
+      "name": "Grouped or separate balances",
+      "authority": "comment 53-4",
+      "text": "Under the stated equal-rate circumstances, the issuer may treat equal-rate balances together or separately.",
+      "refs": [
+        "53:53-a-Interp-4",
+        "53:53-a-Interp-5-iv"
+      ],
+      "terms": [
+        "single balance or separate balances",
+        "manner the card issuer deems appropriate"
+      ],
+      "implementation": "Presentation may group rows; the underlying lots retain program, security, and dispute attributes.",
+      "limitation": "Do not merge away facts needed by other checks.",
+      "standalone": false
+    },
+    {
+      "id": "P23",
+      "name": "Zero allocation APR for deferred interest",
+      "authority": "comment 53-4",
+      "text": "During the deferred period, treat the qualifying balance as zero APR for allocation purposes.",
+      "refs": [
+        "53:53-a-Interp-4"
+      ],
+      "terms": [
+        "annual percentage rate of zero"
+      ],
+      "implementation": "Compare proposed effective APRs with the zero-or-snapshot-rate derivation.",
+      "limitation": "The contractual interest accrual rate is not changed.",
+      "standalone": true
+    },
+    {
+      "id": "P24",
+      "name": "Incorporated deferred-interest definition",
+      "authority": "comment 53(b)-1",
+      "text": "Use the incorporated §1026.16(h)(2) deferred-interest definition and associated commentary. External text is shown for review, not counted as additional propositions.",
+      "refs": [
+        "53:53-b-Interp-1",
+        "16:h-2",
+        "16:16-h-Interp-1",
+        "16:16-h-Interp-2"
+      ],
+      "terms": [
+        "same meaning",
+        "waived or refunded",
+        "recurring grace period",
+        "skip payment",
+        "courtesy period"
+      ],
+      "implementation": "Local terms implement the explicit conditional-interest description.",
+      "limitation": "Full equivalence with section 1026.16(h)(2) and its commentary is not implemented or claimed.",
+      "standalone": false
+    },
+    {
+      "id": "P25",
+      "name": "Interim payments irrelevant to applicability",
+      "authority": "comment 53(b)-1",
+      "text": "Interim payment requirements do not remove a qualifying balance from deferred-program applicability.",
+      "refs": [
+        "53:53-b-Interp-1"
+      ],
+      "terms": [
+        "regardless of whether"
+      ],
+      "implementation": "Program classification does not depend on its interim-payment-required attribute.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P26",
+      "name": "Grace-period exclusion",
+      "authority": "comment 53(b)-1",
+      "text": "The described grace period is excluded from deferred-program treatment.",
+      "refs": [
+        "53:53-b-Interp-1"
+      ],
+      "terms": [
+        "a grace period",
+        "is not a deferred interest"
+      ],
+      "implementation": "The classifier excludes grace periods.",
+      "limitation": "Checks a proposed classification; does not add an allocation-priority obligation.",
+      "standalone": true
+    },
+    {
+      "id": "P27",
+      "name": "Temporary-zero exclusion",
+      "authority": "comment 53(b)-1",
+      "text": "A temporary zero APR is excluded unless accrued interest can become payable on failure to pay in full by expiration.",
+      "refs": [
+        "53:53-b-Interp-1"
+      ],
+      "terms": [
+        "temporary annual percentage rate of zero",
+        "unless"
+      ],
+      "implementation": "The classifier excludes temporary zero APR unless accrued interest may become payable.",
+      "limitation": "External rate-change legality is not checked.",
+      "standalone": true
+    },
+    {
+      "id": "P28",
+      "name": "Correct counted cycles",
+      "authority": "comment 53(b)-2",
+      "text": "Do not count a cycle among the last two if program expiration precedes its payment due date.",
+      "refs": [
+        "53:53-b-Interp-2"
+      ],
+      "terms": [
+        "does not constitute",
+        "precedes the payment due date"
+      ],
+      "implementation": "Compute the start from the latest two cycle due dates no later than expiration, not a supplied expected value.",
+      "limitation": "At least two actual cycles through the expiration cycle must be supplied.",
+      "standalone": true
+    },
+    {
+      "id": "P29",
+      "name": "Early-expiration partial cycle",
+      "authority": "comment 53(b)-2",
+      "text": "The early-expiration example extends priority beyond the counted cycles to payments before expiration.",
+      "refs": [
+        "53:53-b-Interp-2"
+      ],
+      "terms": [
+        "April and May",
+        "before June 15"
+      ],
+      "implementation": "Priority remains in effect after the two counted cycles until expiration.",
+      "limitation": "Expiration dates are inclusive contract payoff dates in this model.",
+      "standalone": true
+    },
+    {
+      "id": "P30",
+      "name": "Issuer may decline requests",
+      "authority": "comment 53(b)-3.i",
+      "text": "The issuer may decline requests while allocating under the applicable default rule.",
+      "refs": [
+        "53:53-b-Interp-3-i"
+      ],
+      "terms": [
+        "may decline consumer requests",
+        "as a general matter"
+      ],
+      "implementation": "Default mode remains available even when a valid request exists.",
+      "limitation": "No policy requires the issuer to elect the request branch.",
+      "standalone": false
+    },
+    {
+      "id": "P31",
+      "name": "Decline requests failing issuer requirements",
+      "authority": "comment 53(b)-3.i",
+      "text": "The issuer may decline nonconforming requests while using the applicable default rule.",
+      "refs": [
+        "53:53-b-Interp-3-i"
+      ],
+      "terms": [
+        "does not comply with requirements set by the card issuer"
+      ],
+      "implementation": "Default mode remains available regardless of why the issuer declined.",
+      "limitation": "This permission does not require a separate rejection policy or mandate issuer requirements.",
+      "standalone": false
+    },
+    {
+      "id": "P32",
+      "name": "No request uses default",
+      "authority": "comment 53(b)-3.i",
+      "text": "An issuer that accepts requests must use the applicable default when no request is submitted.",
+      "refs": [
+        "53:53-b-Interp-3-i"
+      ],
+      "terms": [
+        "if the consumer does not submit a request"
+      ],
+      "implementation": "A missing or unsubmitted request cannot activate an exception.",
+      "limitation": "Complete request capture is assumed.",
+      "standalone": true
+    },
+    {
+      "id": "P33",
+      "name": "Unfulfillable request and replacement",
+      "authority": "comment 53(b)-3.i",
+      "text": "Use the applicable default for an unfulfillable request unless a further fulfillable request is submitted.",
+      "refs": [
+        "53:53-b-Interp-3-i"
+      ],
+      "terms": [
+        "cannot comply",
+        "unless the consumer submits an additional request"
+      ],
+      "implementation": "Check sums, nonnegative amounts, targets, capacities, and submitted replacement links.",
+      "limitation": "Operational definition of inability; other meanings of 'cannot comply' remain unresolved.",
+      "standalone": true
+    },
+    {
+      "id": "P34",
+      "name": "Affirmative specific contact",
+      "authority": "comment 53(b)-3.ii.A",
+      "text": "Specific oral, electronic, or written contact during the stated program/security period constitutes a qualifying request.",
+      "refs": [
+        "53:53-b-Interp-3-ii",
+        "53:53-b-Interp-3-ii-A"
+      ],
+      "terms": [
+        "orally, electronically, or in writing",
+        "specifically requests"
+      ],
+      "implementation": "Recognize oral/electronic/written contact with explicit structured instructions.",
+      "limitation": "Interpretation of a conversation into instructions is external evidence processing.",
+      "standalone": true
+    },
+    {
+      "id": "P35",
+      "name": "Completed submitted request form",
+      "authority": "comment 53(b)-3.ii.B",
+      "text": "Completing and submitting a request form or coupon for the stated period constitutes a qualifying request.",
+      "refs": [
+        "53:53-b-Interp-3-ii",
+        "53:53-b-Interp-3-ii-B"
+      ],
+      "terms": [
+        "completes and submits",
+        "form or payment coupon"
+      ],
+      "implementation": "An actual completed/submitted form, not default coupon text, supports the exception.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P36",
+      "name": "Request to reallocate previous payment",
+      "authority": "comment 53(b)-3.ii.C",
+      "text": "Specific contact requesting a different allocation of a previously default-allocated payment is a qualifying request.",
+      "refs": [
+        "53:53-b-Interp-3-ii",
+        "53:53-b-Interp-3-ii-C"
+      ],
+      "terms": [
+        "previously allocated",
+        "different manner"
+      ],
+      "implementation": "Verify a prior accepted default allocation and a later submitted specific request.",
+      "limitation": "Caller supplies the authoritative pre-payment balance snapshot for replacement; replacement is atomic.",
+      "standalone": true
+    },
+    {
+      "id": "P37",
+      "name": "Preprinted agreement is insufficient",
+      "authority": "comment 53(b)-3.iii.A",
+      "text": "The described preprinted account-agreement language does not establish a consumer request.",
+      "refs": [
+        "53:53-b-Interp-3-iii",
+        "53:53-b-Interp-3-iii-A"
+      ],
+      "terms": [
+        "has not made a request",
+        "preprinted language"
+      ],
+      "implementation": "Reject reliance on agreement deemed consent; an independent contact is a different evidence record.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P38",
+      "name": "Untouched preselection is insufficient",
+      "authority": "comment 53(b)-3.iii.B",
+      "text": "An untouched issuer-preselected application checkbox does not establish a request.",
+      "refs": [
+        "53:53-b-Interp-3-iii",
+        "53:53-b-Interp-3-iii-B"
+      ],
+      "terms": [
+        "preselected check box",
+        "does not deselect"
+      ],
+      "implementation": "Reject reliance on an untouched issuer-selected checkbox.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P39",
+      "name": "Default payment coupon is insufficient",
+      "authority": "comment 53(b)-3.iii.C",
+      "text": "The described default payment-coupon language or checkbox does not establish a request.",
+      "refs": [
+        "53:53-b-Interp-3-iii",
+        "53:53-b-Interp-3-iii-C"
+      ],
+      "terms": [
+        "preprinted language",
+        "preselected check box"
+      ],
+      "implementation": "Reject reliance on default coupon text or selection.",
+      "limitation": "",
+      "standalone": true
+    },
+    {
+      "id": "P40",
+      "name": "Imposed acceptance is insufficient",
+      "authority": "comment 53(b)-3.iii.D",
+      "text": "Imposed acceptance of an allocation method as a condition of the listed activities does not establish a request.",
+      "refs": [
+        "53:53-b-Interp-3-iii",
+        "53:53-b-Interp-3-iii-D"
+      ],
+      "terms": [
+        "requires a consumer to accept",
+        "as a condition"
+      ],
+      "implementation": "Reject requests based on imposed acceptance.",
+      "limitation": "Whether a condition was imposed is externally evidenced.",
+      "standalone": true
+    }
+  ],
+  "policies": [
+    {
+      "id": "C01",
+      "primary": "P01",
+      "name": "Highest-APR priority",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.highest_violations = 0)))",
+      "edges": [
+        {
+          "id": "P01",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P16",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P21",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P22",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P23",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P28",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P29",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_priority_facts"
+      ]
+    },
+    {
+      "id": "C02",
+      "primary": "P02",
+      "name": "Descending remainder priority",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.remaining_violations = 0)))",
+      "edges": [
+        {
+          "id": "P02",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P16",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P21",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P22",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P23",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P28",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P29",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_priority_facts"
+      ]
+    },
+    {
+      "id": "C03",
+      "primary": "P03",
+      "name": "Deferred-program applicability",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.classification_mismatches = 0))",
+      "edges": [
+        {
+          "id": "P03",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_qualifies"
+      ]
+    },
+    {
+      "id": "C04",
+      "primary": "P04",
+      "name": "Ordinary default outside the window",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.active_programs = 0 OR regz_context.window_programs > 0 OR regz_context.ordinary_violations = 0)))",
+      "edges": [
+        {
+          "id": "P04",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P01",
+          "role": "Shared support",
+          "reason": "The cross-reference to paragraph (a) imports highest-rate and descending-remainder ordering."
+        },
+        {
+          "id": "P02",
+          "role": "Shared support",
+          "reason": "The cross-reference to paragraph (a) imports highest-rate and descending-remainder ordering."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P16",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P21",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P22",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P23",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P28",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P29",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_priority_facts"
+      ]
+    },
+    {
+      "id": "C05",
+      "primary": "P05",
+      "name": "Deferred-window priority",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.deferred_violations = 0)))",
+      "edges": [
+        {
+          "id": "P05",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P16",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P23",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P28",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P29",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_priority_facts"
+      ]
+    },
+    {
+      "id": "C06",
+      "primary": "P06",
+      "name": "Remainder after deferred priority",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.window_programs = 0 OR regz_context.ordinary_violations = 0)))",
+      "edges": [
+        {
+          "id": "P06",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P01",
+          "role": "Shared support",
+          "reason": "The cross-reference to paragraph (a) imports highest-rate and descending-remainder ordering."
+        },
+        {
+          "id": "P02",
+          "role": "Shared support",
+          "reason": "The cross-reference to paragraph (a) imports highest-rate and descending-remainder ordering."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P16",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P21",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P22",
+          "role": "Shared support",
+          "reason": "Preserves equal-rate discretion through strict higher-rate comparisons; grouped input remains limited to underlying detailed lots."
+        },
+        {
+          "id": "P23",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P28",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P29",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_priority_facts"
+      ]
+    },
+    {
+      "id": "C07",
+      "primary": "P07",
+      "name": "Optional deferred-program request",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'deferred_request' OR (regz_context.active_programs > 0 AND regz_context.issuer_elected AND regz_context.request_mismatches = 0)))",
+      "edges": [
+        {
+          "id": "P07",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P32",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P33",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P34",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P35",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P36",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P37",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P38",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P39",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P40",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C08",
+      "primary": "P08",
+      "name": "Optional secured-balance request",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'secured_request' OR (regz_context.unsecured_request_targets = 0 AND regz_context.issuer_elected AND regz_context.request_mismatches = 0)))",
+      "edges": [
+        {
+          "id": "P08",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P32",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P33",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P34",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P35",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P36",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P37",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P38",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P39",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        },
+        {
+          "id": "P40",
+          "role": "Shared support",
+          "reason": "Companion checks establish whether the elected request exception has qualifying evidence and fulfillable instructions."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C13",
+      "primary": "P13",
+      "name": "Permitted snapshot date",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.snapshot_date >= regz_context.cycle_end AND regz_context.snapshot_date <= regz_context.credited_date))",
+      "edges": [
+        {
+          "id": "P13",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_practice"
+      ]
+    },
+    {
+      "id": "C14",
+      "primary": "P14",
+      "name": "Consistent reference-day practice",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.snapshot_date = regz_context.expected_snapshot_date))",
+      "edges": [
+        {
+          "id": "P14",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Together define the permitted reference date and practice. Recorded authorization is an implementation default, not wording in the source."
+        },
+        {
+          "id": "P15",
+          "role": "Shared support",
+          "reason": "Together define the permitted reference date and practice. Recorded authorization is an implementation default, not wording in the source."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_practice"
+      ]
+    },
+    {
+      "id": "C15",
+      "primary": "P15",
+      "name": "Permitted practice adjustments",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.unauthorized_changes = 0))",
+      "edges": [
+        {
+          "id": "P15",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Together define the permitted reference date and practice. Recorded authorization is an implementation default, not wording in the source."
+        },
+        {
+          "id": "P14",
+          "role": "Shared support",
+          "reason": "Together define the permitted reference date and practice. Recorded authorization is an implementation default, not wording in the source."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_practice"
+      ]
+    },
+    {
+      "id": "C16",
+      "primary": "P16",
+      "name": "Residual after historical snapshot",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.snapshot_violations = 0)))",
+      "edges": [
+        {
+          "id": "P16",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P23",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P28",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P29",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_priority_facts"
+      ]
+    },
+    {
+      "id": "C17",
+      "primary": "P17",
+      "name": "Minimize disputed reduction",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.protected_reduction <= regz_context.unavoidable_protected_reduction))",
+      "edges": [
+        {
+          "id": "P17",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "P17 rejects avoidable disputed reduction; P18 addresses the unavoidable-residual branch."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context"
+      ]
+    },
+    {
+      "id": "C18",
+      "primary": "P18",
+      "name": "Allow unavoidable disputed residual",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.unavoidable_protected_reduction = 0 OR regz_context.protected_reduction = 0 OR regz_context.other_capacity_remaining = 0))",
+      "edges": [
+        {
+          "id": "P18",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "P17 rejects avoidable disputed reduction; P18 addresses the unavoidable-residual branch."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context"
+      ]
+    },
+    {
+      "id": "C19",
+      "primary": "P19",
+      "name": "Error-correction credit",
+      "constraint": "(regz_context.kind <> 'correction' OR regz_context.missing_credit_cents = 0)",
+      "edges": [
+        {
+          "id": "P19",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "The correction obligations arise in the disputed-allocation example after confirmation of the alleged billing error."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "The correction obligations arise in the disputed-allocation example after confirmation of the alleged billing error."
+        },
+        {
+          "id": "P20",
+          "role": "Shared support",
+          "reason": "The correction obligations arise in the disputed-allocation example after confirmation of the alleged billing error."
+        }
+      ],
+      "functions": [
+        "derive_correction_context"
+      ]
+    },
+    {
+      "id": "C20",
+      "primary": "P20",
+      "name": "Correction notice dispatch",
+      "constraint": "(regz_context.kind <> 'correction' OR regz_context.notice_count > 0)",
+      "edges": [
+        {
+          "id": "P20",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "The correction obligations arise in the disputed-allocation example after confirmation of the alleged billing error."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "The correction obligations arise in the disputed-allocation example after confirmation of the alleged billing error."
+        },
+        {
+          "id": "P19",
+          "role": "Shared support",
+          "reason": "The correction obligations arise in the disputed-allocation example after confirmation of the alleged billing error."
+        }
+      ],
+      "functions": [
+        "derive_correction_context"
+      ]
+    },
+    {
+      "id": "C23",
+      "primary": "P23",
+      "name": "Zero allocation APR for deferred interest",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.effective_apr_mismatches = 0))",
+      "edges": [
+        {
+          "id": "P23",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_qualifies"
+      ]
+    },
+    {
+      "id": "C25",
+      "primary": "P25",
+      "name": "Interim payments irrelevant to applicability",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.interim_payment_omissions = 0))",
+      "edges": [
+        {
+          "id": "P25",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_qualifies"
+      ]
+    },
+    {
+      "id": "C26",
+      "primary": "P26",
+      "name": "Grace-period exclusion",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.grace_classifications = 0))",
+      "edges": [
+        {
+          "id": "P26",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_qualifies"
+      ]
+    },
+    {
+      "id": "C27",
+      "primary": "P27",
+      "name": "Temporary-zero exclusion",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.zero_offer_classifications = 0))",
+      "edges": [
+        {
+          "id": "P27",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_qualifies"
+      ]
+    },
+    {
+      "id": "C28",
+      "primary": "P28",
+      "name": "Correct counted cycles",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.window_start_mismatches = 0))",
+      "edges": [
+        {
+          "id": "P28",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_window"
+      ]
+    },
+    {
+      "id": "C29",
+      "primary": "P29",
+      "name": "Early-expiration partial cycle",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.early_expiry_violations = 0)))",
+      "edges": [
+        {
+          "id": "P29",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P03",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P13",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P16",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P17",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P18",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P23",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P24",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P25",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P26",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P27",
+          "role": "Shared support",
+          "reason": "Defines qualifying programs used by the shared classifier; the incorporated external definition is incompletely modeled."
+        },
+        {
+          "id": "P28",
+          "role": "Shared support",
+          "reason": "Supplies reference-date, dispute, effective-rate, or window meaning used by the shared allocation comparison. Priority interactions are implementation choices shown below."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_priority_facts",
+        "_window"
+      ]
+    },
+    {
+      "id": "C32",
+      "primary": "P32",
+      "name": "No request uses default",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.request_present OR regz_context.method = 'default'))",
+      "edges": [
+        {
+          "id": "P32",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P01",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P02",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P05",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P06",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C33",
+      "primary": "P33",
+      "name": "Unfulfillable request and replacement",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_feasibility_errors = 0 AND regz_context.superseding_requests = 0)))",
+      "edges": [
+        {
+          "id": "P33",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P01",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P02",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P05",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P06",
+          "role": "Shared support",
+          "reason": "The required fallback is the applicable ordinary or deferred-window default allocation, enforced by companion policies."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P09",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P10",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P11",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P12",
+          "role": "Shared support",
+          "reason": "Scopes the allocation to excess payment and preserves freedom over the minimum; minimum amount is supplied externally."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C34",
+      "primary": "P34",
+      "name": "Affirmative specific contact",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'contact' OR (regz_context.affirmative AND regz_context.instruction_count > 0 AND regz_context.contact_channel))))",
+      "edges": [
+        {
+          "id": "P34",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C35",
+      "primary": "P35",
+      "name": "Completed submitted request form",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'form' OR (regz_context.form_completed AND regz_context.request_present AND regz_context.affirmative AND regz_context.instruction_count > 0))))",
+      "edges": [
+        {
+          "id": "P35",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C36",
+      "primary": "P36",
+      "name": "Request to reallocate previous payment",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'reallocation' OR (regz_context.prior_default_allocation AND regz_context.affirmative AND regz_context.contact_channel AND regz_context.instruction_count > 0))))",
+      "edges": [
+        {
+          "id": "P36",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C37",
+      "primary": "P37",
+      "name": "Preprinted agreement is insufficient",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'agreement_default')))",
+      "edges": [
+        {
+          "id": "P37",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C38",
+      "primary": "P38",
+      "name": "Untouched preselection is insufficient",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'application_default')))",
+      "edges": [
+        {
+          "id": "P38",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C39",
+      "primary": "P39",
+      "name": "Default payment coupon is insufficient",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'coupon_default')))",
+      "edges": [
+        {
+          "id": "P39",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    },
+    {
+      "id": "C40",
+      "primary": "P40",
+      "name": "Imposed acceptance is insufficient",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (NOT regz_context.required_condition)))",
+      "edges": [
+        {
+          "id": "P40",
+          "role": "Direct motivation",
+          "reason": "This is the catalog's primary motivating proposition. The constraint operationalizes it subject to the stated assumptions."
+        },
+        {
+          "id": "P07",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P08",
+          "role": "Shared support",
+          "reason": "Applies to the deferred-program or secured-balance request exception; these companion checks supply its legal setting."
+        },
+        {
+          "id": "P30",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        },
+        {
+          "id": "P31",
+          "role": "Shared support",
+          "reason": "Keeps the default branch available when the issuer declines a request; request-specific checks apply only when a request branch is elected."
+        }
+      ],
+      "functions": [
+        "derive_allocation_context",
+        "_request_facts"
+      ]
+    }
+  ],
+  "functions": {
+    "create_schema": {
+      "line": 101,
+      "code": "def create_schema(conn: Any) -> None:\n    for ddl in SCHEMA_DDL:\n        conn.execute(ddl)\n    columns = \", \".join(f\"{name} {sql_type} NOT NULL\" for name, sql_type in _CONTEXT_TYPES.items())\n    conn.execute(f\"CREATE TABLE regz_context ({columns}, PRIMARY KEY(batch_id))\")"
+    },
+    "_rows": {
+      "line": 108,
+      "code": "def _rows(conn: Any, query: str, parameters: list | None = None) -> list[dict]:\n    cursor = conn.execute(query, parameters or [])\n    names = [column[0] for column in cursor.description]\n    return [dict(zip(names, row)) for row in cursor.fetchall()]"
+    },
+    "_one": {
+      "line": 114,
+      "code": "def _one(conn: Any, query: str, parameters: list) -> dict:\n    rows = _rows(conn, query, parameters)\n    if len(rows) != 1:\n        raise EvidenceError(\"Expected exactly one evidence row\")\n    return rows[0]"
+    },
+    "_require": {
+      "line": 121,
+      "code": "def _require(condition: bool, message: str) -> None:\n    if not condition:\n        raise EvidenceError(message)"
+    },
+    "_context": {
+      "line": 126,
+      "code": "def _context(batch_id: str, kind: str) -> dict:\n    return {\n        \"batch_id\": batch_id,\n        \"kind\": kind,\n        \"method\": \"default\",\n        \"request_basis\": \"none\",\n        **dict.fromkeys(_ZERO_FIELDS, 0),\n        **dict.fromkeys(_BOOL_FIELDS, False),\n        **dict.fromkeys(_DATE_FIELDS, date(1900, 1, 1)),\n    }"
+    },
+    "_qualifies": {
+      "line": 138,
+      "code": "def _qualifies(program: dict) -> bool:\n    return (\n        program[\"interest_accrues\"]\n        and program[\"waived_on_payoff\"]\n        and not program[\"grace_period\"]\n        and (not program[\"temporary_zero\"] or program[\"retroactive_interest\"])\n    )"
+    },
+    "_window": {
+      "line": 147,
+      "code": "def _window(conn: Any, account: str, expiration: date) -> tuple[date, date | None]:\n    cycles = _rows(\n        conn, \"SELECT * FROM regz_cycles WHERE account_id = ? ORDER BY start_date\", [account]\n    )\n    containing = [c for c in cycles if c[\"start_date\"] <= expiration <= c[\"end_date\"]]\n    _require(len(containing) == 1, \"Need the actual expiration billing cycle\")\n    for previous, following in zip(cycles, cycles[1:]):\n        _require(\n            previous[\"end_date\"] + timedelta(days=1) == following[\"start_date\"],\n            \"Billing cycles must be contiguous and nonoverlapping\",\n        )\n    eligible = [c for c in cycles if c[\"start_date\"] <= expiration and c[\"due_date\"] <= expiration]\n    _require(len(eligible) >= 2, \"Need the two actual billing cycles preceding expiration\")\n    early_start = containing[0][\"start_date\"] if expiration < containing[0][\"due_date\"] else None\n    return eligible[-2][\"start_date\"], early_start"
+    },
+    "_practice": {
+      "line": 164,
+      "code": "def _practice(conn: Any, payment: dict, ctx: dict) -> None:\n    practices = _rows(\n        conn,\n        \"SELECT * FROM regz_practices WHERE account_id = ? AND effective_date <= ? ORDER BY effective_date\",\n        [payment[\"account_id\"], payment[\"credited_date\"]],\n    )\n    _require(bool(practices), \"Missing effective snapshot convention\")\n    for index, practice in enumerate(practices):\n        _require(\n            practice[\"convention\"] in {\"cycle_end\", \"credit_date\", \"offset\"},\n            \"Unsupported snapshot convention\",\n        )\n        changed = index > 0 and (practice[\"convention\"], practice[\"offset_days\"]) != (\n            practices[index - 1][\"convention\"],\n            practices[index - 1][\"offset_days\"],\n        )\n        ctx[\"unauthorized_changes\"] += int(changed and not practice[\"authorization_evidence\"])\n    practice = practices[-1]\n    if practice[\"convention\"] == \"credit_date\":\n        expected = payment[\"credited_date\"]\n    else:\n        expected = payment[\"cycle_end\"] + timedelta(\n            days=practice[\"offset_days\"] if practice[\"convention\"] == \"offset\" else 0\n        )\n    ctx[\"expected_snapshot_date\"] = expected"
+    },
+    "_request_facts": {
+      "line": 191,
+      "code": "def _request_facts(\n    conn: Any, proposal: dict, payment: dict, balances: dict, lines: dict, ctx: dict\n) -> None:\n    if proposal[\"request_id\"] is None or proposal[\"method\"] == \"default\":\n        # Declining a request must not require interpreting or validating it.\n        return\n    request = _one(\n        conn, \"SELECT * FROM regz_requests WHERE request_id = ?\", [proposal[\"request_id\"]]\n    )\n    _require(\n        request[\"payment_id\"] == payment[\"payment_id\"], \"Request belongs to a different payment\"\n    )\n    _require(\n        request[\"basis\"]\n        in {\n            \"contact\",\n            \"form\",\n            \"reallocation\",\n            \"agreement_default\",\n            \"application_default\",\n            \"coupon_default\",\n        },\n        \"Unmodeled request evidence needs review, not automatic rejection as illegal\",\n    )\n    ctx.update(\n        request_basis=request[\"basis\"],\n        issuer_elected=request[\"issuer_elected\"],\n        affirmative=request[\"affirmative\"],\n        form_completed=request[\"form_completed\"],\n        required_condition=request[\"required_condition\"],\n        contact_channel=request[\"channel\"] in {\"oral\", \"electronic\", \"written\"},\n        request_present=request[\"submitted_date\"] is not None\n        and request[\"submitted_date\"] <= proposal[\"decision_date\"],\n    )\n    instructions = _rows(\n        conn, \"SELECT * FROM regz_request_lines WHERE request_id = ?\", [request[\"request_id\"]]\n    )\n    ctx[\"instruction_count\"] = len(instructions)\n    target = {row[\"balance_id\"]: row[\"amount_cents\"] for row in instructions}\n    ctx[\"request_feasibility_errors\"] = int(not instructions)\n    ctx[\"request_feasibility_errors\"] += int(\n        sum(target.values()) != payment[\"total_cents\"] - payment[\"minimum_cents\"]\n    )\n    for balance_id, amount in target.items():\n        invalid = balance_id not in balances or amount < 0\n        if balance_id in balances:\n            invalid |= (\n                amount > balances[balance_id][\"amount_cents\"] - lines[balance_id][\"minimum_cents\"]\n            )\n            ctx[\"unsecured_request_targets\"] += int(\n                amount > 0 and not balances[balance_id][\"secured\"]\n            )\n        ctx[\"request_feasibility_errors\"] += int(invalid)\n    ctx[\"request_mismatches\"] = sum(\n        int(lines[key][\"excess_cents\"] != target.get(key, 0)) for key in lines\n    )\n    ctx[\"request_mismatches\"] += len(set(target) - set(lines))\n    # Supersession is an evidence link, not an assumption that the latest arrival\n    # necessarily cancels every previous instruction.\n    replacements = _rows(\n        conn,\n        \"SELECT request_id FROM regz_requests WHERE payment_id = ? AND supersedes_id = ? AND submitted_date <= ?\",\n        [payment[\"payment_id\"], request[\"request_id\"], proposal[\"decision_date\"]],\n    )\n    ctx[\"superseding_requests\"] = len(replacements)\n    if proposal[\"replaces_batch_id\"] and request[\"submitted_date\"]:\n        prior = _rows(\n            conn,\n            \"SELECT DISTINCT method, decision_date FROM regz_posted_allocations WHERE batch_id = ? AND payment_id = ?\",\n            [proposal[\"replaces_batch_id\"], payment[\"payment_id\"]],\n        )\n        ctx[\"prior_default_allocation\"] = bool(prior) and all(\n            row[\"method\"] == \"default\" and row[\"decision_date\"] <= request[\"submitted_date\"]\n            for row in prior\n        )"
+    },
+    "derive_allocation_context": {
+      "line": 268,
+      "code": "def derive_allocation_context(conn: Any, batch_id: str) -> dict:\n    \"\"\"Recompute all facts from complete source snapshots and proposed line items.\"\"\"\n    proposal = _one(conn, \"SELECT * FROM regz_proposals WHERE batch_id = ?\", [batch_id])\n    payment = _one(\n        conn, \"SELECT * FROM regz_payments WHERE payment_id = ?\", [proposal[\"payment_id\"]]\n    )\n    account = _one(\n        conn, \"SELECT * FROM regz_accounts WHERE account_id = ?\", [payment[\"account_id\"]]\n    )\n    _require(\n        account[\"credit_card\"]\n        and account[\"consumer_plan\"]\n        and account[\"open_end\"]\n        and not account[\"home_secured\"],\n        \"Out-of-scope accounts need another workflow; this is not a legal rejection\",\n    )\n    _require(\n        proposal[\"method\"] in {\"default\", \"deferred_request\", \"secured_request\"},\n        \"Unknown allocation method\",\n    )\n    _require(\n        proposal[\"decision_date\"] >= payment[\"credited_date\"], \"Decision cannot precede crediting\"\n    )\n    _require(\n        0 <= payment[\"minimum_cents\"] <= payment[\"total_cents\"],\n        \"Invalid externally supplied minimum portion\",\n    )\n    for snapshot in {proposal[\"snapshot_date\"], payment[\"credited_date\"]}:\n        _one(\n            conn,\n            \"SELECT * FROM regz_snapshot_sets WHERE account_id = ? AND snapshot_date = ?\",\n            [payment[\"account_id\"], snapshot],\n        )\n    current = _rows(\n        conn,\n        \"SELECT * FROM regz_balances WHERE account_id = ? AND snapshot_date = ?\",\n        [payment[\"account_id\"], payment[\"credited_date\"]],\n    )\n    historical = {\n        row[\"balance_id\"]: row\n        for row in _rows(\n            conn,\n            \"SELECT * FROM regz_balances WHERE account_id = ? AND snapshot_date = ?\",\n            [payment[\"account_id\"], proposal[\"snapshot_date\"]],\n        )\n    }\n    balances = {row[\"balance_id\"]: row for row in current}\n    lines = {\n        row[\"balance_id\"]: row\n        for row in _rows(conn, \"SELECT * FROM regz_proposal_lines WHERE batch_id = ?\", [batch_id])\n    }\n    _require(\n        bool(balances) and set(lines) == set(balances),\n        \"Proposal must enumerate every current balance, including zero allocations\",\n    )\n    _require(\n        sum(row[\"minimum_cents\"] for row in lines.values()) == payment[\"minimum_cents\"],\n        \"Minimum portions do not conserve the supplied minimum\",\n    )\n    _require(\n        sum(row[\"excess_cents\"] for row in lines.values())\n        == payment[\"total_cents\"] - payment[\"minimum_cents\"],\n        \"Excess allocations must conserve the whole excess\",\n    )\n    heads = _rows(\n        conn, \"SELECT * FROM regz_payment_heads WHERE payment_id = ?\", [payment[\"payment_id\"]]\n    )\n    _require(\n        (not heads and proposal[\"replaces_batch_id\"] is None)\n        or (len(heads) == 1 and heads[0][\"batch_id\"] == proposal[\"replaces_batch_id\"]),\n        \"Duplicate payment or stale replacement\",\n    )\n    ctx = _context(batch_id, \"allocation\")\n    ctx.update(\n        method=proposal[\"method\"],\n        snapshot_date=proposal[\"snapshot_date\"],\n        cycle_end=payment[\"cycle_end\"],\n        credited_date=payment[\"credited_date\"],\n    )\n    _practice(conn, payment, ctx)\n    declarations = {\n        row[\"program_id\"]: row[\"qualifies\"]\n        for row in _rows(\n            conn, \"SELECT * FROM regz_program_classifications WHERE batch_id = ?\", [batch_id]\n        )\n    }\n    referenced_programs = {\n        row[\"program_id\"] for row in balances.values() if row[\"program_id\"] is not None\n    }\n    _require(\n        set(declarations) == referenced_programs,\n        \"Every referenced program needs a proposed classification\",\n    )\n    slices = []\n    active_programs, window_programs = set(), set()\n    total_undisputed = 0\n    for balance_id, balance in balances.items():\n        line = lines[balance_id]\n        amount, protected = balance[\"amount_cents\"], balance[\"protected_cents\"]\n        minimum, excess = line[\"minimum_cents\"], line[\"excess_cents\"]\n        _require(\n            0 <= protected <= amount\n            and minimum >= 0\n            and excess >= 0\n            and minimum + excess <= amount,\n            \"Negative amounts or allocation beyond balance capacity\",\n        )\n        old = historical.get(balance_id)\n        # Atomic lots never increase: new principal must have a new lot ID. This\n        # prevents silently applying an old APR to later additions in one bucket.\n        if old:\n            _require(\n                amount <= old[\"amount_cents\"], \"Growing balance IDs require explicit lot splitting\"\n            )\n        apr = old[\"apr\"] if old else balance[\"apr\"]\n        _require(apr >= 0, \"Negative APR outside the modeled domain\")\n        window_start, in_window, early = None, False, False\n        if balance[\"program_id\"] is not None:\n            program = _one(\n                conn, \"SELECT * FROM regz_programs WHERE program_id = ?\", [balance[\"program_id\"]]\n            )\n            _require(\n                program[\"account_id\"] == payment[\"account_id\"], \"Program belongs to another account\"\n            )\n            _require(program[\"start_date\"] <= program[\"expiration_date\"], \"Invalid program dates\")\n            declared = declarations[program[\"program_id\"]]\n            qualifies = _qualifies(program)\n            ctx[\"classification_mismatches\"] += int(declared != qualifies)\n            ctx[\"interim_payment_omissions\"] += int(\n                program[\"interim_payment_required\"] and qualifies and not declared\n            )\n            ctx[\"grace_classifications\"] += int(program[\"grace_period\"] and declared)\n            ctx[\"zero_offer_classifications\"] += int(\n                program[\"temporary_zero\"] and not program[\"retroactive_interest\"] and declared\n            )\n            active = (\n                _qualifies(program)\n                and program[\"start_date\"] <= payment[\"credited_date\"] <= program[\"expiration_date\"]\n            )\n            if active:\n                apr = Decimal(0)\n                active_programs.add(program[\"program_id\"])\n                window_start, expiration_cycle_start = _window(\n                    conn, payment[\"account_id\"], program[\"expiration_date\"]\n                )\n                in_window = window_start <= payment[\"credited_date\"] <= program[\"expiration_date\"]\n                early = (\n                    in_window\n                    and expiration_cycle_start is not None\n                    and expiration_cycle_start <= payment[\"credited_date\"]\n                )\n                if in_window:\n                    window_programs.add(program[\"program_id\"])\n        ctx[\"effective_apr_mismatches\"] += int(line[\"effective_apr\"] != apr)\n        ctx[\"window_start_mismatches\"] += int(line[\"window_start\"] != window_start)\n        undisputed = amount - protected\n        total_undisputed += undisputed\n        ctx[\"protected_reduction\"] += max(0, minimum + excess - undisputed)\n        ctx[\"other_capacity_remaining\"] += max(0, undisputed - minimum - excess)\n        # Minimum allocation is free of APR priority. Within each atomic lot,\n        # consume its undisputed portion before its disputed portion.\n        available_u = max(0, undisputed - minimum)\n        available_p = protected - max(0, minimum - undisputed)\n        for disputed, capacity, allocated in (\n            (False, available_u, min(excess, available_u)),\n            (True, available_p, max(0, excess - available_u)),\n        ):\n            if capacity:\n                slices.append(\n                    {\n                        \"disputed\": disputed,\n                        \"capacity\": capacity,\n                        \"allocated\": allocated,\n                        \"window\": in_window,\n                        \"early\": early,\n                        \"phase\": int(old is None),\n                        \"apr\": apr,\n                    }\n                )\n    ctx[\"active_programs\"], ctx[\"window_programs\"] = len(active_programs), len(window_programs)\n    ctx[\"unavoidable_protected_reduction\"] = max(0, payment[\"total_cents\"] - total_undisputed)\n    _priority_facts(slices, ctx)\n    _request_facts(conn, proposal, payment, balances, lines, ctx)\n    return ctx"
+    },
+    "_priority_facts": {
+      "line": 454,
+      "code": "def _priority_facts(slices: list[dict], ctx: dict) -> None:\n    \"\"\"Pairwise exhaustion permits every split within genuinely equal priorities.\"\"\"\n    for high in slices:\n        for low in slices:\n            if (\n                high[\"disputed\"] != low[\"disputed\"]\n                or high[\"allocated\"] >= high[\"capacity\"]\n                or low[\"allocated\"] == 0\n            ):\n                continue\n            if high[\"window\"] and not low[\"window\"]:\n                ctx[\"deferred_violations\"] += 1\n                ctx[\"early_expiry_violations\"] += int(high[\"early\"])\n            elif not high[\"window\"] and not low[\"window\"]:\n                if high[\"phase\"] < low[\"phase\"]:\n                    ctx[\"snapshot_violations\"] += 1\n                elif high[\"phase\"] == low[\"phase\"] and high[\"apr\"] > low[\"apr\"]:\n                    peers = [\n                        s[\"apr\"]\n                        for s in slices\n                        if not s[\"window\"]\n                        and s[\"phase\"] == high[\"phase\"]\n                        and s[\"disputed\"] == high[\"disputed\"]\n                    ]\n                    ctx[\"ordinary_violations\"] += 1\n                    field = (\n                        \"highest_violations\"\n                        if high[\"apr\"] == max(peers)\n                        else \"remaining_violations\"\n                    )\n                    ctx[field] += 1"
+    },
+    "derive_correction_context": {
+      "line": 487,
+      "code": "def derive_correction_context(conn: Any, error_id: str, checkpoint_date: date) -> dict:\n    obligation = _one(conn, \"SELECT * FROM regz_error_obligations WHERE error_id = ?\", [error_id])\n    _require(\n        checkpoint_date >= obligation[\"determination_date\"], \"Checkpoint precedes determination\"\n    )\n    ctx = _context(f\"correction:{error_id}\", \"correction\")\n    cutoff = min(checkpoint_date, obligation[\"deadline\"])\n    items = _rows(conn, \"SELECT * FROM regz_error_items WHERE error_id = ?\", [error_id])\n    _require(bool(items), \"Missing required correction items\")\n    for item in items:\n        _require(item[\"required_cents\"] >= 0, \"Invalid correction amount\")\n        credits = _rows(\n            conn,\n            \"SELECT amount_cents FROM regz_credits WHERE error_id = ? AND item_id = ? AND posted_date BETWEEN ? AND ?\",\n            [error_id, item[\"item_id\"], obligation[\"determination_date\"], cutoff],\n        )\n        # Negative rows represent reversals and reduce the actual credit.\n        credited = sum(row[\"amount_cents\"] for row in credits)\n        ctx[\"missing_credit_cents\"] += max(0, item[\"required_cents\"] - credited)\n    notices = _rows(\n        conn,\n        \"SELECT dispatch_id FROM regz_dispatches WHERE error_id = ? AND recipient = ? AND notice_type = 'correction' AND sent_date BETWEEN ? AND ? AND length(trim(content_evidence)) > 0\",\n        [error_id, obligation[\"recipient\"], obligation[\"determination_date\"], cutoff],\n    )\n    ctx[\"notice_count\"] = len(notices)\n    return ctx"
+    },
+    "_accept": {
+      "line": 515,
+      "code": "def _accept(conn: Any, ctx: dict) -> bool:\n    columns = list(_CONTEXT_TYPES)\n    conn.execute(\n        f\"INSERT INTO regz_context ({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})\",\n        [ctx[key] for key in columns],\n    )\n    rewriter = Connection(DuckDBAdapter(conn))\n    for policy in build_full_regulation_z_53_policies():\n        rewriter.register_policy(policy)\n    # IDs are data, never SQL fragments. Escaping is needed because the rewriter\n    # transforms SQL text before execution; no shell interpolation is involved.\n    literal = \"'\" + ctx[\"batch_id\"].replace(\"'\", \"''\") + \"'\"\n    query = (\n        \"INSERT INTO regz_acceptances SELECT regz_context.batch_id, regz_context.kind FROM regz_context WHERE regz_context.batch_id = \"\n        + literal\n    )\n    conn.execute(rewriter.transform_query(query))\n    return bool(\n        conn.execute(\n            \"SELECT 1 FROM regz_acceptances WHERE batch_id = ?\", [ctx[\"batch_id\"]]\n        ).fetchall()\n    )"
+    },
+    "submit_allocation": {
+      "line": 539,
+      "code": "def submit_allocation(conn: Any, batch_id: str) -> bool:\n    \"\"\"Own the transaction. False means all publication was rolled back.\"\"\"\n    conn.execute(\"BEGIN TRANSACTION\")\n    try:\n        ctx = derive_allocation_context(conn, batch_id)\n        if not _accept(conn, ctx):\n            conn.execute(\"ROLLBACK\")\n            return False\n        conn.execute(\n            \"INSERT INTO regz_posted_allocations SELECT p.batch_id, p.payment_id, l.balance_id, l.minimum_cents, l.excess_cents, l.effective_apr, l.window_start, p.method, p.decision_date FROM regz_proposals p JOIN regz_proposal_lines l ON p.batch_id = l.batch_id WHERE p.batch_id = ?\",\n            [batch_id],\n        )\n        conn.execute(\n            \"INSERT INTO regz_posted_classifications SELECT * FROM regz_program_classifications WHERE batch_id = ?\",\n            [batch_id],\n        )\n        conn.execute(\n            \"DELETE FROM regz_payment_heads WHERE payment_id = (SELECT payment_id FROM regz_proposals WHERE batch_id = ?)\",\n            [batch_id],\n        )\n        conn.execute(\n            \"INSERT INTO regz_payment_heads SELECT payment_id, batch_id FROM regz_proposals WHERE batch_id = ?\",\n            [batch_id],\n        )\n        conn.execute(\"COMMIT\")\n        return True\n    except Exception:\n        conn.execute(\"ROLLBACK\")\n        raise"
+    },
+    "complete_correction": {
+      "line": 570,
+      "code": "def complete_correction(conn: Any, error_id: str, checkpoint_date: date) -> bool:\n    \"\"\"Check actual credit/dispatch evidence; no action scheduling is implied.\"\"\"\n    conn.execute(\"BEGIN TRANSACTION\")\n    try:\n        ctx = derive_correction_context(conn, error_id, checkpoint_date)\n        if not _accept(conn, ctx):\n            conn.execute(\"ROLLBACK\")\n            return False\n        conn.execute(\n            \"INSERT INTO regz_correction_completions VALUES (?, ?)\", [error_id, checkpoint_date]\n        )\n        conn.execute(\"COMMIT\")\n        return True\n    except Exception:\n        conn.execute(\"ROLLBACK\")\n        raise"
+    }
+  },
+  "catalogSha256": "1be4e4f5ebea3c0bf986ed4d8f8cfd139d94b9bf19e8df5a70c850e3b40b625b",
+  "runtimeSha256": "d5bdc5820fb8f137bf066f8ff0d2f90eaaf5f40178cb686d9138f38168da94d0"
+}

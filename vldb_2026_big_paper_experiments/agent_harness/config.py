@@ -28,6 +28,7 @@ class HarnessConfig:
     openai_model: str
     openai_api_key: str | None
     bedrock_model_id: str
+    bedrock_provider: str | None
     aws_region: str | None
     aws_profile: str | None
     db_path: str
@@ -47,6 +48,7 @@ class HarnessConfig:
                 "BEDROCK_MODEL_ID",
                 "anthropic.claude-3-5-sonnet-20241022-v2:0",
             ),
+            bedrock_provider=os.getenv("BEDROCK_PROVIDER"),
             aws_region=os.getenv("AWS_REGION"),
             aws_profile=os.getenv("AWS_PROFILE"),
             db_path=os.getenv("AGENT_DB_PATH", ":memory:"),

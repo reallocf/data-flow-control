@@ -11,6 +11,12 @@ from pathlib import Path
 import duckdb
 from sql_rewriter import DFCPolicy, Resolution, SQLRewriter
 
+from vldb_experiments.strategies.llm_validation_common import (
+    POLICY_VARIANT_GROWING,
+    SUPPORTED_POLICY_VARIANTS,
+    policy_specs_for_variant,
+)
+
 
 def _find_tpch_queries_dir() -> Path:
     here = Path(__file__).resolve()
@@ -24,82 +30,6 @@ def _find_tpch_queries_dir() -> Path:
 TPCH_QUERIES_DIR = _find_tpch_queries_dir()
 EXCLUDED_QUERIES = [2, 11, 13, 15, 16, 17, 20, 21, 22]
 DEFAULT_QUERIES = [q for q in range(1, 23) if q not in EXCLUDED_QUERIES]
-
-
-def _policy_catalog() -> list[tuple[str, str]]:
-    return [
-        ("avg(lineitem.l_quantity) <= 30", "Average quantity should remain at or below 30."),
-        ("avg(lineitem.l_quantity) >= 20", "Average quantity should be at least 20."),
-        ("max(lineitem.l_quantity) <= 50", "No line item quantity should exceed 50 units."),
-        ("min(lineitem.l_quantity) >= 1", "All line item quantities must be at least 1."),
-        ("avg(lineitem.l_discount) <= 0.06", "Average discount should not exceed 6%."),
-        ("max(lineitem.l_discount) <= 0.07", "No single discount should exceed 7%."),
-        ("min(lineitem.l_discount) >= 0.00", "Discount should be non-negative."),
-        ("avg(lineitem.l_tax) <= 0.06", "Average tax rate should stay under 6%."),
-        ("max(lineitem.l_tax) <= 0.06", "No single tax rate should exceed 6%."),
-        ("min(lineitem.l_tax) >= 0.00", "Tax should be non-negative."),
-        ("min(lineitem.l_extendedprice) >= 0", "Extended prices should be non-negative."),
-        (
-            "avg(lineitem.l_extendedprice) <= 60000",
-            "Average extended price should not exceed 60,000.",
-        ),
-        (
-            "max(lineitem.l_extendedprice) <= 90000",
-            "Single extended price should not exceed 90,000.",
-        ),
-        ("count(lineitem.l_orderkey) >= 1", "There should be at least one line item."),
-        ("count(distinct lineitem.l_shipmode) <= 5", "Distinct ship modes should not exceed 5."),
-        (
-            "count(distinct lineitem.l_returnflag) <= 2",
-            "Distinct return flags should not exceed 2.",
-        ),
-        (
-            "count(distinct lineitem.l_linestatus) <= 2",
-            "Distinct line statuses should not exceed 2.",
-        ),
-        ("max(lineitem.l_linenumber) <= 5", "Line numbers should stay within 1..5."),
-        ("min(lineitem.l_linenumber) >= 1", "Line numbers should be at least 1."),
-        (
-            "min(lineitem.l_shipdate) >= DATE '1994-01-01'",
-            "Ship dates should be on/after 1994-01-01.",
-        ),
-        (
-            "max(lineitem.l_shipdate) <= DATE '1997-12-31'",
-            "Ship dates should be on/before 1997-12-31.",
-        ),
-        (
-            "min(lineitem.l_receiptdate) >= DATE '1994-01-01'",
-            "Receipt dates should be on/after 1994-01-01.",
-        ),
-        (
-            "max(lineitem.l_receiptdate) <= DATE '1997-12-31'",
-            "Receipt dates should be on/before 1997-12-31.",
-        ),
-        (
-            "min(lineitem.l_commitdate) >= DATE '1994-01-01'",
-            "Commit dates should be on/after 1994-01-01.",
-        ),
-        (
-            "max(lineitem.l_commitdate) <= DATE '1997-12-31'",
-            "Commit dates should be on/before 1997-12-31.",
-        ),
-        ("sum(lineitem.l_discount) <= 180000", "Total discounts should stay below 180,000."),
-        ("sum(lineitem.l_quantity) <= 80000000", "Total quantity should stay below 80M."),
-        ("min(lineitem.l_orderkey) >= 1", "Order keys should be positive."),
-        (
-            "max(lineitem.l_orderkey) <= 3000000",
-            "Order keys should remain within expected TPCH range.",
-        ),
-        ("min(lineitem.l_partkey) >= 1", "Part keys should be positive."),
-        (
-            "max(lineitem.l_partkey) <= 100000",
-            "Part keys should remain within expected TPCH range.",
-        ),
-        (
-            "max(lineitem.l_suppkey) <= 5000",
-            "Supplier keys should remain within expected TPCH range.",
-        ),
-    ]
 
 
 def load_tpch_query(query_num: int) -> str:
@@ -173,6 +103,12 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--policy-variant",
+        choices=[variant.replace("_", "-") for variant in SUPPORTED_POLICY_VARIANTS],
+        default=POLICY_VARIANT_GROWING.replace("_", "-"),
+        help="Policy catalog variant to analyze.",
+    )
+    parser.add_argument(
         "--db-path",
         default="./results/llm_validation_sf1.0.db",
         help="DuckDB path to use/create (default: ./results/llm_validation_sf1.0.db).",
@@ -197,7 +133,7 @@ def main() -> int:
     try:
         _ensure_tpch_data(conn, args.tpch_sf)
         rewriter = SQLRewriter(conn=conn)
-        policies = _policy_catalog()
+        policies = policy_specs_for_variant(args.policy_variant.replace("-", "_"))
 
         header = (
             ["policy_index", "policy_constraint"]
@@ -206,11 +142,11 @@ def main() -> int:
         )
         rows: list[list[object]] = []
 
-        for idx, (constraint, _description) in enumerate(policies, start=1):
+        for idx, spec in enumerate(policies, start=1):
             _clear_policies(rewriter)
             policy = DFCPolicy(
-                sources=["lineitem"],
-                constraint=constraint,
+                sources=list(spec.sources),
+                constraint=spec.constraint,
                 on_fail=Resolution.INVALIDATE,
             )
             rewriter.register_policy(policy)
@@ -227,7 +163,7 @@ def main() -> int:
                 query_flags.append(violated)
 
             fails_any = any(query_flags)
-            rows.append([idx, constraint, *query_flags, fails_any])
+            rows.append([idx, spec.constraint, *query_flags, fails_any])
             print(f"Policy {idx:02d}: fails_any={fails_any}")
 
         with output_path.open("w", newline="", encoding="utf-8") as file:

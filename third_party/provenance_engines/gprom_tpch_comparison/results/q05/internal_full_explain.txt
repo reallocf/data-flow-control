@@ -1,0 +1,62 @@
+                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                   
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=189172.69..189172.71 rows=8 width=40)
+   Output: nation.n_name, (sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount))))
+   Sort Key: (sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount)))) DESC NULLS LAST
+   ->  Finalize GroupAggregate  (cost=189120.02..189172.57 rows=8 width=40)
+         Output: nation.n_name, sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount)))
+         Group Key: nation.n_name
+         Filter: (avg(lineitem.l_quantity) >= '30'::numeric)
+         ->  Gather Merge  (cost=189120.02..189171.51 rows=50 width=72)
+               Output: nation.n_name, (PARTIAL sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount)))), (PARTIAL avg(lineitem.l_quantity))
+               Workers Planned: 2
+               ->  Partial GroupAggregate  (cost=188119.99..188165.71 rows=25 width=72)
+                     Output: nation.n_name, PARTIAL sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount))), PARTIAL avg(lineitem.l_quantity)
+                     Group Key: nation.n_name
+                     ->  Sort  (cost=188119.99..188127.55 rows=3023 width=25)
+                           Output: nation.n_name, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_quantity
+                           Sort Key: nation.n_name
+                           ->  Hash Join  (cost=42041.45..187945.24 rows=3023 width=25)
+                                 Output: nation.n_name, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_quantity
+                                 Hash Cond: ((lineitem.l_suppkey = supplier.s_suppkey) AND (customer.c_nationkey = supplier.s_nationkey))
+                                 ->  Parallel Hash Join  (cost=41572.45..186878.07 rows=75725 width=41)
+                                       Output: customer.c_nationkey, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_quantity, lineitem.l_suppkey, nation.n_name, nation.n_nationkey
+                                       Hash Cond: (lineitem.l_orderkey = orders.o_orderkey)
+                                       ->  Parallel Seq Scan on public.lineitem  (cost=0.00..135613.16 rows=2500516 width=33)
+                                             Output: lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment
+                                       ->  Parallel Hash  (cost=41335.86..41335.86 rows=18927 width=24)
+                                             Output: customer.c_nationkey, orders.o_orderkey, nation.n_name, nation.n_nationkey
+                                             ->  Parallel Hash Join  (cost=4815.16..41335.86 rows=18927 width=24)
+                                                   Output: customer.c_nationkey, orders.o_orderkey, nation.n_name, nation.n_nationkey
+                                                   Hash Cond: (orders.o_custkey = customer.c_custkey)
+                                                   ->  Parallel Seq Scan on public.orders  (cost=0.00..36086.96 rows=94636 width=16)
+                                                         Output: orders.o_orderkey, orders.o_custkey, orders.o_orderstatus, orders.o_totalprice, orders.o_orderdate, orders.o_orderpriority, orders.o_clerk, orders.o_shippriority, orders.o_comment
+                                                         Filter: ((orders.o_orderdate >= '1994-01-01'::date) AND (orders.o_orderdate < '1995-01-01'::date))
+                                                   ->  Parallel Hash  (cost=4658.91..4658.91 rows=12500 width=24)
+                                                         Output: customer.c_custkey, customer.c_nationkey, nation.n_name, nation.n_nationkey
+                                                         ->  Hash Join  (cost=2.53..4658.91 rows=12500 width=24)
+                                                               Output: customer.c_custkey, customer.c_nationkey, nation.n_name, nation.n_nationkey
+                                                               Hash Cond: (customer.c_nationkey = nation.n_nationkey)
+                                                               ->  Parallel Seq Scan on public.customer  (cost=0.00..4297.00 rows=62500 width=12)
+                                                                     Output: customer.c_custkey, customer.c_name, customer.c_address, customer.c_nationkey, customer.c_phone, customer.c_acctbal, customer.c_mktsegment, customer.c_comment
+                                                               ->  Hash  (cost=2.47..2.47 rows=5 width=12)
+                                                                     Output: nation.n_name, nation.n_nationkey
+                                                                     ->  Hash Join  (cost=1.07..2.47 rows=5 width=12)
+                                                                           Output: nation.n_name, nation.n_nationkey
+                                                                           Hash Cond: (nation.n_regionkey = region.r_regionkey)
+                                                                           ->  Seq Scan on public.nation  (cost=0.00..1.25 rows=25 width=16)
+                                                                                 Output: nation.n_nationkey, nation.n_name, nation.n_regionkey, nation.n_comment
+                                                                           ->  Hash  (cost=1.06..1.06 rows=1 width=4)
+                                                                                 Output: region.r_regionkey
+                                                                                 ->  Seq Scan on public.region  (cost=0.00..1.06 rows=1 width=4)
+                                                                                       Output: region.r_regionkey
+                                                                                       Filter: ((region.r_name)::text = 'ASIA'::text)
+                                 ->  Hash  (cost=319.00..319.00 rows=10000 width=12)
+                                       Output: supplier.s_suppkey, supplier.s_nationkey
+                                       ->  Seq Scan on public.supplier  (cost=0.00..319.00 rows=10000 width=12)
+                                             Output: supplier.s_suppkey, supplier.s_nationkey
+ JIT:
+   Functions: 59
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+(58 rows)
+

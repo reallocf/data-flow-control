@@ -1,0 +1,8 @@
+execution_number,timestamp,duration_ms,error,run_num,query_num,tpch_sf,policy_count,effective_policy_count,approach,provider,model_name,model_display_name,runtime_ms,dfc_1phase_rewrite_time_ms,dfc_1phase_exec_time_ms,ground_truth_violation,predicted_violation,correct_identification,llm_chars_sent,query_results_cache_hit,query_results_rows,prompt_nonce,raw_response
+1,2026-10-06T13:14:14.859694,29.460666934028268,,1,3,1.0,1,1,dfc_1phase,none,none,none,29.460666934028268,4.190207924693823,29.460666934028268,True,True,True,0,True,0,,
+2,2026-10-06T13:14:16.545328,1682.9325000289828,,1,3,1.0,1,1,astra_query_results,bedrock,arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/ybl9l7bkcovm,Astra 6,1682.9325000289828,0.0,0.0,True,False,False,1897,True,10,3b5c0a71-02bc-4a35-944b-daf361d228ff,"{""violates_policy"": false}"
+3,2026-10-06T13:14:16.549861,1684.0407089330256,,1,3,1.0,1,1,sol_6_1_query_results,bedrock,arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/793tfgrfes18,Sol 6.1,1684.0407089330256,0.0,0.0,True,False,False,1897,True,10,b076fa65-df54-41a5-8e83-0556f5d16d5d,"{""violates_policy"": false}"
+4,2026-10-06T13:14:17.587097,2720.0837498530746,,1,3,1.0,1,1,fable_5_1_query_results,bedrock,arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/7mwcoskr36hk,Fable 5.1,2720.0837498530746,0.0,0.0,True,False,False,1897,True,10,cb4e11e5-ff19-42a9-8b77-467bb43c3246,"{""violates_policy"": false}"
+5,2026-10-06T13:14:21.025244,6159.454499837011,,1,3,1.0,1,1,opus_5_5_query_results,bedrock,arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/d0lzabehot7u,Opus 5.5,6159.454499837011,0.0,0.0,True,False,False,1897,True,10,d642bc30-f1c7-4409-b08a-e78b027955a9,"```json
+{""violates_policy"": false}
+```"

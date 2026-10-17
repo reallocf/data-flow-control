@@ -1,0 +1,2 @@
+execution_number,timestamp,duration_ms,error
+1,2026-10-06T00:00:28.922967,0.0,"An error occurred (AccessDeniedException) when calling the Converse operation: Model access is denied due to IAM user or service role is not authorized to perform the required AWS Marketplace actions (aws-marketplace:ViewSubscriptions, aws-marketplace:Subscribe) to enable access to this model. Refer to the Amazon Bedrock documentation for further details. Your AWS Marketplace subscription for this model cannot be completed at this time. If you recently fixed this issue, try again after 5 minutes."

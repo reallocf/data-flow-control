@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -263,7 +264,7 @@ def create_tpch_duckdb_provenance_capped_overhead_chart(
     bars = ax.bar(x_positions, plot_values, width=0.8, color=colors)
 
     ax.set_xticks(x_positions)
-    ax.set_xticklabels(labels, fontsize=FINAL_TICK_FONTSIZE)
+    ax.set_xticklabels(labels, fontsize=21)
     ax.set_ylabel("Overhead vs No Policy (%)", fontsize=FINAL_AXIS_LABEL_FONTSIZE)
     ax.set_yscale("symlog", linthresh=1.0, linscale=1.0)
     positive_values = [value for value in plot_values if value > 0]
@@ -471,15 +472,21 @@ def create_llm_validation_latency_f1_chart(
     df: pd.DataFrame,
     *,
     output_path: Path,
+    prompt_mode: str = "query_results",
+    scale_markers_by_policy_count: bool = False,
+    score_metric: str = "f1",
 ) -> None:
-    required_cols = {
-        "dfc_f1",
-        "dfc_avg_runtime_ms",
-        "gpt_52_query_results_f1",
-        "gpt_52_query_results_avg_runtime_ms",
-        "opus_46_query_results_f1",
-        "opus_46_query_results_avg_runtime_ms",
+    if prompt_mode not in {"query_only", "query_results"}:
+        raise ValueError("prompt_mode must be either 'query_only' or 'query_results'.")
+
+    score_labels = {
+        "f1": "F1 (%)",
+        "balanced_accuracy": "Balanced Accuracy (%)",
     }
+    if score_metric not in score_labels:
+        raise ValueError("score_metric must be either 'f1' or 'balanced_accuracy'.")
+
+    required_cols = {f"dfc_{score_metric}", "dfc_avg_runtime_ms"}
     missing = required_cols - set(df.columns)
     if missing:
         raise ValueError(
@@ -490,83 +497,132 @@ def create_llm_validation_latency_f1_chart(
     if plot_df.empty:
         raise ValueError("No LLM validation rows found.")
 
-    series_specs = [
-        ("DFC", "dfc_avg_runtime_ms", "dfc_f1", "#2ca02c", "o"),
-        (
-            "GPT 5.2",
-            "gpt_52_query_results_avg_runtime_ms",
-            "gpt_52_query_results_f1",
-            "#4C78A8",
-            "s",
-        ),
-        (
-            "Opus 4.6",
-            "opus_46_query_results_avg_runtime_ms",
-            "opus_46_query_results_f1",
-            "#E45756",
-            "^",
-        ),
-    ]
+    marker_sizes: float | pd.Series = 28.0
+    policy_counts: pd.Series | None = None
+    if scale_markers_by_policy_count:
+        if "policy_count" not in plot_df.columns:
+            raise ValueError("policy_count is required when scaling markers by policy count.")
+        policy_counts = pd.to_numeric(plot_df["policy_count"], errors="coerce")
+        if policy_counts.isna().any() or (policy_counts < 1).any():
+            raise ValueError("policy_count values must be numeric and at least 1.")
+        marker_sizes = 20.0 * (1.0 + np.log2(policy_counts))
 
-    fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, 2.25))
-    for label, runtime_col, f1_col, color, marker in series_specs:
-        ax.scatter(
-            plot_df[runtime_col],
-            plot_df[f1_col] * 100.0,
-            s=28,
-            marker=marker,
-            label=label,
-            color=color,
-            edgecolors="white",
-            linewidths=0.35,
-            zorder=3,
+    candidate_series = [
+        ("DFC", "dfc", "#2ca02c", "o"),
+        ("Astra", f"astra_{prompt_mode}", "#4C78A8", "s"),
+        ("Sol 6.1", f"sol_6_1_{prompt_mode}", "#F58518", "D"),
+        ("Luna 6", f"luna_{prompt_mode}", "#72B7B2", "v"),
+        ("Fable 5.1", f"fable_5_1_{prompt_mode}", "#B279A2", "P"),
+        ("Opus 5.5", f"opus_5_5_{prompt_mode}", "#E45756", "^"),
+        ("GPT 5.2", f"gpt_52_{prompt_mode}", "#4C78A8", "s"),
+        ("Opus 4.6", f"opus_46_{prompt_mode}", "#E45756", "^"),
+    ]
+    series_specs = []
+    for label, prefix, color, marker in candidate_series:
+        runtime_col = f"{prefix}_avg_runtime_ms"
+        score_col = f"{prefix}_{score_metric}"
+        if {runtime_col, score_col}.issubset(plot_df.columns):
+            series_specs.append((label, runtime_col, score_col, color, marker))
+    if len(series_specs) == 1:
+        raise ValueError(
+            f"No {prompt_mode.replace('_', '-')} model columns found for LLM validation chart."
         )
 
-    ax.set_xlabel("Latency (ms)", fontsize=COLUMN_AXIS_LABEL_FONTSIZE)
-    ax.set_ylabel("F1 (%)", fontsize=COLUMN_AXIS_LABEL_FONTSIZE)
+    figure_height = 2.5 if scale_markers_by_policy_count else 2.25
+    fig, ax = plt.subplots(figsize=(COLUMN_WIDTH_IN, figure_height))
+    if scale_markers_by_policy_count and policy_counts is not None:
+        ordered_policy_counts = sorted(policy_counts.astype(int).unique(), reverse=True)
+        smallest_policy_count = ordered_policy_counts[-1]
+        for draw_order, policy_count in enumerate(ordered_policy_counts):
+            row_mask = policy_counts.eq(policy_count)
+            marker_size = float(marker_sizes[row_mask].iloc[0])
+            for label, runtime_col, score_col, color, marker in series_specs:
+                ax.scatter(
+                    plot_df.loc[row_mask, runtime_col] / 1000.0,
+                    plot_df.loc[row_mask, score_col] * 100.0,
+                    s=marker_size,
+                    marker=marker,
+                    label=label if policy_count == smallest_policy_count else "_nolegend_",
+                    color=color,
+                    edgecolors="white",
+                    linewidths=0.35,
+                    zorder=3 + draw_order,
+                )
+    else:
+        for label, runtime_col, score_col, color, marker in series_specs:
+            ax.scatter(
+                plot_df[runtime_col] / 1000.0,
+                plot_df[score_col] * 100.0,
+                s=marker_sizes,
+                marker=marker,
+                label=label,
+                color=color,
+                edgecolors="white",
+                linewidths=0.35,
+                zorder=3,
+            )
+
+    ax.set_xlabel("Latency (s)", fontsize=COLUMN_AXIS_LABEL_FONTSIZE)
+    ax.set_ylabel(score_labels[score_metric], fontsize=COLUMN_AXIS_LABEL_FONTSIZE)
     ax.set_ylim(0.0, 105.0)
     ax.set_yticks([0.0, 25.0, 50.0, 75.0, 100.0])
     ax.set_yticklabels(["0", "25", "50", "75", "100"], fontsize=COLUMN_TICK_FONTSIZE)
-    ax.set_xlim(left=0.0)
+    comparison_runtime_cols = [
+        col
+        for col in plot_df.columns
+        if col.endswith("_avg_runtime_ms") and ("_query_only_" in col or "_query_results_" in col)
+    ]
+    max_runtime_seconds = plot_df[comparison_runtime_cols].max().max() / 1000.0
+    ax.set_xlim(0.0, max_runtime_seconds * 1.05)
     ax.xaxis.set_major_formatter(matplotlib.ticker.StrMethodFormatter("{x:,.0f}"))
     ax.grid(True, alpha=0.3)
     ax.tick_params(axis="x", labelsize=COLUMN_TICK_FONTSIZE)
     ax.tick_params(axis="both", which="both", length=0)
-    ax.text(
-        0.03,
-        0.89,
-        "DFC",
-        transform=ax.transAxes,
-        color="#2ca02c",
-        fontsize=COLUMN_AXIS_LABEL_FONTSIZE,
-        fontweight="bold",
-        ha="left",
-        va="top",
+    model_legend = ax.legend(
+        loc="lower right",
+        fontsize=COLUMN_TICK_FONTSIZE,
+        frameon=True,
+        facecolor="white",
+        edgecolor="#BFBFBF",
+        framealpha=1.0,
+        handletextpad=0.35,
+        labelspacing=0.25,
     )
-    ax.text(
-        0.16,
-        0.54,
-        "GPT 5.2",
-        transform=ax.transAxes,
-        color="#4C78A8",
-        fontsize=COLUMN_AXIS_LABEL_FONTSIZE,
-        fontweight="bold",
-        ha="left",
-        va="center",
-    )
-    ax.text(
-        0.62,
-        0.66,
-        "Opus 4.6",
-        transform=ax.transAxes,
-        color="#E45756",
-        fontsize=COLUMN_AXIS_LABEL_FONTSIZE,
-        fontweight="bold",
-        ha="left",
-        va="center",
-    )
+    if scale_markers_by_policy_count and policy_counts is not None:
+        policy_count_values = sorted(policy_counts.astype(int).unique())
+        size_handles = [
+            Line2D(
+                [],
+                [],
+                linestyle="",
+                marker="o",
+                markerfacecolor="#737373",
+                markeredgecolor="white",
+                markeredgewidth=0.35,
+                markersize=np.sqrt(20.0 * (1.0 + np.log2(policy_count))),
+                label=str(policy_count),
+            )
+            for policy_count in policy_count_values
+        ]
+        fig.legend(
+            handles=size_handles,
+            title="Policies",
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.995),
+            ncol=len(size_handles),
+            fontsize=COLUMN_ANNOTATION_FONTSIZE,
+            title_fontsize=COLUMN_ANNOTATION_FONTSIZE,
+            frameon=False,
+            handletextpad=0.15,
+            columnspacing=0.45,
+            borderaxespad=0.1,
+        )
+        ax.add_artist(model_legend)
 
-    plt.tight_layout()
+    if scale_markers_by_policy_count:
+        plt.tight_layout(rect=(0.0, 0.0, 1.0, 0.84))
+    else:
+        plt.tight_layout()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
@@ -1099,8 +1155,8 @@ def generate_all_final_visualizations(final_results_dir: str | Path) -> list[Pat
     create_tpch_duckdb_provenance_capped_overhead_chart(
         tpch_sf10_df,
         output_path=final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10_prov_labels.png",
-        logical_label="Provenance 1",
-        physical_label="Provenance 2",
+        logical_label="Perm",
+        physical_label="SmokedDuck",
     )
     output_paths.append(
         final_dir / "tpch_duckdb_provenance_percent_overhead_log_sf10_prov_labels.png"

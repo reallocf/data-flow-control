@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regulation Z · Policy provenance review</title>
+<link rel="stylesheet" href="style.css">
+<script defer src="data.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+<header><h1>Regulation Z · Policy provenance review</h1>
+<p>31 executable checks → 40 propositions → source paragraphs. Local snapshot; nothing is uploaded.</p>
+<details><summary>How to read this page / source information</summary>
+<p><b>C</b> labels are display aliases for the catalog’s executable checks. <b>P</b> labels preserve the 40-proposition inventory. Blue = direct motivation; amber = shared support; the outlined card is selected. Shared links are curated implementation dependencies, not proof that the source entails the code.</p>
+<p>Source panels preserve wording with whitespace normalized. Highlights are exact phrases, not omitted conditions. Read the whole paragraph. Definitions, parent conditions and example premises appear alongside the selected passage where relevant. Implementation explanations and assumptions are analysis, not quoted law.</p>
+<p>The v3 binding uses <code>regz_context → payment_allocations</code> with sink alias <code>allocation</code>; the general adapter uses <code>regz_context → regz_acceptances</code>. Both use the displayed predicate and <code>REMOVE</code>. Derived context must be trusted and current. This viewer does not execute or validate policies.</p>
+<div id="metadata"></div><p><a href="data.json" download>Download review data and mappings</a> · <a href="README.md">Local instructions</a></p>
+</details></header>
+<main>
+<nav aria-label="DFC policies"><h2>1. Select a policy <small id="policy-count"></small></h2>
+<label for="search">Filter policies</label><input id="search" type="search" placeholder="ID, name, proposition…" autocomplete="off">
+<div id="policy-list"></div></nav>
+<section aria-label="Motivating propositions"><h2>2. Inspect propositions</h2>
+<div id="policy-detail"></div>
+<label class="toggle"><input type="checkbox" id="all-propositions"> Show all 40 (unrelated entries dimmed)</label>
+<div id="proposition-list"></div></section>
+<section aria-label="Source and derivation"><h2>3. Read the source</h2><div id="source-detail" aria-live="polite"></div></section>
+</main>
+<footer>Saved CFPB text is an audit snapshot. Follow “Open on CFPB” to compare the current page. Existing legal and implementation gaps remain explicitly flagged.</footer>
+</body></html>

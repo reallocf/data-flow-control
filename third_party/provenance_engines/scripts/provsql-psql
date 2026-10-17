@@ -1,0 +1,25 @@
+#!/usr/bin/env sh
+set -eu
+
+CONTAINER_NAME=${PROVSQL_CONTAINER_NAME:-data-flow-provsql}
+
+if ! docker inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+  echo "ProvSQL container $CONTAINER_NAME does not exist. Run ./third_party/provenance_engines/scripts/provsql-start first." >&2
+  exit 1
+fi
+
+if [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER_NAME")" != "true" ]; then
+  echo "ProvSQL container $CONTAINER_NAME is not running. Run ./third_party/provenance_engines/scripts/provsql-start first." >&2
+  exit 1
+fi
+
+DATABASE=${1:-tutorial}
+if [ "$#" -gt 0 ]; then
+  shift
+fi
+
+if [ -t 0 ] && [ -t 1 ]; then
+  docker exec -it "$CONTAINER_NAME" psql -U test -d "$DATABASE" "$@"
+else
+  docker exec -i "$CONTAINER_NAME" psql -U test -d "$DATABASE" "$@"
+fi

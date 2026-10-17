@@ -1,0 +1,6 @@
+model,input_tokens,output_tokens,cache_read_input_tokens,cache_write_input_tokens,observed_cost_usd,extrapolated_100_usd,correct,actual_allow,elapsed_ms
+kimi_k3,7,2902,0,2188,0.0569316,5.69316,True,True,25973.793207998824
+glm_5_3,2,1925,0,2270,0.016427795999999998,1.6427796,True,True,5224.255123997864
+deepseek_v3_2,2154,14,0,0,0.0013613800000000001,0.136138,True,True,624.0130830010457
+qwen3_coder_480b,2912,7,0,0,0.001323,0.1323,True,True,557.4756669993803
+mistral_large_3,2958,920,0,0,0.002859,0.2859,False,False,15847.663709002518

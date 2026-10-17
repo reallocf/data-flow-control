@@ -8,7 +8,7 @@ from collections import defaultdict
 import csv
 from pathlib import Path
 
-from sklearn.metrics import f1_score
+from sklearn.metrics import balanced_accuracy_score, f1_score
 
 DEFAULT_INPUT = Path(
     "/Users/charliesummers/code/data-flow-control/vldb_2026_big_paper_experiments/final_results/llm_validation_results_full_gpt52_opus46.csv"
@@ -52,9 +52,9 @@ def _estimate_output_tokens(raw_response: str) -> float:
 
 
 def _pricing_for_approach(approach: str) -> tuple[float, float]:
-    if approach.startswith("gpt_"):
+    if approach in {"gpt_query_only", "gpt_query_results"}:
         return GPT_5_2_INPUT_PER_MILLION, GPT_5_2_OUTPUT_PER_MILLION
-    if approach.startswith("opus_"):
+    if approach in {"opus_query_only", "opus_query_results"}:
         return OPUS_4_6_INPUT_PER_MILLION, OPUS_4_6_OUTPUT_PER_MILLION
     return 0.0, 0.0
 
@@ -83,9 +83,9 @@ def _display_model_name(model_name: str) -> str:
 def _column_prefix(approach: str) -> str:
     if approach == "dfc_1phase":
         return "dfc"
-    if approach.startswith("gpt_"):
+    if approach in {"gpt_query_only", "gpt_query_results"}:
         return approach.replace("gpt_", "gpt_52_", 1)
-    if approach.startswith("opus_"):
+    if approach in {"opus_query_only", "opus_query_results"}:
         return approach.replace("opus_", "opus_46_", 1)
     return approach
 
@@ -117,6 +117,8 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
     with input_csv.open(newline="") as infile:
         reader = csv.DictReader(infile)
         for row in reader:
+            if row.get("error", "").strip():
+                continue
             approach = row["approach"]
             policy_count = int(row["policy_count"])
             group = grouped[(approach, policy_count)]
@@ -131,15 +133,26 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
             group["y_true"].append(truth)
             group["y_pred"].append(pred)
 
-            input_tokens = _estimate_tokens_from_chars(_parse_float(row["llm_chars_sent"]))
-            output_tokens = _estimate_output_tokens(row["raw_response"])
+            input_tokens = (
+                _parse_float(row["input_tokens"])
+                if row.get("input_tokens", "")
+                else _estimate_tokens_from_chars(_parse_float(row["llm_chars_sent"]))
+            )
+            output_tokens = (
+                _parse_float(row["output_tokens"])
+                if row.get("output_tokens", "")
+                else _estimate_output_tokens(row["raw_response"])
+            )
             group["input_tokens_sum"] += input_tokens
             group["output_tokens_sum"] += output_tokens
 
-            input_price, output_price = _pricing_for_approach(approach)
-            cost = (input_tokens / 1_000_000.0) * input_price + (
-                output_tokens / 1_000_000.0
-            ) * output_price
+            if row.get("estimated_cost_usd", ""):
+                cost = _parse_float(row["estimated_cost_usd"])
+            else:
+                input_price, output_price = _pricing_for_approach(approach)
+                cost = (input_tokens / 1_000_000.0) * input_price + (
+                    output_tokens / 1_000_000.0
+                ) * output_price
             group["cost_sum"] += cost
 
     output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -150,7 +163,7 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
         "opus_query_only": 3,
         "opus_query_results": 4,
     }
-    metric_names = ("f1", "avg_runtime_ms", "avg_cost_usd")
+    metric_names = ("f1", "balanced_accuracy", "avg_runtime_ms", "avg_cost_usd")
     ordered_approaches = [
         approach
         for approach, _ in sorted(
@@ -182,6 +195,9 @@ def generate_table(input_csv: Path, output_csv: Path) -> Path:
             row = rows_by_policy_count.setdefault(policy_count, {"policy_count": policy_count})
             row[f"{prefix}_f1"] = (
                 f"{f1_score(group['y_true'], group['y_pred'], zero_division=0):.6f}"
+            )
+            row[f"{prefix}_balanced_accuracy"] = (
+                f"{balanced_accuracy_score(group['y_true'], group['y_pred']):.6f}"
             )
             row[f"{prefix}_avg_runtime_ms"] = f"{(total_runtime_ms / count):.6f}"
             row[f"{prefix}_avg_cost_usd"] = (

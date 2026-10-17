@@ -10,6 +10,8 @@ from .microbenchmark_phase_competition_strategy import (
 from .microbenchmark_strategy import MicrobenchmarkStrategy
 from .multi_source_strategy import MultiSourceStrategy
 from .multi_source_tpch_strategy import MultiSourceTPCHStrategy
+from .regulation_z_benchmark import RegulationZBenchmarkStrategy
+from .regulation_z_statement_benchmark import RegulationZV2BenchmarkStrategy
 from .state_transition_llm_strategy import StateTransitionLLMStrategy
 from .synthetic_llm_validation_grid_strategy import SyntheticLLMValidationGridStrategy
 from .tax_agent_strategy import TaxAgentStrategy
@@ -28,6 +30,8 @@ __all__ = [
     "MicrobenchmarkTableWidthStrategy",
     "MultiSourceStrategy",
     "MultiSourceTPCHStrategy",
+    "RegulationZBenchmarkStrategy",
+    "RegulationZV2BenchmarkStrategy",
     "StateTransitionLLMStrategy",
     "SyntheticLLMValidationGridStrategy",
     "TPCHMultiDBStrategy",

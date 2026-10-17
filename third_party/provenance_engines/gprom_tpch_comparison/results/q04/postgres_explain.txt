@@ -1,0 +1,77 @@
+                                                                                                                                                                                                                                                                        QUERY PLAN                                                                                                                                                                                                                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=2826330.58..430363037.00 rows=2506 width=17)
+   Output: f0_0.o_orderpriority, f0_0.order_count
+   Group Key: f0_0.o_orderpriority, f0_0.order_count
+   Filter: (avg(f0_0.prov_lineitem_l__quantity) >= '30'::numeric)
+   ->  Incremental Sort  (cost=2826330.58..430362360.39 rows=75178 width=22)
+         Output: f0_0.o_orderpriority, f0_0.order_count, f0_0.prov_lineitem_l__quantity
+         Sort Key: f0_0.o_orderpriority, f0_0.order_count
+         Presorted Key: f0_0.o_orderpriority
+         ->  Subquery Scan on f0_0  (cost=677913.06..430358201.24 rows=75178 width=22)
+               Output: f0_0.o_orderpriority, f0_0.order_count, f0_0.prov_lineitem_l__quantity
+               ->  Nested Loop  (cost=677913.06..430357449.46 rows=75178 width=450)
+                     Output: f0_0_3.o_orderpriority, (count(1)), NULL::bigint, NULL::bigint, NULL::character varying, NULL::numeric(15,2), NULL::date, NULL::character varying, NULL::character varying, NULL::integer, NULL::character varying, NULL::bigint, NULL::bigint, NULL::bigint, NULL::bigint, f0_0_2.l_quantity, NULL::numeric(15,2), NULL::numeric(15,2), NULL::numeric(15,2), NULL::character varying, NULL::character varying, NULL::date, NULL::date, NULL::date, NULL::character varying, NULL::character varying, NULL::character varying
+                     Join Filter: (NOT ((f0_0_3.o_orderpriority)::text IS DISTINCT FROM (f0_0_1.o_orderpriority)::text))
+                     ->  Finalize GroupAggregate  (cost=358098.87..358144.90 rows=5 width=17)
+                           Output: count(1), f0_0_3.o_orderpriority
+                           Group Key: f0_0_3.o_orderpriority
+                           ->  Gather Merge  (cost=358098.87..358144.80 rows=10 width=17)
+                                 Output: f0_0_3.o_orderpriority, (PARTIAL count(1))
+                                 Workers Planned: 2
+                                 ->  Partial GroupAggregate  (cost=357098.85..357143.62 rows=5 width=17)
+                                       Output: f0_0_3.o_orderpriority, PARTIAL count(1)
+                                       Group Key: f0_0_3.o_orderpriority
+                                       ->  Sort  (cost=357098.85..357113.75 rows=5963 width=9)
+                                             Output: f0_0_3.o_orderpriority
+                                             Sort Key: f0_0_3.o_orderpriority
+                                             ->  Hash Join  (cost=318814.19..356724.91 rows=5963 width=9)
+                                                   Output: f0_0_3.o_orderpriority
+                                                   Inner Unique: true
+                                                   Hash Cond: (f0_0_3.o_orderkey = f0_0_4.l_orderkey)
+                                                   ->  Parallel Seq Scan on public.orders f0_0_3  (cost=0.00..36086.96 rows=23528 width=17)
+                                                         Output: f0_0_3.o_orderpriority, f0_0_3.o_orderkey
+                                                         Filter: ((f0_0_3.o_orderdate >= '1993-07-01'::date) AND (f0_0_3.o_orderdate < '1993-10-01'::date))
+                                                   ->  Hash  (cost=312575.81..312575.81 rows=380190 width=8)
+                                                         Output: f0_0_4.l_orderkey
+                                                         ->  HashAggregate  (cost=293145.69..312575.81 rows=380190 width=8)
+                                                               Output: f0_0_4.l_orderkey
+                                                               Group Key: f0_0_4.l_orderkey
+                                                               Planned Partitions: 8
+                                                               ->  Seq Scan on public.lineitem f0_0_4  (cost=0.00..185623.49 rows=2000413 width=8)
+                                                                     Output: f0_0_4.l_orderkey, f0_0_4.l_partkey, f0_0_4.l_suppkey, f0_0_4.l_linenumber, f0_0_4.l_quantity, f0_0_4.l_extendedprice, f0_0_4.l_discount, f0_0_4.l_tax, f0_0_4.l_returnflag, f0_0_4.l_linestatus, f0_0_4.l_shipdate, f0_0_4.l_commitdate, f0_0_4.l_receiptdate, f0_0_4.l_shipinstruct, f0_0_4.l_shipmode, f0_0_4.l_comment
+                                                                     Filter: (f0_0_4.l_commitdate < f0_0_4.l_receiptdate)
+                     ->  Materialize  (cost=319814.19..429993854.11 rows=75178 width=14)
+                           Output: f0_0_1.o_orderpriority, f0_0_2.l_quantity
+                           ->  Nested Loop  (cost=319814.19..429993478.22 rows=75178 width=14)
+                                 Output: f0_0_1.o_orderpriority, f0_0_2.l_quantity
+                                 Join Filter: (NOT (f0_0_5.l_orderkey IS DISTINCT FROM f0_0_2.l_orderkey))
+                                 ->  Seq Scan on public.lineitem f0_0_2  (cost=0.00..185623.49 rows=2000413 width=13)
+                                       Output: f0_0_2.l_orderkey, f0_0_2.l_partkey, f0_0_2.l_suppkey, f0_0_2.l_linenumber, f0_0_2.l_quantity, f0_0_2.l_extendedprice, f0_0_2.l_discount, f0_0_2.l_tax, f0_0_2.l_returnflag, f0_0_2.l_linestatus, f0_0_2.l_shipdate, f0_0_2.l_commitdate, f0_0_2.l_receiptdate, f0_0_2.l_shipinstruct, f0_0_2.l_shipmode, f0_0_2.l_comment
+                                       Filter: (f0_0_2.l_commitdate < f0_0_2.l_receiptdate)
+                                 ->  Materialize  (cost=319814.19..359227.67 rows=14312 width=17)
+                                       Output: f0_0_1.o_orderpriority, f0_0_5.l_orderkey
+                                       ->  Gather  (cost=319814.19..359156.11 rows=14312 width=17)
+                                             Output: f0_0_1.o_orderpriority, f0_0_5.l_orderkey
+                                             Workers Planned: 2
+                                             ->  Hash Join  (cost=318814.19..356724.91 rows=5963 width=17)
+                                                   Output: f0_0_1.o_orderpriority, f0_0_5.l_orderkey
+                                                   Inner Unique: true
+                                                   Hash Cond: (f0_0_1.o_orderkey = f0_0_5.l_orderkey)
+                                                   ->  Parallel Seq Scan on public.orders f0_0_1  (cost=0.00..36086.96 rows=23528 width=17)
+                                                         Output: f0_0_1.o_orderkey, f0_0_1.o_orderpriority
+                                                         Filter: ((f0_0_1.o_orderdate >= '1993-07-01'::date) AND (f0_0_1.o_orderdate < '1993-10-01'::date))
+                                                   ->  Hash  (cost=312575.81..312575.81 rows=380190 width=8)
+                                                         Output: f0_0_5.l_orderkey
+                                                         ->  HashAggregate  (cost=293145.69..312575.81 rows=380190 width=8)
+                                                               Output: f0_0_5.l_orderkey
+                                                               Group Key: f0_0_5.l_orderkey
+                                                               Planned Partitions: 8
+                                                               ->  Seq Scan on public.lineitem f0_0_5  (cost=0.00..185623.49 rows=2000413 width=8)
+                                                                     Output: f0_0_5.l_orderkey, f0_0_5.l_partkey, f0_0_5.l_suppkey, f0_0_5.l_linenumber, f0_0_5.l_quantity, f0_0_5.l_extendedprice, f0_0_5.l_discount, f0_0_5.l_tax, f0_0_5.l_returnflag, f0_0_5.l_linestatus, f0_0_5.l_shipdate, f0_0_5.l_commitdate, f0_0_5.l_receiptdate, f0_0_5.l_shipinstruct, f0_0_5.l_shipmode, f0_0_5.l_comment
+                                                                     Filter: (f0_0_5.l_commitdate < f0_0_5.l_receiptdate)
+ JIT:
+   Functions: 55
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+(73 rows)
+

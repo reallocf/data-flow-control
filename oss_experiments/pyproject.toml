@@ -1,0 +1,54 @@
+[project]
+name = "oss-experiments"
+version = "0.1.0"
+description = "OSS LLM tax validation experiments using data-flow-control"
+requires-python = ">=3.10"
+dependencies = [
+    "data-flow-control>=0.1.5",
+    "experiment-harness",
+    "duckdb>=1.0.0",
+    "pandas>=2.0.0",
+    "numpy>=1.20.0",
+    "matplotlib>=3.5.0",
+    "scikit-learn>=1.3.0",
+    "openai>=1.0.0",
+    "boto3>=1.34.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.uv.sources]
+experiment-harness = { path = "../experiment_harness", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+norecursedirs = [".venv", "__pycache__"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oss_experiments"]
+
+[tool.ruff]
+exclude = [".venv", "__pycache__", ".git", "build", "dist", "*.egg-info"]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM", "ARG", "PIE", "PT", "RET", "TCH", "TID", "Q", "RUF"]
+ignore = ["E501", "B008", "PT011"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["oss_experiments"]
+force-sort-within-sections = true
+split-on-trailing-comma = true

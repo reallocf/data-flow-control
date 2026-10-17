@@ -29,11 +29,12 @@ def create_chat_model(config: HarnessConfig):
         kwargs = {
             "model": config.bedrock_model_id,
             "region_name": config.aws_region,
-            "temperature": 1.0,
         }
         if config.bedrock_model_id.startswith("arn:"):
             # Inference profile ARNs require an explicit provider hint.
-            kwargs["provider"] = os.getenv("BEDROCK_PROVIDER", "anthropic")
+            kwargs["provider"] = config.bedrock_provider or os.getenv(
+                "BEDROCK_PROVIDER", "anthropic"
+            )
 
         return ChatBedrockConverse(**kwargs)
 

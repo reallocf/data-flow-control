@@ -7,7 +7,11 @@ import os
 from experiment_harness import ExperimentConfig, ExperimentRunner
 import pytest
 
-from vldb_experiments.strategies.llm_validation_strategy import LLMValidationStrategy
+from vldb_experiments.strategies.llm_validation_strategy import (
+    PROMPT_MODE_QUERY_ONLY,
+    PROMPT_MODE_QUERY_RESULTS,
+    LLMValidationStrategy,
+)
 from vldb_experiments.strategies.tpch_strategy import _ensure_smokedduck
 
 
@@ -37,6 +41,7 @@ def test_llm_validation_smoke_openai(tmp_path, monkeypatch) -> None:
             "gpt_model": "gpt-5.2",
             "include_openai": True,
             "include_bedrock": False,
+            "prompt_modes": [PROMPT_MODE_QUERY_ONLY, PROMPT_MODE_QUERY_RESULTS],
         },
         output_dir=str(tmp_path),
         output_filename="llm_validation_smoke.csv",

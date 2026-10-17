@@ -1,0 +1,2 @@
+execution_number,timestamp,duration_ms,error,dfc_accuracy,dfc_correct,dfc_execution_time_ms,dfc_rewrite_time_ms,dfc_time_ms,invalid_updates,no_policy_accuracy,no_policy_correct,no_policy_time_ms,num_applications,num_updates,valid_updates
+1,2026-10-05T23:58:22.460031,17.853541765362024,,1.0,1,4.428124986588955,9.992333827540278,14.420458814129233,0,1.0,1,3.433082951232791,1,1,1

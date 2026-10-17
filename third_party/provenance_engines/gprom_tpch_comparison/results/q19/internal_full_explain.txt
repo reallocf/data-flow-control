@@ -1,0 +1,27 @@
+                                                                                                                                                                                                                                                                                                                                                                                             QUERY PLAN                                                                                                                                                                                                                                                                                                                                                                                             
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=194212.00..194212.01 rows=1 width=32)
+   Output: sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount)))
+   Filter: (avg(lineitem.l_quantity) >= '30'::numeric)
+   ->  Gather  (cost=194211.77..194211.98 rows=2 width=64)
+         Output: (PARTIAL sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount)))), (PARTIAL avg(lineitem.l_quantity))
+         Workers Planned: 2
+         ->  Partial Aggregate  (cost=193211.77..193211.78 rows=1 width=64)
+               Output: PARTIAL sum((lineitem.l_extendedprice * ('1'::numeric - lineitem.l_discount))), PARTIAL avg(lineitem.l_quantity)
+               ->  Parallel Hash Join  (cost=7408.17..193211.28 rows=48 width=17)
+                     Output: lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_quantity
+                     Hash Cond: (lineitem.l_partkey = part.p_partkey)
+                     Join Filter: ((((part.p_brand)::text = 'Brand#12'::text) AND ((part.p_container)::text = ANY ('{"SM CASE","SM BOX","SM PACK","SM PKG"}'::text[])) AND (lineitem.l_quantity >= '1'::numeric) AND (lineitem.l_quantity <= '11'::numeric) AND (part.p_size <= 5)) OR (((part.p_brand)::text = 'Brand#23'::text) AND ((part.p_container)::text = ANY ('{"MED BAG","MED BOX","MED PKG","MED PACK"}'::text[])) AND (lineitem.l_quantity >= '10'::numeric) AND (lineitem.l_quantity <= '20'::numeric) AND (part.p_size <= 10)) OR (((part.p_brand)::text = 'Brand#34'::text) AND ((part.p_container)::text = ANY ('{"LG CASE","LG BOX","LG PACK","LG PKG"}'::text[])) AND (lineitem.l_quantity >= '20'::numeric) AND (lineitem.l_quantity <= '30'::numeric) AND (part.p_size <= 15)))
+                     ->  Parallel Seq Scan on public.lineitem  (cost=0.00..185623.49 rows=47211 width=25)
+                           Output: lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment
+                           Filter: (((lineitem.l_shipmode)::text = ANY ('{AIR,"AIR REG"}'::text[])) AND ((lineitem.l_shipinstruct)::text = 'DELIVER IN PERSON'::text) AND (((lineitem.l_quantity >= '1'::numeric) AND (lineitem.l_quantity <= '11'::numeric)) OR ((lineitem.l_quantity >= '10'::numeric) AND (lineitem.l_quantity <= '20'::numeric)) OR ((lineitem.l_quantity >= '20'::numeric) AND (lineitem.l_quantity <= '30'::numeric))))
+                     ->  Parallel Hash  (cost=7405.67..7405.67 rows=200 width=29)
+                           Output: part.p_partkey, part.p_brand, part.p_container, part.p_size
+                           ->  Parallel Seq Scan on public.part  (cost=0.00..7405.67 rows=200 width=29)
+                                 Output: part.p_partkey, part.p_brand, part.p_container, part.p_size
+                                 Filter: ((part.p_size >= 1) AND ((((part.p_brand)::text = 'Brand#12'::text) AND ((part.p_container)::text = ANY ('{"SM CASE","SM BOX","SM PACK","SM PKG"}'::text[])) AND (part.p_size <= 5)) OR (((part.p_brand)::text = 'Brand#23'::text) AND ((part.p_container)::text = ANY ('{"MED BAG","MED BOX","MED PKG","MED PACK"}'::text[])) AND (part.p_size <= 10)) OR (((part.p_brand)::text = 'Brand#34'::text) AND ((part.p_container)::text = ANY ('{"LG CASE","LG BOX","LG PACK","LG PKG"}'::text[])) AND (part.p_size <= 15))))
+ JIT:
+   Functions: 22
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+(23 rows)
+

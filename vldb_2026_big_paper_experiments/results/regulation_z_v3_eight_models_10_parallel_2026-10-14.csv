@@ -1,0 +1,2 @@
+execution_number,timestamp,duration_ms,error
+1,2026-10-14T18:14:58.252245,0.0,"Read timeout on endpoint URL: ""https://bedrock-runtime.us-east-1.amazonaws.com/model/arn%3Aaws%3Abedrock%3Aus-east-1%3A920736616554%3Aapplication-inference-profile%2F6ruvu29x7n10/invoke"""

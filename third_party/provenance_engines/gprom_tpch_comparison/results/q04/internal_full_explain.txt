@@ -1,0 +1,32 @@
+                                                                                                                                                                                          QUERY PLAN                                                                                                                                                                                          
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=387860.60..388003.79 rows=2 width=17)
+   Output: orders.o_orderpriority, count(*)
+   Group Key: orders.o_orderpriority
+   Filter: (max((avg(lineitem.l_quantity))) >= '30'::numeric)
+   ->  Sort  (cost=387860.60..387896.38 rows=14312 width=41)
+         Output: orders.o_orderpriority, (avg(lineitem.l_quantity))
+         Sort Key: orders.o_orderpriority
+         ->  Hash Join  (cost=357214.33..386872.72 rows=14312 width=41)
+               Output: orders.o_orderpriority, (avg(lineitem.l_quantity))
+               Hash Cond: (lineitem.l_orderkey = orders.o_orderkey)
+               ->  HashAggregate  (cost=313774.95..338062.60 rows=380190 width=40)
+                     Output: lineitem.l_orderkey, avg(lineitem.l_quantity)
+                     Group Key: lineitem.l_orderkey
+                     Planned Partitions: 16
+                     ->  Seq Scan on public.lineitem  (cost=0.00..185623.49 rows=2000413 width=13)
+                           Output: lineitem.l_orderkey, lineitem.l_partkey, lineitem.l_suppkey, lineitem.l_linenumber, lineitem.l_quantity, lineitem.l_extendedprice, lineitem.l_discount, lineitem.l_tax, lineitem.l_returnflag, lineitem.l_linestatus, lineitem.l_shipdate, lineitem.l_commitdate, lineitem.l_receiptdate, lineitem.l_shipinstruct, lineitem.l_shipmode, lineitem.l_comment
+                           Filter: (lineitem.l_commitdate < lineitem.l_receiptdate)
+               ->  Hash  (cost=42733.56..42733.56 rows=56466 width=17)
+                     Output: orders.o_orderpriority, orders.o_orderkey
+                     ->  Gather  (cost=1000.00..42733.56 rows=56466 width=17)
+                           Output: orders.o_orderpriority, orders.o_orderkey
+                           Workers Planned: 2
+                           ->  Parallel Seq Scan on public.orders  (cost=0.00..36086.96 rows=23528 width=17)
+                                 Output: orders.o_orderpriority, orders.o_orderkey
+                                 Filter: ((orders.o_orderdate >= '1993-07-01'::date) AND (orders.o_orderdate < '1993-10-01'::date))
+ JIT:
+   Functions: 22
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+(28 rows)
+

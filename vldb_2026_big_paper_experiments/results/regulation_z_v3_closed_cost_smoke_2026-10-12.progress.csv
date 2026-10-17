@@ -1,0 +1,5 @@
+timestamp,execution_number,is_warmup,approach,model_id,update_number,num_updates,allocation_id,payment_transaction_id,account_id,case_type,expected_selected_transaction_id,expected_allow,actual_allow,correct,elapsed_ms,rewrite_ms,llm_ms,sql_execution_ms,input_tokens,output_tokens,cache_read_input_tokens,cache_write_input_tokens,parse_failure,request_id,error
+2026-10-12T04:52:42.802535+00:00,1,False,no_policy,,1,2,ALLOC0000001,PAY00000001,ACC0000001,undisputed_balance_selected,CHG0000001B,True,True,True,8.56495800326229,,,8.56495800326229,,,,,,,
+2026-10-12T04:52:42.804303+00:00,1,False,no_policy,,2,2,ALLOC0000002,PAY00000002,ACC0000002,disputed_balance_selected,CHG0000002B,False,True,False,1.6063750008470379,,,1.6063750008470379,,,,,,,
+2026-10-12T04:52:42.814075+00:00,1,False,dfc,,1,2,ALLOC0000001,PAY00000001,ACC0000001,undisputed_balance_selected,CHG0000001B,True,True,True,5.038041002990212,3.038833001482999,,1.9992080015072133,,,,,,,
+2026-10-12T04:52:42.816352+00:00,1,False,dfc,,2,2,ALLOC0000002,PAY00000002,ACC0000002,disputed_balance_selected,CHG0000002B,False,False,True,2.1314580044418108,0.47579100282746367,,1.655667001614347,,,,,,,

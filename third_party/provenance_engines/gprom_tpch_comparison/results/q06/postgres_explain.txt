@@ -1,0 +1,32 @@
+                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=361101.82..361117.84 rows=1 width=32)
+   Output: (sum((f0_0_1.l_extendedprice * f0_0_1.l_discount)))
+   Group Key: (sum((f0_0_1.l_extendedprice * f0_0_1.l_discount)))
+   Filter: (avg(f0_0.l_quantity) >= '30'::numeric)
+   ->  Sort  (cost=361101.82..361107.15 rows=2134 width=37)
+         Output: (sum((f0_0_1.l_extendedprice * f0_0_1.l_discount))), f0_0.l_quantity
+         Sort Key: (sum((f0_0_1.l_extendedprice * f0_0_1.l_discount)))
+         ->  Nested Loop Left Join  (cost=181376.87..360983.81 rows=2134 width=37)
+               Output: (sum((f0_0_1.l_extendedprice * f0_0_1.l_discount))), f0_0.l_quantity
+               ->  Finalize Aggregate  (cost=180376.87..180376.88 rows=1 width=32)
+                     Output: sum((f0_0_1.l_extendedprice * f0_0_1.l_discount))
+                     ->  Gather  (cost=180376.64..180376.85 rows=2 width=32)
+                           Output: (PARTIAL sum((f0_0_1.l_extendedprice * f0_0_1.l_discount)))
+                           Workers Planned: 2
+                           ->  Partial Aggregate  (cost=179376.64..179376.65 rows=1 width=32)
+                                 Output: PARTIAL sum((f0_0_1.l_extendedprice * f0_0_1.l_discount))
+                                 ->  Parallel Seq Scan on public.lineitem f0_0_1  (cost=0.00..179372.20 rows=889 width=12)
+                                       Output: f0_0_1.l_orderkey, f0_0_1.l_partkey, f0_0_1.l_suppkey, f0_0_1.l_linenumber, f0_0_1.l_quantity, f0_0_1.l_extendedprice, f0_0_1.l_discount, f0_0_1.l_tax, f0_0_1.l_returnflag, f0_0_1.l_linestatus, f0_0_1.l_shipdate, f0_0_1.l_commitdate, f0_0_1.l_receiptdate, f0_0_1.l_shipinstruct, f0_0_1.l_shipmode, f0_0_1.l_comment
+                                       Filter: ((f0_0_1.l_shipdate >= '1994-01-01'::date) AND (f0_0_1.l_shipdate < '1995-01-01'::date) AND (f0_0_1.l_quantity < '24'::numeric) AND ((f0_0_1.l_discount * '100'::numeric) >= '5'::numeric) AND ((f0_0_1.l_discount * '100'::numeric) <= '7'::numeric))
+               ->  Gather  (cost=1000.00..180585.60 rows=2134 width=5)
+                     Output: f0_0.l_quantity
+                     Workers Planned: 2
+                     ->  Parallel Seq Scan on public.lineitem f0_0  (cost=0.00..179372.20 rows=889 width=5)
+                           Output: f0_0.l_quantity
+                           Filter: ((f0_0.l_shipdate >= '1994-01-01'::date) AND (f0_0.l_shipdate < '1995-01-01'::date) AND (f0_0.l_quantity < '24'::numeric) AND ((f0_0.l_discount * '100'::numeric) >= '5'::numeric) AND ((f0_0.l_discount * '100'::numeric) <= '7'::numeric))
+ JIT:
+   Functions: 18
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+(28 rows)
+

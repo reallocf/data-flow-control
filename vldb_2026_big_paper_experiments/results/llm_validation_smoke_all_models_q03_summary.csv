@@ -1,0 +1,2 @@
+policy_count,dfc_f1,dfc_avg_runtime_ms,dfc_avg_cost_usd,astra_query_results_f1,astra_query_results_avg_runtime_ms,astra_query_results_avg_cost_usd
+1,1.000000,119.987125,0.00001060,0.000000,1267.800917,0.00011196

@@ -127,6 +127,31 @@ The experiments test the following core relational operators:
 
 All experiment strategies live in `src/vldb_experiments/strategies/` and are used by the scripts below.
 
+### DFC on ProvSQL
+
+The ProvSQL baseline deliberately does not invoke Passant's rewrite. It produces one SQL statement
+whose materialized CTE evaluates the original query with an explicit row token. A correlated
+lateral subquery traverses that token, and for scalar aggregates also traverses each output
+cell's `agg_token`; it resolves reachable `lineitem` rows, calculates the policy aggregate, and
+filters the CTE row. The aggregate-value channel is required for scalar aggregates, whose
+row-level circuit is the constant `one` because their output row exists even over empty input.
+
+Database setup installs two small adapters around existing ProvSQL primitives: a polymorphic
+aggregate-token UUID extractor and a circuit-descendant function that runs with provenance
+rewriting disabled. Policy evaluation itself is entirely inside each submitted SQL statement;
+there is no client-side circuit walk or policy calculation.
+
+The comparison strips ProvSQL's automatic annotation and recovers the current scalar value of
+each `agg_token`. Run the 13-query SF 0.01 comparison with:
+
+```bash
+.venv/bin/python scripts/run_tpch_provsql_correctness.py --sf 0.01
+```
+
+This starts `inriavalda/provsql:latest` on local port 5435, loads TPC-H, and writes per-query SQL,
+timings, row counts, and correctness results to
+`results/tpch_provsql_monolithic_correctness_sf001.csv`.
+
 ### Microbenchmarks (core operators)
 
 - **Strategy:** `MicrobenchmarkStrategy`
@@ -141,6 +166,136 @@ All experiment strategies live in `src/vldb_experiments/strategies/` and are use
 - **Approaches:** no_policy, DFC
 - **Script:** `scripts/run_multi_source_experiment.py`
 - **Visualization:** `scripts/generate_multi_source_visualizations.py`
+
+### Regulation Z Ability-to-Repay Case Study
+
+- **Strategy:** `RegulationZBenchmarkStrategy`
+- **Focus:** Relational mortgage-underwriting updates grounded in verified income, complete
+  monthly obligations, loan terms, and a product-specific debt-to-income standard
+- **Approaches:** DFC, Astra 6, Sol 6.1, Opus 5.5, Fable 5.1, and No Policy
+- **LLM provider:** AWS Bedrock Converse for all four model settings
+- **Cost attribution:** Project-tagged Bedrock application inference profiles
+- **Script:** `scripts/run_regulation_z_benchmark.py`
+- **Visualization:** `scripts/generate_regulation_z_benchmark_chart.py`
+
+The default workload contains 1,000 independent, evenly balanced candidate updates. Its invalid
+approvals exercise every enforceable policy predicate: claimed or explicitly unverified income,
+unverified obligations, omitted debt, an understated payment, evidence-table identity mismatches,
+an application-row mismatch, a product-standard mismatch, a missing income record, nonpositive
+income, an inconsistent DTI calculation, and a DTI threshold violation. Source mismatches appear
+both together and independently for income, obligations, and loan terms. The benchmark is a
+narrow, synthetic enforcement case study inspired by 12 CFR 1026.43; it is not a complete
+implementation of Regulation Z.
+
+Every Bedrock request starts with a fresh UUID nonce and contains no Bedrock cache checkpoint.
+The request omits temperature and other sampling controls so each model uses its provider
+defaults. Returned cache-read and cache-write token counts are recorded in the result CSV.
+
+```bash
+source setup_local_smokedduck.sh
+# Four Bedrock requests: one input evaluated by each model.
+.venv/bin/python scripts/run_regulation_z_benchmark.py --num-inputs 1
+
+# Full paper workload: 4,000 Bedrock requests.
+.venv/bin/python scripts/run_regulation_z_benchmark.py
+.venv/bin/python scripts/generate_regulation_z_benchmark_chart.py
+```
+
+`--num-inputs N` (an alias for `--num-updates N`) accepts any positive number. The
+runner prints the planned number of Bedrock requests before starting, including measured
+runs and warmups, so inexpensive smoke tests can validate credentials, model access, response
+parsing, database setup, and result export before a full run.
+
+The runner also writes `<output-stem>.progress.csv` incrementally. Each completed approach/input
+is appended and flushed immediately with its correctness, timing, token counts, request ID, and
+error status. This file can be tailed during a long run and retains completed work if a later
+request fails. Use `--progress-filename` to choose a different filename. The original output CSV
+remains the final, wide summary consumed by the visualization script.
+
+Bedrock requests run concurrently within each model, with at most 50 requests in flight. Change
+the limit with `--max-concurrency N`, where `N` is between 1 and 50. Incremental rows are written
+in completion order; `update_number` and `application_id` identify the original workload item.
+Reported per-update model time remains the average request latency, while each model also records
+`wall_time_ms` for the parallel batch.
+
+The default Bedrock model IDs may be replaced with the corresponding command-line options,
+for example `--astra-model-id <inference-profile-id-or-arn>`.
+
+### Regulation Z v2 Credit-Card Statement Case Study
+
+- **Strategy:** `RegulationZV2BenchmarkStrategy`
+- **Focus:** Reconcile a draft periodic statement against its transaction ledger, daily-balance
+  interest calculation, and approved purchase APR before publication
+- **Approaches:** DFC, Astra 6, Sol 6.1, Luna 6, Opus 5.5, Fable 5.1, and No Policy
+- **LLM provider:** AWS Bedrock Converse for all five model settings
+- **Cost attribution:** Project-tagged Bedrock application inference profiles
+- **Script:** `scripts/run_regulation_z_v2_benchmark.py`
+- **Data preparation:** `scripts/prepare_regulation_z_v2_data.py`
+- **Visualization:** `scripts/generate_regulation_z_v2_benchmark_chart.py`
+
+The default catalog is a pinned, pseudonymized extract of simple product-wide purchase APRs from
+the CFPB Terms of Credit Card Plans survey. Public APRs seed `apr_config`; accounts, transactions,
+daily balances, statements, and publication attempts remain synthetic. The public staging table
+does not participate in the DFC policy because a survey row is not statement-level evidence.
+
+The default workload has 1,000 balanced statement-publication attempts. Invalid cases independently
+exercise incorrect purchase, cash-advance, payment, fee, and interest totals; incorrect new
+balances; incorrect disclosed or applied APRs; ledger activity omitted from the statement; and a
+missing daily-balance date hidden by a duplicate date.
+
+```bash
+source setup_local_smokedduck.sh
+
+# Prepare a fresh pseudonymized catalog, without running the benchmark.
+.venv/bin/python scripts/prepare_regulation_z_v2_data.py
+
+# Future smallest Bedrock run: five paid requests.
+.venv/bin/python scripts/run_regulation_z_v2_benchmark.py --num-statements 1
+
+# Future full run: 5,000 Bedrock requests.
+.venv/bin/python scripts/run_regulation_z_v2_benchmark.py
+.venv/bin/python scripts/generate_regulation_z_v2_benchmark_chart.py
+```
+
+The v2 runner retains the v1 safety and observability features: provider-default sampling, a
+fresh nonce at the beginning of every model prompt, incremental flushed progress rows, selectable
+models, configurable input count, and one to 50 simultaneous Bedrock requests. See
+`REGULATION_Z_V2.md` for the integration boundary, policy, and scope exclusions.
+
+### LLM Validation Benchmark
+
+This benchmark now uses the local Rust-backed DFC implementation for policy rewriting and ground
+truth. Its default Bedrock model set is Astra 6, Sol 6.1, Luna 6, Fable 5.1, and Opus 5.5.
+OpenAI-family models use Bedrock's provider-native explicit cache controls, which make the
+checkpoint uncacheable; prompts no longer contain nonce text. Anthropic-family requests continue
+to use provider defaults without an explicit cache checkpoint.
+
+Before a full LLM validation run, use the smoke-test preset. It runs one query, one policy
+count, one query-results prompt, one repetition, and no warmups: one paid request per selected
+model. The runner prints the exact number of paid LLM requests before starting and writes smoke
+results to a separate file.
+
+```bash
+.venv/bin/python scripts/run_llm_validation_experiment.py --smoke-test
+```
+
+For a single paid request, select one model. The individual dimensions can also be configured
+without the preset using `--queries`, `--policy-counts`, `--runs-per-setting`, `--models`, and
+`--prompt-modes`.
+
+```bash
+.venv/bin/python scripts/run_llm_validation_experiment.py \
+  --smoke-test --models astra
+```
+
+Use the `fixed-4-violations` policy variant to hold the ground-truth violation set at Q03, Q04,
+Q10, and Q18 for every policy count. This writes to a separate default CSV so it cannot resume
+from or overwrite the growing-violation experiment.
+
+```bash
+.venv/bin/python scripts/run_llm_validation_experiment.py \
+  --policy-variant fixed-4-violations
+```
 
 ### TPC-H Baseline (selected queries)
 

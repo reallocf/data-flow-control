@@ -1,0 +1,33 @@
+{
+  "num_accounts": 100,
+  "cases_per_model": 10,
+  "valid_cases": 5,
+  "invalid_cases": 5,
+  "global_max_concurrency": 50,
+  "grok_included": false,
+  "sources": [
+    "regulation_z_v3_eight_models_10_parallel_2026-10-14.progress.csv",
+    "regulation_z_v3_eight_models_10_parallel_retry_2026-10-14.progress.csv"
+  ],
+  "merge_rule": "First non-error response per approach and update_number; use original baselines. Parse failures count as incorrect regardless of the reject fallback.",
+  "results": [
+    {"approach": "dfc", "correct": 10, "false_positives": 0, "false_negatives": 0},
+    {"approach": "no_policy", "correct": 5, "false_positives": 0, "false_negatives": 5},
+    {"approach": "luna", "correct": 5, "false_positives": 5, "false_negatives": 0},
+    {"approach": "sol_6_1", "correct": 5, "false_positives": 5, "false_negatives": 0},
+    {"approach": "astra", "correct": 5, "false_positives": 5, "false_negatives": 0},
+    {"approach": "opus_5_5", "correct": 5, "false_positives": 5, "false_negatives": 0},
+    {"approach": "fable_5_1", "correct": 5, "false_positives": 5, "false_negatives": 0},
+    {"approach": "glm_5_3", "correct": 6, "false_positives": 2, "false_negatives": 2, "cache_read_tokens": 15232},
+    {"approach": "kimi_k3", "correct": 6, "false_positives": 2, "false_negatives": 2, "cache_read_tokens": 15438},
+    {"approach": "minimax_m2_5", "correct": 6, "correct_model_decisions": 6, "parseable_decisions": 9, "parse_failures": 1, "false_positives": 2, "false_negatives": 1, "cache_read_tokens": 16000}
+  ],
+  "caveats": [
+    "Initial run saved 72 successful responses, then stopped collecting pending results after a MiniMax timeout. Recovery submitted only eight missing results: GLM update 8; MiniMax updates 1,2,3,4,6,7,9.",
+    "The scheduler now continues collecting after individual errors. Client read timeout is now 600 seconds with automatic SDK retries disabled.",
+    "MiniMax update 2 exhausted its 8192-token output budget without a parseable decision. Reject fallback happens to match the invalid-case oracle; do not count it as a correct model decision.",
+    "Reported cache reads and initial automatic retries make these unsuitable as clean uncached latency measurements.",
+    "Five original closed models rejected all cases, generally citing unresolved selected-row provenance. GLM, Kimi, and parseable MiniMax responses assumed the first-listed A candidate was selected.",
+    "The prompt requests a brief reason and uncertainty alongside allow_update. It does not specify an abstention action; inability to establish compliance and actual noncompliance are distinct."
+  ]
+}

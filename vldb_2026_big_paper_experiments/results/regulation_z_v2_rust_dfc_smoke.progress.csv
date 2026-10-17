@@ -1,0 +1,2 @@
+update_number,publication_id,case_type,expected_allow,actual_allow,correct,rewrite_ms,sql_execution_ms,elapsed_ms
+1,PUB00000001,valid_statement,True,True,True,9.318166878074408,7.497458020225167,16.815624898299575

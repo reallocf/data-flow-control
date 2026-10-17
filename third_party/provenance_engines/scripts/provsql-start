@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+set -eu
+
+CONTAINER_NAME=${PROVSQL_CONTAINER_NAME:-data-flow-provsql}
+IMAGE=${PROVSQL_IMAGE:-inriavalda/provsql:latest}
+PG_PORT=${PROVSQL_PG_PORT:-5433}
+STUDIO_PORT=${PROVSQL_STUDIO_PORT:-8001}
+
+if docker inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+  if [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER_NAME")" = "true" ]; then
+    echo "ProvSQL is already running as $CONTAINER_NAME"
+  else
+    docker start "$CONTAINER_NAME" >/dev/null
+    echo "Started existing ProvSQL container $CONTAINER_NAME"
+  fi
+else
+  docker run -d \
+    --name "$CONTAINER_NAME" \
+    --platform linux/amd64 \
+    -p "$PG_PORT:5432" \
+    -p "$STUDIO_PORT:8000" \
+    "$IMAGE" >/dev/null
+  echo "Created and started ProvSQL container $CONTAINER_NAME"
+fi
+
+echo "Waiting for PostgreSQL to accept connections..."
+until docker exec "$CONTAINER_NAME" pg_isready -U test >/dev/null 2>&1; do
+  sleep 1
+done
+
+echo "ProvSQL PostgreSQL: localhost:$PG_PORT, user test"
+echo "ProvSQL Studio: http://localhost:$STUDIO_PORT"

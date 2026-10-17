@@ -1,0 +1,57 @@
+                                                                                                                                                                                                                                                                                                                                                                                                               QUERY PLAN                                                                                                                                                                                                                                                                                                                                                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=377153.93..425327.19 rows=975 width=21)
+   Output: f0_0.l_shipmode, f0_0.high_line_count, f0_0.low_line_count
+   Group Key: f0_0.l_shipmode, f0_0.high_line_count, f0_0.low_line_count
+   Filter: (avg(f0_0.prov_lineitem_l__quantity) >= '30'::numeric)
+   ->  Incremental Sort  (cost=377153.93..424990.72 rows=29258 width=26)
+         Output: f0_0.l_shipmode, f0_0.high_line_count, f0_0.low_line_count, f0_0.prov_lineitem_l__quantity
+         Sort Key: f0_0.l_shipmode, f0_0.high_line_count, f0_0.low_line_count
+         Presorted Key: f0_0.l_shipmode
+         ->  Subquery Scan on f0_0  (cost=376915.41..423568.78 rows=29258 width=26)
+               Output: f0_0.l_shipmode, f0_0.high_line_count, f0_0.low_line_count, f0_0.prov_lineitem_l__quantity
+               ->  Nested Loop  (cost=376915.41..423276.20 rows=29258 width=454)
+                     Output: f1_0.l_shipmode, (sum(CASE WHEN (((f0_0_3.o_orderpriority)::text = '1-URGENT'::text) OR ((f0_0_3.o_orderpriority)::text = '2-HIGH'::text)) THEN 1 ELSE 0 END)), (sum(CASE WHEN (((f0_0_3.o_orderpriority)::text <> '1-URGENT'::text) AND ((f0_0_3.o_orderpriority)::text <> '2-HIGH'::text)) THEN 1 ELSE 0 END)), NULL::bigint, NULL::bigint, NULL::character varying, NULL::numeric(15,2), NULL::date, NULL::character varying, NULL::character varying, NULL::integer, NULL::character varying, NULL::bigint, NULL::bigint, NULL::bigint, NULL::bigint, f0_0_2.l_quantity, NULL::numeric(15,2), NULL::numeric(15,2), NULL::numeric(15,2), NULL::character varying, NULL::character varying, NULL::date, NULL::date, NULL::date, NULL::character varying, NULL::character varying, NULL::character varying
+                     Join Filter: (NOT ((f1_0.l_shipmode)::text IS DISTINCT FROM (f0_0_2.l_shipmode)::text))
+                     ->  Finalize GroupAggregate  (cost=208893.40..209139.08 rows=7 width=21)
+                           Output: sum(CASE WHEN (((f0_0_3.o_orderpriority)::text = '1-URGENT'::text) OR ((f0_0_3.o_orderpriority)::text = '2-HIGH'::text)) THEN 1 ELSE 0 END), sum(CASE WHEN (((f0_0_3.o_orderpriority)::text <> '1-URGENT'::text) AND ((f0_0_3.o_orderpriority)::text <> '2-HIGH'::text)) THEN 1 ELSE 0 END), f1_0.l_shipmode
+                           Group Key: f1_0.l_shipmode
+                           ->  Gather Merge  (cost=208893.40..209138.91 rows=14 width=21)
+                                 Output: f1_0.l_shipmode, (PARTIAL sum(CASE WHEN (((f0_0_3.o_orderpriority)::text = '1-URGENT'::text) OR ((f0_0_3.o_orderpriority)::text = '2-HIGH'::text)) THEN 1 ELSE 0 END)), (PARTIAL sum(CASE WHEN (((f0_0_3.o_orderpriority)::text <> '1-URGENT'::text) AND ((f0_0_3.o_orderpriority)::text <> '2-HIGH'::text)) THEN 1 ELSE 0 END))
+                                 Workers Planned: 2
+                                 ->  Partial GroupAggregate  (cost=207893.38..208137.27 rows=7 width=21)
+                                       Output: f1_0.l_shipmode, PARTIAL sum(CASE WHEN (((f0_0_3.o_orderpriority)::text = '1-URGENT'::text) OR ((f0_0_3.o_orderpriority)::text = '2-HIGH'::text)) THEN 1 ELSE 0 END), PARTIAL sum(CASE WHEN (((f0_0_3.o_orderpriority)::text <> '1-URGENT'::text) AND ((f0_0_3.o_orderpriority)::text <> '2-HIGH'::text)) THEN 1 ELSE 0 END)
+                                       Group Key: f1_0.l_shipmode
+                                       ->  Sort  (cost=207893.38..207923.86 rows=12191 width=14)
+                                             Output: f1_0.l_shipmode, f0_0_3.o_orderpriority
+                                             Sort Key: f1_0.l_shipmode
+                                             ->  Parallel Hash Join  (cost=167022.00..207066.01 rows=12191 width=14)
+                                                   Output: f1_0.l_shipmode, f0_0_3.o_orderpriority
+                                                   Hash Cond: (f0_0_3.o_orderkey = f1_0.l_orderkey)
+                                                   ->  Parallel Seq Scan on public.orders f0_0_3  (cost=0.00..32961.97 rows=624998 width=17)
+                                                         Output: f0_0_3.o_orderkey, f0_0_3.o_custkey, f0_0_3.o_orderstatus, f0_0_3.o_totalprice, f0_0_3.o_orderdate, f0_0_3.o_orderpriority, f0_0_3.o_clerk, f0_0_3.o_shippriority, f0_0_3.o_comment
+                                                   ->  Parallel Hash  (cost=166869.62..166869.62 rows=12191 width=13)
+                                                         Output: f1_0.l_shipmode, f1_0.l_orderkey
+                                                         ->  Parallel Seq Scan on public.lineitem f1_0  (cost=0.00..166869.62 rows=12191 width=13)
+                                                               Output: f1_0.l_shipmode, f1_0.l_orderkey
+                                                               Filter: (((f1_0.l_shipmode)::text = ANY ('{MAIL,SHIP}'::text[])) AND (f1_0.l_commitdate < f1_0.l_receiptdate) AND (f1_0.l_shipdate < f1_0.l_commitdate) AND (f1_0.l_receiptdate >= '1994-01-01'::date) AND (f1_0.l_receiptdate < '1995-01-01'::date))
+                     ->  Materialize  (cost=168022.00..211138.10 rows=29258 width=10)
+                           Output: f0_0_2.l_quantity, f0_0_2.l_shipmode
+                           ->  Gather  (cost=168022.00..210991.81 rows=29258 width=10)
+                                 Output: f0_0_2.l_quantity, f0_0_2.l_shipmode
+                                 Workers Planned: 2
+                                 ->  Parallel Hash Join  (cost=167022.00..207066.01 rows=12191 width=10)
+                                       Output: f0_0_2.l_quantity, f0_0_2.l_shipmode
+                                       Hash Cond: (f0_0_1.o_orderkey = f0_0_2.l_orderkey)
+                                       ->  Parallel Seq Scan on public.orders f0_0_1  (cost=0.00..32961.97 rows=624998 width=8)
+                                             Output: f0_0_1.o_orderkey, f0_0_1.o_custkey, f0_0_1.o_orderstatus, f0_0_1.o_totalprice, f0_0_1.o_orderdate, f0_0_1.o_orderpriority, f0_0_1.o_clerk, f0_0_1.o_shippriority, f0_0_1.o_comment
+                                       ->  Parallel Hash  (cost=166869.62..166869.62 rows=12191 width=18)
+                                             Output: f0_0_2.l_quantity, f0_0_2.l_orderkey, f0_0_2.l_shipmode
+                                             ->  Parallel Seq Scan on public.lineitem f0_0_2  (cost=0.00..166869.62 rows=12191 width=18)
+                                                   Output: f0_0_2.l_quantity, f0_0_2.l_orderkey, f0_0_2.l_shipmode
+                                                   Filter: (((f0_0_2.l_shipmode)::text = ANY ('{MAIL,SHIP}'::text[])) AND (f0_0_2.l_commitdate < f0_0_2.l_receiptdate) AND (f0_0_2.l_shipdate < f0_0_2.l_commitdate) AND (f0_0_2.l_receiptdate >= '1994-01-01'::date) AND (f0_0_2.l_receiptdate < '1995-01-01'::date))
+ JIT:
+   Functions: 44
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+(53 rows)
+
