@@ -3573,7 +3573,7 @@ class TestInsertStatements:
         rewriter.execute("CREATE SCHEMA IF NOT EXISTS test_schema")
         rewriter.execute("CREATE TABLE test_schema.reports (id INTEGER, status VARCHAR)")
         # Also create the table without schema for policy validation
-        # CR csummers: This CREATE hides a bug, but not important right now
+        # CR anonymous: This CREATE hides a bug, but not important right now
         rewriter.execute("CREATE TABLE reports (id INTEGER, status VARCHAR)")
 
         policy = DFCPolicy(

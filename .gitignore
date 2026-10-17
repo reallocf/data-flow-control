@@ -211,9 +211,9 @@ __marimo__/
 .mplconfig/
 .tmp/
 tmp/
-vldb_2026_big_paper_experiments/results/multi_db/**/*.csv
-vldb_2026_big_paper_experiments/results/multi_db_test_data/**/*.csv
-vldb_2026_big_paper_experiments/results/provsql_tpch/**/*.csv
+sigmod_2027_big_paper_experiments/results/multi_db/**/*.csv
+sigmod_2027_big_paper_experiments/results/multi_db_test_data/**/*.csv
+sigmod_2027_big_paper_experiments/results/provsql_tpch/**/*.csv
 *.sqlite
 =*
 

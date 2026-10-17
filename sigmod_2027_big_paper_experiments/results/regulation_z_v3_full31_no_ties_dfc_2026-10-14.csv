@@ -1,0 +1,2 @@
+execution_number,timestamp,duration_ms,error,compliant_executions,dfc_accuracy,dfc_correct,dfc_execution_time_ms,dfc_only,dfc_rewrite_time_ms,dfc_time_ms,no_ties,num_accounts,num_updates,policy_count,violating_executions,workload_seed
+1,2026-10-14T16:30:22.762169,979.5777948311297,,50,1.0,100,519.9846238683676,True,459.5931709627621,979.5777948311297,True,100,100,31,50,20261012

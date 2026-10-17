@@ -10,7 +10,7 @@ resolver = "2"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-authors = ["Charlie Summers"]
+authors = ["Anonymous Authors"]
 
 [workspace.dependencies]
 anyhow = "1.0"

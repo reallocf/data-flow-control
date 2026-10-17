@@ -1,3 +1,0 @@
-provider,model_name,rows,contaminated_rows,max_cached_tokens,mean_cached_tokens
-bedrock,arn:aws:bedrock:us-east-1:920736616554:application-inference-profile/e7ygwg2bquz8,40,0,0,0.0
-openai,gpt-5.5,40,0,0,0.0

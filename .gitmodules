@@ -1,3 +1,0 @@
-[submodule "extended_duckdb"]
-	path = extended_duckdb
-	url = https://github.com/easyesplat/daplab-external/

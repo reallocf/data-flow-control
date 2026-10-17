@@ -1,0 +1,25 @@
+{
+  "status": "applied_to_sigmod-2027-anonymous",
+  "include_tracked_directories": [
+    "passant/",
+    "sql_rewriter/",
+    "experiment_harness/",
+    "shared_sql_utils/",
+    "benchmarks/tpch/queries/",
+    "vldb_2026_big_paper_experiments/",
+    "final_results/"
+  ],
+  "directory_renames": {
+    "vldb_2026_big_paper_experiments/": "sigmod_2027_big_paper_experiments/"
+  },
+  "text_path_replacements": {
+    "vldb_2026_big_paper_experiments": "sigmod_2027_big_paper_experiments"
+  },
+  "curated_paper_results": "final_results/manifest.json",
+  "notes": [
+    "Include the entire tracked experiment directory, including its existing results, scripts, tests, documentation, and subdirectories.",
+    "Keep the Python import package vldb_experiments unchanged; only the project directory and references to that directory are renamed.",
+    "The root final_results directory is the curated paper dataset; the original experiment final_results directory is retained as part of the full directory copy.",
+    "Prepared on sigmod-2027-anonymous with normal history; publish through the anonymous service after preview verification."
+  ]
+}
