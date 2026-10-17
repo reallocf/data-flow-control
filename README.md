@@ -18,11 +18,3 @@ See the experiment project's README for setup and runners. CreditBot uses
 Cloud model inference requires your own credentials and model/profile IDs.
 Anonymized application-profile IDs and the SQL Server hostname are placeholders.
 Use the CLI model-ID arguments and SQLSERVER_HOST configuration for your account.
-
-The original Git history is intentionally retained. Share this branch through
-an anonymization service, not a direct GitHub link. Inspect the anonymous preview
-and downloadable archive before submitting; binary images and PDFs have not been
-redacted by this preparation script. External baseline attribution is retained.
-
-The preparation script is `scripts/prepare_anonymous_branch.py`. Its private
-redaction map stays outside this worktree. No automatic GitHub upload is performed.
