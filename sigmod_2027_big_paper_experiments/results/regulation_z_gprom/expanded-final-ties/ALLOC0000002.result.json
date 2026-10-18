@@ -1,0 +1,402 @@
+[
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P01",
+    "proposition_name": "Highest-APR priority",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Exhaust the highest effective-rate group before lower groups."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P02",
+    "proposition_name": "Descending remainder priority",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Compare every remaining higher/lower rate pair; equal rates remain unordered."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P03",
+    "proposition_name": "Deferred-program applicability",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Runtime derives qualifying programs from conditional accrued interest and the grace/zero exclusions."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P04",
+    "proposition_name": "Ordinary default outside the window",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Active programs outside the priority window use ordinary ordering."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P05",
+    "proposition_name": "Deferred-window priority",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Detect ordinary allocations while eligible priority-program capacity remains."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P06",
+    "proposition_name": "Remainder after deferred priority",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "The ordinary balances left after the priority group retain descending effective-rate order."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P07",
+    "proposition_name": "Optional deferred-program request",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "A request may allocate among any account balances while a qualifying program applies."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P08",
+    "proposition_name": "Optional secured-balance request",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Every positive requested amount must target a secured balance."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P09",
+    "proposition_name": "Excess-payment scope",
+    "role": "SCOPE",
+    "status": "REPRESENTED_SCOPE",
+    "rationale": "Only excess enters APR ordering; minimum first consumes capacity."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P10",
+    "proposition_name": "Minimum amount outside scope",
+    "role": "SCOPE",
+    "status": "REPRESENTED_SCOPE",
+    "rationale": "Accept the supplied minimum portion; no minimum formula is imposed."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P11",
+    "proposition_name": "Minimum allocation outside scope",
+    "role": "SCOPE",
+    "status": "REPRESENTED_SCOPE",
+    "rationale": "Minimum has no APR ordering requirement; whole-payment dispute protection remains."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P12",
+    "proposition_name": "Optional minimum allocation method",
+    "role": "PERMISSION",
+    "status": "REPRESENTED_PERMISSION",
+    "rationale": "Rate-ordered and other minimum allocations are both permitted."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P13",
+    "proposition_name": "Permitted snapshot date",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Both amounts and rates are read from the selected complete snapshot."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P14",
+    "proposition_name": "Consistent reference-day practice",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Compute the date from the effective practice's cycle-end, credit-date, or offset convention."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P15",
+    "proposition_name": "Permitted practice adjustments",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Changed conventions require a recorded authorization and effective date."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P16",
+    "proposition_name": "Residual after historical snapshot",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "After dispute/window priorities, exhaust historical lots before later lots."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P17",
+    "proposition_name": "Minimize disputed reduction",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Compute reduction for minimum plus excess against all outstanding undisputed capacity."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P18",
+    "proposition_name": "Allow unavoidable disputed residual",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "When disputed reduction is unavoidable, require exhaustion of all other capacity. P17 separately rejects avoidable disputed reduction."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P19",
+    "proposition_name": "Error-correction credit",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "At completion, check each required principal/charge item against actual posted credits."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P20",
+    "proposition_name": "Correction notice dispatch",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Require actual timely dispatch to the specified recipient, linked to the determination."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P21",
+    "proposition_name": "Equal-rate discretion",
+    "role": "PERMISSION",
+    "status": "REPRESENTED_PERMISSION",
+    "rationale": "Strict comparisons allow arbitrary splits among equal-priority slices."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P22",
+    "proposition_name": "Grouped or separate balances",
+    "role": "PERMISSION",
+    "status": "REPRESENTED_PERMISSION",
+    "rationale": "Grouped or separate presentation retains underlying lot and dispute/program distinctions."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P23",
+    "proposition_name": "Zero allocation APR for deferred interest",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Compare proposed effective APRs with the zero-or-snapshot-rate derivation."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P24",
+    "proposition_name": "Incorporated deferred-interest definition",
+    "role": "DEFINITION",
+    "status": "PASS",
+    "rationale": "All selected programs use the conditional-charge definition and exclusions, including refund semantics."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P25",
+    "proposition_name": "Interim payments irrelevant to applicability",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Program classification does not depend on its interim-payment-required attribute."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P26",
+    "proposition_name": "Grace-period exclusion",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "The classifier excludes grace periods."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P27",
+    "proposition_name": "Temporary-zero exclusion",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "The classifier excludes temporary zero APR unless accrued interest may become payable."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P28",
+    "proposition_name": "Correct counted cycles",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Compute the start from the latest two cycle due dates no later than expiration, not a supplied expected value."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P29",
+    "proposition_name": "Early-expiration partial cycle",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "Priority remains in effect after the two counted cycles until expiration."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P30",
+    "proposition_name": "Issuer may decline requests",
+    "role": "PERMISSION",
+    "status": "REPRESENTED_PERMISSION",
+    "rationale": "Default allocation is permitted whether or not a request exists; default rules still apply."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P31",
+    "proposition_name": "Decline requests failing issuer requirements",
+    "role": "PERMISSION",
+    "status": "REPRESENTED_PERMISSION",
+    "rationale": "Declining a request does not require validating it; default rules still apply."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P32",
+    "proposition_name": "No request uses default",
+    "role": "CHECK",
+    "status": "PASS",
+    "rationale": "A missing or unsubmitted request cannot activate an exception."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P33",
+    "proposition_name": "Unfulfillable request and replacement",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Check sums, nonnegative amounts, targets, capacities, and submitted replacement links."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P34",
+    "proposition_name": "Affirmative specific contact",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Recognize oral/electronic/written contact with explicit structured instructions."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P35",
+    "proposition_name": "Completed submitted request form",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "An actual completed/submitted form, not default coupon text, supports the exception."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P36",
+    "proposition_name": "Request to reallocate previous payment",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Verify a prior accepted default allocation and a later submitted specific request."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P37",
+    "proposition_name": "Preprinted agreement is insufficient",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Reject reliance on agreement deemed consent; an independent contact is a different evidence record."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P38",
+    "proposition_name": "Untouched preselection is insufficient",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Reject reliance on an untouched issuer-selected checkbox."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P39",
+    "proposition_name": "Default payment coupon is insufficient",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Reject reliance on default coupon text or selection."
+  },
+  {
+    "allocation_id": "ALLOC0000002",
+    "selected_balance_id": "CHG0000002A",
+    "decision": "ALLOW",
+    "proposition_id": "P40",
+    "proposition_name": "Imposed acceptance is insufficient",
+    "role": "CHECK",
+    "status": "NOT_APPLICABLE",
+    "rationale": "Reject requests based on imposed acceptance."
+  }
+]

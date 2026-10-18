@@ -1,0 +1,1 @@
+The first full duplicated UPDATE test with default JIT exceeded the 120-second client timeout. PostgreSQL cancellation and termination requests were issued to scratch backend 15403; the backend did not terminate within the subsequent five-second wait. Successful correctness tests used jit=off in a different scratch database. This is not a controlled performance benchmark.

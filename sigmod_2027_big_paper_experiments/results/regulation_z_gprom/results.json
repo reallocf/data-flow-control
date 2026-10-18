@@ -1,0 +1,29 @@
+{
+  "image": "iitdbgroup/gprom:latest",
+  "image_id": "sha256:e151559f97e830c8748b7573f13c249e7a64e2651e787d65cce0e9303a72e379",
+  "source_unchanged": true,
+  "sha256_before": "be4fd77916500c7973eabaaf6fd1366709205a0139f40c336c3027afcfc82a22",
+  "sha256_after": "be4fd77916500c7973eabaaf6fd1366709205a0139f40c336c3027afcfc82a22",
+  "cases": [
+    {
+      "allocation_id": "ALLOC0000001",
+      "selected_balance": "CHG0000001B",
+      "decision": "ALLOW"
+    },
+    {
+      "allocation_id": "ALLOC0000002",
+      "selected_balance": "CHG0000002B",
+      "decision": "REJECT"
+    },
+    {
+      "allocation_id": "ALLOC0000003",
+      "selected_balance": "CHG0000003A",
+      "decision": "REJECT"
+    },
+    {
+      "allocation_id": "ALLOC0000004",
+      "selected_balance": "CHG0000004A",
+      "decision": "ALLOW"
+    }
+  ]
+}

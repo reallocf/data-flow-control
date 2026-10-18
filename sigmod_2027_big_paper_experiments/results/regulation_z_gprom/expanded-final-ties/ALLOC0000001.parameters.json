@@ -1,0 +1,8 @@
+{
+  "allocation_id": "ALLOC0000001",
+  "account_id": "ACC0000001",
+  "statement_id": "STM0000001",
+  "payment_id": "PAY00000001",
+  "batch_id": "CHG0000001A",
+  "proposed_cash_dollars": 100
+}

@@ -1,0 +1,304 @@
+[
+  {
+    "id": "P01",
+    "name": "Highest-APR priority",
+    "role": "executable",
+    "lines": 230,
+    "bytes": 12463,
+    "limitation": "Dispute protection takes precedence; deferred-window and request branches are separate."
+  },
+  {
+    "id": "P02",
+    "name": "Descending remainder priority",
+    "role": "executable",
+    "lines": 230,
+    "bytes": 12480,
+    "limitation": ""
+  },
+  {
+    "id": "P03",
+    "name": "Deferred-program applicability",
+    "role": "executable",
+    "lines": 182,
+    "bytes": 10228,
+    "limitation": "External contract facts are trusted; this checks the proposed program classification."
+  },
+  {
+    "id": "P04",
+    "name": "Ordinary default outside the window",
+    "role": "executable",
+    "lines": 232,
+    "bytes": 12817,
+    "limitation": ""
+  },
+  {
+    "id": "P05",
+    "name": "Deferred-window priority",
+    "role": "executable",
+    "lines": 230,
+    "bytes": 12455,
+    "limitation": "Simultaneously eligible deferred balances form one unordered priority group; disputed capacity comes last."
+  },
+  {
+    "id": "P06",
+    "name": "Remainder after deferred priority",
+    "role": "executable",
+    "lines": 231,
+    "bytes": 12672,
+    "limitation": ""
+  },
+  {
+    "id": "P07",
+    "name": "Optional deferred-program request",
+    "role": "executable",
+    "lines": 221,
+    "bytes": 12106,
+    "limitation": "Targets need not themselves be deferred. Only recorded, specific instructions are supported."
+  },
+  {
+    "id": "P08",
+    "name": "Optional secured-balance request",
+    "role": "executable",
+    "lines": 207,
+    "bytes": 11610,
+    "limitation": "Security-interest facts are externally established."
+  },
+  {
+    "id": "P09",
+    "name": "Excess-payment scope",
+    "role": "supporting / unresolved definition",
+    "limitation": "Minimum accounting is supplied, not inferred by subtracting the full minimum from each payment."
+  },
+  {
+    "id": "P10",
+    "name": "Minimum amount outside scope",
+    "role": "supporting / unresolved definition",
+    "limitation": "Other applicable law is outside this adapter."
+  },
+  {
+    "id": "P11",
+    "name": "Minimum allocation outside scope",
+    "role": "supporting / unresolved definition",
+    "limitation": ""
+  },
+  {
+    "id": "P12",
+    "name": "Optional minimum allocation method",
+    "role": "supporting / unresolved definition",
+    "limitation": "A permission is preserved by absence of an additional restriction."
+  },
+  {
+    "id": "P13",
+    "name": "Permitted snapshot date",
+    "role": "executable",
+    "lines": 157,
+    "bytes": 8765,
+    "limitation": "Snapshots must be authoritative complete account snapshots."
+  },
+  {
+    "id": "P14",
+    "name": "Consistent reference-day practice",
+    "role": "executable",
+    "lines": 156,
+    "bytes": 8993,
+    "limitation": "Operational choice, not a complete interpretation of 'generally'."
+  },
+  {
+    "id": "P15",
+    "name": "Permitted practice adjustments",
+    "role": "executable",
+    "lines": 161,
+    "bytes": 9170,
+    "limitation": "Cannot determine legal acceptability of 'from time to time'; authorization evidence does not resolve that legal standard."
+  },
+  {
+    "id": "P16",
+    "name": "Residual after historical snapshot",
+    "role": "executable",
+    "lines": 230,
+    "bytes": 12467,
+    "limitation": "Generalization of the single later-purchase example; later lots use their payment-date APR."
+  },
+  {
+    "id": "P17",
+    "name": "Minimize disputed reduction",
+    "role": "executable",
+    "lines": 183,
+    "bytes": 10429,
+    "limitation": "Dispute protection overrides request and program priority. Dispute merits are external."
+  },
+  {
+    "id": "P18",
+    "name": "Allow unavoidable disputed residual",
+    "role": "executable",
+    "lines": 184,
+    "bytes": 10662,
+    "limitation": ""
+  },
+  {
+    "id": "P19",
+    "name": "Error-correction credit",
+    "role": "executable",
+    "lines": 170,
+    "bytes": 9549,
+    "limitation": "Required charge attribution and checkpoint deadline come from external section 1026.13 requirements; this does not initiate a credit."
+  },
+  {
+    "id": "P20",
+    "name": "Correction notice dispatch",
+    "role": "executable",
+    "lines": 170,
+    "bytes": 9528,
+    "limitation": "Notice content certification is trusted external evidence; no autonomous dispatch or deadline scheduler."
+  },
+  {
+    "id": "P21",
+    "name": "Equal-rate discretion",
+    "role": "supporting / unresolved definition",
+    "limitation": "Uses the enumerated exceptions, not a claim to resolve every possible meaning of 'generally'."
+  },
+  {
+    "id": "P22",
+    "name": "Grouped or separate balances",
+    "role": "supporting / unresolved definition",
+    "limitation": "Do not merge away facts needed by other checks."
+  },
+  {
+    "id": "P23",
+    "name": "Zero allocation APR for deferred interest",
+    "role": "executable",
+    "lines": 199,
+    "bytes": 10881,
+    "limitation": "The contractual interest accrual rate is not changed."
+  },
+  {
+    "id": "P24",
+    "name": "Incorporated deferred-interest definition",
+    "role": "supporting / unresolved definition",
+    "limitation": "Full equivalence with section 1026.16(h)(2) and its commentary is not implemented or claimed."
+  },
+  {
+    "id": "P25",
+    "name": "Interim payments irrelevant to applicability",
+    "role": "executable",
+    "lines": 182,
+    "bytes": 10235,
+    "limitation": ""
+  },
+  {
+    "id": "P26",
+    "name": "Grace-period exclusion",
+    "role": "executable",
+    "lines": 182,
+    "bytes": 10173,
+    "limitation": "Checks a proposed classification; does not add an allocation-priority obligation."
+  },
+  {
+    "id": "P27",
+    "name": "Temporary-zero exclusion",
+    "role": "executable",
+    "lines": 182,
+    "bytes": 10218,
+    "limitation": "External rate-change legality is not checked."
+  },
+  {
+    "id": "P28",
+    "name": "Correct counted cycles",
+    "role": "executable",
+    "lines": 199,
+    "bytes": 10862,
+    "limitation": "At least two actual cycles through the expiration cycle must be supplied."
+  },
+  {
+    "id": "P29",
+    "name": "Early-expiration partial cycle",
+    "role": "executable",
+    "lines": 230,
+    "bytes": 12466,
+    "limitation": "Expiration dates are inclusive contract payoff dates in this model."
+  },
+  {
+    "id": "P30",
+    "name": "Issuer may decline requests",
+    "role": "supporting / unresolved definition",
+    "limitation": "No policy requires the issuer to elect the request branch."
+  },
+  {
+    "id": "P31",
+    "name": "Decline requests failing issuer requirements",
+    "role": "supporting / unresolved definition",
+    "limitation": "This permission does not require a separate rejection policy or mandate issuer requirements."
+  },
+  {
+    "id": "P32",
+    "name": "No request uses default",
+    "role": "executable",
+    "lines": 160,
+    "bytes": 8908,
+    "limitation": "Complete request capture is assumed."
+  },
+  {
+    "id": "P33",
+    "name": "Unfulfillable request and replacement",
+    "role": "executable",
+    "lines": 201,
+    "bytes": 11403,
+    "limitation": "Operational definition of inability; other meanings of 'cannot comply' remain unresolved."
+  },
+  {
+    "id": "P34",
+    "name": "Affirmative specific contact",
+    "role": "executable",
+    "lines": 163,
+    "bytes": 9362,
+    "limitation": "Interpretation of a conversation into instructions is external evidence processing."
+  },
+  {
+    "id": "P35",
+    "name": "Completed submitted request form",
+    "role": "executable",
+    "lines": 164,
+    "bytes": 9483,
+    "limitation": ""
+  },
+  {
+    "id": "P36",
+    "name": "Request to reallocate previous payment",
+    "role": "executable",
+    "lines": 164,
+    "bytes": 9848,
+    "limitation": "Caller supplies the authoritative pre-payment balance snapshot for replacement; replacement is atomic."
+  },
+  {
+    "id": "P37",
+    "name": "Preprinted agreement is insufficient",
+    "role": "executable",
+    "lines": 160,
+    "bytes": 8919,
+    "limitation": ""
+  },
+  {
+    "id": "P38",
+    "name": "Untouched preselection is insufficient",
+    "role": "executable",
+    "lines": 160,
+    "bytes": 8923,
+    "limitation": ""
+  },
+  {
+    "id": "P39",
+    "name": "Default payment coupon is insufficient",
+    "role": "executable",
+    "lines": 160,
+    "bytes": 8918,
+    "limitation": ""
+  },
+  {
+    "id": "P40",
+    "name": "Imposed acceptance is insufficient",
+    "role": "executable",
+    "lines": 160,
+    "bytes": 8920,
+    "limitation": "Whether a condition was imposed is externally evidenced."
+  }
+]

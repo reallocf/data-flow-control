@@ -1,0 +1,28 @@
+{
+  "policy_count": 31,
+  "runs_per_mode": 1,
+  "warmups": 0,
+  "timing_caveat": "Diagnostic, not controlled; concurrent local work; excludes evidence preparation and registration.",
+  "modes": {
+    "ties": {
+      "updates": 100,
+      "allowed": 50,
+      "blocked": 50,
+      "all_expected_decisions": true,
+      "exact_reference_match": true,
+      "isolated_policy_checks": 3100,
+      "only_blocking_policy": "P17",
+      "all_isolation_ids_match": true
+    },
+    "no_ties": {
+      "updates": 100,
+      "allowed": 50,
+      "blocked": 50,
+      "all_expected_decisions": true,
+      "exact_reference_match": true,
+      "isolated_policy_checks": 3100,
+      "only_blocking_policy": "P17",
+      "all_isolation_ids_match": true
+    }
+  }
+}

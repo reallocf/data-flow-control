@@ -1,0 +1,107 @@
+SOURCE transactions AS selected
+SINK payment_allocations AS allocation
+CONSTRAINT
+(selected.transaction_id IN (
+SELECT e.batch_id FROM (
+WITH base AS (
+SELECT p.*, pay.account_id, pay.credited_date, pay.cycle_end,
+       pay.total_cents, pay.minimum_cents
+FROM regz_proposals p JOIN regz_payments pay ON pay.payment_id = p.payment_id
+),
+program_terms AS (
+SELECT g.*, (g.interest_accrues AND g.waived_on_payoff AND NOT g.grace_period
+       AND (NOT g.temporary_zero OR g.retroactive_interest)) AS qualifies
+FROM regz_programs g
+),
+lot_terms AS (
+SELECT b.batch_id, b.account_id, b.credited_date, b.snapshot_date,
+       bal.balance_id, bal.amount_cents, bal.protected_cents, bal.secured,
+       bal.program_id, l.minimum_cents, l.excess_cents,
+       l.effective_apr AS proposed_apr, l.window_start AS proposed_window,
+       CASE WHEN old.balance_id IS NULL THEN 1 ELSE 0 END AS phase,
+       COALESCE(old.apr, bal.apr) AS reference_apr,
+       COALESCE(g.qualifies, false) AS qualifies,
+       COALESCE(g.qualifies AND b.credited_date BETWEEN g.start_date
+                AND g.expiration_date, false) AS active,
+       g.expiration_date, g.grace_period, g.temporary_zero,
+       g.retroactive_interest, g.interim_payment_required,
+       d.qualifies AS declared
+FROM base b JOIN regz_balances bal
+  ON bal.account_id = b.account_id AND bal.snapshot_date = b.credited_date
+JOIN regz_proposal_lines l ON l.batch_id = b.batch_id AND l.balance_id = bal.balance_id
+LEFT JOIN regz_balances old ON old.account_id = b.account_id
+  AND old.balance_id = bal.balance_id AND old.snapshot_date = b.snapshot_date
+LEFT JOIN program_terms g ON g.program_id = bal.program_id
+LEFT JOIN regz_program_classifications d
+  ON d.batch_id = b.batch_id AND d.program_id = bal.program_id
+),
+lots AS (
+SELECT t.*, CASE WHEN t.active THEN 0 ELSE t.reference_apr END AS effective_apr,
+ CASE WHEN t.active THEN (
+   SELECT MIN(last_two.start_date) FROM (
+     SELECT c.start_date FROM regz_cycles c
+     WHERE c.account_id = t.account_id AND c.start_date <= t.expiration_date
+       AND c.due_date <= t.expiration_date
+     ORDER BY c.start_date DESC LIMIT 2
+   ) last_two
+ ) ELSE NULL END AS window_start,
+ CASE WHEN t.active THEN (
+   SELECT c.start_date FROM regz_cycles c WHERE c.account_id = t.account_id
+     AND t.expiration_date BETWEEN c.start_date AND c.end_date
+     AND t.expiration_date < c.due_date
+ ) ELSE NULL END AS early_start
+FROM lot_terms t
+),
+slices AS (
+SELECT l.batch_id, l.balance_id, part.disputed, l.phase, l.effective_apr,
+ COALESCE(l.active AND l.credited_date BETWEEN l.window_start
+          AND l.expiration_date, false) AS in_window,
+ COALESCE(l.active AND l.credited_date BETWEEN l.window_start AND l.expiration_date
+          AND l.credited_date >= l.early_start, false) AS early,
+ CASE WHEN part.disputed THEN
+   l.protected_cents - GREATEST(0, l.minimum_cents - (l.amount_cents-l.protected_cents))
+ ELSE GREATEST(0, l.amount_cents-l.protected_cents-l.minimum_cents) END AS capacity,
+ CASE WHEN part.disputed THEN
+   GREATEST(0, l.excess_cents-GREATEST(0,l.amount_cents-l.protected_cents-l.minimum_cents))
+ ELSE LEAST(l.excess_cents,GREATEST(0,l.amount_cents-l.protected_cents-l.minimum_cents))
+ END AS allocated
+FROM lots l CROSS JOIN (VALUES (false), (true)) part(disputed)
+),
+pairs AS (
+SELECT h.batch_id,
+ h.in_window AND NOT lo.in_window AS deferred,
+ h.in_window AND NOT lo.in_window AND h.early AS early,
+ NOT h.in_window AND NOT lo.in_window AND h.phase < lo.phase AS historical,
+ NOT h.in_window AND NOT lo.in_window AND h.phase = lo.phase
+   AND h.effective_apr > lo.effective_apr AS ordinary,
+ h.effective_apr = (
+   SELECT MAX(peer.effective_apr) FROM slices peer
+   WHERE peer.batch_id = h.batch_id AND peer.disputed = h.disputed
+     AND peer.phase = h.phase AND NOT peer.in_window AND peer.capacity > 0
+ ) AS highest
+FROM slices h JOIN slices lo ON lo.batch_id = h.batch_id AND lo.disputed = h.disputed
+WHERE h.capacity > 0 AND lo.capacity > 0 AND h.allocated < h.capacity AND lo.allocated > 0
+)
+SELECT b.batch_id, 'allocation' AS kind,
+       b.method AS method,
+       (SELECT COUNT(*) FROM pairs x WHERE x.batch_id = b.batch_id AND (x.ordinary)) AS ordinary_violations,
+       (SELECT COUNT(DISTINCT x.program_id) FROM lots x WHERE x.batch_id=b.batch_id AND x.active AND x.credited_date BETWEEN x.window_start AND x.expiration_date) AS window_programs
+FROM base b
+) e WHERE (e.kind <> 'allocation' OR (e.method <> 'default' OR (e.window_programs = 0 OR e.ordinary_violations = 0)))
+) AND (
+ allocation.cash_advance_allocation*100 = (
+   SELECT line.excess_cents FROM regz_proposal_lines line
+   WHERE line.batch_id=selected.transaction_id AND line.balance_id=selected.transaction_id
+ ) AND EXISTS (
+   SELECT 1 FROM regz_proposals bp JOIN regz_payments pay ON pay.payment_id=bp.payment_id
+   WHERE bp.batch_id=selected.transaction_id AND pay.payment_id=allocation.transaction_id
+     AND pay.account_id=allocation.account_id AND pay.credited_date=allocation.payment_date
+     AND pay.total_cents=allocation.total_payment*100
+     AND pay.minimum_cents=allocation.minimum_payment_portion*100
+     AND NOT EXISTS (SELECT 1 FROM regz_proposal_lines other_line
+       WHERE other_line.batch_id=bp.batch_id AND other_line.balance_id<>bp.batch_id
+         AND other_line.excess_cents<>0)
+ ) AND allocation.purchase_allocation=0 AND allocation.balance_transfer_allocation=0
+   AND allocation.promo_allocation=0
+))
+ON FAIL REMOVE

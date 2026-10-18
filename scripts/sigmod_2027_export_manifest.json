@@ -7,7 +7,8 @@
     "shared_sql_utils/",
     "benchmarks/tpch/queries/",
     "vldb_2026_big_paper_experiments/",
-    "final_results/"
+    "final_results/",
+    "artifacts/provsql_regz_53/"
   ],
   "directory_renames": {
     "vldb_2026_big_paper_experiments/": "sigmod_2027_big_paper_experiments/"

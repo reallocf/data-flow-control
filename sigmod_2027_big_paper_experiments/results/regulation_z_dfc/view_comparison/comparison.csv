@@ -1,0 +1,2 @@
+execution_number,timestamp,duration_ms,error,expanded_correct,expanded_execute_ms,expanded_rewrite_ms,expanded_total_ms,materialized_correct,materialized_execute_ms,materialized_rewrite_ms,materialized_total_ms,no_ties,num_updates,policy_count,view_correct,view_execute_ms,view_rewrite_ms,view_total_ms
+1,2026-10-17T17:33:47.127838,82100.6877971231,,100,76663.6021331069,5437.085664016195,82100.6877971231,100,616.9898708176333,486.2433358794078,1103.2332066970412,False,100,31,100,33284.39391718712,504.1207890608348,33788.51470624795

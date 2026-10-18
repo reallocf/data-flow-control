@@ -1,0 +1,199 @@
+=== Complete template: compliant candidate selected: exit=0 ===
+BEGIN
+SET
+SET
+SET
+ allocation_id 
+---------------
+ ALLOC0000001
+(1 row)
+
+SELECT 1
+DO
+SELECT 31
+ allocation_id | batch_id | proposition_id | passed 
+---------------+----------+----------------+--------
+ ALLOC0000001  | good     | P01            | t
+ ALLOC0000001  | good     | P02            | t
+ ALLOC0000001  | good     | P03            | t
+ ALLOC0000001  | good     | P04            | t
+ ALLOC0000001  | good     | P05            | t
+ ALLOC0000001  | good     | P06            | t
+ ALLOC0000001  | good     | P07            | t
+ ALLOC0000001  | good     | P08            | t
+ ALLOC0000001  | good     | P13            | t
+ ALLOC0000001  | good     | P14            | t
+ ALLOC0000001  | good     | P15            | t
+ ALLOC0000001  | good     | P16            | t
+ ALLOC0000001  | good     | P17            | t
+ ALLOC0000001  | good     | P18            | t
+ ALLOC0000001  | good     | P19            | t
+ ALLOC0000001  | good     | P20            | t
+ ALLOC0000001  | good     | P23            | t
+ ALLOC0000001  | good     | P25            | t
+ ALLOC0000001  | good     | P26            | t
+ ALLOC0000001  | good     | P27            | t
+ ALLOC0000001  | good     | P28            | t
+ ALLOC0000001  | good     | P29            | t
+ ALLOC0000001  | good     | P32            | t
+ ALLOC0000001  | good     | P33            | t
+ ALLOC0000001  | good     | P34            | t
+ ALLOC0000001  | good     | P35            | t
+ ALLOC0000001  | good     | P36            | t
+ ALLOC0000001  | good     | P37            | t
+ ALLOC0000001  | good     | P38            | t
+ ALLOC0000001  | good     | P39            | t
+ ALLOC0000001  | good     | P40            | t
+(31 rows)
+
+SET
+ batch_id |          context_provenance          | context_formula |               provsql                
+----------+--------------------------------------+-----------------+--------------------------------------
+ good     | 2cfb4b0d-4b83-45ef-a7b4-58457f1a6528 | 2cfb4b0d…       | 2cfb4b0d-4b83-45ef-a7b4-58457f1a6528
+(1 row)
+
+SET
+DO
+ allocation_id | selected_transaction_id | cash_advance_allocation 
+---------------+-------------------------+-------------------------
+ ALLOC0000001  | good                    |                     100
+(1 row)
+
+UPDATE 1
+COMMIT
+
+=== Complete template: disputed candidate selected: exit=3 ===
+BEGIN
+SET
+SET
+SET
+ allocation_id 
+---------------
+ ALLOC0000001
+(1 row)
+
+SELECT 1
+DO
+SELECT 31
+ allocation_id | batch_id | proposition_id | passed 
+---------------+----------+----------------+--------
+ ALLOC0000001  | bad      | P01            | t
+ ALLOC0000001  | bad      | P02            | t
+ ALLOC0000001  | bad      | P03            | t
+ ALLOC0000001  | bad      | P04            | t
+ ALLOC0000001  | bad      | P05            | t
+ ALLOC0000001  | bad      | P06            | t
+ ALLOC0000001  | bad      | P07            | t
+ ALLOC0000001  | bad      | P08            | t
+ ALLOC0000001  | bad      | P13            | t
+ ALLOC0000001  | bad      | P14            | t
+ ALLOC0000001  | bad      | P15            | t
+ ALLOC0000001  | bad      | P16            | t
+ ALLOC0000001  | bad      | P17            | f
+ ALLOC0000001  | bad      | P18            | t
+ ALLOC0000001  | bad      | P19            | t
+ ALLOC0000001  | bad      | P20            | t
+ ALLOC0000001  | bad      | P23            | t
+ ALLOC0000001  | bad      | P25            | t
+ ALLOC0000001  | bad      | P26            | t
+ ALLOC0000001  | bad      | P27            | t
+ ALLOC0000001  | bad      | P28            | t
+ ALLOC0000001  | bad      | P29            | t
+ ALLOC0000001  | bad      | P32            | t
+ ALLOC0000001  | bad      | P33            | t
+ ALLOC0000001  | bad      | P34            | t
+ ALLOC0000001  | bad      | P35            | t
+ ALLOC0000001  | bad      | P36            | t
+ ALLOC0000001  | bad      | P37            | t
+ ALLOC0000001  | bad      | P38            | t
+ ALLOC0000001  | bad      | P39            | t
+ ALLOC0000001  | bad      | P40            | t
+(31 rows)
+
+SET
+ batch_id |          context_provenance          | context_formula |               provsql                
+----------+--------------------------------------+-----------------+--------------------------------------
+ bad      | 8ac72d42-4bb2-400e-a9aa-484821b9a215 | 8ac72d42…       | 8ac72d42-4bb2-400e-a9aa-484821b9a215
+(1 row)
+
+SET
+ERROR:  Regulation Z proposal rejected; inspect policy results
+CONTEXT:  PL/pgSQL function inline_code_block line 5 at RAISE
+
+=== Rejected update leaves sink at zero: exit=0 ===
+ cash_advance_allocation 
+-------------------------
+                       0
+(1 row)
+
+
+=== Correction checkpoint: P19 and P20 fail: exit=0 ===
+BEGIN
+SET
+SET
+UPDATE 1
+SELECT 1
+SELECT 31
+ allocation_id | batch_id | proposition_id | passed 
+---------------+----------+----------------+--------
+ ALLOC0000001  | bad      | P01            | t
+ ALLOC0000001  | bad      | P02            | t
+ ALLOC0000001  | bad      | P03            | t
+ ALLOC0000001  | bad      | P04            | t
+ ALLOC0000001  | bad      | P05            | t
+ ALLOC0000001  | bad      | P06            | t
+ ALLOC0000001  | bad      | P07            | t
+ ALLOC0000001  | bad      | P08            | t
+ ALLOC0000001  | bad      | P13            | t
+ ALLOC0000001  | bad      | P14            | t
+ ALLOC0000001  | bad      | P15            | t
+ ALLOC0000001  | bad      | P16            | t
+ ALLOC0000001  | bad      | P17            | t
+ ALLOC0000001  | bad      | P18            | t
+ ALLOC0000001  | bad      | P19            | f
+ ALLOC0000001  | bad      | P20            | f
+ ALLOC0000001  | bad      | P23            | t
+ ALLOC0000001  | bad      | P25            | t
+ ALLOC0000001  | bad      | P26            | t
+ ALLOC0000001  | bad      | P27            | t
+ ALLOC0000001  | bad      | P28            | t
+ ALLOC0000001  | bad      | P29            | t
+ ALLOC0000001  | bad      | P32            | t
+ ALLOC0000001  | bad      | P33            | t
+ ALLOC0000001  | bad      | P34            | t
+ ALLOC0000001  | bad      | P35            | t
+ ALLOC0000001  | bad      | P36            | t
+ ALLOC0000001  | bad      | P37            | t
+ ALLOC0000001  | bad      | P38            | t
+ ALLOC0000001  | bad      | P39            | t
+ ALLOC0000001  | bad      | P40            | t
+(31 rows)
+
+ROLLBACK
+
+=== Native tracked UPDATE with unchanged primary key: exit=3 ===
+BEGIN
+CREATE SCHEMA
+SET
+CREATE TABLE
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+ add_provenance 
+----------------
+ 
+(1 row)
+
+ add_provenance 
+----------------
+ 
+(1 row)
+
+SET
+ERROR:  duplicate key value violates unique constraint "t_pkey"
+DETAIL:  Key (id)=(1) already exists.
+CONTEXT:  SQL statement "INSERT INTO regz_native_update_probe.t SELECT * FROM OLD_TABLE;"
+PL/pgSQL function update_statement_trigger() line 47 at EXECUTE
+
+=== Scratch database cleanup: exit=0 ===
+DROP DATABASE

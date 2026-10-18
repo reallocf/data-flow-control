@@ -1,0 +1,41 @@
+proposition	name	classification	implementation	limitation
+P01	Highest-APR priority	predicate	Exhaust the highest effective-rate group before lower groups.	Dispute protection takes precedence; deferred-window and request branches are separate.
+P02	Descending remainder priority	predicate	Compare every remaining higher/lower rate pair; equal rates remain unordered.	
+P03	Deferred-program applicability	predicate	Runtime derives qualifying programs from conditional accrued interest and the grace/zero exclusions.	External contract facts are trusted; this checks the proposed program classification.
+P04	Ordinary default outside the window	predicate	Active programs outside the priority window use ordinary ordering.	
+P05	Deferred-window priority	predicate	Detect ordinary allocations while eligible priority-program capacity remains.	Simultaneously eligible deferred balances form one unordered priority group; disputed capacity comes last.
+P06	Remainder after deferred priority	predicate	The ordinary balances left after the priority group retain descending effective-rate order.	
+P07	Optional deferred-program request	predicate	A request may allocate among any account balances while a qualifying program applies.	Targets need not themselves be deferred. Only recorded, specific instructions are supported.
+P08	Optional secured-balance request	predicate	Every positive requested amount must target a secured balance.	Security-interest facts are externally established.
+P09	Excess-payment scope	supporting / no standalone predicate	Only excess allocation enters rate-priority comparisons; minimum allocations are separate.	Minimum accounting is supplied, not inferred by subtracting the full minimum from each payment.
+P10	Minimum amount outside scope	supporting / no standalone predicate	Accept the supplied minimum portion without deriving a minimum-payment formula.	Other applicable law is outside this adapter.
+P11	Minimum allocation outside scope	supporting / no standalone predicate	Rate priority does not constrain minimum allocations; dispute protection still examines the whole payment.	
+P12	Optional minimum allocation method	supporting / no standalone predicate	Either a rate-ordered or other minimum allocation is allowed.	A permission is preserved by absence of an additional restriction.
+P13	Permitted snapshot date	predicate	Both amounts and rates are read from the selected complete snapshot.	Snapshots must be authoritative complete account snapshots.
+P14	Consistent reference-day practice	predicate	Compute the date from the effective practice's cycle-end, credit-date, or offset convention.	Operational choice, not a complete interpretation of 'generally'.
+P15	Permitted practice adjustments	predicate	Changed conventions require a recorded authorization and effective date.	Cannot determine legal acceptability of 'from time to time'; authorization evidence does not resolve that legal standard.
+P16	Residual after historical snapshot	predicate	After dispute/window priorities, exhaust historical lots before later lots.	Generalization of the single later-purchase example; later lots use their payment-date APR.
+P17	Minimize disputed reduction	predicate	Compute reduction for minimum plus excess against all outstanding undisputed capacity.	Dispute protection overrides request and program priority. Dispute merits are external.
+P18	Allow unavoidable disputed residual	predicate	When disputed reduction is unavoidable, require exhaustion of all other capacity. P17 separately rejects avoidable disputed reduction.	
+P19	Error-correction credit	predicate	At completion, check each required principal/charge item against actual posted credits.	Required charge attribution and checkpoint deadline come from external section 1026.13 requirements; this does not initiate a credit.
+P20	Correction notice dispatch	predicate	Require actual timely dispatch to the specified recipient, linked to the determination.	Notice content certification is trusted external evidence; no autonomous dispatch or deadline scheduler.
+P21	Equal-rate discretion	supporting / no standalone predicate	Strict rate comparisons impose no FIFO/pro-rata tie breaker; stronger dispute/program rules remain.	Uses the enumerated exceptions, not a claim to resolve every possible meaning of 'generally'.
+P22	Grouped or separate balances	supporting / no standalone predicate	Presentation may group rows; the underlying lots retain program, security, and dispute attributes.	Do not merge away facts needed by other checks.
+P23	Zero allocation APR for deferred interest	predicate	Compare proposed effective APRs with the zero-or-snapshot-rate derivation.	The contractual interest accrual rate is not changed.
+P24	Incorporated deferred-interest definition	supporting / no standalone predicate	Local terms implement the explicit conditional-interest description.	Full equivalence with section 1026.16(h)(2) and its commentary is not implemented or claimed.
+P25	Interim payments irrelevant to applicability	predicate	Program classification does not depend on its interim-payment-required attribute.	
+P26	Grace-period exclusion	predicate	The classifier excludes grace periods.	Checks a proposed classification; does not add an allocation-priority obligation.
+P27	Temporary-zero exclusion	predicate	The classifier excludes temporary zero APR unless accrued interest may become payable.	External rate-change legality is not checked.
+P28	Correct counted cycles	predicate	Compute the start from the latest two cycle due dates no later than expiration, not a supplied expected value.	At least two actual cycles through the expiration cycle must be supplied.
+P29	Early-expiration partial cycle	predicate	Priority remains in effect after the two counted cycles until expiration.	Expiration dates are inclusive contract payoff dates in this model.
+P30	Issuer may decline requests	supporting / no standalone predicate	Default mode remains available even when a valid request exists.	No policy requires the issuer to elect the request branch.
+P31	Decline requests failing issuer requirements	supporting / no standalone predicate	Default mode remains available regardless of why the issuer declined.	This permission does not require a separate rejection policy or mandate issuer requirements.
+P32	No request uses default	predicate	A missing or unsubmitted request cannot activate an exception.	Complete request capture is assumed.
+P33	Unfulfillable request and replacement	predicate	Check sums, nonnegative amounts, targets, capacities, and submitted replacement links.	Operational definition of inability; other meanings of 'cannot comply' remain unresolved.
+P34	Affirmative specific contact	predicate	Recognize oral/electronic/written contact with explicit structured instructions.	Interpretation of a conversation into instructions is external evidence processing.
+P35	Completed submitted request form	predicate	An actual completed/submitted form, not default coupon text, supports the exception.	
+P36	Request to reallocate previous payment	predicate	Verify a prior accepted default allocation and a later submitted specific request.	Caller supplies the authoritative pre-payment balance snapshot for replacement; replacement is atomic.
+P37	Preprinted agreement is insufficient	predicate	Reject reliance on agreement deemed consent; an independent contact is a different evidence record.	
+P38	Untouched preselection is insufficient	predicate	Reject reliance on an untouched issuer-selected checkbox.	
+P39	Default payment coupon is insufficient	predicate	Reject reliance on default coupon text or selection.	
+P40	Imposed acceptance is insufficient	predicate	Reject requests based on imposed acceptance.	Whether a condition was imposed is externally evidenced.

@@ -1,0 +1,37 @@
+SOURCE transactions AS selected
+SINK payment_allocations AS allocation
+CONSTRAINT
+(selected.transaction_id IN (
+SELECT e.batch_id FROM (
+WITH base AS (
+SELECT p.*, pay.account_id, pay.credited_date, pay.cycle_end,
+       pay.total_cents, pay.minimum_cents
+FROM regz_proposals p JOIN regz_payments pay ON pay.payment_id = p.payment_id
+),
+practice_history AS (
+SELECT p.*, LAG(p.convention) OVER w AS previous_convention,
+ LAG(p.offset_days) OVER w AS previous_offset
+FROM regz_practices p
+WINDOW w AS (PARTITION BY p.account_id ORDER BY p.effective_date)
+)
+SELECT b.batch_id, 'allocation' AS kind,
+       (SELECT COUNT(*) FROM practice_history p WHERE p.account_id=b.account_id AND p.effective_date <= b.credited_date AND p.previous_convention IS NOT NULL AND (p.convention <> p.previous_convention OR p.offset_days <> p.previous_offset) AND (p.authorization_evidence IS NULL OR p.authorization_evidence='')) AS unauthorized_changes
+FROM base b
+) e WHERE (e.kind <> 'allocation' OR (e.unauthorized_changes = 0))
+) AND (
+ allocation.cash_advance_allocation*100 = (
+   SELECT line.excess_cents FROM regz_proposal_lines line
+   WHERE line.batch_id=selected.transaction_id AND line.balance_id=selected.transaction_id
+ ) AND EXISTS (
+   SELECT 1 FROM regz_proposals bp JOIN regz_payments pay ON pay.payment_id=bp.payment_id
+   WHERE bp.batch_id=selected.transaction_id AND pay.payment_id=allocation.transaction_id
+     AND pay.account_id=allocation.account_id AND pay.credited_date=allocation.payment_date
+     AND pay.total_cents=allocation.total_payment*100
+     AND pay.minimum_cents=allocation.minimum_payment_portion*100
+     AND NOT EXISTS (SELECT 1 FROM regz_proposal_lines other_line
+       WHERE other_line.batch_id=bp.batch_id AND other_line.balance_id<>bp.batch_id
+         AND other_line.excess_cents<>0)
+ ) AND allocation.purchase_allocation=0 AND allocation.balance_transfer_allocation=0
+   AND allocation.promo_allocation=0
+))
+ON FAIL REMOVE

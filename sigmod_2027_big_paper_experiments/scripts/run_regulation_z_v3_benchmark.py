@@ -50,6 +50,38 @@ def main() -> int:
         action="store_true",
         help="Generate distinct cash-advance APRs so the selected contributor is unambiguous.",
     )
+    parser.add_argument(
+        "--export-gprom",
+        type=Path,
+        help="Export the same generated evidence to a new GProM/SQLite fixture without model calls.",
+    )
+    parser.add_argument(
+        "--expanded-gprom",
+        action="store_true",
+        help="Compute GProM policy facts from raw evidence; omit summary tables.",
+    )
+    parser.add_argument(
+        "--run-gprom",
+        action="store_true",
+        help="With --export-gprom, run actual GProM reenactment and all 40 proposition results.",
+    )
+    parser.add_argument("--gprom-image", default="iitdbgroup/gprom:latest")
+    parser.add_argument(
+        "--export-provsql",
+        type=Path,
+        help="Export generated evidence and checked UPDATEs for ProvSQL.",
+    )
+    parser.add_argument(
+        "--run-provsql",
+        action="store_true",
+        help="Run the export in a fresh database in the ProvSQL container.",
+    )
+    parser.add_argument("--provsql-container", default="provsql-tpch-dfc")
+    parser.add_argument(
+        "--expanded-provsql",
+        action="store_true",
+        help="Inline raw-evidence policy calculations and omit materialized helper tables.",
+    )
     parser.add_argument("--num-accounts", type=int, default=DEFAULT_NUM_ACCOUNTS)
     parser.add_argument(
         "--skip-first-updates",
@@ -101,6 +133,59 @@ def main() -> int:
         help="Incremental per-allocation CSV. Defaults to <output stem>.progress.csv.",
     )
     args = parser.parse_args()
+    if args.export_gprom and args.export_provsql:
+        parser.error("Choose one of --export-gprom or --export-provsql")
+    if args.run_provsql and not args.export_provsql:
+        parser.error("--run-provsql requires --export-provsql")
+    if args.expanded_provsql and not args.export_provsql:
+        parser.error("--expanded-provsql requires --export-provsql")
+    if args.expanded_gprom and not args.export_gprom:
+        parser.error("--expanded-gprom requires --export-gprom")
+    if args.run_gprom and not args.export_gprom:
+        parser.error("--run-gprom requires --export-gprom")
+    if args.export_provsql:
+        from vldb_experiments.strategies.regulation_z_provsql import (
+            export_provsql_workload,
+            run_provsql_workload,
+        )
+
+        workload = generate_payment_allocation_workload(
+            num_accounts=args.num_accounts,
+            num_updates=args.num_updates,
+            workload_seed=args.workload_seed,
+            no_ties=args.no_ties,
+        )
+        export_provsql_workload(args.export_provsql, workload, expanded=args.expanded_provsql)
+        print(f"Exported {len(workload)} cases for ProvSQL to {args.export_provsql}")
+        if args.run_provsql:
+            result = run_provsql_workload(args.export_provsql, container=args.provsql_container)
+            for case in result["cases"]:
+                print(
+                    f"{case['allocation_id']} {case['selected_transaction_id']} "
+                    f"{case['decision']} verified={case['verified']}"
+                )
+            print(f"Database retained: {result['database']}")
+        return 0
+    if args.export_gprom:
+        from vldb_experiments.strategies.regulation_z_gprom import (
+            export_gprom_workload,
+            run_gprom_workload,
+        )
+
+        workload = generate_payment_allocation_workload(
+            num_accounts=args.num_accounts,
+            num_updates=args.num_updates,
+            workload_seed=args.workload_seed,
+            no_ties=args.no_ties,
+        )
+        export_gprom_workload(args.export_gprom, workload, expanded=args.expanded_gprom)
+        print(f"Exported {len(workload)} cases for GProM to {args.export_gprom}")
+        if args.run_gprom:
+            result = run_gprom_workload(args.export_gprom, image=args.gprom_image)
+            for case in result["cases"]:
+                print(f"{case['allocation_id']} {case['selected_balance']} {case['decision']}")
+            print(f"Source database unchanged: {result['source_unchanged']}")
+        return 0
     if not 0 <= args.skip_first_updates < args.num_updates:
         parser.error("--skip-first-updates must be between 0 and num-updates minus 1")
 

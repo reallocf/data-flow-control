@@ -1,0 +1,24 @@
+BEGIN
+CREATE SCHEMA
+SET
+CREATE TABLE
+CREATE TABLE
+INSERT 0 1
+INSERT 0 2
+ add_provenance 
+----------------
+ 
+(1 row)
+
+ add_provenance 
+----------------
+ 
+(1 row)
+
+ id | selected_id | good | exists_in_actual_database |             output_token             |               provsql                
+----+-------------+------+---------------------------+--------------------------------------+--------------------------------------
+  1 |           1 | f    | t                         | 058a1b1b-104f-5e7d-aa3d-1777cf4cb9ae | 058a1b1b-104f-5e7d-aa3d-1777cf4cb9ae
+  1 |           2 | t    | f                         | 37bd0a6d-6e02-5e5f-a13d-8b991a9cd158 | 37bd0a6d-6e02-5e5f-a13d-8b991a9cd158
+(2 rows)
+
+ROLLBACK

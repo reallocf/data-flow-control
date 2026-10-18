@@ -1,0 +1,32 @@
+{
+  "materialized": {
+    "operators": 31,
+    "scans": 8,
+    "optimizer_seconds": 0.0018562980000000004,
+    "statistics_seconds": 0.0001045,
+    "latency_seconds": 0.007226125,
+    "rewritten_bytes": 5421,
+    "correct": 100,
+    "allowed": 50
+  },
+  "view": {
+    "operators": 1874,
+    "scans": 336,
+    "optimizer_seconds": 0.20148858,
+    "statistics_seconds": 0.1628215,
+    "latency_seconds": 0.339092958,
+    "rewritten_bytes": 5421,
+    "correct": 100,
+    "allowed": 50
+  },
+  "expanded": {
+    "operators": 3560,
+    "scans": 643,
+    "optimizer_seconds": 0.5312035369999999,
+    "statistics_seconds": 0.454165166,
+    "latency_seconds": 0.769528792,
+    "rewritten_bytes": 99517,
+    "correct": 100,
+    "allowed": 50
+  }
+}

@@ -1,0 +1,913 @@
+{
+  "all_fields_match": [
+    "kind",
+    "method",
+    "snapshot_date",
+    "cycle_end",
+    "credited_date",
+    "request_basis",
+    "issuer_elected",
+    "affirmative",
+    "form_completed",
+    "required_condition",
+    "contact_channel",
+    "request_present",
+    "instruction_count",
+    "superseding_requests",
+    "prior_default_allocation",
+    "active_programs",
+    "window_programs",
+    "classification_mismatches",
+    "interim_payment_omissions",
+    "grace_classifications",
+    "zero_offer_classifications",
+    "effective_apr_mismatches",
+    "window_start_mismatches",
+    "highest_violations",
+    "remaining_violations",
+    "ordinary_violations",
+    "deferred_violations",
+    "snapshot_violations",
+    "early_expiry_violations",
+    "protected_reduction",
+    "unavoidable_protected_reduction",
+    "other_capacity_remaining",
+    "expected_snapshot_date",
+    "unauthorized_changes",
+    "missing_credit_cents",
+    "notice_count",
+    "request_mismatches",
+    "unsecured_request_targets",
+    "request_feasibility_errors"
+  ],
+  "policy_comparisons": [
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P01",
+      "rows": [
+        "CHG0000001A|P01|PASS",
+        "CHG0000001B|P01|PASS",
+        "CHG0000002A|P01|PASS",
+        "CHG0000002B|P01|PASS",
+        "CHG0000003A|P01|PASS",
+        "CHG0000003B|P01|PASS",
+        "CHG0000004A|P01|PASS",
+        "CHG0000004B|P01|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P02",
+      "rows": [
+        "CHG0000001A|P02|PASS",
+        "CHG0000001B|P02|PASS",
+        "CHG0000002A|P02|PASS",
+        "CHG0000002B|P02|PASS",
+        "CHG0000003A|P02|PASS",
+        "CHG0000003B|P02|PASS",
+        "CHG0000004A|P02|PASS",
+        "CHG0000004B|P02|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P03",
+      "rows": [
+        "CHG0000001A|P03|PASS",
+        "CHG0000001B|P03|PASS",
+        "CHG0000002A|P03|PASS",
+        "CHG0000002B|P03|PASS",
+        "CHG0000003A|P03|PASS",
+        "CHG0000003B|P03|PASS",
+        "CHG0000004A|P03|PASS",
+        "CHG0000004B|P03|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P04",
+      "rows": [
+        "CHG0000001A|P04|PASS",
+        "CHG0000001B|P04|PASS",
+        "CHG0000002A|P04|PASS",
+        "CHG0000002B|P04|PASS",
+        "CHG0000003A|P04|PASS",
+        "CHG0000003B|P04|PASS",
+        "CHG0000004A|P04|PASS",
+        "CHG0000004B|P04|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P05",
+      "rows": [
+        "CHG0000001A|P05|PASS",
+        "CHG0000001B|P05|PASS",
+        "CHG0000002A|P05|PASS",
+        "CHG0000002B|P05|PASS",
+        "CHG0000003A|P05|PASS",
+        "CHG0000003B|P05|PASS",
+        "CHG0000004A|P05|PASS",
+        "CHG0000004B|P05|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P06",
+      "rows": [
+        "CHG0000001A|P06|PASS",
+        "CHG0000001B|P06|PASS",
+        "CHG0000002A|P06|PASS",
+        "CHG0000002B|P06|PASS",
+        "CHG0000003A|P06|PASS",
+        "CHG0000003B|P06|PASS",
+        "CHG0000004A|P06|PASS",
+        "CHG0000004B|P06|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P07",
+      "rows": [
+        "CHG0000001A|P07|PASS",
+        "CHG0000001B|P07|PASS",
+        "CHG0000002A|P07|PASS",
+        "CHG0000002B|P07|PASS",
+        "CHG0000003A|P07|PASS",
+        "CHG0000003B|P07|PASS",
+        "CHG0000004A|P07|PASS",
+        "CHG0000004B|P07|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P08",
+      "rows": [
+        "CHG0000001A|P08|PASS",
+        "CHG0000001B|P08|PASS",
+        "CHG0000002A|P08|PASS",
+        "CHG0000002B|P08|PASS",
+        "CHG0000003A|P08|PASS",
+        "CHG0000003B|P08|PASS",
+        "CHG0000004A|P08|PASS",
+        "CHG0000004B|P08|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P13",
+      "rows": [
+        "CHG0000001A|P13|PASS",
+        "CHG0000001B|P13|PASS",
+        "CHG0000002A|P13|PASS",
+        "CHG0000002B|P13|PASS",
+        "CHG0000003A|P13|PASS",
+        "CHG0000003B|P13|PASS",
+        "CHG0000004A|P13|PASS",
+        "CHG0000004B|P13|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P14",
+      "rows": [
+        "CHG0000001A|P14|PASS",
+        "CHG0000001B|P14|PASS",
+        "CHG0000002A|P14|PASS",
+        "CHG0000002B|P14|PASS",
+        "CHG0000003A|P14|PASS",
+        "CHG0000003B|P14|PASS",
+        "CHG0000004A|P14|PASS",
+        "CHG0000004B|P14|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P15",
+      "rows": [
+        "CHG0000001A|P15|PASS",
+        "CHG0000001B|P15|PASS",
+        "CHG0000002A|P15|PASS",
+        "CHG0000002B|P15|PASS",
+        "CHG0000003A|P15|PASS",
+        "CHG0000003B|P15|PASS",
+        "CHG0000004A|P15|PASS",
+        "CHG0000004B|P15|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P16",
+      "rows": [
+        "CHG0000001A|P16|PASS",
+        "CHG0000001B|P16|PASS",
+        "CHG0000002A|P16|PASS",
+        "CHG0000002B|P16|PASS",
+        "CHG0000003A|P16|PASS",
+        "CHG0000003B|P16|PASS",
+        "CHG0000004A|P16|PASS",
+        "CHG0000004B|P16|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P17",
+      "rows": [
+        "CHG0000001A|P17|FAIL",
+        "CHG0000001B|P17|PASS",
+        "CHG0000002A|P17|PASS",
+        "CHG0000002B|P17|FAIL",
+        "CHG0000003A|P17|FAIL",
+        "CHG0000003B|P17|PASS",
+        "CHG0000004A|P17|PASS",
+        "CHG0000004B|P17|FAIL"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P18",
+      "rows": [
+        "CHG0000001A|P18|PASS",
+        "CHG0000001B|P18|PASS",
+        "CHG0000002A|P18|PASS",
+        "CHG0000002B|P18|PASS",
+        "CHG0000003A|P18|PASS",
+        "CHG0000003B|P18|PASS",
+        "CHG0000004A|P18|PASS",
+        "CHG0000004B|P18|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P19",
+      "rows": [
+        "CHG0000001A|P19|NOT_APPLICABLE",
+        "CHG0000001B|P19|NOT_APPLICABLE",
+        "CHG0000002A|P19|NOT_APPLICABLE",
+        "CHG0000002B|P19|NOT_APPLICABLE",
+        "CHG0000003A|P19|NOT_APPLICABLE",
+        "CHG0000003B|P19|NOT_APPLICABLE",
+        "CHG0000004A|P19|NOT_APPLICABLE",
+        "CHG0000004B|P19|NOT_APPLICABLE"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P20",
+      "rows": [
+        "CHG0000001A|P20|NOT_APPLICABLE",
+        "CHG0000001B|P20|NOT_APPLICABLE",
+        "CHG0000002A|P20|NOT_APPLICABLE",
+        "CHG0000002B|P20|NOT_APPLICABLE",
+        "CHG0000003A|P20|NOT_APPLICABLE",
+        "CHG0000003B|P20|NOT_APPLICABLE",
+        "CHG0000004A|P20|NOT_APPLICABLE",
+        "CHG0000004B|P20|NOT_APPLICABLE"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P23",
+      "rows": [
+        "CHG0000001A|P23|PASS",
+        "CHG0000001B|P23|PASS",
+        "CHG0000002A|P23|PASS",
+        "CHG0000002B|P23|PASS",
+        "CHG0000003A|P23|PASS",
+        "CHG0000003B|P23|PASS",
+        "CHG0000004A|P23|PASS",
+        "CHG0000004B|P23|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P25",
+      "rows": [
+        "CHG0000001A|P25|PASS",
+        "CHG0000001B|P25|PASS",
+        "CHG0000002A|P25|PASS",
+        "CHG0000002B|P25|PASS",
+        "CHG0000003A|P25|PASS",
+        "CHG0000003B|P25|PASS",
+        "CHG0000004A|P25|PASS",
+        "CHG0000004B|P25|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P26",
+      "rows": [
+        "CHG0000001A|P26|PASS",
+        "CHG0000001B|P26|PASS",
+        "CHG0000002A|P26|PASS",
+        "CHG0000002B|P26|PASS",
+        "CHG0000003A|P26|PASS",
+        "CHG0000003B|P26|PASS",
+        "CHG0000004A|P26|PASS",
+        "CHG0000004B|P26|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P27",
+      "rows": [
+        "CHG0000001A|P27|PASS",
+        "CHG0000001B|P27|PASS",
+        "CHG0000002A|P27|PASS",
+        "CHG0000002B|P27|PASS",
+        "CHG0000003A|P27|PASS",
+        "CHG0000003B|P27|PASS",
+        "CHG0000004A|P27|PASS",
+        "CHG0000004B|P27|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P28",
+      "rows": [
+        "CHG0000001A|P28|PASS",
+        "CHG0000001B|P28|PASS",
+        "CHG0000002A|P28|PASS",
+        "CHG0000002B|P28|PASS",
+        "CHG0000003A|P28|PASS",
+        "CHG0000003B|P28|PASS",
+        "CHG0000004A|P28|PASS",
+        "CHG0000004B|P28|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P29",
+      "rows": [
+        "CHG0000001A|P29|PASS",
+        "CHG0000001B|P29|PASS",
+        "CHG0000002A|P29|PASS",
+        "CHG0000002B|P29|PASS",
+        "CHG0000003A|P29|PASS",
+        "CHG0000003B|P29|PASS",
+        "CHG0000004A|P29|PASS",
+        "CHG0000004B|P29|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P32",
+      "rows": [
+        "CHG0000001A|P32|PASS",
+        "CHG0000001B|P32|PASS",
+        "CHG0000002A|P32|PASS",
+        "CHG0000002B|P32|PASS",
+        "CHG0000003A|P32|PASS",
+        "CHG0000003B|P32|PASS",
+        "CHG0000004A|P32|PASS",
+        "CHG0000004B|P32|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P33",
+      "rows": [
+        "CHG0000001A|P33|PASS",
+        "CHG0000001B|P33|PASS",
+        "CHG0000002A|P33|PASS",
+        "CHG0000002B|P33|PASS",
+        "CHG0000003A|P33|PASS",
+        "CHG0000003B|P33|PASS",
+        "CHG0000004A|P33|PASS",
+        "CHG0000004B|P33|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P34",
+      "rows": [
+        "CHG0000001A|P34|PASS",
+        "CHG0000001B|P34|PASS",
+        "CHG0000002A|P34|PASS",
+        "CHG0000002B|P34|PASS",
+        "CHG0000003A|P34|PASS",
+        "CHG0000003B|P34|PASS",
+        "CHG0000004A|P34|PASS",
+        "CHG0000004B|P34|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P35",
+      "rows": [
+        "CHG0000001A|P35|PASS",
+        "CHG0000001B|P35|PASS",
+        "CHG0000002A|P35|PASS",
+        "CHG0000002B|P35|PASS",
+        "CHG0000003A|P35|PASS",
+        "CHG0000003B|P35|PASS",
+        "CHG0000004A|P35|PASS",
+        "CHG0000004B|P35|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P36",
+      "rows": [
+        "CHG0000001A|P36|PASS",
+        "CHG0000001B|P36|PASS",
+        "CHG0000002A|P36|PASS",
+        "CHG0000002B|P36|PASS",
+        "CHG0000003A|P36|PASS",
+        "CHG0000003B|P36|PASS",
+        "CHG0000004A|P36|PASS",
+        "CHG0000004B|P36|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P37",
+      "rows": [
+        "CHG0000001A|P37|PASS",
+        "CHG0000001B|P37|PASS",
+        "CHG0000002A|P37|PASS",
+        "CHG0000002B|P37|PASS",
+        "CHG0000003A|P37|PASS",
+        "CHG0000003B|P37|PASS",
+        "CHG0000004A|P37|PASS",
+        "CHG0000004B|P37|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P38",
+      "rows": [
+        "CHG0000001A|P38|PASS",
+        "CHG0000001B|P38|PASS",
+        "CHG0000002A|P38|PASS",
+        "CHG0000002B|P38|PASS",
+        "CHG0000003A|P38|PASS",
+        "CHG0000003B|P38|PASS",
+        "CHG0000004A|P38|PASS",
+        "CHG0000004B|P38|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P39",
+      "rows": [
+        "CHG0000001A|P39|PASS",
+        "CHG0000001B|P39|PASS",
+        "CHG0000002A|P39|PASS",
+        "CHG0000002B|P39|PASS",
+        "CHG0000003A|P39|PASS",
+        "CHG0000003B|P39|PASS",
+        "CHG0000004A|P39|PASS",
+        "CHG0000004B|P39|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_103d5f4cec8a",
+      "policy": "P40",
+      "rows": [
+        "CHG0000001A|P40|PASS",
+        "CHG0000001B|P40|PASS",
+        "CHG0000002A|P40|PASS",
+        "CHG0000002B|P40|PASS",
+        "CHG0000003A|P40|PASS",
+        "CHG0000003B|P40|PASS",
+        "CHG0000004A|P40|PASS",
+        "CHG0000004B|P40|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P01",
+      "rows": [
+        "CHG0000001A|P01|PASS",
+        "CHG0000001B|P01|PASS",
+        "CHG0000002A|P01|PASS",
+        "CHG0000002B|P01|PASS",
+        "CHG0000003A|P01|PASS",
+        "CHG0000003B|P01|PASS",
+        "CHG0000004A|P01|PASS",
+        "CHG0000004B|P01|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P02",
+      "rows": [
+        "CHG0000001A|P02|PASS",
+        "CHG0000001B|P02|PASS",
+        "CHG0000002A|P02|PASS",
+        "CHG0000002B|P02|PASS",
+        "CHG0000003A|P02|PASS",
+        "CHG0000003B|P02|PASS",
+        "CHG0000004A|P02|PASS",
+        "CHG0000004B|P02|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P03",
+      "rows": [
+        "CHG0000001A|P03|PASS",
+        "CHG0000001B|P03|PASS",
+        "CHG0000002A|P03|PASS",
+        "CHG0000002B|P03|PASS",
+        "CHG0000003A|P03|PASS",
+        "CHG0000003B|P03|PASS",
+        "CHG0000004A|P03|PASS",
+        "CHG0000004B|P03|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P04",
+      "rows": [
+        "CHG0000001A|P04|PASS",
+        "CHG0000001B|P04|PASS",
+        "CHG0000002A|P04|PASS",
+        "CHG0000002B|P04|PASS",
+        "CHG0000003A|P04|PASS",
+        "CHG0000003B|P04|PASS",
+        "CHG0000004A|P04|PASS",
+        "CHG0000004B|P04|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P05",
+      "rows": [
+        "CHG0000001A|P05|PASS",
+        "CHG0000001B|P05|PASS",
+        "CHG0000002A|P05|PASS",
+        "CHG0000002B|P05|PASS",
+        "CHG0000003A|P05|PASS",
+        "CHG0000003B|P05|PASS",
+        "CHG0000004A|P05|PASS",
+        "CHG0000004B|P05|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P06",
+      "rows": [
+        "CHG0000001A|P06|PASS",
+        "CHG0000001B|P06|PASS",
+        "CHG0000002A|P06|PASS",
+        "CHG0000002B|P06|PASS",
+        "CHG0000003A|P06|PASS",
+        "CHG0000003B|P06|PASS",
+        "CHG0000004A|P06|PASS",
+        "CHG0000004B|P06|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P07",
+      "rows": [
+        "CHG0000001A|P07|PASS",
+        "CHG0000001B|P07|PASS",
+        "CHG0000002A|P07|PASS",
+        "CHG0000002B|P07|PASS",
+        "CHG0000003A|P07|PASS",
+        "CHG0000003B|P07|PASS",
+        "CHG0000004A|P07|PASS",
+        "CHG0000004B|P07|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P08",
+      "rows": [
+        "CHG0000001A|P08|PASS",
+        "CHG0000001B|P08|PASS",
+        "CHG0000002A|P08|PASS",
+        "CHG0000002B|P08|PASS",
+        "CHG0000003A|P08|PASS",
+        "CHG0000003B|P08|PASS",
+        "CHG0000004A|P08|PASS",
+        "CHG0000004B|P08|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P13",
+      "rows": [
+        "CHG0000001A|P13|PASS",
+        "CHG0000001B|P13|PASS",
+        "CHG0000002A|P13|PASS",
+        "CHG0000002B|P13|PASS",
+        "CHG0000003A|P13|PASS",
+        "CHG0000003B|P13|PASS",
+        "CHG0000004A|P13|PASS",
+        "CHG0000004B|P13|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P14",
+      "rows": [
+        "CHG0000001A|P14|PASS",
+        "CHG0000001B|P14|PASS",
+        "CHG0000002A|P14|PASS",
+        "CHG0000002B|P14|PASS",
+        "CHG0000003A|P14|PASS",
+        "CHG0000003B|P14|PASS",
+        "CHG0000004A|P14|PASS",
+        "CHG0000004B|P14|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P15",
+      "rows": [
+        "CHG0000001A|P15|PASS",
+        "CHG0000001B|P15|PASS",
+        "CHG0000002A|P15|PASS",
+        "CHG0000002B|P15|PASS",
+        "CHG0000003A|P15|PASS",
+        "CHG0000003B|P15|PASS",
+        "CHG0000004A|P15|PASS",
+        "CHG0000004B|P15|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P16",
+      "rows": [
+        "CHG0000001A|P16|PASS",
+        "CHG0000001B|P16|PASS",
+        "CHG0000002A|P16|PASS",
+        "CHG0000002B|P16|PASS",
+        "CHG0000003A|P16|PASS",
+        "CHG0000003B|P16|PASS",
+        "CHG0000004A|P16|PASS",
+        "CHG0000004B|P16|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P17",
+      "rows": [
+        "CHG0000001A|P17|FAIL",
+        "CHG0000001B|P17|PASS",
+        "CHG0000002A|P17|PASS",
+        "CHG0000002B|P17|FAIL",
+        "CHG0000003A|P17|FAIL",
+        "CHG0000003B|P17|PASS",
+        "CHG0000004A|P17|PASS",
+        "CHG0000004B|P17|FAIL"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P18",
+      "rows": [
+        "CHG0000001A|P18|PASS",
+        "CHG0000001B|P18|PASS",
+        "CHG0000002A|P18|PASS",
+        "CHG0000002B|P18|PASS",
+        "CHG0000003A|P18|PASS",
+        "CHG0000003B|P18|PASS",
+        "CHG0000004A|P18|PASS",
+        "CHG0000004B|P18|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P19",
+      "rows": [
+        "CHG0000001A|P19|NOT_APPLICABLE",
+        "CHG0000001B|P19|NOT_APPLICABLE",
+        "CHG0000002A|P19|NOT_APPLICABLE",
+        "CHG0000002B|P19|NOT_APPLICABLE",
+        "CHG0000003A|P19|NOT_APPLICABLE",
+        "CHG0000003B|P19|NOT_APPLICABLE",
+        "CHG0000004A|P19|NOT_APPLICABLE",
+        "CHG0000004B|P19|NOT_APPLICABLE"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P20",
+      "rows": [
+        "CHG0000001A|P20|NOT_APPLICABLE",
+        "CHG0000001B|P20|NOT_APPLICABLE",
+        "CHG0000002A|P20|NOT_APPLICABLE",
+        "CHG0000002B|P20|NOT_APPLICABLE",
+        "CHG0000003A|P20|NOT_APPLICABLE",
+        "CHG0000003B|P20|NOT_APPLICABLE",
+        "CHG0000004A|P20|NOT_APPLICABLE",
+        "CHG0000004B|P20|NOT_APPLICABLE"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P23",
+      "rows": [
+        "CHG0000001A|P23|PASS",
+        "CHG0000001B|P23|PASS",
+        "CHG0000002A|P23|PASS",
+        "CHG0000002B|P23|PASS",
+        "CHG0000003A|P23|PASS",
+        "CHG0000003B|P23|PASS",
+        "CHG0000004A|P23|PASS",
+        "CHG0000004B|P23|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P25",
+      "rows": [
+        "CHG0000001A|P25|PASS",
+        "CHG0000001B|P25|PASS",
+        "CHG0000002A|P25|PASS",
+        "CHG0000002B|P25|PASS",
+        "CHG0000003A|P25|PASS",
+        "CHG0000003B|P25|PASS",
+        "CHG0000004A|P25|PASS",
+        "CHG0000004B|P25|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P26",
+      "rows": [
+        "CHG0000001A|P26|PASS",
+        "CHG0000001B|P26|PASS",
+        "CHG0000002A|P26|PASS",
+        "CHG0000002B|P26|PASS",
+        "CHG0000003A|P26|PASS",
+        "CHG0000003B|P26|PASS",
+        "CHG0000004A|P26|PASS",
+        "CHG0000004B|P26|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P27",
+      "rows": [
+        "CHG0000001A|P27|PASS",
+        "CHG0000001B|P27|PASS",
+        "CHG0000002A|P27|PASS",
+        "CHG0000002B|P27|PASS",
+        "CHG0000003A|P27|PASS",
+        "CHG0000003B|P27|PASS",
+        "CHG0000004A|P27|PASS",
+        "CHG0000004B|P27|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P28",
+      "rows": [
+        "CHG0000001A|P28|PASS",
+        "CHG0000001B|P28|PASS",
+        "CHG0000002A|P28|PASS",
+        "CHG0000002B|P28|PASS",
+        "CHG0000003A|P28|PASS",
+        "CHG0000003B|P28|PASS",
+        "CHG0000004A|P28|PASS",
+        "CHG0000004B|P28|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P29",
+      "rows": [
+        "CHG0000001A|P29|PASS",
+        "CHG0000001B|P29|PASS",
+        "CHG0000002A|P29|PASS",
+        "CHG0000002B|P29|PASS",
+        "CHG0000003A|P29|PASS",
+        "CHG0000003B|P29|PASS",
+        "CHG0000004A|P29|PASS",
+        "CHG0000004B|P29|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P32",
+      "rows": [
+        "CHG0000001A|P32|PASS",
+        "CHG0000001B|P32|PASS",
+        "CHG0000002A|P32|PASS",
+        "CHG0000002B|P32|PASS",
+        "CHG0000003A|P32|PASS",
+        "CHG0000003B|P32|PASS",
+        "CHG0000004A|P32|PASS",
+        "CHG0000004B|P32|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P33",
+      "rows": [
+        "CHG0000001A|P33|PASS",
+        "CHG0000001B|P33|PASS",
+        "CHG0000002A|P33|PASS",
+        "CHG0000002B|P33|PASS",
+        "CHG0000003A|P33|PASS",
+        "CHG0000003B|P33|PASS",
+        "CHG0000004A|P33|PASS",
+        "CHG0000004B|P33|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P34",
+      "rows": [
+        "CHG0000001A|P34|PASS",
+        "CHG0000001B|P34|PASS",
+        "CHG0000002A|P34|PASS",
+        "CHG0000002B|P34|PASS",
+        "CHG0000003A|P34|PASS",
+        "CHG0000003B|P34|PASS",
+        "CHG0000004A|P34|PASS",
+        "CHG0000004B|P34|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P35",
+      "rows": [
+        "CHG0000001A|P35|PASS",
+        "CHG0000001B|P35|PASS",
+        "CHG0000002A|P35|PASS",
+        "CHG0000002B|P35|PASS",
+        "CHG0000003A|P35|PASS",
+        "CHG0000003B|P35|PASS",
+        "CHG0000004A|P35|PASS",
+        "CHG0000004B|P35|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P36",
+      "rows": [
+        "CHG0000001A|P36|PASS",
+        "CHG0000001B|P36|PASS",
+        "CHG0000002A|P36|PASS",
+        "CHG0000002B|P36|PASS",
+        "CHG0000003A|P36|PASS",
+        "CHG0000003B|P36|PASS",
+        "CHG0000004A|P36|PASS",
+        "CHG0000004B|P36|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P37",
+      "rows": [
+        "CHG0000001A|P37|PASS",
+        "CHG0000001B|P37|PASS",
+        "CHG0000002A|P37|PASS",
+        "CHG0000002B|P37|PASS",
+        "CHG0000003A|P37|PASS",
+        "CHG0000003B|P37|PASS",
+        "CHG0000004A|P37|PASS",
+        "CHG0000004B|P37|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P38",
+      "rows": [
+        "CHG0000001A|P38|PASS",
+        "CHG0000001B|P38|PASS",
+        "CHG0000002A|P38|PASS",
+        "CHG0000002B|P38|PASS",
+        "CHG0000003A|P38|PASS",
+        "CHG0000003B|P38|PASS",
+        "CHG0000004A|P38|PASS",
+        "CHG0000004B|P38|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P39",
+      "rows": [
+        "CHG0000001A|P39|PASS",
+        "CHG0000001B|P39|PASS",
+        "CHG0000002A|P39|PASS",
+        "CHG0000002B|P39|PASS",
+        "CHG0000003A|P39|PASS",
+        "CHG0000003B|P39|PASS",
+        "CHG0000004A|P39|PASS",
+        "CHG0000004B|P39|PASS"
+      ]
+    },
+    {
+      "database": "regz_provsql_7e989694c059",
+      "policy": "P40",
+      "rows": [
+        "CHG0000001A|P40|PASS",
+        "CHG0000001B|P40|PASS",
+        "CHG0000002A|P40|PASS",
+        "CHG0000002B|P40|PASS",
+        "CHG0000003A|P40|PASS",
+        "CHG0000003B|P40|PASS",
+        "CHG0000004A|P40|PASS",
+        "CHG0000004B|P40|PASS"
+      ]
+    }
+  ]
+}

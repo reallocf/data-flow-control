@@ -23,15 +23,19 @@ if TYPE_CHECKING:
 EVIDENCE_TABLES = (*(ddl.split()[2] for ddl in SCHEMA_DDL), "regz_context")
 
 
-def reset_full_evidence(conn: Any, workload: list[PaymentAllocationCase]) -> None:
+def reset_full_evidence(
+    conn: Any, workload: list[PaymentAllocationCase], *, materialize_context: bool = True
+) -> None:
     for table in EVIDENCE_TABLES:
         conn.execute(f"DROP TABLE IF EXISTS {table}")
     create_schema(conn)
     for case in workload:
-        load_case_evidence(conn, case)
+        load_case_evidence(conn, case, materialize_context=materialize_context)
 
 
-def load_case_evidence(conn: Any, case: PaymentAllocationCase) -> None:
+def load_case_evidence(
+    conn: Any, case: PaymentAllocationCase, *, materialize_context: bool = True
+) -> None:
     """Add real terms/history and derive a complete proposal for each candidate."""
     account, payment = case.account_id, case.payment_transaction_id
     minimum_lot, promo_lot = f"{account}-MIN", f"{account}-PROMO"
@@ -117,6 +121,8 @@ def load_case_evidence(conn: Any, case: PaymentAllocationCase) -> None:
             "INSERT INTO regz_proposal_lines VALUES (?, ?, 0, 0, 0, ?)",
             [batch, promo_lot, window_start],
         )
+        if not materialize_context:
+            continue
         context = derive_allocation_context(conn, batch)
         columns = list(context)
         conn.execute(

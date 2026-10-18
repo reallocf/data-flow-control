@@ -1,0 +1,5 @@
+SOURCE regz_context
+SINK payment_allocations AS allocation
+CONSTRAINT
+    (regz_context.kind <> 'allocation' OR (regz_context.method <> 'deferred_request' OR (regz_context.active_programs > 0 AND regz_context.issuer_elected AND regz_context.request_mismatches = 0)))
+ON FAIL REMOVE

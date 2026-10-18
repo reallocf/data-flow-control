@@ -1,0 +1,40 @@
+SOURCE transactions AS selected
+SINK payment_allocations AS allocation
+CONSTRAINT
+(selected.transaction_id IN (
+SELECT e.batch_id FROM (
+WITH base AS (
+SELECT p.*, pay.account_id, pay.credited_date, pay.cycle_end,
+       pay.total_cents, pay.minimum_cents
+FROM regz_proposals p JOIN regz_payments pay ON pay.payment_id = p.payment_id
+),
+request AS (
+SELECT b.batch_id, r.* FROM base b JOIN regz_requests r ON r.request_id = b.request_id
+WHERE b.method <> 'default'
+)
+SELECT b.batch_id, COALESCE((SELECT r.affirmative FROM request r WHERE r.batch_id=b.batch_id), false) AS affirmative,
+       COALESCE((SELECT r.channel IN ('oral','electronic','written') FROM request r WHERE r.batch_id=b.batch_id), false) AS contact_channel,
+       (SELECT COUNT(*) FROM request r JOIN regz_request_lines i ON i.request_id=r.request_id WHERE r.batch_id=b.batch_id) AS instruction_count,
+       'allocation' AS kind,
+       b.method AS method,
+       EXISTS (SELECT 1 FROM request r WHERE r.batch_id=b.batch_id AND r.submitted_date IS NOT NULL AND EXISTS (SELECT 1 FROM regz_posted_allocations p WHERE p.batch_id=b.replaces_batch_id AND p.payment_id=b.payment_id) AND NOT EXISTS (SELECT 1 FROM regz_posted_allocations p WHERE p.batch_id=b.replaces_batch_id AND p.payment_id=b.payment_id AND (p.method <> 'default' OR p.decision_date > r.submitted_date))) AS prior_default_allocation,
+       COALESCE((SELECT r.basis FROM request r WHERE r.batch_id=b.batch_id), 'none') AS request_basis
+FROM base b
+) e WHERE (e.kind <> 'allocation' OR (e.method = 'default' OR (e.request_basis <> 'reallocation' OR (e.prior_default_allocation AND e.affirmative AND e.contact_channel AND e.instruction_count > 0))))
+) AND (
+ allocation.cash_advance_allocation*100 = (
+   SELECT line.excess_cents FROM regz_proposal_lines line
+   WHERE line.batch_id=selected.transaction_id AND line.balance_id=selected.transaction_id
+ ) AND EXISTS (
+   SELECT 1 FROM regz_proposals bp JOIN regz_payments pay ON pay.payment_id=bp.payment_id
+   WHERE bp.batch_id=selected.transaction_id AND pay.payment_id=allocation.transaction_id
+     AND pay.account_id=allocation.account_id AND pay.credited_date=allocation.payment_date
+     AND pay.total_cents=allocation.total_payment*100
+     AND pay.minimum_cents=allocation.minimum_payment_portion*100
+     AND NOT EXISTS (SELECT 1 FROM regz_proposal_lines other_line
+       WHERE other_line.batch_id=bp.batch_id AND other_line.balance_id<>bp.batch_id
+         AND other_line.excess_cents<>0)
+ ) AND allocation.purchase_allocation=0 AND allocation.balance_transfer_allocation=0
+   AND allocation.promo_allocation=0
+))
+ON FAIL REMOVE

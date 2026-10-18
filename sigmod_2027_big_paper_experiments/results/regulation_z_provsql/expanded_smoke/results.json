@@ -1,0 +1,76 @@
+{
+  "database": "regz_provsql_f5a7d7ab625e",
+  "container": "provsql-tpch-dfc",
+  "expanded": true,
+  "jit": false,
+  "cases": [
+    {
+      "allocation_id": "ALLOC0000001",
+      "disputed_transaction_id": "CHG0000001A",
+      "undisputed_transaction_id": "CHG0000001B",
+      "generator_expected_selection": "CHG0000001B",
+      "candidate_cash": {
+        "CHG0000001B": "100.0",
+        "CHG0000001A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000001B",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2488.4898329910357
+    },
+    {
+      "allocation_id": "ALLOC0000002",
+      "disputed_transaction_id": "CHG0000002B",
+      "undisputed_transaction_id": "CHG0000002A",
+      "generator_expected_selection": "CHG0000002B",
+      "candidate_cash": {
+        "CHG0000002B": "100.0",
+        "CHG0000002A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000002B",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2092.185666988371
+    },
+    {
+      "allocation_id": "ALLOC0000003",
+      "disputed_transaction_id": "CHG0000003A",
+      "undisputed_transaction_id": "CHG0000003B",
+      "generator_expected_selection": "CHG0000003A",
+      "candidate_cash": {
+        "CHG0000003A": "100.0",
+        "CHG0000003B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000003A",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2070.8332500071265
+    },
+    {
+      "allocation_id": "ALLOC0000004",
+      "disputed_transaction_id": "CHG0000004B",
+      "undisputed_transaction_id": "CHG0000004A",
+      "generator_expected_selection": "CHG0000004A",
+      "candidate_cash": {
+        "CHG0000004A": "100.0",
+        "CHG0000004B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000004A",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2155.4063749790657
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+SOURCE regz_context
+SINK payment_allocations AS allocation
+CONSTRAINT
+    (regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'reallocation' OR (regz_context.prior_default_allocation AND regz_context.affirmative AND regz_context.contact_channel AND regz_context.instruction_count > 0))))
+ON FAIL REMOVE

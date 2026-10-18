@@ -1,0 +1,18 @@
+{
+  "version": "workflow-v1",
+  "status": "prompt_and_submission_contract_ready_execution_evaluator_pending",
+  "source_page_snapshot": "../prompts/source.json",
+  "files": {
+    "specification.md": "22e6181828bd1bc857885bbcbc27b388e3443f335501f619c812ba17b6b3a279",
+    "evidence.md": "9537dc8f2d5168acd746472d999df99c013eb61f038c0b004743d32b3fd66deb",
+    "gprom.md": "375b034ffde957832fa5b1d49a55e3be89753d3a752f7adeff276f4b49fbe9dc",
+    "schema.md": "adc37698f55fb08dededee67c4e80365bed382c8644e0a8f877828983460d8cf",
+    "exact-provsql.txt": "41ee6a87e715a3917daa6a14c2a681ccb8ac47d11b9a0bcf3067b18af7b0addb",
+    "exact-gprom.txt": "703da24d3196cebfffaefce2fbd460c98bccfbe836e3854fd3d07c36cec46322",
+    "exact-dfc.txt": "57af6e9cd309aed354f38a5955c5ab874571413c5bfa69e3ffd6a1dadb09cbf4",
+    "task.md": "8f287efa1c1ecb52f06908d23edc18f8310cb502dbf5e2f47644150167925782",
+    "dfc.md": "f3fdb2aa927b6208027b4f04924a1f897ede1842afd7c59a63bcb5af3b1b70f8",
+    "provsql.md": "dfd74572fac4ce976c457df9a4030cfb3b924d73b2bac9ec98c4dc110ba85d06"
+  },
+  "note": "No reference predicates, saved queries, or example outputs included. Fixed engine interfaces do not prescribe policy decomposition."
+}
