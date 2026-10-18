@@ -1,0 +1,74 @@
+{
+  "tables": {
+    "allocation_snapshot_context": 4,
+    "balance_components": 8,
+    "daily_balances": 8,
+    "payment_allocations": 4,
+    "regz_acceptances": 0,
+    "regz_accounts": 4,
+    "regz_balances": 32,
+    "regz_context": 8,
+    "regz_correction_completions": 0,
+    "regz_credits": 0,
+    "regz_cycles": 20,
+    "regz_dispatches": 0,
+    "regz_error_items": 0,
+    "regz_error_obligations": 0,
+    "regz_payment_heads": 0,
+    "regz_payments": 4,
+    "regz_posted_allocations": 0,
+    "regz_posted_classifications": 0,
+    "regz_practices": 4,
+    "regz_program_classifications": 8,
+    "regz_programs": 4,
+    "regz_proposal_lines": 32,
+    "regz_proposals": 8,
+    "regz_request_lines": 0,
+    "regz_requests": 0,
+    "regz_snapshot_sets": 8,
+    "statements": 4,
+    "transactions": 12
+  },
+  "cases": [
+    {
+      "allocation_id": "ALLOC0000001",
+      "disputed_transaction_id": "CHG0000001A",
+      "undisputed_transaction_id": "CHG0000001B",
+      "generator_expected_selection": "CHG0000001B",
+      "candidate_cash": {
+        "CHG0000001B": "100.0",
+        "CHG0000001A": "100.0"
+      }
+    },
+    {
+      "allocation_id": "ALLOC0000002",
+      "disputed_transaction_id": "CHG0000002B",
+      "undisputed_transaction_id": "CHG0000002A",
+      "generator_expected_selection": "CHG0000002B",
+      "candidate_cash": {
+        "CHG0000002B": "100.0",
+        "CHG0000002A": "100.0"
+      }
+    },
+    {
+      "allocation_id": "ALLOC0000003",
+      "disputed_transaction_id": "CHG0000003A",
+      "undisputed_transaction_id": "CHG0000003B",
+      "generator_expected_selection": "CHG0000003A",
+      "candidate_cash": {
+        "CHG0000003A": "100.0",
+        "CHG0000003B": "100.0"
+      }
+    },
+    {
+      "allocation_id": "ALLOC0000004",
+      "disputed_transaction_id": "CHG0000004B",
+      "undisputed_transaction_id": "CHG0000004A",
+      "generator_expected_selection": "CHG0000004A",
+      "candidate_cash": {
+        "CHG0000004A": "100.0",
+        "CHG0000004B": "100.0"
+      }
+    }
+  ]
+}

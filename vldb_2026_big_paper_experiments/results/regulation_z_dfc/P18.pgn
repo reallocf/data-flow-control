@@ -1,0 +1,5 @@
+SOURCE regz_context
+SINK payment_allocations AS allocation
+CONSTRAINT
+    (regz_context.kind <> 'allocation' OR (regz_context.unavoidable_protected_reduction = 0 OR regz_context.protected_reduction = 0 OR regz_context.other_capacity_remaining = 0))
+ON FAIL REMOVE

@@ -1,0 +1,348 @@
+{
+  "database": "regz_provsql_4c09894260ab",
+  "container": "provsql-tpch-dfc",
+  "expanded": true,
+  "jit": false,
+  "cases": [
+    {
+      "allocation_id": "ALLOC0000001",
+      "disputed_transaction_id": "CHG0000001A",
+      "undisputed_transaction_id": "CHG0000001B",
+      "generator_expected_selection": "CHG0000001B",
+      "candidate_cash": {
+        "CHG0000001B": "100.0",
+        "CHG0000001A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000001B",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 3378.865417005727
+    },
+    {
+      "allocation_id": "ALLOC0000002",
+      "disputed_transaction_id": "CHG0000002B",
+      "undisputed_transaction_id": "CHG0000002A",
+      "generator_expected_selection": "CHG0000002B",
+      "candidate_cash": {
+        "CHG0000002B": "100.0",
+        "CHG0000002A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000002B",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2965.790666989051
+    },
+    {
+      "allocation_id": "ALLOC0000003",
+      "disputed_transaction_id": "CHG0000003A",
+      "undisputed_transaction_id": "CHG0000003B",
+      "generator_expected_selection": "CHG0000003A",
+      "candidate_cash": {
+        "CHG0000003A": "100.0",
+        "CHG0000003B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000003A",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 3102.7923329966143
+    },
+    {
+      "allocation_id": "ALLOC0000004",
+      "disputed_transaction_id": "CHG0000004B",
+      "undisputed_transaction_id": "CHG0000004A",
+      "generator_expected_selection": "CHG0000004A",
+      "candidate_cash": {
+        "CHG0000004A": "100.0",
+        "CHG0000004B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000004A",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 3106.1132090108003
+    },
+    {
+      "allocation_id": "ALLOC0000005",
+      "disputed_transaction_id": "CHG0000005A",
+      "undisputed_transaction_id": "CHG0000005B",
+      "generator_expected_selection": "CHG0000005A",
+      "candidate_cash": {
+        "CHG0000005A": "100.0",
+        "CHG0000005B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000005A",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2952.207834023284
+    },
+    {
+      "allocation_id": "ALLOC0000006",
+      "disputed_transaction_id": "CHG0000006B",
+      "undisputed_transaction_id": "CHG0000006A",
+      "generator_expected_selection": "CHG0000006A",
+      "candidate_cash": {
+        "CHG0000006A": "100.0",
+        "CHG0000006B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000006A",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 3139.8416660085786
+    },
+    {
+      "allocation_id": "ALLOC0000007",
+      "disputed_transaction_id": "CHG0000007A",
+      "undisputed_transaction_id": "CHG0000007B",
+      "generator_expected_selection": "CHG0000007B",
+      "candidate_cash": {
+        "CHG0000007B": "100.0",
+        "CHG0000007A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000007B",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 3089.259000000311
+    },
+    {
+      "allocation_id": "ALLOC0000008",
+      "disputed_transaction_id": "CHG0000008B",
+      "undisputed_transaction_id": "CHG0000008A",
+      "generator_expected_selection": "CHG0000008B",
+      "candidate_cash": {
+        "CHG0000008B": "100.0",
+        "CHG0000008A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000008B",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2723.1251659977715
+    },
+    {
+      "allocation_id": "ALLOC0000009",
+      "disputed_transaction_id": "CHG0000009A",
+      "undisputed_transaction_id": "CHG0000009B",
+      "generator_expected_selection": "CHG0000009B",
+      "candidate_cash": {
+        "CHG0000009B": "100.0",
+        "CHG0000009A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000009B",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2604.780249996111
+    },
+    {
+      "allocation_id": "ALLOC0000010",
+      "disputed_transaction_id": "CHG0000010B",
+      "undisputed_transaction_id": "CHG0000010A",
+      "generator_expected_selection": "CHG0000010B",
+      "candidate_cash": {
+        "CHG0000010B": "100.0",
+        "CHG0000010A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000010B",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2686.5075830137357
+    },
+    {
+      "allocation_id": "ALLOC0000011",
+      "disputed_transaction_id": "CHG0000011A",
+      "undisputed_transaction_id": "CHG0000011B",
+      "generator_expected_selection": "CHG0000011A",
+      "candidate_cash": {
+        "CHG0000011A": "100.0",
+        "CHG0000011B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000011A",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2762.8687499964144
+    },
+    {
+      "allocation_id": "ALLOC0000012",
+      "disputed_transaction_id": "CHG0000012B",
+      "undisputed_transaction_id": "CHG0000012A",
+      "generator_expected_selection": "CHG0000012A",
+      "candidate_cash": {
+        "CHG0000012A": "100.0",
+        "CHG0000012B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000012A",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2826.8852090113796
+    },
+    {
+      "allocation_id": "ALLOC0000013",
+      "disputed_transaction_id": "CHG0000013A",
+      "undisputed_transaction_id": "CHG0000013B",
+      "generator_expected_selection": "CHG0000013A",
+      "candidate_cash": {
+        "CHG0000013A": "100.0",
+        "CHG0000013B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000013A",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2950.275708019035
+    },
+    {
+      "allocation_id": "ALLOC0000014",
+      "disputed_transaction_id": "CHG0000014B",
+      "undisputed_transaction_id": "CHG0000014A",
+      "generator_expected_selection": "CHG0000014A",
+      "candidate_cash": {
+        "CHG0000014A": "100.0",
+        "CHG0000014B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000014A",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2883.5122500022408
+    },
+    {
+      "allocation_id": "ALLOC0000015",
+      "disputed_transaction_id": "CHG0000015A",
+      "undisputed_transaction_id": "CHG0000015B",
+      "generator_expected_selection": "CHG0000015B",
+      "candidate_cash": {
+        "CHG0000015B": "100.0",
+        "CHG0000015A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000015B",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 3170.410541992169
+    },
+    {
+      "allocation_id": "ALLOC0000016",
+      "disputed_transaction_id": "CHG0000016B",
+      "undisputed_transaction_id": "CHG0000016A",
+      "generator_expected_selection": "CHG0000016B",
+      "candidate_cash": {
+        "CHG0000016B": "100.0",
+        "CHG0000016A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000016B",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2888.6150830076076
+    },
+    {
+      "allocation_id": "ALLOC0000017",
+      "disputed_transaction_id": "CHG0000017A",
+      "undisputed_transaction_id": "CHG0000017B",
+      "generator_expected_selection": "CHG0000017A",
+      "candidate_cash": {
+        "CHG0000017A": "100.0",
+        "CHG0000017B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000017A",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2654.0333750017453
+    },
+    {
+      "allocation_id": "ALLOC0000018",
+      "disputed_transaction_id": "CHG0000018B",
+      "undisputed_transaction_id": "CHG0000018A",
+      "generator_expected_selection": "CHG0000018A",
+      "candidate_cash": {
+        "CHG0000018A": "100.0",
+        "CHG0000018B": "100.0"
+      },
+      "selected_transaction_id": "CHG0000018A",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2589.6463750104886
+    },
+    {
+      "allocation_id": "ALLOC0000019",
+      "disputed_transaction_id": "CHG0000019A",
+      "undisputed_transaction_id": "CHG0000019B",
+      "generator_expected_selection": "CHG0000019B",
+      "candidate_cash": {
+        "CHG0000019B": "100.0",
+        "CHG0000019A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000019B",
+      "decision": "PASS",
+      "failed_propositions": [],
+      "cash_advance_allocation": "100.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2519.469916005619
+    },
+    {
+      "allocation_id": "ALLOC0000020",
+      "disputed_transaction_id": "CHG0000020B",
+      "undisputed_transaction_id": "CHG0000020A",
+      "generator_expected_selection": "CHG0000020B",
+      "candidate_cash": {
+        "CHG0000020B": "100.0",
+        "CHG0000020A": "100.0"
+      },
+      "selected_transaction_id": "CHG0000020B",
+      "decision": "REJECT",
+      "failed_propositions": [
+        "P17"
+      ],
+      "cash_advance_allocation": "0.00",
+      "verified": true,
+      "elapsed_ms_including_client": 2299.041207996197
+    }
+  ]
+}

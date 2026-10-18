@@ -1,0 +1,51 @@
+[
+  {
+    "scenario": "missing_and_late",
+    "rows": [
+      [
+        "correction:RAW-CHECK",
+        "P19",
+        "FAIL"
+      ],
+      [
+        "correction:RAW-CHECK",
+        "P20",
+        "FAIL"
+      ]
+    ]
+  },
+  {
+    "scenario": "completed",
+    "rows": [
+      [
+        "correction:RAW-CHECK",
+        "P19",
+        "PASS"
+      ],
+      [
+        "correction:RAW-CHECK",
+        "P20",
+        "PASS"
+      ]
+    ]
+  },
+  {
+    "scenario": "reversal",
+    "rows": [
+      [
+        "correction:RAW-CHECK",
+        "P19",
+        "FAIL"
+      ],
+      [
+        "correction:RAW-CHECK",
+        "P20",
+        "PASS"
+      ]
+    ]
+  },
+  {
+    "scenario": "missing_lines",
+    "result": "CHG0000001B|P17|INPUT_ERROR"
+  }
+]

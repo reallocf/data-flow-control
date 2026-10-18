@@ -1,0 +1,73 @@
+{
+  "model_calls": 67,
+  "tests": {
+    "command": "POLICY_AUTHORING_DOCKER=1 .venv/bin/python -m pytest tests/test_policy_authoring.py tests/test_regulation_z_53_full_policy_catalog.py -q",
+    "passed": 89
+  },
+  "lint": "policy_authoring src/ tests/ passed",
+  "isolation": {
+    "host_home_absent": true,
+    "host_repository_absent": true,
+    "docker_socket_absent": true,
+    "no_codex_history": true,
+    "direct_egress_blocked": true,
+    "arbitrary_proxy_destination_blocked": true,
+    "inference_host_reachable": true
+  },
+  "image_id": "sha256:af9be33aabc778ab617ea13915b7c4b18726c5ce7ce63d692a2844768782aed9",
+  "versions": {
+    "cli": "0.163.0",
+    "duckdb": "1.3.0",
+    "data-flow-control": "0.1.0",
+    "sqlite": "3.42.0"
+  },
+  "oracle_cases": 1982,
+  "comparison_count_per_submission": 61442,
+  "authentication": "Saved ChatGPT login completed four smoke trials: two DFC, one GProM, one ProvSQL",
+  "scope": "policy_expression_over_trusted_context_not_full_engine_integration",
+  "generation_defaults": {
+    "model": "gpt-6-luna",
+    "reasoning_effort_override": null,
+    "trials_per_approach": 5,
+    "timeout_seconds_per_trial": 3600,
+    "parallelism": 15
+  },
+  "parallel_launch_validation": "Fifteen mocked trials synchronized at a barrier; 85 tests passed",
+  "live_logging_validation": "Local subprocess tests verified stdout/stderr visible before exit and preserved after failure and timeout; no model requests.",
+  "pilot_run": "runs/dfc-smoke-20261017",
+  "latest_pilot_run": "runs/gprom-provsql-smoke-20261017",
+  "completed_batch": "runs/comparison-15-20261017",
+  "batch_result": "15/15 submitted; 465 policies evaluated without errors; screened overall reference agreement 5/5 for each approach",
+  "workflow_revision": {
+    "model_calls": 48,
+    "generation_default": "workflow",
+    "image": "regz-policy-authoring:workflow-v1-codex-0.163.0",
+    "image_id": "sha256:60b5d6eeb2562b30b216a74f858aaaf4fc96dfabd677d9610ec053eae5ce1291",
+    "artifact_validation": "envelope and paths only",
+    "execution_grading": "not implemented; legacy grader refuses workflow outputs",
+    "smoke_run": "runs/workflow-smoke-20261017",
+    "execution_smoke": "Actual DFC/GProM/ProvSQL: four aligned allocation cases passed each; generated artifacts unchanged. Full grader still pending.",
+    "completed_generation_batch": "runs/workflow-nonce-comparison-15-20261017",
+    "batch_execution_status": "nonce batch: 15/15 implementations pass 8 integration cases each (120/120); full regulatory coverage pending",
+    "nonce_batch": "15 unique random prompt nonces verified; cached token usage retained",
+    "execution_batch": "runs/workflow-nonce-comparison-15-20261017",
+    "execution_checker_issue": "Initial ProvSQL snapshot JSON parsing error fixed; only evaluator retried, artifacts unchanged.",
+    "luna_batch": {
+      "run": "runs/workflow-luna-nonce-15-20261017",
+      "model": "gpt-6-luna",
+      "reasoning_effort_override": null,
+      "submitted": 13,
+      "trials": 15,
+      "execution_status": "eight-case integration suite: DFC 5/5, GProM 0/5 (2 empty), ProvSQL 3/5",
+      "failures": "gprom-004 and gprom-005 returned empty files arrays; no retries"
+    },
+    "automatic_execution": {
+      "enabled": true,
+      "suite": "workflow_integration_v1",
+      "cases": 8,
+      "no_model_repairs": true,
+      "tests": "92 passed, 1 opt-in Docker test skipped; actual-engine batch executed separately",
+      "regression": "one saved Astra submission per approach passed"
+    }
+  }
+}

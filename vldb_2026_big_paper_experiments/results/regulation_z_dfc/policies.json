@@ -1,0 +1,585 @@
+{
+  "binding": "v3 payment_allocations UPDATE",
+  "policy_count": 31,
+  "policies": [
+    {
+      "proposition_id": "P01",
+      "name": "Highest-APR priority",
+      "authority": "53(a)",
+      "file": "P01.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.highest_violations = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P01: Highest-APR priority",
+      "explanation": "Exhaust the highest effective-rate group before lower groups.",
+      "limitation": "Dispute protection takes precedence; deferred-window and request branches are separate."
+    },
+    {
+      "proposition_id": "P02",
+      "name": "Descending remainder priority",
+      "authority": "53(a)",
+      "file": "P02.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.remaining_violations = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P02: Descending remainder priority",
+      "explanation": "Compare every remaining higher/lower rate pair; equal rates remain unordered.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P03",
+      "name": "Deferred-program applicability",
+      "authority": "53(b)(1); comment 53(b)-1",
+      "file": "P03.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.classification_mismatches = 0))",
+      "on_fail": "REMOVE",
+      "description": "P03: Deferred-program applicability",
+      "explanation": "Runtime derives qualifying programs from conditional accrued interest and the grace/zero exclusions.",
+      "limitation": "External contract facts are trusted; this checks the proposed program classification."
+    },
+    {
+      "proposition_id": "P04",
+      "name": "Ordinary default outside the window",
+      "authority": "53(b)(1)(i)",
+      "file": "P04.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.active_programs = 0 OR regz_context.window_programs > 0 OR regz_context.ordinary_violations = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P04: Ordinary default outside the window",
+      "explanation": "Active programs outside the priority window use ordinary ordering.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P05",
+      "name": "Deferred-window priority",
+      "authority": "53(b)(1)(i)",
+      "file": "P05.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.deferred_violations = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P05: Deferred-window priority",
+      "explanation": "Detect ordinary allocations while eligible priority-program capacity remains.",
+      "limitation": "Simultaneously eligible deferred balances form one unordered priority group; disputed capacity comes last."
+    },
+    {
+      "proposition_id": "P06",
+      "name": "Remainder after deferred priority",
+      "authority": "53(b)(1)(i)",
+      "file": "P06.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.window_programs = 0 OR regz_context.ordinary_violations = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P06: Remainder after deferred priority",
+      "explanation": "The ordinary balances left after the priority group retain descending effective-rate order.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P07",
+      "name": "Optional deferred-program request",
+      "authority": "53(b)(1)(ii)",
+      "file": "P07.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'deferred_request' OR (regz_context.active_programs > 0 AND regz_context.issuer_elected AND regz_context.request_mismatches = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P07: Optional deferred-program request",
+      "explanation": "A request may allocate among any account balances while a qualifying program applies.",
+      "limitation": "Targets need not themselves be deferred. Only recorded, specific instructions are supported."
+    },
+    {
+      "proposition_id": "P08",
+      "name": "Optional secured-balance request",
+      "authority": "53(b)(2)",
+      "file": "P08.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'secured_request' OR (regz_context.unsecured_request_targets = 0 AND regz_context.issuer_elected AND regz_context.request_mismatches = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P08: Optional secured-balance request",
+      "explanation": "Every positive requested amount must target a secured balance.",
+      "limitation": "Security-interest facts are externally established."
+    },
+    {
+      "proposition_id": "P13",
+      "name": "Permitted snapshot date",
+      "authority": "comment 53-2",
+      "file": "P13.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.snapshot_date >= regz_context.cycle_end AND regz_context.snapshot_date <= regz_context.credited_date))",
+      "on_fail": "REMOVE",
+      "description": "P13: Permitted snapshot date",
+      "explanation": "Both amounts and rates are read from the selected complete snapshot.",
+      "limitation": "Snapshots must be authoritative complete account snapshots."
+    },
+    {
+      "proposition_id": "P14",
+      "name": "Consistent reference-day practice",
+      "authority": "comment 53-2",
+      "file": "P14.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.snapshot_date = regz_context.expected_snapshot_date))",
+      "on_fail": "REMOVE",
+      "description": "P14: Consistent reference-day practice",
+      "explanation": "Compute the date from the effective practice's cycle-end, credit-date, or offset convention.",
+      "limitation": "Operational choice, not a complete interpretation of 'generally'."
+    },
+    {
+      "proposition_id": "P15",
+      "name": "Permitted practice adjustments",
+      "authority": "comment 53-2",
+      "file": "P15.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.unauthorized_changes = 0))",
+      "on_fail": "REMOVE",
+      "description": "P15: Permitted practice adjustments",
+      "explanation": "Changed conventions require a recorded authorization and effective date.",
+      "limitation": "Cannot determine legal acceptability of 'from time to time'; authorization evidence does not resolve that legal standard."
+    },
+    {
+      "proposition_id": "P16",
+      "name": "Residual after historical snapshot",
+      "authority": "comment 53-2.ii",
+      "file": "P16.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.snapshot_violations = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P16: Residual after historical snapshot",
+      "explanation": "After dispute/window priorities, exhaust historical lots before later lots.",
+      "limitation": "Generalization of the single later-purchase example; later lots use their payment-date APR."
+    },
+    {
+      "proposition_id": "P17",
+      "name": "Minimize disputed reduction",
+      "authority": "comment 53-3",
+      "file": "P17.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.protected_reduction <= regz_context.unavoidable_protected_reduction))",
+      "on_fail": "REMOVE",
+      "description": "P17: Minimize disputed reduction",
+      "explanation": "Compute reduction for minimum plus excess against all outstanding undisputed capacity.",
+      "limitation": "Dispute protection overrides request and program priority. Dispute merits are external."
+    },
+    {
+      "proposition_id": "P18",
+      "name": "Allow unavoidable disputed residual",
+      "authority": "comment 53-3.ii",
+      "file": "P18.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.unavoidable_protected_reduction = 0 OR regz_context.protected_reduction = 0 OR regz_context.other_capacity_remaining = 0))",
+      "on_fail": "REMOVE",
+      "description": "P18: Allow unavoidable disputed residual",
+      "explanation": "When disputed reduction is unavoidable, require exhaustion of all other capacity. P17 separately rejects avoidable disputed reduction.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P19",
+      "name": "Error-correction credit",
+      "authority": "comment 53-3.ii",
+      "file": "P19.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'correction' OR regz_context.missing_credit_cents = 0)",
+      "on_fail": "REMOVE",
+      "description": "P19: Error-correction credit",
+      "explanation": "At completion, check each required principal/charge item against actual posted credits.",
+      "limitation": "Required charge attribution and checkpoint deadline come from external section 1026.13 requirements; this does not initiate a credit."
+    },
+    {
+      "proposition_id": "P20",
+      "name": "Correction notice dispatch",
+      "authority": "comment 53-3.ii",
+      "file": "P20.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'correction' OR regz_context.notice_count > 0)",
+      "on_fail": "REMOVE",
+      "description": "P20: Correction notice dispatch",
+      "explanation": "Require actual timely dispatch to the specified recipient, linked to the determination.",
+      "limitation": "Notice content certification is trusted external evidence; no autonomous dispatch or deadline scheduler."
+    },
+    {
+      "proposition_id": "P23",
+      "name": "Zero allocation APR for deferred interest",
+      "authority": "comment 53-4",
+      "file": "P23.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.effective_apr_mismatches = 0))",
+      "on_fail": "REMOVE",
+      "description": "P23: Zero allocation APR for deferred interest",
+      "explanation": "Compare proposed effective APRs with the zero-or-snapshot-rate derivation.",
+      "limitation": "The contractual interest accrual rate is not changed."
+    },
+    {
+      "proposition_id": "P25",
+      "name": "Interim payments irrelevant to applicability",
+      "authority": "comment 53(b)-1",
+      "file": "P25.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.interim_payment_omissions = 0))",
+      "on_fail": "REMOVE",
+      "description": "P25: Interim payments irrelevant to applicability",
+      "explanation": "Program classification does not depend on its interim-payment-required attribute.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P26",
+      "name": "Grace-period exclusion",
+      "authority": "comment 53(b)-1",
+      "file": "P26.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.grace_classifications = 0))",
+      "on_fail": "REMOVE",
+      "description": "P26: Grace-period exclusion",
+      "explanation": "The classifier excludes grace periods.",
+      "limitation": "Checks a proposed classification; does not add an allocation-priority obligation."
+    },
+    {
+      "proposition_id": "P27",
+      "name": "Temporary-zero exclusion",
+      "authority": "comment 53(b)-1",
+      "file": "P27.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.zero_offer_classifications = 0))",
+      "on_fail": "REMOVE",
+      "description": "P27: Temporary-zero exclusion",
+      "explanation": "The classifier excludes temporary zero APR unless accrued interest may become payable.",
+      "limitation": "External rate-change legality is not checked."
+    },
+    {
+      "proposition_id": "P28",
+      "name": "Correct counted cycles",
+      "authority": "comment 53(b)-2",
+      "file": "P28.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.window_start_mismatches = 0))",
+      "on_fail": "REMOVE",
+      "description": "P28: Correct counted cycles",
+      "explanation": "Compute the start from the latest two cycle due dates no later than expiration, not a supplied expected value.",
+      "limitation": "At least two actual cycles through the expiration cycle must be supplied."
+    },
+    {
+      "proposition_id": "P29",
+      "name": "Early-expiration partial cycle",
+      "authority": "comment 53(b)-2",
+      "file": "P29.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method <> 'default' OR (regz_context.early_expiry_violations = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P29: Early-expiration partial cycle",
+      "explanation": "Priority remains in effect after the two counted cycles until expiration.",
+      "limitation": "Expiration dates are inclusive contract payoff dates in this model."
+    },
+    {
+      "proposition_id": "P32",
+      "name": "No request uses default",
+      "authority": "comment 53(b)-3.i",
+      "file": "P32.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.request_present OR regz_context.method = 'default'))",
+      "on_fail": "REMOVE",
+      "description": "P32: No request uses default",
+      "explanation": "A missing or unsubmitted request cannot activate an exception.",
+      "limitation": "Complete request capture is assumed."
+    },
+    {
+      "proposition_id": "P33",
+      "name": "Unfulfillable request and replacement",
+      "authority": "comment 53(b)-3.i",
+      "file": "P33.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_feasibility_errors = 0 AND regz_context.superseding_requests = 0)))",
+      "on_fail": "REMOVE",
+      "description": "P33: Unfulfillable request and replacement",
+      "explanation": "Check sums, nonnegative amounts, targets, capacities, and submitted replacement links.",
+      "limitation": "Operational definition of inability; other meanings of 'cannot comply' remain unresolved."
+    },
+    {
+      "proposition_id": "P34",
+      "name": "Affirmative specific contact",
+      "authority": "comment 53(b)-3.ii.A",
+      "file": "P34.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'contact' OR (regz_context.affirmative AND regz_context.instruction_count > 0 AND regz_context.contact_channel))))",
+      "on_fail": "REMOVE",
+      "description": "P34: Affirmative specific contact",
+      "explanation": "Recognize oral/electronic/written contact with explicit structured instructions.",
+      "limitation": "Interpretation of a conversation into instructions is external evidence processing."
+    },
+    {
+      "proposition_id": "P35",
+      "name": "Completed submitted request form",
+      "authority": "comment 53(b)-3.ii.B",
+      "file": "P35.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'form' OR (regz_context.form_completed AND regz_context.request_present AND regz_context.affirmative AND regz_context.instruction_count > 0))))",
+      "on_fail": "REMOVE",
+      "description": "P35: Completed submitted request form",
+      "explanation": "An actual completed/submitted form, not default coupon text, supports the exception.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P36",
+      "name": "Request to reallocate previous payment",
+      "authority": "comment 53(b)-3.ii.C",
+      "file": "P36.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'reallocation' OR (regz_context.prior_default_allocation AND regz_context.affirmative AND regz_context.contact_channel AND regz_context.instruction_count > 0))))",
+      "on_fail": "REMOVE",
+      "description": "P36: Request to reallocate previous payment",
+      "explanation": "Verify a prior accepted default allocation and a later submitted specific request.",
+      "limitation": "Caller supplies the authoritative pre-payment balance snapshot for replacement; replacement is atomic."
+    },
+    {
+      "proposition_id": "P37",
+      "name": "Preprinted agreement is insufficient",
+      "authority": "comment 53(b)-3.iii.A",
+      "file": "P37.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'agreement_default')))",
+      "on_fail": "REMOVE",
+      "description": "P37: Preprinted agreement is insufficient",
+      "explanation": "Reject reliance on agreement deemed consent; an independent contact is a different evidence record.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P38",
+      "name": "Untouched preselection is insufficient",
+      "authority": "comment 53(b)-3.iii.B",
+      "file": "P38.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'application_default')))",
+      "on_fail": "REMOVE",
+      "description": "P38: Untouched preselection is insufficient",
+      "explanation": "Reject reliance on an untouched issuer-selected checkbox.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P39",
+      "name": "Default payment coupon is insufficient",
+      "authority": "comment 53(b)-3.iii.C",
+      "file": "P39.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (regz_context.request_basis <> 'coupon_default')))",
+      "on_fail": "REMOVE",
+      "description": "P39: Default payment coupon is insufficient",
+      "explanation": "Reject reliance on default coupon text or selection.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P40",
+      "name": "Imposed acceptance is insufficient",
+      "authority": "comment 53(b)-3.iii.D",
+      "file": "P40.pgn",
+      "sources": [
+        "regz_context"
+      ],
+      "sink": "payment_allocations",
+      "sink_alias": "allocation",
+      "constraint": "(regz_context.kind <> 'allocation' OR (regz_context.method = 'default' OR (NOT regz_context.required_condition)))",
+      "on_fail": "REMOVE",
+      "description": "P40: Imposed acceptance is insufficient",
+      "explanation": "Reject requests based on imposed acceptance.",
+      "limitation": "Whether a condition was imposed is externally evidenced."
+    }
+  ],
+  "supporting_entries": [
+    {
+      "proposition_id": "P09",
+      "name": "Excess-payment scope",
+      "authority": "comment 53-1",
+      "explanation": "Only excess allocation enters rate-priority comparisons; minimum allocations are separate.",
+      "limitation": "Minimum accounting is supplied, not inferred by subtracting the full minimum from each payment."
+    },
+    {
+      "proposition_id": "P10",
+      "name": "Minimum amount outside scope",
+      "authority": "comment 53-1",
+      "explanation": "Accept the supplied minimum portion without deriving a minimum-payment formula.",
+      "limitation": "Other applicable law is outside this adapter."
+    },
+    {
+      "proposition_id": "P11",
+      "name": "Minimum allocation outside scope",
+      "authority": "comment 53-1",
+      "explanation": "Rate priority does not constrain minimum allocations; dispute protection still examines the whole payment.",
+      "limitation": ""
+    },
+    {
+      "proposition_id": "P12",
+      "name": "Optional minimum allocation method",
+      "authority": "comment 53-1",
+      "explanation": "Either a rate-ordered or other minimum allocation is allowed.",
+      "limitation": "A permission is preserved by absence of an additional restriction."
+    },
+    {
+      "proposition_id": "P21",
+      "name": "Equal-rate discretion",
+      "authority": "comment 53-4",
+      "explanation": "Strict rate comparisons impose no FIFO/pro-rata tie breaker; stronger dispute/program rules remain.",
+      "limitation": "Uses the enumerated exceptions, not a claim to resolve every possible meaning of 'generally'."
+    },
+    {
+      "proposition_id": "P22",
+      "name": "Grouped or separate balances",
+      "authority": "comment 53-4",
+      "explanation": "Presentation may group rows; the underlying lots retain program, security, and dispute attributes.",
+      "limitation": "Do not merge away facts needed by other checks."
+    },
+    {
+      "proposition_id": "P24",
+      "name": "Incorporated deferred-interest definition",
+      "authority": "comment 53(b)-1",
+      "explanation": "Local terms implement the explicit conditional-interest description.",
+      "limitation": "Full equivalence with section 1026.16(h)(2) and its commentary is not implemented or claimed."
+    },
+    {
+      "proposition_id": "P30",
+      "name": "Issuer may decline requests",
+      "authority": "comment 53(b)-3.i",
+      "explanation": "Default mode remains available even when a valid request exists.",
+      "limitation": "No policy requires the issuer to elect the request branch."
+    },
+    {
+      "proposition_id": "P31",
+      "name": "Decline requests failing issuer requirements",
+      "authority": "comment 53(b)-3.i",
+      "explanation": "Default mode remains available regardless of why the issuer declined.",
+      "limitation": "This permission does not require a separate rejection policy or mandate issuer requirements."
+    }
+  ],
+  "source_files": [
+    {
+      "path": "src/vldb_experiments/strategies/regulation_z_53_full_policy_catalog.py",
+      "sha256": "1be4e4f5ebea3c0bf986ed4d8f8cfd139d94b9bf19e8df5a70c850e3b40b625b"
+    },
+    {
+      "path": "src/vldb_experiments/strategies/regulation_z_payment_allocation_benchmark.py",
+      "sha256": "9c2dbd9a2f6d97cd3a116b462b33ac3403f4bc25cbe5f87135b7442fea8a9062"
+    },
+    {
+      "path": "src/vldb_experiments/strategies/regulation_z_53_runtime.py",
+      "sha256": "d5bdc5820fb8f137bf066f8ff0d2f90eaaf5f40178cb686d9138f38168da94d0"
+    },
+    {
+      "path": "src/vldb_experiments/strategies/regulation_z_v3_evidence.py",
+      "sha256": "7f9f215dcd20e47098650c09558f6a5ff2585919f830503178eb4101074774c7"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+SOURCE regz_context
+SINK payment_allocations AS allocation
+CONSTRAINT
+    (regz_context.kind <> 'allocation' OR (regz_context.method <> 'secured_request' OR (regz_context.unsecured_request_targets = 0 AND regz_context.issuer_elected AND regz_context.request_mismatches = 0)))
+ON FAIL REMOVE

@@ -1,0 +1,32 @@
+SOURCE transactions AS selected
+SINK payment_allocations AS allocation
+CONSTRAINT
+(selected.transaction_id IN (
+SELECT e.batch_id FROM (
+WITH base AS (
+SELECT p.*, pay.account_id, pay.credited_date, pay.cycle_end,
+       pay.total_cents, pay.minimum_cents
+FROM regz_proposals p JOIN regz_payments pay ON pay.payment_id = p.payment_id
+)
+SELECT b.batch_id, (SELECT CASE p.convention WHEN 'credit_date' THEN b.credited_date WHEN 'offset' THEN b.cycle_end + CAST(p.offset_days AS INTEGER) ELSE b.cycle_end END FROM regz_practices p WHERE p.account_id=b.account_id AND p.effective_date <= b.credited_date ORDER BY p.effective_date DESC LIMIT 1) AS expected_snapshot_date,
+       'allocation' AS kind,
+       b.snapshot_date AS snapshot_date
+FROM base b
+) e WHERE (e.kind <> 'allocation' OR (e.snapshot_date = e.expected_snapshot_date))
+) AND (
+ allocation.cash_advance_allocation*100 = (
+   SELECT line.excess_cents FROM regz_proposal_lines line
+   WHERE line.batch_id=selected.transaction_id AND line.balance_id=selected.transaction_id
+ ) AND EXISTS (
+   SELECT 1 FROM regz_proposals bp JOIN regz_payments pay ON pay.payment_id=bp.payment_id
+   WHERE bp.batch_id=selected.transaction_id AND pay.payment_id=allocation.transaction_id
+     AND pay.account_id=allocation.account_id AND pay.credited_date=allocation.payment_date
+     AND pay.total_cents=allocation.total_payment*100
+     AND pay.minimum_cents=allocation.minimum_payment_portion*100
+     AND NOT EXISTS (SELECT 1 FROM regz_proposal_lines other_line
+       WHERE other_line.batch_id=bp.batch_id AND other_line.balance_id<>bp.batch_id
+         AND other_line.excess_cents<>0)
+ ) AND allocation.purchase_allocation=0 AND allocation.balance_transfer_allocation=0
+   AND allocation.promo_allocation=0
+))
+ON FAIL REMOVE

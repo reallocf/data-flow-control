@@ -1,0 +1,54 @@
+SOURCE transactions AS selected
+SINK payment_allocations AS allocation
+CONSTRAINT
+(selected.transaction_id IN (
+SELECT e.batch_id FROM (
+WITH base AS (
+SELECT p.*, pay.account_id, pay.credited_date, pay.cycle_end,
+       pay.total_cents, pay.minimum_cents
+FROM regz_proposals p JOIN regz_payments pay ON pay.payment_id = p.payment_id
+)
+SELECT b.batch_id, 'allocation' AS kind,
+       0 AS notice_count
+FROM base b
+) e WHERE (e.kind <> 'correction' OR e.notice_count > 0)
+UNION ALL
+SELECT c.batch_id FROM (
+WITH item_credits AS (
+ SELECT k.error_id, i.item_id, i.required_cents,
+        COALESCE(SUM(c.amount_cents),0) AS credited_cents
+ FROM regz_correction_completions k
+ JOIN regz_error_obligations o ON o.error_id=k.error_id
+ JOIN regz_error_items i ON i.error_id=k.error_id
+ LEFT JOIN regz_credits c ON c.error_id=i.error_id AND c.item_id=i.item_id
+   AND c.posted_date >= o.determination_date
+   AND c.posted_date <= k.checkpoint_date AND c.posted_date <= o.deadline
+ GROUP BY k.error_id, i.item_id, i.required_cents
+)
+SELECT 'correction:' || o.error_id AS batch_id,
+ (SELECT SUM(GREATEST(0, i.required_cents-i.credited_cents))
+  FROM item_credits i WHERE i.error_id=o.error_id) AS missing_credit_cents,
+ (SELECT COUNT(*) FROM regz_dispatches d
+  WHERE d.error_id=o.error_id AND d.recipient=o.recipient AND d.notice_type='correction'
+    AND d.sent_date BETWEEN o.determination_date AND LEAST(k.checkpoint_date,o.deadline)
+    AND LENGTH(TRIM(d.content_evidence)) > 0) AS notice_count
+FROM regz_correction_completions k JOIN regz_error_obligations o ON o.error_id=k.error_id
+WHERE k.checkpoint_date >= o.determination_date
+) c WHERE c.notice_count > 0
+) AND (
+ allocation.cash_advance_allocation*100 = (
+   SELECT line.excess_cents FROM regz_proposal_lines line
+   WHERE line.batch_id=selected.transaction_id AND line.balance_id=selected.transaction_id
+ ) AND EXISTS (
+   SELECT 1 FROM regz_proposals bp JOIN regz_payments pay ON pay.payment_id=bp.payment_id
+   WHERE bp.batch_id=selected.transaction_id AND pay.payment_id=allocation.transaction_id
+     AND pay.account_id=allocation.account_id AND pay.credited_date=allocation.payment_date
+     AND pay.total_cents=allocation.total_payment*100
+     AND pay.minimum_cents=allocation.minimum_payment_portion*100
+     AND NOT EXISTS (SELECT 1 FROM regz_proposal_lines other_line
+       WHERE other_line.batch_id=bp.batch_id AND other_line.balance_id<>bp.batch_id
+         AND other_line.excess_cents<>0)
+ ) AND allocation.purchase_allocation=0 AND allocation.balance_transfer_allocation=0
+   AND allocation.promo_allocation=0
+))
+ON FAIL REMOVE

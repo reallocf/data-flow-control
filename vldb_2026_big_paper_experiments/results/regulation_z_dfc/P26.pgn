@@ -1,0 +1,5 @@
+SOURCE regz_context
+SINK payment_allocations AS allocation
+CONSTRAINT
+    (regz_context.kind <> 'allocation' OR (regz_context.grace_classifications = 0))
+ON FAIL REMOVE

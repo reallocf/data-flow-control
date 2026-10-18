@@ -420,9 +420,11 @@ def build_payment_allocation_prompt(case: PaymentAllocationCase) -> str:
     )
 
 
-def reset_payment_allocation_database(conn: Any, workload: list[PaymentAllocationCase]) -> None:
+def reset_payment_allocation_database(
+    conn: Any, workload: list[PaymentAllocationCase], *, materialize_context: bool = True
+) -> None:
     """Create and populate the CCS-shaped payment-allocation database."""
-    reset_full_evidence(conn, workload)
+    reset_full_evidence(conn, workload, materialize_context=materialize_context)
     for table in (
         "allocation_snapshot_context",
         "balance_components",

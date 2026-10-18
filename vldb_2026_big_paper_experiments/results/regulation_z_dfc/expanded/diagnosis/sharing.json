@@ -1,0 +1,30 @@
+[
+  {
+    "variant": "shared_ctes",
+    "samples": [
+      0.714819582994096,
+      0.6629746250109747,
+      0.6635097080143169
+    ],
+    "median_seconds": 0.6635097080143169,
+    "operators": 3560,
+    "scans": 643,
+    "rows_scanned": 228100,
+    "optimizer_seconds": 0.48252116500000003,
+    "statistics_seconds": 0.409386917
+  },
+  {
+    "variant": "shared_materialized_ctes",
+    "samples": [
+      0.19936525000957772,
+      0.19049991699284874,
+      0.1986539579811506
+    ],
+    "median_seconds": 0.1986539579811506,
+    "operators": 1827,
+    "scans": 162,
+    "rows_scanned": 66300,
+    "optimizer_seconds": 0.080541667,
+    "statistics_seconds": 0.051861458
+  }
+]
