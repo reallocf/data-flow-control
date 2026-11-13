@@ -1,0 +1,10 @@
+metric,value,archive_basis,scope
+batch,85,status/batch85_summary.json,archive checkpoint
+current_official_html,12,status/batch85_summary.json,local statutory documents
+historical_2024_html,12,status/batch85_summary.json,local statutory documents
+edition_controlled_prompts,68,status/batch85_summary.json,frozen research inputs
+corrected_dependency_prompts,34,status/batch85_summary.json,frozen research inputs
+independent_legal_labels,0,status/batch85_summary.json,approval pending
+aws_model_denials,6,research/model_outputs.json,AccessDeniedException
+aws_nova_canary_denials,1,status/aws_canary.json,AccessDeniedException
+production_release,BLOCKED,status/batch85_summary.json,no independent approval
