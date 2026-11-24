@@ -1,0 +1,7 @@
+run,candidates,citation_positions,complete_positions,review_positions,source_quotes_found,input_tokens,output_tokens,four_exclusions_in_semantic_fields
+BROAD_01,11,10,7,10,11,842,2026,True
+WORKLIST_01,10,10,4,10,10,952,2006,False
+WORKLIST_02,10,10,3,10,10,952,1921,False
+BROAD_02,11,10,5,10,11,842,1986,True
+BROAD_03,11,10,3,10,10,842,1761,True
+WORKLIST_03,10,10,4,10,10,952,2048,False

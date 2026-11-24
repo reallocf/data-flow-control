@@ -1,0 +1,27 @@
+{
+  "scope": "Frozen development evidence; provisional semantic labels",
+  "archive_sha256": {
+    "df_70.zip": "5245e7e316628153cb2635a7e63a3c1e69a0a2b261a41b77bfb99afbf05c21d6",
+    "df_72.zip": "e59179538da1b4d38131e29f6e86652b9480f58f271c92e183dc8b789e70744e",
+    "df_74.zip": "677eef800e612ae93db82b70fefb6f26f1c8af0224104e6c09b72c2796b5ca59",
+    "df_75.zip": "bd77e116e66f98773008e2667f8bfbd9b529e894044c898c38795424f907315f"
+  },
+  "graph_sha256": "774301eb64b33734be45e8e783fd1f72a2f6c9214bd6282767b9ca421bf3bda6",
+  "semantic_manifest_sha256": "5379515f9bd8260ad3df22acfbc4f179a6260613f9dbdbc4919c595fdc2db2c7",
+  "digest_convention": "SHA-256 with LF line endings for review files; byte digests for source archives",
+  "file_sha256": {
+    "evidence/candidate_review.csv": "f413b325bd9d7e827ecd21d3e6d6dbb50131d50a2671864eedca26b2ed041d87",
+    "evidence/context_selection.csv": "b15a2e7150b0d74d077ab068b2e2917710d282d9a430245cccbd3a1c23ecdaec",
+    "evidence/downstream_comparison.csv": "14a1e5649ae2a255be4a044ff7ca856a1e2662f739c50229b784e36eac9fb97f",
+    "evidence/factual_pairs.csv": "6b780cc5d98e8fe52737058ba27cda93c35ee3393d83a3acdb29d8a8ba8352de",
+    "evidence/family_review.csv": "92e27143106864f8a42ca2623f188cfdddbbf827aa288e6c623065e5f679e466",
+    "evidence/section195_comparison.csv": "36c33903e9f20c945e99a97727940ac822014621d752627f06f6b934a692fc26",
+    "evidence/semantic_assessment.csv": "6294e78aea552f6cfb3b947dffa98c07b80430e3ad43192bd9ac7cebffec223a",
+    "figures/01_policy_inventory.svg": "64118b20787ae546765f0746a032ac0ea40e6dc99c039d0f102c273cd8c5b1f7",
+    "figures/02_missing_facts.svg": "130ce0722d829941f6efca2c1e250567e89b73f03fea348508f6c172e03599a8",
+    "figures/03_reference_selection.svg": "abef7e7cd48e23ef7dabc1bc9e8fab75e943438849c77b3868398ec6a595bacf",
+    "figures/04_semantic_reliability.svg": "ada1fbc625d21aaaf893a77b5e1978c2f9b4d24b6a7e104e4add4404a52d655b",
+    "README.md": "8823aec5f06f134d6aa7eda1a6365c333b8588451a5e574cb23043979fbaec96",
+    "verify_review.py": "461cb3dc998f01c0c15bebf6302c2092f544123ea55a200e72c93c2120910ba0"
+  }
+}

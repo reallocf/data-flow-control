@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" role="img" aria-labelledby="heading">
+<title id="heading">3. Why added context alone did not suffice</title>
+<rect width="100%" height="100%" rx="16" fill="#FFFFFF"/>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235E91"/></marker></defs>
+<text x="32" y="48" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#172B45">3. Why added context alone did not suffice</text>
+<text x="32" y="78" font-family="Arial, sans-serif" font-size="19" font-weight="400" fill="#496077">Graph reachability and statutory interpretation are distinct measurements.</text>
+<rect x="32" y="105" width="510" height="280" rx="12" fill="#EAF2F9" stroke="#B7C9D9"/>
+<text x="52" y="140" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#172B45">Reference network</text>
+<rect x="57" y="164" width="125" height="55" rx="12" fill="#FFFFFF" stroke="#B7C9D9"/>
+<text x="75" y="199" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172B45">274</text>
+<rect x="233" y="164" width="125" height="55" rx="12" fill="#FFFFFF" stroke="#B7C9D9"/>
+<text x="252" y="199" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172B45">162</text>
+<rect x="390" y="164" width="125" height="55" rx="12" fill="#FFFFFF" stroke="#B7C9D9"/>
+<text x="410" y="199" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172B45">170</text>
+<path d="M182 191 L233 191" stroke="#235E91" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+<path d="M358 191 L390 191" stroke="#235E91" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+<rect x="233" y="270" width="125" height="55" rx="12" fill="#FFFFFF" stroke="#B7C9D9"/>
+<text x="252" y="305" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#172B45">152</text>
+<path d="M295 219 L295 270" stroke="#235E91" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+<path d="M358 298 L452 219" stroke="#235E91" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+<text x="52" y="357" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#172B45">Removing 162 to 170 leaves an alternate route.</text>
+<rect x="562" y="105" width="526" height="280" rx="12" fill="#EAF2F9" stroke="#B7C9D9"/>
+<text x="582" y="140" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#172B45">Context is not comprehension</text>
+<text x="582" y="182" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Full Section 162: 42,877 characters</text>
+<text x="582" y="218" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Guarded selection: 7,680 characters</text>
+<text x="582" y="254" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Diagnostic anchors retained: 7/7</text>
+<text x="582" y="295" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172B45">274(n)(3) special rate: 0/6 responses</text>
+<text x="582" y="338" font-family="Arial, sans-serif" font-size="17" font-weight="400" fill="#172B45">All six included the explicit 162(a)(2) text.</text>
+<text x="32" y="429" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172B45">Historical graph: 2,116 sections; 9,315 references; 1,022-node core.</text>
+<text x="32" y="463" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#172B45">Removing 162 to 170: reachable descendants from 274 remain 1,194.</text>
+<text x="32" y="494" font-family="Arial, sans-serif" font-size="17" font-weight="400" fill="#496077">Guarded anchors are development controls, not an independent legal standard.</text>
+</svg>

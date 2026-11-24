@@ -1,0 +1,5 @@
+method,budget_chars,context_chars,selected_units,diagnostic_anchors,total_anchors,masked_references,reachable_sections
+SOURCE_ORDER,8000,7770,a b c d f i,5,7,29,1192
+LEXICAL,8000,7982,a e h p,6,7,30,1190
+DEPENDENCY_GUARDED,8000,7680,a b h p c d,7,7,30,1192
+MODEL_DIAGNOSTIC,8000,7891,a b c f j i,5,7,29,1192

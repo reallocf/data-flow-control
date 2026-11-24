@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 520" role="img" aria-labelledby="heading">
+<title id="heading">1. What is being counted?</title>
+<rect width="100%" height="100%" rx="16" fill="#FFFFFF"/>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235E91"/></marker></defs>
+<text x="32" y="48" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#172B45">1. What is being counted?</text>
+<text x="32" y="78" font-family="Arial, sans-serif" font-size="19" font-weight="400" fill="#496077">A family is a category of statutory restriction, not an individual candidate.</text>
+<rect x="32" y="104" width="1056" height="65" rx="12" fill="#EAF2F9" stroke="#B7C9D9"/>
+<text x="52" y="145" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172B45">17 statutory families = 14 single-transaction families + 3 annual-state families</text>
+<rect x="32" y="195" width="500" height="190" rx="12" fill="#EAF2F9" stroke="#B7C9D9"/>
+<text x="52" y="230" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#172B45">14 families</text>
+<text x="52" y="263" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Historical evaluation denominator</text>
+<text x="52" y="294" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#172B45">Example: meal percentage limit</text>
+<text x="52" y="325" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#172B45">Not a count of SQL constraints.</text>
+<rect x="552" y="195" width="536" height="190" rx="12" fill="#FFF0D5" stroke="#B7C9D9"/>
+<text x="572" y="230" font-family="Arial, sans-serif" font-size="29" font-weight="700" fill="#172B45">3 annual-state families</text>
+<text x="572" y="263" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Gifts: recipient and taxable year</text>
+<text x="572" y="294" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#172B45">Cruises: individual and commencement year</text>
+<text x="572" y="325" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#172B45">Awards: employee and taxable year</text>
+<text x="32" y="423" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#172B45">57 candidate occurrences in 9 historical runs:</text>
+<text x="32" y="460" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#235E91">2 Exact     |     29 Partial     |     26 Incorrect</text>
+<text x="32" y="493" font-family="Arial, sans-serif" font-size="17" font-weight="400" fill="#496077">Historical review labels; not independent legal certification.</text>
+</svg>
