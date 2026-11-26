@@ -1,0 +1,23 @@
+{
+  "planned_reference_responses": 6,
+  "reference_attempts": 5,
+  "confirmed_reference_responses": 3,
+  "connection_closed_attempts": 2,
+  "unattempted_reference_requests": 1,
+  "replacement_requests": 0,
+  "target_baseline_responses": 3,
+  "available_total_responses": 6,
+  "available_by_condition": {
+    "REF0": 3,
+    "R": 1,
+    "L": 2
+  },
+  "confirmed_reference_tokens": 84345,
+  "interrupted_attempt_processing": "UNKNOWN",
+  "interrupted_attempt_billing": "UNKNOWN",
+  "transport_failure_cause": "NOT_ESTABLISHED",
+  "automatic_retries": false,
+  "new_model_requests": 0,
+  "balanced_experiment_complete": false,
+  "remaining_requests_deferred": true
+}

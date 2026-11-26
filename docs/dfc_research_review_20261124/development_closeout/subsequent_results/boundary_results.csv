@@ -1,0 +1,13 @@
+case_id,description,expected_status,status,database_opened,sink_rows,tax_calculation_performed,deduction_cents,net_profit_cents,violation_confirmed,test_status
+B01,Reviewed ordinary meal,ADMITTED,ADMITTED,True,1,True,5000,95000,False,PASS
+B02,Excessive meal amount,DFC_BLOCKED,DFC_BLOCKED,True,0,False,,,True,PASS
+B03,Unknown meal eligibility,DFC_BLOCKED,DFC_BLOCKED,True,0,False,,,True,PASS
+B04,Annual gift allocation at limit,ADMITTED,ADMITTED,True,2,True,2500,97500,False,PASS
+B05,Annual gift allocation above limit,DFC_BLOCKED,DFC_BLOCKED,True,0,False,,,True,PASS
+B06,Distinct gift recipients,ADMITTED,ADMITTED,True,2,True,5000,95000,False,PASS
+B07,Combined meal and gift facts,ADMITTED,ADMITTED,True,2,True,7500,92500,False,PASS
+B08,Mixed valid and excessive amounts,DFC_BLOCKED,DFC_BLOCKED,True,0,False,,,True,PASS
+B09,High confidence without review,REVIEW_REQUIRED,REVIEW_REQUIRED,False,0,False,,,False,PASS
+B10,Incomplete confidence assessment,REVIEW_REQUIRED,REVIEW_REQUIRED,False,0,False,,,False,PASS
+B11,Ineligible gift,DFC_BLOCKED,DFC_BLOCKED,True,0,False,,,True,PASS
+B12,Proposed amount exceeds expense,DFC_BLOCKED,DFC_BLOCKED,True,0,False,,,True,PASS

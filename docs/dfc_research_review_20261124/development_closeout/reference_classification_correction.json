@@ -1,0 +1,11 @@
+{
+  "source_provision": "274(h)(6)(B)",
+  "archived_target": "/us/usc/t26/s212/a/1/A",
+  "statutory_target": "Section 212(a)(1)(A) of the Caribbean Basin Economic Recovery Act",
+  "finding": "External statute incorrectly normalized as an internal tax-code path",
+  "shared_path_outputs": 21,
+  "available_xml_paths": 20,
+  "shared_external_classification_defect": 1,
+  "historical_inputs_changed": false,
+  "historical_metrics_recomputed": false
+}

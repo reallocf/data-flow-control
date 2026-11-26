@@ -1,0 +1,4 @@
+batch,parse_mode,required_object,returned_entries,recovered_judgments,strict_complete_batch,stop_reason,tokens
+J1,RAW_JSON,False,19,19,False,end_turn,10827
+J2,RAW_JSON,False,19,19,False,end_turn,10099
+J3,RAW_JSON,False,19,19,False,end_turn,10546

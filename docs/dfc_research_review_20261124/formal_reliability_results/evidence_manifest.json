@@ -1,0 +1,21 @@
+{
+  "assessment_scope.json": "daa95966dadcfcb4eba34dafa84c6a2e97090715764332bf904172b7b46f7c32",
+  "criterion_coverage.csv": "1af2de5731e260549967941ea13ae048bb82f29981b5e0e419fa7487f878aa01",
+  "environment_block_statistics.csv": "bba3c603598bccc609117417928eb497256f3947a9717685ce89fcbb94eab64f",
+  "environment_contrasts.csv": "5236ae598acfaa8788cc492339ccebea27608e212f8878048f92727e43201750",
+  "formal_descriptive_statistics.csv": "3a00e1d92477fdb257b759e1ebbce1cef8cbf9ad55ea8a5d74c5b91c4344f9c8",
+  "formal_group_comparison.csv": "ff44bdfedcbcfccb4a8cb18d75dbdf4b5f73af33e11a2395097d1d33547e2216",
+  "formal_manuscript_results.txt": "fdc6b3ec2f8cb080b839318301cf8ed356bd8a367287ab323648b9ab7da71cad",
+  "formal_pairwise_consistency.csv": "04b99fc6d1757561e9f3d2d6b9c952d0d3792c00f02c8b7d0c1a467b5a8195f9",
+  "formal_per_run_results.csv": "de57d52d9ef9b396a6cc383d9f7a9690520c1724f1a6385281a10adcfb3ca1f1",
+  "formal_sensitivity.csv": "cf8d51ee70788dc0ddd67cef6dc194b0b54d12f1309d3eba7f0f6917dcfe8b73",
+  "new_format_diagnostics.csv": "f0b8d2e2fdb4e4113fa96baad282d55e69d56fc4dc13e8d42c5563bd80019603",
+  "new_reference_per_run.csv": "a87feb1dfab331dc0e11abea61432629294e8e03aab4aa4ac25406f199ac894e",
+  "reference_assessment_scope.json": "31a78c35976940b06ec2847336e3d8f6ef45432a32072d75f167d002519cf65c",
+  "reference_integrated_comparison.csv": "c1c8c5251afeec61d51e797c149627fd2798dd06c5c33aa7442ae19ad5bf6f8c",
+  "reference_integrated_per_run.csv": "f3eaddf784a018bd753510cc432db7d4ddff5c7ae19ee97622154925125bd0bf",
+  "reference_consistency_summary.csv": "053a0aec5b348c414d4854dfc25a65e5340e5409c9ac62106898d76a26909ed7",
+  "reference_findings.txt": "a3ddfbc9a647ea90ff33e5db659613bbcd405f2bead9cb67973575d3cd399a3f",
+  "reference_new_assessments.csv": "12e20f05c7442e7afb11fa403e1001f291da726bb19ed96bb93d0ed4e40a90c7",
+  "reference_pairwise_consistency.csv": "4da74b4589cf1f0e05d15be149ee2ff9ca77053c9a62276f927bf99814428455"
+}

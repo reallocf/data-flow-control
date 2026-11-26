@@ -1,0 +1,17 @@
+{
+  "review_kind": "Model-assisted criterion assessment",
+  "independent_statutory_review": false,
+  "assignment_revealed_after_score_freeze": true,
+  "independent_blinding_established": false,
+  "frozen_criterion_count": 27,
+  "semantic_cells": 440,
+  "unit_of_repetition": "Model response",
+  "criterion_coverage_is_full_policy_recall": false,
+  "truncated_response": "Visible fragments assessed",
+  "truncated_sensitivity": true,
+  "quotation_alone_establishes_correctness": false,
+  "strict_format_check_is_full_schema_validation": false,
+  "alternative_interpretation_cells": 19,
+  "formal_scope": "Two familiar statutory sections",
+  "new_model_requests": 0
+}

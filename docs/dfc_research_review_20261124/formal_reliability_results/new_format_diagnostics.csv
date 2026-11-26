@@ -1,0 +1,4 @@
+masked_run,candidate_count,parse_mode,normalized_quote_matches,stop_reason
+K01,12,FENCE_ONLY,4,end_turn
+K02,10,FENCE_ONLY,0,end_turn
+K03,12,FENCE_ONLY,0,end_turn
