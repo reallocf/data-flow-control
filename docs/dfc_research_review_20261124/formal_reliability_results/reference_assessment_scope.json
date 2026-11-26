@@ -1,0 +1,18 @@
+{
+  "reference_responses": 9,
+  "reference_criteria": 153,
+  "continuation_responses": 3,
+  "historical_connection_failures": 2,
+  "historical_failure_billing": "UNKNOWN",
+  "confirmed_reference_request_tokens": 168536,
+  "historical_response_level_verified": true,
+  "historical_assessment_sha256": "ec26f168f4ae8a4c18d979bb0a1b6ac1cd9a05818313515b005a777ffffa15d9",
+  "historical_transport": "Converse",
+  "continuation_transport": "ConverseStream",
+  "same_collection_period": false,
+  "same_frozen_rubric": true,
+  "independent_statutory_review": false,
+  "complete_policy_recall_established": false,
+  "reference_comparison_isolated_causal_effect": false,
+  "new_aws_requests": 0
+}

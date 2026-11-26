@@ -1,0 +1,61 @@
+run,position,candidate_numbers,label,reason
+BROAD_01,195(a),1,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves default denial and statutory exception.
+BROAD_01,195(b)(1)(A),2,COMPLETE_WITHIN_FROZEN_SCOPE,"Preserves election, commencement year, lesser-of calculation, both monetary thresholds and zero floor."
+BROAD_01,195(b)(1)(B),3,PARTIAL,The initial deduction is described as already taken or made. Clarify that a zero initial deduction does not prevent otherwise applicable amortization.
+BROAD_01,195(b)(2),4,PARTIAL,Complete disposition and Section 165 are recognized. The restriction to attributable unallowed amounts and the extent allowable under Section 165 require more explicit representation.
+BROAD_01,195(b)(3),5,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the 2010 scope and both explicit substitutions.
+BROAD_01,195(c)(1),6 7,PARTIAL,"Four exclusion provisions are retained in a distinct candidate. Positive classification remains incomplete, including same-field and taxable-year requirements, and the precise alternative qualifying activities."
+BROAD_01,195(c)(2)(A),8,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the regulatory dependency and acquired-business exception; does not reconstruct absent regulations.
+BROAD_01,195(c)(2)(B),9,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves acquisition and commencement-date treatment.
+BROAD_01,195(d)(1),10,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves election timing and extensions across semantic fields.
+BROAD_01,195(d)(2),11,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the selected period and consistency across taxable years.
+BROAD_02,195(a),1,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves default denial and statutory exception.
+BROAD_02,195(b)(1)(A),2,COMPLETE_WITHIN_FROZEN_SCOPE,"Preserves election, commencement year, lesser-of calculation, both monetary thresholds and zero floor."
+BROAD_02,195(b)(1)(B),3,PARTIAL,The initial deduction is described as already taken or made. Clarify that a zero initial deduction does not prevent otherwise applicable amortization.
+BROAD_02,195(b)(2),4,PARTIAL,Complete disposition and Section 165 are recognized. The restriction to attributable unallowed amounts and the extent allowable under Section 165 require more explicit representation.
+BROAD_02,195(b)(3),5,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the 2010 scope and both explicit substitutions.
+BROAD_02,195(c)(1),6 7,PARTIAL,"Four exclusion provisions are retained in a distinct candidate. Positive classification remains incomplete, including same-field and taxable-year requirements, and the precise alternative qualifying activities."
+BROAD_02,195(c)(2)(A),8,PARTIAL,"Regulatory dependency is recognized, but the exception for acquired active businesses is absent from this candidate. It appears in a distinct candidate."
+BROAD_02,195(c)(2)(B),9,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves acquisition and commencement-date treatment.
+BROAD_02,195(d)(1),10,PARTIAL,Filing extensions are absent from operative semantic fields.
+BROAD_02,195(d)(2),11,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the selected period and consistency across taxable years.
+BROAD_03,195(a),1,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves default denial and statutory exception.
+BROAD_03,195(b)(1)(A),2,PARTIAL,Zero floor absent from operative semantic fields. The sequencing of the lesser-of and reduction calculation also requires explicit clarification.
+BROAD_03,195(b)(1)(B),3,PARTIAL,Ratable treatment and commencement month are not explicit.
+BROAD_03,195(b)(2),4,PARTIAL,Complete disposition and Section 165 are recognized. The restriction to attributable unallowed amounts and the extent allowable under Section 165 require more explicit representation.
+BROAD_03,195(b)(3),5,PARTIAL,"Both historical amounts appear, but the two substitutions are not explicitly paired with their general thresholds within this candidate. Review adjacent candidates distinctly."
+BROAD_03,195(c)(1),6 7,PARTIAL,"Four exclusion provisions are retained in a distinct candidate. Positive classification remains incomplete, including same-field and taxable-year requirements, and the precise alternative qualifying activities."
+BROAD_03,195(c)(2)(A),8,PARTIAL,"Regulatory dependency is recognized, but the exception for acquired active businesses is absent from this candidate. It appears in a distinct candidate."
+BROAD_03,195(c)(2)(B),9,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves acquisition and commencement-date treatment.
+BROAD_03,195(d)(1),10,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves election timing and extensions across semantic fields.
+BROAD_03,195(d)(2),11,PARTIAL,Describes continued election applicability rather than clearly retaining the selected deduction period.
+WORKLIST_01,195(a),1,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves default denial and statutory exception.
+WORKLIST_01,195(b)(1)(A),2,PARTIAL,Zero floor absent from operative semantic fields. The sequencing of the lesser-of and reduction calculation also requires explicit clarification.
+WORKLIST_01,195(b)(1)(B),3,PARTIAL,The initial deduction is described as already taken or made. Clarify that a zero initial deduction does not prevent otherwise applicable amortization.
+WORKLIST_01,195(b)(2),4,PARTIAL,Complete disposition and Section 165 are recognized. The restriction to attributable unallowed amounts and the extent allowable under Section 165 require more explicit representation.
+WORKLIST_01,195(b)(3),5,PARTIAL,"Both historical amounts appear, but the two substitutions are not explicitly paired with their general thresholds within this candidate. Review adjacent candidates distinctly."
+WORKLIST_01,195(c)(1),6,PARTIAL,"All four explicit exclusion provisions are missing from the semantic representation. Positive classification also omits necessary same-field, timing or activity conditions."
+WORKLIST_01,195(c)(2)(A),7,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the regulatory dependency and acquired-business exception; does not reconstruct absent regulations.
+WORKLIST_01,195(c)(2)(B),8,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves acquisition and commencement-date treatment.
+WORKLIST_01,195(d)(1),9,PARTIAL,Filing extensions are absent from operative semantic fields.
+WORKLIST_01,195(d)(2),10,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the selected period and consistency across taxable years.
+WORKLIST_02,195(a),1,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves default denial and statutory exception.
+WORKLIST_02,195(b)(1)(A),2,PARTIAL,Zero floor absent from operative semantic fields. The sequencing of the lesser-of and reduction calculation also requires explicit clarification.
+WORKLIST_02,195(b)(1)(B),3,PARTIAL,Commencement month is absent from the semantic fields.
+WORKLIST_02,195(b)(2),4,PARTIAL,Complete disposition and Section 165 are recognized. The restriction to attributable unallowed amounts and the extent allowable under Section 165 require more explicit representation.
+WORKLIST_02,195(b)(3),5,PARTIAL,"Both historical amounts appear, but the two substitutions are not explicitly paired with their general thresholds within this candidate. Review adjacent candidates distinctly."
+WORKLIST_02,195(c)(1),6,PARTIAL,"All four explicit exclusion provisions are missing from the semantic representation. Positive classification also omits necessary same-field, timing or activity conditions."
+WORKLIST_02,195(c)(2)(A),7,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the regulatory dependency and acquired-business exception; does not reconstruct absent regulations.
+WORKLIST_02,195(c)(2)(B),8,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves acquisition and commencement-date treatment.
+WORKLIST_02,195(d)(1),9,PARTIAL,Filing extensions are absent from operative semantic fields.
+WORKLIST_02,195(d)(2),10,PARTIAL,Describes continued election applicability rather than clearly retaining the selected deduction period.
+WORKLIST_03,195(a),1,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves default denial and statutory exception.
+WORKLIST_03,195(b)(1)(A),2,PARTIAL,Zero floor absent from operative semantic fields. The sequencing of the lesser-of and reduction calculation also requires explicit clarification.
+WORKLIST_03,195(b)(1)(B),3,PARTIAL,The initial deduction is described as already taken or made. Clarify that a zero initial deduction does not prevent otherwise applicable amortization.
+WORKLIST_03,195(b)(2),4,PARTIAL,Complete disposition and Section 165 are recognized. The restriction to attributable unallowed amounts and the extent allowable under Section 165 require more explicit representation.
+WORKLIST_03,195(b)(3),5,PARTIAL,"Both historical amounts appear, but the two substitutions are not explicitly paired with their general thresholds within this candidate. Review adjacent candidates distinctly."
+WORKLIST_03,195(c)(1),6,PARTIAL,"All four explicit exclusion provisions are missing from the semantic representation. Positive classification also omits necessary same-field, timing or activity conditions."
+WORKLIST_03,195(c)(2)(A),7,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the regulatory dependency and acquired-business exception; does not reconstruct absent regulations.
+WORKLIST_03,195(c)(2)(B),8,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves acquisition and commencement-date treatment.
+WORKLIST_03,195(d)(1),9,PARTIAL,Filing extensions are absent from operative semantic fields.
+WORKLIST_03,195(d)(2),10,COMPLETE_WITHIN_FROZEN_SCOPE,Preserves the selected period and consistency across taxable years.

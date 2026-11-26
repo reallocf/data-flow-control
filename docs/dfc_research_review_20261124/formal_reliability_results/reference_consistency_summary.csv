@@ -1,0 +1,4 @@
+condition,responses,always_complete,ever_complete,mean_jaccard,empty_union_pairs
+REF0,3,,A01;C02,0.16666666666666666,0
+R,3,,A01;A05;G04;G05,0.08333333333333333,0
+L,3,C02,A01;A02;A05;C01;C02,0.37777777777777777,0

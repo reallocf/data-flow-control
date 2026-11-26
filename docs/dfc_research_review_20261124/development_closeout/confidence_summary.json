@@ -1,0 +1,12 @@
+{
+  "assessed": 57,
+  "high": 36,
+  "high_on_exact": 2,
+  "high_on_nonexact": 34,
+  "distinct_nonexact_high_constraints": 20,
+  "precision": 0.05555555555555555,
+  "recall": 1.0,
+  "specificity": 0.38181818181818183,
+  "reference_labels": "Provisional historical assessment",
+  "independent_calibration": false
+}

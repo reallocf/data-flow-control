@@ -1,0 +1,4 @@
+condition,description,planned_responses,available_responses,complete,partial,missing_or_incorrect,semantic_score,maximum_score,normalized_score,mean_complete_set_jaccard,tokens
+REF0,Target only,3,3,3,30,18,36,102,0.35294117647058826,0.16666666666666666,27882
+R,REJ16 occurrence information,3,1,0,11,6,11,34,0.3235294117647059,,27649
+L,LLM occurrence information,3,2,4,17,13,25,68,0.36764705882352944,0.3333333333333333,56696

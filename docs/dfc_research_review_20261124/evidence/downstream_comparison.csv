@@ -1,0 +1,7 @@
+condition,candidates,citation_positions,total_positions,special_meal_position,available_subsections,cited_subsections,tokens
+SOURCE_ORDER,5,3,9,False,a b c d f i,a,9334
+MODEL_DIAGNOSTIC,5,4,9,False,a b c f i j,a,9325
+DEPENDENCY_GUARDED,6,4,9,False,a b c d h p,a,9633
+LEXICAL,5,4,9,False,a e h p,a,9193
+SOURCE_ORDER_GUIDED,6,4,9,False,a b c d f i,a,9738
+DEPENDENCY_GUARDED_GUIDED,5,4,9,False,a b c d h p,a,9549

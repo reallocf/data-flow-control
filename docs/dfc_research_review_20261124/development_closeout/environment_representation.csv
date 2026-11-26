@@ -1,0 +1,4 @@
+condition,complete,partial,missing_or_incorrect,semantic_score,maximum_score,complete_set_jaccard,total_tokens,required_object_passes
+A,5,31,15,41,102,0.16666666666666666,26832,3
+B,14,26,11,54,102,0.557142857142857,29968,2
+I,5,28,18,38,102,0.4444444444444444,32418,3

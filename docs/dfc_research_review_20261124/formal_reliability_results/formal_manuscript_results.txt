@@ -1,0 +1,58 @@
+FORMAL POLICY RELIABILITY EVALUATION
+
+Methods
+
+The experiment comprised thirty new model responses
+across six conditions, with five repetitions per
+condition. Section 274 concerned ordinary gifts,
+cruise convention expenses and employee achievement
+awards. Section 195 provided a distinct statutory
+semantic task.
+
+The assessment retained seventeen criteria for
+Section 274 and ten criteria for Section 195.
+Each criterion received a score of zero, one or two
+for absent or incorrect, partial, or complete
+semantic content respectively.
+
+The response was the experimental repetition unit.
+Complete criterion coverage and pairwise Jaccard
+similarity provided distinct measures of completeness
+and consistency.
+
+Results
+
+All thirty planned responses were obtained.
+The assessment covered 440 criterion instances:
+108 complete, 220 partial and 112 zero.
+
+For Section 274, Qwen scored 73/170 under condition A
+and 64/170 under condition B. GPT-OSS scored 69/170
+and 74/170 respectively.
+
+The explicit annual preparation environment did not
+produce a consistent improvement across both models.
+
+For Section 195, Qwen scored 73/100 and GPT-OSS
+scored 83/100.
+
+Mean pairwise Jaccard similarity ranged from
+approximately 0.183 to 0.670 across the six conditions.
+
+Limitations
+
+The criteria address a restricted statutory scope
+rather than complete tax policy recall.
+
+The semantic assessment was model-assisted.
+Independent statutory assessment remains pending.
+
+Five repetitions per condition support descriptive
+comparisons but do not establish a general model
+ranking or a population-level causal effect.
+
+The assessment retained visible content from one
+truncated response and included sensitivity analysis.
+
+The format diagnostics do not establish complete
+schema validity or DFC implementation correctness.

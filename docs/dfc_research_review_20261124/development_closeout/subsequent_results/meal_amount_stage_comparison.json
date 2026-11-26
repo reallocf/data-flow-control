@@ -1,0 +1,10 @@
+{
+  "eligible_expense_cents": 10000,
+  "proposed_deduction_cents": 5000,
+  "correct_engine_input_cents": 10000,
+  "correct_net_profit_cents": 95000,
+  "deduction_as_engine_input_cents": 5000,
+  "incorrect_net_profit_cents": 97500,
+  "deduction_shortfall_cents": 2500,
+  "historical_engine_changed": false
+}

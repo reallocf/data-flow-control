@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 525" role="img" aria-labelledby="heading">
+<title id="heading">2. Why historical facts matter</title>
+<rect width="100%" height="100%" rx="16" fill="#FFFFFF"/>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235E91"/></marker></defs>
+<text x="32" y="48" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#172B45">2. Why historical facts matter</text>
+<text x="32" y="78" font-family="Arial, sans-serif" font-size="19" font-weight="400" fill="#496077">Section 274(b): annual gift amount restriction and spouse aggregation</text>
+<rect x="32" y="103" width="1056" height="73" rx="12" fill="#EAF2F9" stroke="#B7C9D9"/>
+<text x="52" y="146" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#172B45">Identical current facts: $20 qualifying gift; proposed amount $20</text>
+<rect x="32" y="203" width="510" height="224" rx="12" fill="#FFF0D5" stroke="#B7C9D9"/>
+<text x="52" y="243" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#172B45">Scenario A</text>
+<text x="52" y="280" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#172B45">Prior qualifying spouse gifts: $10</text>
+<text x="52" y="317" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#172B45">Remaining annual cap: $25 - $10 = $15</text>
+<text x="52" y="358" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#172B45">$20 exceeds $15</text>
+<text x="52" y="395" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172B45">Fails the isolated cap test</text>
+<rect x="562" y="203" width="526" height="224" rx="12" fill="#E1F2E8" stroke="#B7C9D9"/>
+<text x="582" y="243" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#172B45">Scenario B</text>
+<text x="582" y="280" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#172B45">Prior qualifying spouse gifts: $0</text>
+<text x="582" y="317" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#172B45">Remaining annual cap: $25 - $0 = $25</text>
+<text x="582" y="358" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#172B45">$20 fits within $25</text>
+<text x="582" y="395" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#172B45">Passes the isolated cap test</text>
+<text x="32" y="467" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#172B45">Same current transaction; different historical facts; different cap decision.</text>
+<text x="32" y="500" font-family="Arial, sans-serif" font-size="17" font-weight="400" fill="#496077">Synthetic pair, same recipient and taxable year; other statutory conditions assumed.</text>
+</svg>

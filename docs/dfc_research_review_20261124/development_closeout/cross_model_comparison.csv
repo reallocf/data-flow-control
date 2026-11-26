@@ -1,0 +1,5 @@
+benchmark,group,model,repetitions,assessment_cells,complete,partial,missing_or_incorrect,semantic_score,maximum_score,normalized_semantic_score,structure_sensitive_score,complete_in_every_run,complete_in_any_run,mean_complete_set_jaccard,required_object_passes,strict_raw_json_passes,candidates,quote_matches,input_tokens,output_tokens,total_tokens
+274,BASELINE,qwen.qwen3-32b-v1:0,3,51,13,29,9,55,102,0.5392156862745098,35,3,7,0.5595238095238095,2,0,41,34,18855,11113,29968
+274,ADDITIONAL,openai.gpt-oss-120b-1:0,3,51,4,30,17,38,102,0.37254901960784315,38,0,2,0.3333333333333333,3,0,20,1,18675,9207,27882
+195,BASELINE,qwen.qwen3-32b-v1:0,3,30,16,14,0,46,60,0.7666666666666667,46,3,7,0.5952380952380952,3,0,33,33,2526,5773,8299
+195,ADDITIONAL,openai.gpt-oss-120b-1:0,3,30,19,11,0,49,60,0.8166666666666667,49,5,8,0.75,3,0,29,23,2583,9852,12435

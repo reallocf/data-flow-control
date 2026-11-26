@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 510" role="img" aria-labelledby="heading">
+<title id="heading">4. What position assignment missed</title>
+<rect width="100%" height="100%" rx="16" fill="#FFFFFF"/>
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235E91"/></marker></defs>
+<text x="32" y="48" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#172B45">4. What position assignment missed</text>
+<text x="32" y="78" font-family="Arial, sans-serif" font-size="19" font-weight="400" fill="#496077">Section 195: matched statutory input, Qwen, three responses per condition</text>
+<rect x="32" y="105" width="1056" height="84" rx="12" fill="#EAF2F9" stroke="#B7C9D9"/>
+<text x="52" y="139" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#172B45">Both methods: 30/30 citation positions across 3 responses each</text>
+<text x="52" y="170" font-family="Arial, sans-serif" font-size="20" font-weight="400" fill="#172B45">Identical citation coverage does not imply identical semantic quality.</text>
+<rect x="32" y="212" width="510" height="200" rx="12" fill="#EAF2F9" stroke="#B7C9D9"/>
+<text x="52" y="246" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#172B45">Broad discovery</text>
+<text x="52" y="282" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#172B45">15/30 provision assessments complete</text>
+<text x="52" y="317" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Four expense exclusions retained: 3/3</text>
+<text x="52" y="355" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Complete-position Jaccard: 0.492</text>
+<rect x="562" y="212" width="526" height="200" rx="12" fill="#FFF0D5" stroke="#B7C9D9"/>
+<text x="582" y="246" font-family="Arial, sans-serif" font-size="27" font-weight="700" fill="#172B45">Position worklist</text>
+<text x="582" y="282" font-family="Arial, sans-serif" font-size="22" font-weight="400" fill="#172B45">11/30 provision assessments complete</text>
+<text x="582" y="317" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Four expense exclusions retained: 0/3</text>
+<text x="582" y="355" font-family="Arial, sans-serif" font-size="21" font-weight="400" fill="#172B45">Complete-position Jaccard: 0.833</text>
+<text x="32" y="450" font-family="Arial, sans-serif" font-size="23" font-weight="700" fill="#172B45">195(c)(1): one legal position can contain several distinct obligations.</text>
+<text x="32" y="482" font-family="Arial, sans-serif" font-size="17" font-weight="400" fill="#496077">Provisional labels; alternate review reading narrows the totals to 17/30 vs 16/30.</text>
+</svg>

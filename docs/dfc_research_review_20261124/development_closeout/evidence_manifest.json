@@ -1,0 +1,16 @@
+{
+  "assessment_scope.md": "62b123c0867c943704322790cb7cf6d98c34366f6cc8e46213ae035c089f03ef",
+  "conditional_legal_comparison.csv": "2267294c147f7d7094f8521f947df1adbbd63fd63df924cef476f1ccc3392e1e",
+  "confidence_summary.json": "07feb96fa7f2377147de1cd3e2b927f913f908c8cfee5134811a736000d4ff01",
+  "cross_model_comparison.csv": "649b5fc2950bee9ecc9c2a5e97a5f33a91c7f5e470e46a6951a8f3384ce2aad0",
+  "data_provenance.csv": "95a2bf3f8b25256f8b9751d624a775c4a62b947e800432eeeba245c2c4bc07bd",
+  "environment_representation.csv": "0d3e9650b20f65e70511b18c04f67bc5fa9932b397e667c97af967cae7c35faf",
+  "mcp_transport_result.json": "13e50ba45b3a70683dc09713e4b23b253edc64ca384a9569d13c1ff456ecf081",
+  "predicate_enforcement.csv": "df48b17748c5a29502d73d12b157e4b099cdc1a4e3d18607331738ebf1b021a1",
+  "README.md": "612b034f744b3550db14d8fe0677140076cd94798a2adc132860eb8ac3b86f41",
+  "reference_classification_correction.json": "7fc7106073d1a925e97fc570d5d6e6f1fb2b6a35fa363f15ad253f09198032ae",
+  "reference_collection_status.json": "f567a6aa1195f1938804e8d053c28516d8f5fecfdd751347b660e41bb1fe8f6c",
+  "reference_condition_comparison.csv": "81fc0948b53de033a49db6339f7467ba8c5f9daa05f4ae9ef23202c282f22737",
+  "reference_scoring_sensitivity.csv": "060e850e87c1a813ff98ac0327fca32a6f8e054e49f26574aef5facbee45bc1d",
+  "verify_review.py": "7c2876a24dcd799cdebe35965158950f77a184b7ecc9e7bd0b67ed8602c25572"
+}

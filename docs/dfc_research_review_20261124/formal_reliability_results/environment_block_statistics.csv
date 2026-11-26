@@ -1,0 +1,3 @@
+model_key,block_count,mean_B_minus_A,median_B_minus_A,positive_blocks,negative_blocks,equal_blocks,minimum_difference,maximum_difference
+Q,5,-1.8,-3,1,3,1,-5,4
+G,5,1,1,3,2,0,-3,8

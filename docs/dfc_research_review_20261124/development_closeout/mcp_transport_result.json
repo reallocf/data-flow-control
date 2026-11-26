@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checks": {
+    "tool_discovery": true,
+    "top_one": true,
+    "ranking": true,
+    "text_limit": true
+  },
+  "mcp_version": "1.30.0",
+  "duckdb_version": "2.0.0",
+  "transport": "stdio",
+  "synthetic_lifespan": true,
+  "real_embedding_model_tested": false,
+  "production_database_tested": false
+}

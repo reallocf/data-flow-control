@@ -1,0 +1,24 @@
+policy_id,case_id,name,reference_allows,distinct_policy,historical_label,actual_constraint_allows,matches_reference,false_admission,false_rejection
+H002,1,Club dues positive deduction,False,P02,EXACT,False,True,False,False
+H002,2,Club dues zero deduction,True,P02,EXACT,True,True,False,False
+H033,3,Covered transportation fringe,False,P25,EXACT,False,True,False,False
+H033,4,Transportation fringe zero,True,P25,EXACT,True,True,False,False
+H003,5,Large gift partial deduction,True,P03,INCORRECT,False,False,False,True
+H003,6,Small gift with prior expenses,False,P03,INCORRECT,True,False,True,False
+H014,7,Ordinary twenty-dollar gift,True,P12,INCORRECT,False,False,False,True
+H014,8,Thirty-dollar gift fully deducted,False,P12,INCORRECT,True,False,True,False
+H022,9,Gift within remaining amount,True,P18,INCORRECT,False,False,False,True
+H022,10,Small nonpromotional gift after cap,False,P18,INCORRECT,True,False,True,False
+H042,11,Otherwise eligible gift,True,P26,INCORRECT,False,False,False,True
+H026,12,Lavish meal with taxpayer attending,False,P22,INCORRECT,True,False,True,False
+H026,13,Ordinary meal without attendance,False,P22,INCORRECT,True,False,True,False
+H026,14,Lavish meal without attendance,False,P22,INCORRECT,False,True,False,False
+H026,15,Ordinary meal with attendance,True,P22,INCORRECT,True,True,False,False
+H006,16,Ordinary meal fifty percent,True,P06,PARTIAL,True,True,False,False
+H006,17,Ordinary meal above fifty percent,False,P06,PARTIAL,False,True,False,False
+H023,18,Foreign travel business allocation,True,P19,INCORRECT,False,False,False,True
+H023,19,Foreign travel excess allocation,False,P19,INCORRECT,False,True,False,False
+H025,20,Nonqualified award at boundary,True,P21,INCORRECT,True,True,False,False
+H025,21,Nonqualified award above boundary,False,P21,INCORRECT,False,True,False,False
+H004,22,Unsubstantiated gift,False,P04,PARTIAL,False,True,False,False
+H004,23,Substantiated gift,True,P04,PARTIAL,True,True,False,False
